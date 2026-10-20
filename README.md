@@ -38,6 +38,13 @@ La tabla es de solo lectura para la web (RLS); solo se edita desde el panel de S
 
 Si `lyrics` está vacío, la app busca la letra automáticamente en [LRCLIB](https://lrclib.net) (gratis, sin clave; muchas vienen sincronizadas) y la guarda en el navegador. Funciona mejor cuando la canción tiene `artist` y `duration` correctos. Si escribes tu propia letra en `lyrics`, se usa esa.
 
+## Biblioteca, playlists y favoritas
+
+- **Biblioteca**: todas las canciones de todas las fuentes, con orden configurable (playlists, título, artista, duración).
+- **Playlists**: las de LiquidBrush (una por cada `album` de la base de datos y las guardadas para todos), **Mis playlists** y las automáticas *Escuchadas hace poco* y *Tus más escuchadas*.
+- **Mis playlists** se crean en la app (nombre, icono y color) con el botón ＋ de cada canción. Se guardan **solo en ese navegador** (localStorage): si se borra la caché o los datos del sitio, se pierden. Se puede descargar o importar una copia de seguridad en JSON.
+- **Guardar para todos**: una playlist propia se publica en la tabla `shared_playlists` del proyecto principal pidiendo la **KeyForSet**. La clave no está en el código: Supabase la guarda como hash y la comprueba en las funciones `save_shared_playlist` / `delete_shared_playlist` (con límite de 10 fallos cada 10 minutos). Se configura con [`supabase/playlists-compartidas.sql`](supabase/playlists-compartidas.sql).
+
 ## Modo offline
 
 - La app se puede **instalar** (en el móvil: *Añadir a pantalla de inicio*) y abre sin conexión gracias a `sw.js`, que guarda la app y la última lista de canciones.

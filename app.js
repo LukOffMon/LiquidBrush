@@ -47,7 +47,13 @@
     muted: 'liquidbrush:muted',
     shuffle: 'liquidbrush:shuffle',
     repeat: 'liquidbrush:repeat',
-    lyricsPrefix: 'liquidbrush:lyrics:'
+    lyricsPrefix: 'liquidbrush:lyrics:',
+    playlists: 'liquidbrush:playlists',
+    recent: 'liquidbrush:recent',
+    plays: 'liquidbrush:plays',
+    sort: 'liquidbrush:sort',
+    view: 'liquidbrush:view',
+    setKey: 'liquidbrush:setkey'
   };
 
   const LYRICS_API = 'https://lrclib.net/api';
@@ -114,9 +120,11 @@
     queueContext: '',
     currentTrack: null,
     favorites: new Set(),
-    // Playlists desplegadas en la vista "Todas" (de base todas empiezan minimizadas)
-    expanded: new Set(),
-    view: 'all',
+    // library | playlists | favorites | playlist (una playlist abierta)
+    view: 'library',
+    openPlaylist: null,
+    sort: 'original',
+    countedId: null,
     query: '',
     shuffle: false,
     repeat: 'off',
@@ -147,8 +155,28 @@
     tabsBar: document.querySelector('.tabs'),
     lyricsBtn: $('lyricsBtn'),
     favCount: $('favCount'),
+    libCount: $('libCount'),
+    plCount: $('plCount'),
+    viewHead: $('viewHead'),
     listInfo: $('listInfo'),
+    playlistGrid: $('playlistGrid'),
     trackList: $('trackList'),
+    library: document.querySelector('.library'),
+    npAddBtn: $('npAddBtn'),
+    keyDialog: $('keyDialog'),
+    keyMessage: $('keyMessage'),
+    keyInput: $('keyInput'),
+    keyRemember: $('keyRemember'),
+    plDialog: $('plDialog'),
+    plDialogTitle: $('plDialogTitle'),
+    plName: $('plName'),
+    plEmojis: $('plEmojis'),
+    plColors: $('plColors'),
+    addDialog: $('addDialog'),
+    addTrackName: $('addTrackName'),
+    addList: $('addList'),
+    addNew: $('addNew'),
+    importInput: $('importInput'),
     miniCover: $('miniCover'),
     miniTitle: $('miniTitle'),
     miniArtist: $('miniArtist'),
@@ -178,8 +206,10 @@
     set(key, value) {
       try {
         localStorage.setItem(key, JSON.stringify(value));
+        return true;
       } catch {
         /* localStorage no disponible (modo privado, cuota llena…) */
+        return false;
       }
     }
   };
@@ -289,7 +319,7 @@
   async function loadTracks() {
     els.listInfo.textContent = 'Cargando canciones…';
     try {
-      const data = await fetchTrackData();
+      const [data] = await Promise.all([fetchTrackData(), loadSharedPlaylists()]);
       if (!Array.isArray(data)) throw new Error('La lista de canciones debe ser un array');
 
       state.tracks = data
@@ -318,8 +348,9 @@
       state.trackMap = new Map(state.tracks.map((t) => [t.id, t]));
       await refreshDownloads();
 
-      renderTabs();
-      renderList();
+      // Si la playlist que estaba abierta ya no existe, se vuelve a Playlists
+      if (state.view === 'playlist' && !getPlaylist(state.openPlaylist)) state.view = 'playlists';
+      setView(state.view);
 
       if (state.tracks.length) {
         buildQueue((state.tracks.find(isPlayable) || state.tracks[0]).id);
@@ -354,7 +385,7 @@
   const cacheKey = (src) => new URL(src, location.href).href;
   const isDownloaded = (track) => offline.downloaded.has(cacheKey(track.src));
   const isPlayable = (track) => navigator.onLine || isDownloaded(track);
-  const playlistTracks = (name) => state.tracks.filter((t) => (t.album || 'Sin playlist') === name);
+  const playlistTracks = (key) => playlistTracksOf(getPlaylist(key));
 
   async function refreshDownloads() {
     if (!offline.supported) return;
@@ -372,10 +403,11 @@
   }
 
   function updatePlaylistHeader(header) {
-    const name = header.dataset.playlist;
-    const tracks = playlistTracks(name);
+    const key = header.dataset.key;
+    const name = getPlaylist(key)?.name || '';
+    const tracks = playlistTracks(key);
     const saved = tracks.filter(isDownloaded).length;
-    const job = offline.jobs.get(name);
+    const job = offline.jobs.get(key);
     const meta = header.querySelector('.playlist-meta');
     let status = '';
     if (job) status = ` · Descargando ${job.done}/${job.total}…`;
@@ -397,32 +429,34 @@
   }
 
   function updateDownloadUI() {
-    els.trackList.querySelectorAll('.playlist-header').forEach(updatePlaylistHeader);
+    els.viewHead.querySelectorAll('.pl-hero').forEach(updatePlaylistHeader);
     els.trackList.querySelectorAll('.track').forEach((li) => {
       const track = getTrack(li.dataset.id);
       if (track) li.classList.toggle('is-downloaded', isDownloaded(track));
     });
   }
 
-  async function removeDownloads(name) {
+  async function removeDownloads(key) {
+    const name = getPlaylist(key)?.name || '';
     if (!confirm(`¿Quitar las descargas de «${name}»? Ya no se podrá escuchar sin conexión.`)) return;
     const cache = await caches.open(AUDIO_CACHE);
-    await Promise.all(playlistTracks(name).map((t) => cache.delete(cacheKey(t.src))));
+    await Promise.all(playlistTracks(key).map((t) => cache.delete(cacheKey(t.src))));
     await refreshDownloads();
     updateDownloadUI();
     showToast(`Descargas de «${name}» eliminadas.`);
   }
 
-  async function toggleDownload(name) {
-    const running = offline.jobs.get(name);
+  async function toggleDownload(key) {
+    const running = offline.jobs.get(key);
     if (running) {
       running.cancelled = true;
       return;
     }
-    const tracks = playlistTracks(name);
+    const name = getPlaylist(key)?.name || '';
+    const tracks = playlistTracks(key);
     const missing = tracks.filter((t) => !isDownloaded(t));
     if (!missing.length) {
-      removeDownloads(name);
+      removeDownloads(key);
       return;
     }
     if (!navigator.onLine) {
@@ -436,7 +470,7 @@
     // Pide al navegador que no borre las descargas cuando falte espacio
     navigator.storage?.persist?.().catch(() => {});
     const job = { done: tracks.length - missing.length, total: tracks.length, cancelled: false, noSpace: false };
-    offline.jobs.set(name, job);
+    offline.jobs.set(key, job);
     updateDownloadUI();
 
     const cache = await caches.open(AUDIO_CACHE);
@@ -467,7 +501,7 @@
       }
     };
     await Promise.all([worker(), worker()]);
-    offline.jobs.delete(name);
+    offline.jobs.delete(key);
     updateDownloadUI();
 
     if (job.noSpace) showToast('No queda espacio en el dispositivo para más descargas.');
@@ -500,105 +534,696 @@
     });
   }
 
-  /* ---------- Lista de canciones ---------- */
-  function getVisibleTracks() {
-    const q = normalize(state.query);
-    return state.tracks.filter((track) => {
-      if (state.view === 'favorites' && !state.favorites.has(track.id)) return false;
-      if (state.view.startsWith('pl:') && track.album !== state.view.slice(3)) return false;
-      if (!q) return true;
-      return [track.title, track.artist, track.album].some((field) => normalize(field).includes(q));
+  /* ---------- Playlists ---------- */
+  // Oficiales: las de la base de datos (una por "album").
+  // Guardadas para todos: creadas en la app con la KeyForSet (tabla shared_playlists).
+  // Mías: solo en este navegador (localStorage). Automáticas: recientes y más escuchadas.
+  const PLAYLIST_EMOJIS = ['💿', '🎧', '🔥', '🌙', '🫧', '🪩', '💜', '🖤', '🌈', '⚡', '🍒', '👁️', '🦋', '🌊', '🧠', '✨'];
+  const PLAYLIST_COLORS = ['#8a93a6', '#ff7ad9', '#7ef9ff', '#ffe27a', '#7a5cff', '#ff5f6d', '#3ddc97', '#ff9f43'];
+  const RECENT_LIMIT = 50;
+  const TOP_LIMIT = 30;
+  const SORTS = {
+    original: 'Orden de las playlists',
+    title: 'Título (A-Z)',
+    artist: 'Artista (A-Z)',
+    long: 'Más largas primero',
+    short: 'Más cortas primero'
+  };
+  const VIEWS = ['library', 'playlists', 'favorites'];
+
+  const library = {
+    shared: [],
+    local: [],
+    recent: [],
+    plays: {}
+  };
+
+  const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  const songsLabel = (n) => `${n} canci${n === 1 ? 'ón' : 'ones'}`;
+  const collator = new Intl.Collator('es', { sensitivity: 'base', numeric: true });
+
+  function saveLocalPlaylists() {
+    if (!storage.set(KEYS.playlists, library.local)) {
+      showToast('No se pudo guardar en este navegador (¿modo privado o sin espacio?).');
+    }
+  }
+
+  function systemPlaylists() {
+    const groups = new Map();
+    state.tracks.forEach((t) => {
+      if (!t.album) return;
+      if (!groups.has(t.album)) groups.set(t.album, []);
+      groups.get(t.album).push(t.id);
+    });
+    return [...groups].map(([name, trackIds]) => ({ key: `sys:${name}`, kind: 'system', name, trackIds }));
+  }
+
+  function sharedPlaylists() {
+    return library.shared.map((p) => ({
+      key: `shared:${p.id}`, kind: 'shared', id: p.id, name: p.name,
+      emoji: p.emoji, color: p.color, trackIds: Array.isArray(p.track_ids) ? p.track_ids : []
+    }));
+  }
+
+  function localPlaylists() {
+    return library.local.map((p) => ({
+      key: `local:${p.id}`, kind: 'local', id: p.id, name: p.name,
+      emoji: p.emoji, color: p.color, trackIds: p.trackIds, sharedId: p.sharedId || null
+    }));
+  }
+
+  function autoPlaylists() {
+    const top = Object.entries(library.plays)
+      .filter(([id]) => state.trackMap.has(id))
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, TOP_LIMIT)
+      .map(([id]) => id);
+    return [
+      { key: 'auto:recent', kind: 'auto', name: 'Escuchadas hace poco', emoji: '🕘', color: '#7ef9ff', trackIds: library.recent },
+      { key: 'auto:top', kind: 'auto', name: 'Tus más escuchadas', emoji: '🏆', color: '#ffe27a', trackIds: top }
+    ];
+  }
+
+  function getPlaylist(key) {
+    if (!key) return null;
+    const [kind] = key.split(':');
+    const list = { sys: systemPlaylists, shared: sharedPlaylists, local: localPlaylists, auto: autoPlaylists }[kind];
+    return list ? list().find((p) => p.key === key) || null : null;
+  }
+
+  const playlistTracksOf = (pl) => (pl ? pl.trackIds.map(getTrack).filter(Boolean) : []);
+  const findLocal = (id) => library.local.find((p) => p.id === id);
+
+  function recordPlay(id) {
+    library.recent = [id, ...library.recent.filter((x) => x !== id)].slice(0, RECENT_LIMIT);
+    library.plays[id] = (library.plays[id] || 0) + 1;
+    storage.set(KEYS.recent, library.recent);
+    storage.set(KEYS.plays, library.plays);
+  }
+
+  /* ---------- Playlists guardadas para todos (Supabase + KeyForSet) ---------- */
+  // Viven en el proyecto principal. La clave nunca está en el código: Supabase la comprueba.
+  const SHARED_DB = CONFIG.sources[0];
+
+  async function loadSharedPlaylists() {
+    try {
+      const response = await fetch(`${SHARED_DB.url}/rest/v1/shared_playlists?select=*&order=created_at.asc`, {
+        headers: { apikey: SHARED_DB.key },
+        cache: 'no-cache'
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      library.shared = await response.json();
+    } catch (error) {
+      console.warn('[LiquidBrush] No se pudieron cargar las playlists guardadas para todos.', error);
+    }
+  }
+
+  async function supabaseRpc(fn, body) {
+    const response = await fetch(`${SHARED_DB.url}/rest/v1/rpc/${fn}`, {
+      method: 'POST',
+      headers: { apikey: SHARED_DB.key, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const text = await response.text();
+    if (!response.ok) {
+      let message = '';
+      try { message = JSON.parse(text).message || ''; } catch { /* respuesta sin JSON */ }
+      const error = new Error(message || `HTTP ${response.status}`);
+      error.status = response.status;
+      throw error;
+    }
+    return text ? JSON.parse(text) : null;
+  }
+
+  function readSessionKey() {
+    try { return sessionStorage.getItem(KEYS.setKey) || ''; } catch { return ''; }
+  }
+
+  function writeSessionKey(value) {
+    try {
+      if (value) sessionStorage.setItem(KEYS.setKey, value);
+      else sessionStorage.removeItem(KEYS.setKey);
+    } catch { /* sin sessionStorage */ }
+  }
+
+  function openDialog(dialog) {
+    return new Promise((resolve) => {
+      dialog.returnValue = '';
+      dialog.addEventListener('close', () => resolve(dialog.returnValue), { once: true });
+      dialog.showModal();
     });
   }
 
-  function renderList() {
-    const visible = getVisibleTracks();
-    const fragment = document.createDocumentFragment();
+  async function askKey(message) {
+    const remembered = readSessionKey();
+    if (remembered) return remembered;
+    els.keyMessage.textContent = message;
+    els.keyInput.value = '';
+    const result = await openDialog(els.keyDialog);
+    const value = els.keyInput.value;
+    els.keyInput.value = '';
+    if (result !== 'ok' || !value) return null;
+    if (els.keyRemember.checked) writeSessionKey(value);
+    return value;
+  }
 
-    // Cada playlist se muestra como un bloque separado con su propio encabezado
-    const groups = new Map();
-    visible.forEach((track) => {
-      const name = track.album || 'Sin playlist';
-      if (!groups.has(name)) groups.set(name, []);
-      groups.get(name).push(track);
-    });
-    // En "Todas" las playlists salen minimizadas; al buscar o filtrar se muestran abiertas
-    const collapsible = state.view === 'all' && !normalize(state.query);
-    groups.forEach((tracks, name) => {
-      const open = !collapsible || state.expanded.has(name);
-      fragment.appendChild(createPlaylistHeader(name, tracks, open, collapsible));
-      if (open) tracks.forEach((track, i) => fragment.appendChild(createTrackItem(track, i)));
-    });
+  function handleKeyError(error) {
+    if (error.message === 'clave_incorrecta') {
+      writeSessionKey('');
+      showToast('KeyForSet incorrecta. No se guardó nada.');
+    } else if (error.message === 'demasiados_intentos') {
+      writeSessionKey('');
+      showToast('Demasiados intentos fallidos. Espera 10 minutos y vuelve a probar.');
+    } else if (error.status === 404) {
+      showToast('El guardado para todos aún no está activado en Supabase.');
+    } else {
+      console.error('[LiquidBrush] Error al guardar para todos:', error);
+      showToast(navigator.onLine ? 'No se pudo guardar. Inténtalo de nuevo.' : 'Sin conexión: conéctate para guardar para todos.');
+    }
+  }
 
-    if (!visible.length) {
+  async function sharePlaylist(pl) {
+    if (!pl.trackIds.length) {
+      showToast('La playlist está vacía: añade canciones antes de guardarla.');
+      return;
+    }
+    const verb = pl.sharedId ? 'Actualizar' : 'Guardar';
+    const key = await askKey(`${verb} «${pl.name}» para todos. Quedará en la base de datos y la verá cualquiera que abra LiquidBrush, en cualquier dispositivo.`);
+    if (!key) return;
+    try {
+      const id = await supabaseRpc('save_shared_playlist', {
+        p_key: key, p_id: pl.sharedId, p_name: pl.name,
+        p_emoji: pl.emoji || '', p_color: pl.color || '', p_track_ids: pl.trackIds
+      });
+      // Ya no es temporal: la copia local deja de hacer falta
+      library.local = library.local.filter((p) => p.id !== pl.id);
+      saveLocalPlaylists();
+      await loadSharedPlaylists();
+      openPlaylist(`shared:${id}`);
+      showToast(`«${pl.name}» guardada para todos.`);
+    } catch (error) {
+      handleKeyError(error);
+    }
+  }
+
+  async function deleteSharedPlaylist(pl) {
+    if (!confirm(`¿Eliminar «${pl.name}» para todos? Desaparecerá en todos los dispositivos.`)) return;
+    const key = await askKey(`Eliminar «${pl.name}» para todos.`);
+    if (!key) return;
+    try {
+      await supabaseRpc('delete_shared_playlist', { p_key: key, p_id: pl.id });
+      await loadSharedPlaylists();
+      setView('playlists');
+      showToast(`«${pl.name}» eliminada para todos.`);
+    } catch (error) {
+      handleKeyError(error);
+    }
+  }
+
+  /* ---------- Mis playlists (solo en este navegador) ---------- */
+  function fillChoices(container, name, values, selected, render) {
+    container.replaceChildren(...values.map((value) => {
+      const label = document.createElement('label');
+      label.className = 'choice';
+      const input = document.createElement('input');
+      input.type = 'radio';
+      input.name = name;
+      input.value = value;
+      input.checked = value === selected;
+      const face = document.createElement('span');
+      face.className = 'choice-face';
+      render(face, value);
+      label.append(input, face);
+      return label;
+    }));
+  }
+
+  async function editPlaylistDialog(existing) {
+    els.plDialogTitle.textContent = existing ? 'Editar playlist' : 'Nueva playlist';
+    els.plName.value = existing?.name || '';
+    const emoji = existing?.emoji || PLAYLIST_EMOJIS[Math.floor(Math.random() * PLAYLIST_EMOJIS.length)];
+    const color = existing?.color || PLAYLIST_COLORS[Math.floor(Math.random() * PLAYLIST_COLORS.length)];
+    fillChoices(els.plEmojis, 'plEmoji', PLAYLIST_EMOJIS, emoji, (face, value) => { face.textContent = value; });
+    fillChoices(els.plColors, 'plColor', PLAYLIST_COLORS, color, (face, value) => {
+      face.style.background = value;
+      face.setAttribute('aria-label', value);
+    });
+    const result = await openDialog(els.plDialog);
+    const name = els.plName.value.trim().slice(0, 60);
+    if (result !== 'ok' || !name) return null;
+    return {
+      name,
+      emoji: els.plDialog.querySelector('input[name="plEmoji"]:checked')?.value || emoji,
+      color: els.plDialog.querySelector('input[name="plColor"]:checked')?.value || color
+    };
+  }
+
+  async function createPlaylist(initialTrackIds = []) {
+    const data = await editPlaylistDialog(null);
+    if (!data) return null;
+    const playlist = { id: newId(), ...data, trackIds: [...new Set(initialTrackIds)], sharedId: null, createdAt: Date.now() };
+    library.local.push(playlist);
+    saveLocalPlaylists();
+    return playlist;
+  }
+
+  async function editLocalPlaylist(id) {
+    const playlist = findLocal(id);
+    if (!playlist) return;
+    const data = await editPlaylistDialog(playlist);
+    if (!data) return;
+    Object.assign(playlist, data);
+    saveLocalPlaylists();
+    renderList();
+  }
+
+  function deleteLocalPlaylist(id) {
+    const playlist = findLocal(id);
+    if (!playlist || !confirm(`¿Eliminar «${playlist.name}» de este dispositivo?`)) return;
+    library.local = library.local.filter((p) => p.id !== id);
+    saveLocalPlaylists();
+    setView('playlists');
+    showToast(`«${playlist.name}» eliminada.`);
+  }
+
+  function copyToLocal(pl, linkShared = false) {
+    const playlist = {
+      id: newId(),
+      name: linkShared ? pl.name : `${pl.name} (mía)`.slice(0, 60),
+      emoji: pl.emoji || '💿',
+      color: pl.color || PLAYLIST_COLORS[Math.floor(Math.random() * PLAYLIST_COLORS.length)],
+      trackIds: playlistTracksOf(pl).map((t) => t.id),
+      sharedId: linkShared ? pl.id : null,
+      createdAt: Date.now()
+    };
+    library.local.push(playlist);
+    saveLocalPlaylists();
+    openPlaylist(`local:${playlist.id}`);
+    showToast(linkShared
+      ? 'Copia lista para editar. Cuando termines, pulsa «Actualizar para todos».'
+      : `Copiada a tus playlists: «${playlist.name}».`);
+  }
+
+  function addToLocal(id, trackId) {
+    const playlist = findLocal(id);
+    const track = getTrack(trackId);
+    if (!playlist || !track) return;
+    if (playlist.trackIds.includes(trackId)) {
+      showToast(`«${track.title}» ya está en «${playlist.name}».`);
+      return;
+    }
+    playlist.trackIds.push(trackId);
+    saveLocalPlaylists();
+    showToast(`Añadida a «${playlist.name}»: ${track.title}`);
+    if (state.view === 'playlists' || state.openPlaylist === `local:${id}`) renderList();
+  }
+
+  function removeFromLocal(id, trackId) {
+    const playlist = findLocal(id);
+    if (!playlist) return;
+    playlist.trackIds = playlist.trackIds.filter((t) => t !== trackId);
+    saveLocalPlaylists();
+    renderList();
+  }
+
+  let addTarget = null;
+  function openAddDialog(trackId) {
+    const track = getTrack(trackId);
+    if (!track) return;
+    addTarget = trackId;
+    els.addTrackName.textContent = `${track.title} · ${track.artist}`;
+    if (!library.local.length) {
       const li = document.createElement('li');
-      li.className = 'list-empty';
-      if (!state.tracks.length) {
-        li.textContent = 'La biblioteca está vacía por ahora. Las canciones que añadas en Supabase aparecerán aquí.';
-      } else if (state.view === 'favorites' && !state.query) {
-        li.textContent = 'Aún no tienes favoritas. Pulsa el ♥ de una canción para guardarla aquí.';
-      } else {
-        li.textContent = 'No se encontraron canciones.';
+      li.className = 'add-empty';
+      li.textContent = 'Aún no tienes playlists propias. Crea una nueva para empezar.';
+      els.addList.replaceChildren(li);
+    } else {
+      els.addList.replaceChildren(...library.local.map((p) => {
+        const li = document.createElement('li');
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'add-item';
+        button.dataset.id = p.id;
+        const has = p.trackIds.includes(trackId);
+        const emoji = document.createElement('span');
+        emoji.className = 'add-emoji';
+        emoji.style.background = p.color;
+        emoji.textContent = p.emoji;
+        const name = document.createElement('span');
+        name.className = 'add-name';
+        name.textContent = p.name;
+        const meta = document.createElement('span');
+        meta.className = 'add-meta';
+        meta.textContent = has ? 'Ya está aquí' : songsLabel(p.trackIds.length);
+        button.disabled = has;
+        button.append(emoji, name, meta);
+        li.append(button);
+        return li;
+      }));
+    }
+    els.addDialog.showModal();
+  }
+
+  function exportPlaylists() {
+    const data = {
+      app: 'LiquidBrush',
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      playlists: library.local,
+      favorites: [...state.favorites]
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `liquidbrush-mis-playlists-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    showToast('Copia de seguridad descargada.');
+  }
+
+  async function importPlaylists(file) {
+    try {
+      const data = JSON.parse(await file.text());
+      if (!data || !Array.isArray(data.playlists)) throw new Error('Formato no válido');
+      let added = 0;
+      data.playlists.forEach((p) => {
+        if (!p || typeof p.name !== 'string' || !Array.isArray(p.trackIds)) return;
+        const duplicate = library.local.some((q) => q.name === p.name && q.trackIds.join() === p.trackIds.join());
+        if (duplicate) return;
+        library.local.push({
+          id: findLocal(p.id) ? newId() : String(p.id || newId()),
+          name: p.name.slice(0, 60),
+          emoji: typeof p.emoji === 'string' ? p.emoji : '💿',
+          color: /^#[0-9a-f]{6}$/i.test(p.color) ? p.color : PLAYLIST_COLORS[0],
+          trackIds: p.trackIds.map(String),
+          sharedId: p.sharedId || null,
+          createdAt: p.createdAt || Date.now()
+        });
+        added++;
+      });
+      if (Array.isArray(data.favorites)) {
+        data.favorites.forEach((id) => state.favorites.add(String(id)));
+        storage.set(KEYS.favorites, [...state.favorites]);
       }
-      fragment.appendChild(li);
+      saveLocalPlaylists();
+      renderList();
+      showToast(added ? `Importadas ${added} playlist${added === 1 ? '' : 's'}.` : 'No había playlists nuevas en el archivo.');
+    } catch (error) {
+      console.warn('[LiquidBrush] No se pudo importar:', error);
+      showToast('Ese archivo no es una copia de seguridad de LiquidBrush.');
+    }
+  }
+
+  /* ---------- Vistas: Biblioteca, Playlists y Favoritas ---------- */
+  function sortTracks(list) {
+    const sorted = list.slice();
+    // "¡fuensanta!" o "#OBSSECHUGG" se ordenan por su primera letra
+    const sortKey = (text) => text.replace(/^[^\p{L}\p{N}]+/u, '');
+    const byTitle = (a, b) => collator.compare(sortKey(a.title), sortKey(b.title));
+    switch (state.sort) {
+      case 'title': return sorted.sort(byTitle);
+      case 'artist': return sorted.sort((a, b) => {
+        if (!a.knownArtist !== !b.knownArtist) return a.knownArtist ? -1 : 1;
+        return collator.compare(a.knownArtist, b.knownArtist) || byTitle(a, b);
+      });
+      case 'long': return sorted.sort((a, b) => parseDuration(b.duration) - parseDuration(a.duration));
+      case 'short': return sorted.sort((a, b) => parseDuration(a.duration) - parseDuration(b.duration));
+      default: return sorted;
+    }
+  }
+
+  function baseTracks() {
+    if (state.view === 'favorites') return state.tracks.filter((t) => state.favorites.has(t.id));
+    if (state.view === 'playlist') return playlistTracksOf(getPlaylist(state.openPlaylist));
+    return sortTracks(state.tracks);
+  }
+
+  function getVisibleTracks() {
+    const q = normalize(state.query);
+    const list = baseTracks();
+    if (!q) return list;
+    return list.filter((track) => [track.title, track.artist, track.album].some((field) => normalize(field).includes(q)));
+  }
+
+  function makeButton(className, action, label, icon, text = '') {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = className;
+    button.dataset.action = action;
+    button.setAttribute('aria-label', label);
+    button.title = label;
+    button.innerHTML = `<svg class="icon" aria-hidden="true"><use href="#i-${icon}"></use></svg>`;
+    if (text) {
+      const span = document.createElement('span');
+      span.textContent = text;
+      button.append(span);
+    }
+    return button;
+  }
+
+  function makeEl(tag, className, text) {
+    const el = document.createElement(tag);
+    if (className) el.className = className;
+    if (text !== undefined) el.textContent = text;
+    return el;
+  }
+
+  function playlistCover(pl, size) {
+    const tracks = playlistTracksOf(pl);
+    if (pl.kind === 'system' && tracks[0]) {
+      const img = document.createElement('img');
+      img.className = 'pl-cover';
+      img.src = tracks[0].cover;
+      img.alt = '';
+      img.width = size;
+      img.height = size;
+      img.loading = 'lazy';
+      return img;
+    }
+    const cover = makeEl('span', 'pl-cover pl-cover-emoji', pl.emoji || '💿');
+    cover.style.setProperty('--pl-color', pl.color || PLAYLIST_COLORS[0]);
+    cover.setAttribute('aria-hidden', 'true');
+    return cover;
+  }
+
+  const KIND_LABELS = {
+    system: 'Playlist de LiquidBrush',
+    shared: 'Guardada para todos',
+    local: 'Solo en este dispositivo',
+    auto: 'Automática'
+  };
+
+  function renderViewHead() {
+    const head = els.viewHead;
+    const searching = Boolean(normalize(state.query));
+    head.className = 'view-head';
+
+    if (state.view === 'playlist') {
+      head.replaceChildren(renderPlaylistHead(getPlaylist(state.openPlaylist)));
+      return;
     }
 
-    els.trackList.replaceChildren(fragment);
+    const titles = {
+      library: ['Toda tu música', 'Biblioteca'],
+      playlists: searching ? ['Buscando en la biblioteca', 'Resultados'] : ['Oficiales, compartidas y tuyas', 'Playlists'],
+      favorites: ['Tus corazones', 'Favoritas']
+    };
+    const [eyebrow, title] = titles[state.view];
+    const text = makeEl('div', 'view-text');
+    text.append(makeEl('p', 'view-eyebrow', eyebrow), makeEl('h2', 'view-title', title));
 
-    const total = visible.length;
-    els.listInfo.textContent = state.query
-      ? `${total} resultado${total === 1 ? '' : 's'} para «${state.query.trim()}»`
-      : `${total} canci${total === 1 ? 'ón' : 'ones'}`;
+    const actions = makeEl('div', 'view-actions');
+    if (state.view === 'playlists' && !searching) {
+      actions.append(
+        makeButton('btn btn-primary', 'new-playlist', 'Crear una playlist nueva', 'playlist-add', 'Nueva'),
+        makeButton('icon-btn', 'import', 'Importar una copia de seguridad', 'upload'),
+        makeButton('icon-btn', 'export', 'Descargar una copia de seguridad de tus playlists', 'download')
+      );
+    } else {
+      actions.append(
+        makeButton('icon-btn play-btn view-play', 'play-view', 'Reproducir todo', 'play'),
+        makeButton('icon-btn', 'shuffle-view', 'Reproducir en aleatorio', 'shuffle')
+      );
+      if (state.view === 'library') {
+        const label = makeEl('label', 'sort');
+        const select = document.createElement('select');
+        select.id = 'sortSelect';
+        select.setAttribute('aria-label', 'Ordenar la biblioteca');
+        Object.entries(SORTS).forEach(([value, name]) => select.append(new Option(name, value, false, value === state.sort)));
+        label.append(select);
+        actions.append(label);
+      }
+    }
+    head.replaceChildren(text, actions);
+  }
 
+  function renderPlaylistHead(pl) {
+    const wrap = makeEl('div', 'pl-detail');
+    const back = makeButton('btn btn-ghost pl-back', 'back', 'Volver a Playlists', 'back', 'Playlists');
+    if (!pl) {
+      wrap.append(back, makeEl('p', 'list-empty', 'Esta playlist ya no existe.'));
+      return wrap;
+    }
+    const tracks = playlistTracksOf(pl);
+    const total = tracks.reduce((sum, t) => sum + parseDuration(t.duration), 0);
+
+    const header = makeEl('div', 'pl-hero');
+    header.dataset.key = pl.key;
+    header.style.setProperty('--pl-color', pl.color || 'var(--accent)');
+    const text = makeEl('div', 'pl-hero-text');
+    const meta = makeEl('span', 'playlist-meta');
+    meta.dataset.base = `${songsLabel(tracks.length)} · ${formatTotal(total)}`;
+    meta.textContent = meta.dataset.base;
+    text.append(makeEl('span', `pl-kind pl-kind-${pl.kind}`, KIND_LABELS[pl.kind]), makeEl('h2', 'pl-hero-name', pl.name), meta);
+    header.append(playlistCover(pl, 112), text);
+
+    const actions = makeEl('div', 'pl-actions');
+    actions.append(
+      makeButton('icon-btn play-btn view-play', 'play-view', `Reproducir ${pl.name}`, 'play'),
+      makeButton('icon-btn', 'shuffle-view', 'Reproducir en aleatorio', 'shuffle')
+    );
+    if (offline.supported && tracks.length) actions.append(makeButton('icon-btn playlist-download', 'download-playlist', 'Descargar', 'download'));
+    if (pl.kind === 'local') {
+      actions.append(
+        makeButton('btn btn-primary', 'share-playlist', 'Guardar para todos con la KeyForSet', 'key', pl.sharedId ? 'Actualizar para todos' : 'Guardar para todos'),
+        makeButton('icon-btn', 'edit-playlist', 'Cambiar nombre, icono o color', 'edit'),
+        makeButton('icon-btn', 'delete-playlist', 'Eliminar de este dispositivo', 'delete')
+      );
+    } else if (pl.kind === 'shared') {
+      actions.append(
+        makeButton('btn', 'copy-shared', 'Hacer una copia para editarla', 'edit', 'Editar'),
+        makeButton('icon-btn', 'copy-playlist', 'Copiar a mis playlists', 'playlist-add'),
+        makeButton('icon-btn', 'delete-shared', 'Eliminar para todos (pide la KeyForSet)', 'delete')
+      );
+    } else {
+      actions.append(makeButton('btn', 'copy-playlist', 'Copiar a mis playlists', 'playlist-add', 'Copiar a mis playlists'));
+      if (pl.key === 'auto:recent' && tracks.length) actions.append(makeButton('icon-btn', 'clear-recent', 'Borrar el historial', 'delete'));
+    }
+    wrap.append(back, header, actions);
+
+    if (pl.kind === 'local') {
+      wrap.append(makeEl('p', 'pl-note', pl.sharedId
+        ? 'Copia temporal de una playlist guardada para todos. Pulsa «Actualizar para todos» (pide la KeyForSet) para publicar tus cambios.'
+        : 'Esta playlist vive solo en este navegador: si borras la caché o los datos del sitio, se pierde. Pulsa «Guardar para todos» (pide la KeyForSet) para guardarla en la base de datos, o descarga una copia de seguridad desde Playlists.'));
+    }
+    return wrap;
+  }
+
+  function createPlaylistCard(pl) {
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = `pl-card pl-card-${pl.kind}`;
+    card.dataset.action = 'open-playlist';
+    card.dataset.key = pl.key;
+    const count = playlistTracksOf(pl).length;
+    card.setAttribute('aria-label', `${pl.name}, ${songsLabel(count)}`);
+    const text = makeEl('span', 'pl-card-text');
+    text.append(makeEl('span', 'pl-card-name', pl.name), makeEl('span', 'pl-card-meta', songsLabel(count)));
+    card.append(playlistCover(pl, 160), text);
+    if (pl.kind === 'shared') card.append(makeEl('span', 'pl-badge', 'Para todos'));
+    if (pl.sharedId) card.append(makeEl('span', 'pl-badge', 'Editando'));
+    return card;
+  }
+
+  function renderPlaylistGrid() {
+    const section = (title, note, playlists, extra) => {
+      const wrap = makeEl('section', 'pl-section');
+      wrap.append(makeEl('h3', 'pl-section-title', title));
+      if (note) wrap.append(makeEl('p', 'pl-note', note));
+      const grid = makeEl('div', 'pl-grid');
+      playlists.forEach((pl) => grid.append(createPlaylistCard(pl)));
+      if (extra) grid.append(extra);
+      wrap.append(grid);
+      return wrap;
+    };
+    const newCard = makeButton('pl-card pl-card-new', 'new-playlist', 'Crear una playlist nueva', 'playlist-add', 'Nueva playlist');
+    const autos = autoPlaylists().filter((pl) => pl.trackIds.some((id) => state.trackMap.has(id)));
+
+    const parts = [
+      section('Playlists de LiquidBrush', '', [...systemPlaylists(), ...sharedPlaylists()]),
+      section('Mis playlists', 'Se guardan solo en este navegador. Si borras la caché o los datos del sitio, se perderán: guárdalas para todos con la KeyForSet o descarga una copia de seguridad (botón ⬇ de arriba).', localPlaylists(), newCard)
+    ];
+    if (autos.length) parts.push(section('Para ti', '', autos));
+    els.playlistGrid.replaceChildren(...parts);
+  }
+
+  function updateCounts() {
+    els.libCount.textContent = String(state.tracks.length);
+    els.plCount.textContent = String(systemPlaylists().length + library.shared.length + library.local.length);
     updateFavCount();
   }
 
-  function getPlaylists() {
-    const names = [];
-    state.tracks.forEach((t) => {
-      if (t.album && !names.includes(t.album)) names.push(t.album);
-    });
-    return names;
-  }
+  function renderList() {
+    const searching = Boolean(normalize(state.query));
+    renderViewHead();
+    const showGrid = state.view === 'playlists' && !searching;
+    els.playlistGrid.hidden = !showGrid;
+    els.trackList.hidden = showGrid;
+    updateCounts();
 
-  function renderTabs() {
-    const views = [
-      { view: 'all', label: 'Todas' },
-      { view: 'favorites', label: 'Favoritas' },
-      ...getPlaylists().map((name) => ({ view: `pl:${name}`, label: name }))
-    ];
+    if (showGrid) {
+      renderPlaylistGrid();
+      els.trackList.replaceChildren();
+      els.listInfo.textContent = '';
+      return;
+    }
+
+    const visible = getVisibleTracks();
+    const pl = state.view === 'playlist' ? getPlaylist(state.openPlaylist) : null;
+    const removable = pl?.kind === 'local';
     const fragment = document.createDocumentFragment();
-    views.forEach(({ view, label }) => {
-      const tab = document.createElement('button');
-      tab.type = 'button';
-      tab.className = 'tab';
-      tab.setAttribute('role', 'tab');
-      tab.dataset.view = view;
-      tab.textContent = label;
-      if (view === 'favorites') {
-        const count = document.createElement('span');
-        count.className = 'count';
-        count.id = 'favCount';
-        tab.append(' ', count);
-      }
-      const active = view === state.view;
-      tab.classList.toggle('is-active', active);
-      tab.setAttribute('aria-selected', String(active));
-      fragment.appendChild(tab);
-    });
-    els.tabsBar.replaceChildren(fragment);
-    els.favCount = document.getElementById('favCount');
+    visible.forEach((track, i) => fragment.appendChild(createTrackItem(track, i, removable)));
+
+    if (!visible.length) {
+      const li = makeEl('li', 'list-empty');
+      if (!state.tracks.length) li.textContent = 'La biblioteca está vacía por ahora.';
+      else if (searching) li.textContent = 'No se encontraron canciones.';
+      else if (state.view === 'favorites') li.textContent = 'Aún no tienes favoritas. Pulsa el ♥ de una canción para guardarla aquí.';
+      else if (pl?.kind === 'local') li.textContent = 'Playlist vacía. Pulsa el ＋ de cualquier canción en la Biblioteca para añadirla aquí.';
+      else li.textContent = 'Todavía no hay canciones aquí.';
+      fragment.appendChild(li);
+    }
+    els.trackList.replaceChildren(fragment);
+
+    const total = visible.length;
+    const seconds = visible.reduce((sum, t) => sum + parseDuration(t.duration), 0);
+    els.listInfo.textContent = searching
+      ? `${total} resultado${total === 1 ? '' : 's'} para «${state.query.trim()}»`
+      : state.view === 'playlist' ? '' : `${songsLabel(total)} · ${formatTotal(seconds)}`;
+    updateDownloadUI();
   }
 
   function setView(view) {
     state.view = view;
+    if (view !== 'playlist') state.openPlaylist = null;
+    if (VIEWS.includes(view)) storage.set(KEYS.view, view);
+    const tabView = view === 'playlist' ? 'playlists' : view;
     els.tabsBar.querySelectorAll('.tab').forEach((tab) => {
-      const active = tab.dataset.view === view;
+      const active = tab.dataset.view === tabView;
       tab.classList.toggle('is-active', active);
       tab.setAttribute('aria-selected', String(active));
     });
     renderList();
+  }
+
+  function openPlaylist(key) {
+    state.openPlaylist = key;
+    setView('playlist');
     els.trackList.closest('.library').scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }
+
+  function playTracks(list, shuffle = false) {
+    const playable = list.filter(isPlayable);
+    if (!playable.length) {
+      showToast(navigator.onLine ? 'No hay canciones para reproducir.' : 'Sin conexión: descarga la playlist (⬇) para escucharla offline.');
+      return;
+    }
+    if (shuffle && !state.shuffle) toggleShuffle();
+    const start = shuffle ? playable[Math.floor(Math.random() * playable.length)] : playable[0];
+    buildQueue(start.id);
+    loadTrack(getTrack(state.queue[state.queueIndex]), true);
   }
 
   function formatTotal(seconds) {
@@ -607,91 +1232,7 @@
     return `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
   }
 
-  function togglePlaylist(name) {
-    if (state.expanded.has(name)) state.expanded.delete(name);
-    else state.expanded.add(name);
-    renderList();
-  }
-
-  function createPlaylistHeader(name, tracks, open = true, collapsible = false) {
-    const li = document.createElement('li');
-    li.className = 'playlist-header';
-    li.classList.toggle('is-collapsible', collapsible);
-    li.classList.toggle('is-open', open);
-    li.dataset.playlist = name;
-
-    const art = document.createElement('img');
-    art.className = 'playlist-art';
-    art.src = tracks[0].cover;
-    art.alt = '';
-    art.width = 56;
-    art.height = 56;
-
-    const text = document.createElement('div');
-    text.className = 'playlist-text';
-    const label = document.createElement('span');
-    label.className = 'playlist-label';
-    label.textContent = 'Playlist';
-    const title = document.createElement('h2');
-    title.className = 'playlist-name';
-    title.textContent = name;
-    const meta = document.createElement('span');
-    meta.className = 'playlist-meta';
-    const total = tracks.reduce((sum, t) => sum + parseDuration(t.duration), 0);
-    meta.dataset.base = `${tracks.length} canci${tracks.length === 1 ? 'ón' : 'ones'} · ${formatTotal(total)}`;
-    meta.textContent = meta.dataset.base;
-    text.append(label, title, meta);
-
-    const play = document.createElement('button');
-    play.type = 'button';
-    play.className = 'icon-btn play-btn playlist-play';
-    play.dataset.action = 'play-playlist';
-    play.dataset.playlist = name;
-    play.setAttribute('aria-label', `Reproducir la playlist ${name}`);
-    play.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-play"></use></svg>';
-
-    li.append(art, text, play);
-
-    // Descargar y desplegar van juntos (en el móvil, uno encima del otro)
-    const actions = document.createElement('div');
-    actions.className = 'playlist-actions';
-
-    if (offline.supported) {
-      const download = document.createElement('button');
-      download.type = 'button';
-      download.className = 'icon-btn playlist-download';
-      download.dataset.action = 'download-playlist';
-      download.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-download"></use></svg>';
-      actions.append(download);
-    }
-
-    if (collapsible) {
-      const toggle = document.createElement('button');
-      toggle.type = 'button';
-      toggle.className = 'icon-btn playlist-toggle';
-      toggle.dataset.action = 'toggle-playlist';
-      toggle.setAttribute('aria-expanded', String(open));
-      toggle.setAttribute('aria-label', `${open ? 'Minimizar' : 'Desplegar'} la playlist ${name}`);
-      toggle.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-chevron"></use></svg>';
-      actions.append(toggle);
-    }
-    if (actions.childElementCount) li.append(actions);
-    updatePlaylistHeader(li);
-    return li;
-  }
-
-  function playPlaylist(name) {
-    const tracks = getVisibleTracks().filter((t) => (t.album || 'Sin playlist') === name && isPlayable(t));
-    if (!tracks.length) {
-      showToast('Sin conexión: descarga la playlist (⬇) para escucharla offline.');
-      return;
-    }
-    const start = state.shuffle ? tracks[Math.floor(Math.random() * tracks.length)] : tracks[0];
-    buildQueue(start.id);
-    loadTrack(getTrack(state.queue[state.queueIndex]), true);
-  }
-
-  function createTrackItem(track, index) {
+  function createTrackItem(track, index, removable = false) {
     const li = document.createElement('li');
     li.className = 'track';
     li.dataset.id = track.id;
@@ -733,11 +1274,20 @@
     const artist = document.createElement('span');
     artist.className = 'track-artist';
     artist.style.display = 'block';
-    artist.textContent = track.artist;
+    // En la Biblioteca se indica de qué playlist viene cada canción
+    artist.textContent = track.knownArtist && track.album && state.view !== 'playlist'
+      ? `${track.knownArtist} · ${track.album}`
+      : track.artist;
     artist.insertAdjacentHTML('afterbegin', '<svg class="icon track-offline" aria-hidden="true"><use href="#i-download-done"></use></svg>');
     text.append(title, artist);
 
     main.append(num, img, text);
+
+    const actions = document.createElement('span');
+    actions.className = 'track-actions';
+    actions.append(removable
+      ? makeButton('icon-btn track-remove', 'remove', `Quitar ${track.title} de esta playlist`, 'close')
+      : makeButton('icon-btn track-add', 'add', `Añadir ${track.title} a una playlist`, 'playlist-add'));
 
     const fav = document.createElement('button');
     fav.type = 'button';
@@ -745,12 +1295,13 @@
     fav.dataset.action = 'fav';
     fav.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-heart"></use></svg>';
     updateFavButton(fav, state.favorites.has(track.id));
+    actions.append(fav);
 
     const duration = document.createElement('span');
     duration.className = 'track-duration';
     duration.textContent = track.duration || '--:--';
 
-    li.append(main, fav, duration);
+    li.append(main, actions, duration);
     return li;
   }
 
@@ -800,16 +1351,18 @@
   function describeContext(start) {
     if (state.query.trim()) return `Búsqueda: «${state.query.trim()}»`;
     if (state.view === 'favorites') return 'Reproduciendo desde Favoritas';
-    if (start?.album) return `Playlist · ${start.album}`;
-    return 'Reproduciendo desde tu biblioteca';
+    if (state.view === 'playlist') {
+      const pl = getPlaylist(state.openPlaylist);
+      if (pl) return `Playlist · ${pl.name}`;
+    }
+    return 'Reproduciendo desde tu Biblioteca';
   }
 
   function buildQueue(startId) {
     const start = getTrack(startId);
+    // La cola es la lista que se está viendo (Biblioteca ordenada, una playlist, Favoritas…)
     let candidates = getVisibleTracks();
     if (!candidates.some((t) => t.id === startId)) candidates = state.tracks;
-    // Las playlists no se mezclan: la cola es la playlist de la canción elegida
-    if (state.view !== 'favorites' && start) candidates = candidates.filter((t) => t.album === start.album);
     state.baseQueue = candidates.map((t) => t.id);
     state.queueContext = describeContext(start);
     state.queue = state.baseQueue.slice();
@@ -849,6 +1402,7 @@
     if (!track) return;
     state.currentTrack = track;
     state.pendingSeek = null;
+    state.countedId = null;
 
     els.audio.src = track.src;
 
@@ -862,6 +1416,7 @@
     els.miniTitle.textContent = track.title;
     els.miniArtist.textContent = track.artist;
     els.npFavBtn.disabled = false;
+    els.npAddBtn.disabled = false;
     updateFavButton(els.npFavBtn, state.favorites.has(track.id));
     document.title = `${track.title} · ${track.artist} — LiquidBrush`;
 
@@ -1608,6 +2163,14 @@
 
     // Audio
     audio.addEventListener('play', () => setPlayingUI(true));
+    // Cuenta para "Escuchadas hace poco" y "Tus más escuchadas" (una vez por canción cargada)
+    audio.addEventListener('playing', () => {
+      const id = state.currentTrack?.id;
+      if (id && state.countedId !== id) {
+        state.countedId = id;
+        recordPlay(id);
+      }
+    });
     audio.addEventListener('pause', () => setPlayingUI(false));
     audio.addEventListener('ended', handleEnded);
     audio.addEventListener('waiting', () => els.playBtn.classList.add('is-loading'));
@@ -1668,29 +2231,83 @@
     // Volumen
     els.volume.addEventListener('input', () => setVolume(els.volume.value));
 
-    // Lista (delegación de eventos)
-    els.trackList.addEventListener('click', (event) => {
-      const playlistButton = event.target.closest('[data-action="play-playlist"]');
-      if (playlistButton) {
-        playPlaylist(playlistButton.dataset.playlist);
-        return;
-      }
-      const downloadButton = event.target.closest('[data-action="download-playlist"]');
-      if (downloadButton) {
-        toggleDownload(downloadButton.closest('.playlist-header').dataset.playlist);
-        return;
-      }
-      // Clic en el encabezado (o en la flecha) despliega / minimiza la playlist
-      const header = event.target.closest('.playlist-header.is-collapsible');
-      if (header) {
-        togglePlaylist(header.dataset.playlist);
-        return;
-      }
+    // Biblioteca, playlists y filas de canciones (delegación de eventos)
+    els.library.addEventListener('click', (event) => {
       const target = event.target.closest('[data-action]');
-      const item = event.target.closest('.track');
-      if (!target || !item) return;
-      if (target.dataset.action === 'fav') toggleFavorite(item.dataset.id);
-      else if (target.dataset.action === 'play') playFromList(item.dataset.id);
+      if (!target || !els.library.contains(target)) return;
+      const action = target.dataset.action;
+      const item = target.closest('.track');
+      if (item) {
+        const id = item.dataset.id;
+        if (action === 'fav') toggleFavorite(id);
+        else if (action === 'play') playFromList(id);
+        else if (action === 'add') openAddDialog(id);
+        else if (action === 'remove') removeFromLocal(getPlaylist(state.openPlaylist)?.id, id);
+        return;
+      }
+      const pl = getPlaylist(state.openPlaylist);
+      switch (action) {
+        case 'open-playlist': openPlaylist(target.dataset.key); break;
+        case 'back': setView('playlists'); break;
+        case 'play-view': playTracks(getVisibleTracks()); break;
+        case 'shuffle-view': playTracks(getVisibleTracks(), true); break;
+        case 'download-playlist': toggleDownload(state.openPlaylist); break;
+        case 'new-playlist':
+          createPlaylist().then((created) => { if (created) openPlaylist(`local:${created.id}`); });
+          break;
+        case 'export': exportPlaylists(); break;
+        case 'import': els.importInput.click(); break;
+        case 'edit-playlist': if (pl) editLocalPlaylist(pl.id); break;
+        case 'delete-playlist': if (pl) deleteLocalPlaylist(pl.id); break;
+        case 'share-playlist': if (pl) sharePlaylist(pl); break;
+        case 'copy-playlist': if (pl) copyToLocal(pl); break;
+        case 'copy-shared': if (pl) copyToLocal(pl, true); break;
+        case 'delete-shared': if (pl) deleteSharedPlaylist(pl); break;
+        case 'clear-recent':
+          if (confirm('¿Borrar el historial de canciones escuchadas en este dispositivo?')) {
+            library.recent = [];
+            storage.set(KEYS.recent, []);
+            setView('playlists');
+          }
+          break;
+        default: break;
+      }
+    });
+
+    els.library.addEventListener('change', (event) => {
+      if (event.target.id !== 'sortSelect') return;
+      state.sort = event.target.value;
+      storage.set(KEYS.sort, state.sort);
+      renderList();
+    });
+
+    els.importInput.addEventListener('change', () => {
+      const [file] = els.importInput.files;
+      if (file) importPlaylists(file);
+      els.importInput.value = '';
+    });
+
+    // Diálogo "Añadir a playlist"
+    els.addList.addEventListener('click', (event) => {
+      const button = event.target.closest('.add-item');
+      if (!button) return;
+      addToLocal(button.dataset.id, addTarget);
+      els.addDialog.close();
+    });
+    els.addNew.addEventListener('click', async () => {
+      els.addDialog.close();
+      const created = await createPlaylist(addTarget ? [addTarget] : []);
+      if (created) {
+        showToast(`Playlist creada: «${created.name}».`);
+        if (state.view === 'playlists') renderList();
+      }
+    });
+    els.addDialog.addEventListener('click', (event) => {
+      // Clic fuera del panel o en "Cerrar"
+      if (event.target === els.addDialog || event.target.closest('[data-close]')) els.addDialog.close();
+    });
+    els.npAddBtn.addEventListener('click', () => {
+      if (state.currentTrack) openAddDialog(state.currentTrack.id);
     });
 
     // Letras sincronizadas: clic en una línea para saltar a ese momento
@@ -1715,7 +2332,7 @@
       });
     });
 
-    // Pestañas Todas / Favoritas
+    // Pestañas Biblioteca / Playlists / Favoritas
     els.tabsBar.addEventListener('click', (event) => {
       const tab = event.target.closest('.tab');
       if (tab) setView(tab.dataset.view);
@@ -1744,6 +2361,7 @@
     // Atajos de teclado
     document.addEventListener('keydown', (event) => {
       if (event.ctrlKey || event.metaKey || event.altKey) return;
+      if (document.querySelector('dialog[open]')) return;
       const target = event.target;
       if (target.closest('input, textarea, select, [contenteditable="true"]')) {
         if (event.key === 'Escape' && target === els.searchInput) els.searchInput.blur();
@@ -1775,6 +2393,19 @@
     state.shuffle = storage.get(KEYS.shuffle, false) === true;
     const savedRepeat = storage.get(KEYS.repeat, 'off');
     state.repeat = REPEAT_MODES.includes(savedRepeat) ? savedRepeat : 'off';
+
+    const savedPlaylists = storage.get(KEYS.playlists, []);
+    library.local = Array.isArray(savedPlaylists)
+      ? savedPlaylists.filter((p) => p && p.id && typeof p.name === 'string' && Array.isArray(p.trackIds))
+      : [];
+    const savedRecent = storage.get(KEYS.recent, []);
+    library.recent = Array.isArray(savedRecent) ? savedRecent.map(String) : [];
+    const savedPlays = storage.get(KEYS.plays, {});
+    library.plays = savedPlays && typeof savedPlays === 'object' ? savedPlays : {};
+    const savedSort = storage.get(KEYS.sort, 'original');
+    state.sort = savedSort in SORTS ? savedSort : 'original';
+    const savedView = storage.get(KEYS.view, 'library');
+    state.view = VIEWS.includes(savedView) ? savedView : 'library';
 
     const savedVolume = Number(storage.get(KEYS.volume, 0.8));
     els.audio.volume = Number.isFinite(savedVolume) ? clamp(savedVolume, 0, 1) : 0.8;

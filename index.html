@@ -144,6 +144,13 @@
     <symbol id="i-note" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></symbol>
     <symbol id="i-download" viewBox="0 0 24 24"><path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/></symbol>
     <symbol id="i-download-done" viewBox="0 0 24 24"><path d="M5 18h14v2H5v-2zm4.6-2.7L5 10.7l2-1.9 2.6 2.6L17 4l2 2-9.4 9.3z"/></symbol>
+    <symbol id="i-playlist-add" viewBox="0 0 24 24"><path d="M14 10H3v2h11v-2zm0-4H3v2h11V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM3 16h7v-2H3v2z"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M5 20h14v-2H5v2zm0-10h4v6h6v-6h4l-7-7-7 7z"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></symbol>
+    <symbol id="i-key" viewBox="0 0 24 24"><path d="M12.65 10A5.99 5.99 0 0 0 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6a5.99 5.99 0 0 0 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></symbol>
+    <symbol id="i-delete" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></symbol>
     <symbol id="i-chevron" viewBox="0 0 24 24"><path d="M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></symbol>
     <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.14v13.72a1 1 0 0 0 1.52.85l10.79-6.86a1 1 0 0 0 0-1.7L9.52 4.29A1 1 0 0 0 8 5.14z"/></symbol>
     <symbol id="i-pause" viewBox="0 0 24 24"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></symbol>
@@ -196,9 +203,14 @@
             <p id="npArtist" class="np-artist">Música que se derrite en tus oídos.</p>
             <p id="npAlbum" class="np-album"></p>
           </div>
-          <button id="npFavBtn" class="icon-btn fav-btn fav-btn-lg" type="button" aria-pressed="false" aria-label="Añadir a favoritos" disabled>
-            <svg class="icon" aria-hidden="true"><use href="#i-heart"></use></svg>
-          </button>
+          <div class="np-buttons">
+            <button id="npAddBtn" class="icon-btn fav-btn-lg" type="button" aria-label="Añadir a una playlist" title="Añadir a una playlist" disabled>
+              <svg class="icon" aria-hidden="true"><use href="#i-playlist-add"></use></svg>
+            </button>
+            <button id="npFavBtn" class="icon-btn fav-btn fav-btn-lg" type="button" aria-pressed="false" aria-label="Añadir a favoritos" disabled>
+              <svg class="icon" aria-hidden="true"><use href="#i-heart"></use></svg>
+            </button>
+          </div>
         </div>
 
         <canvas id="visualizer" class="visualizer" aria-hidden="true"></canvas>
@@ -219,16 +231,24 @@
             <label for="searchInput" class="sr-only">Buscar canciones</label>
             <input id="searchInput" type="search" placeholder="Buscar por título, artista o álbum" autocomplete="off" spellcheck="false">
           </div>
-          <div class="tabs" role="tablist" aria-label="Vista de la biblioteca">
-            <button class="tab is-active" type="button" role="tab" data-view="all" aria-selected="true">Todas</button>
+          <div class="tabs" role="tablist" aria-label="Secciones">
+            <button class="tab is-active" type="button" role="tab" data-view="library" aria-selected="true">
+              Biblioteca <span id="libCount" class="count">0</span>
+            </button>
+            <button class="tab" type="button" role="tab" data-view="playlists" aria-selected="false">
+              Playlists <span id="plCount" class="count">0</span>
+            </button>
             <button class="tab" type="button" role="tab" data-view="favorites" aria-selected="false">
               Favoritas <span id="favCount" class="count">0</span>
             </button>
           </div>
         </div>
 
+        <div id="viewHead" class="view-head"></div>
         <p id="listInfo" class="list-info" aria-live="polite"></p>
+        <div id="playlistGrid" class="pl-wrap" hidden></div>
         <ul id="trackList" class="track-list"></ul>
+        <input id="importInput" type="file" accept="application/json,.json" hidden>
       </section>
     </main>
 
@@ -279,6 +299,63 @@
       </div>
     </footer>
   </div>
+
+  <!-- Crear o editar una playlist propia -->
+  <dialog id="plDialog" class="sheet" aria-labelledby="plDialogTitle">
+    <form method="dialog" class="sheet-body">
+      <h2 id="plDialogTitle" class="sheet-title">Nueva playlist</h2>
+      <label class="field">
+        <span class="field-label">Nombre</span>
+        <input id="plName" type="text" maxlength="60" required autocomplete="off" placeholder="Mi playlist">
+      </label>
+      <fieldset class="field">
+        <legend class="field-label">Icono</legend>
+        <div id="plEmojis" class="choice-grid"></div>
+      </fieldset>
+      <fieldset class="field">
+        <legend class="field-label">Color</legend>
+        <div id="plColors" class="choice-grid"></div>
+      </fieldset>
+      <p class="sheet-note">Se guarda solo en este navegador. Para que no se pierda, guárdala luego «para todos» con la KeyForSet.</p>
+      <div class="sheet-actions">
+        <button class="btn" type="submit" value="cancel" formnovalidate>Cancelar</button>
+        <button class="btn btn-primary" type="submit" value="ok">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Añadir una canción a una playlist propia -->
+  <dialog id="addDialog" class="sheet" aria-labelledby="addTitle">
+    <div class="sheet-body">
+      <h2 id="addTitle" class="sheet-title">Añadir a playlist</h2>
+      <p id="addTrackName" class="sheet-text"></p>
+      <ul id="addList" class="add-list"></ul>
+      <div class="sheet-actions">
+        <button class="btn" type="button" data-close>Cerrar</button>
+        <button id="addNew" class="btn btn-primary" type="button">＋ Nueva playlist</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- KeyForSet: guardar o borrar playlists para todos -->
+  <dialog id="keyDialog" class="sheet" aria-labelledby="keyTitle">
+    <form method="dialog" class="sheet-body">
+      <h2 id="keyTitle" class="sheet-title"><svg class="icon" aria-hidden="true"><use href="#i-key"></use></svg> KeyForSet</h2>
+      <p id="keyMessage" class="sheet-text"></p>
+      <label class="field">
+        <span class="field-label">Clave</span>
+        <input id="keyInput" type="password" required autocomplete="current-password">
+      </label>
+      <label class="check">
+        <input id="keyRemember" type="checkbox">
+        <span>Recordarla mientras esta pestaña siga abierta</span>
+      </label>
+      <div class="sheet-actions">
+        <button class="btn" type="submit" value="cancel" formnovalidate>Cancelar</button>
+        <button class="btn btn-primary" type="submit" value="ok">Confirmar</button>
+      </div>
+    </form>
+  </dialog>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
