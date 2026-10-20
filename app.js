@@ -6,15 +6,26 @@
 
   /* ---------- Configuración ---------- */
   const CONFIG = {
-    // Fuente principal: la tabla "tracks" de Supabase. Si falla, se usa tracks.json.
-    // La clave publicable es segura en el navegador: la tabla solo permite leer (RLS).
-    supabase: {
-      url: 'https://kvylexeicpvjrvhpizsz.supabase.co',
-      key: 'sb_publishable__E4pzkc1jZe8u9UtpWglHg_Z9KFYPso',
-      table: 'tracks',
-      // En "src" y "cover" basta con poner el nombre del archivo subido a este bucket
-      bucket: 'loopmusik-audio'
-    },
+    // Proyectos de Supabase de los que se leen canciones (tabla "tracks" de cada uno).
+    // Si todos fallan, se usa tracks.json. Las claves publicables son seguras en el
+    // navegador: las tablas solo permiten leer (RLS).
+    // En "src" y "cover" basta con poner el nombre del archivo subido al bucket del proyecto.
+    sources: [
+      {
+        name: 'principal',
+        url: 'https://kvylexeicpvjrvhpizsz.supabase.co',
+        key: 'sb_publishable__E4pzkc1jZe8u9UtpWglHg_Z9KFYPso',
+        table: 'tracks',
+        bucket: 'loopmusik-audio'
+      },
+      {
+        name: 'extra',
+        url: 'https://pikoruycbgwjrxqxaajl.supabase.co',
+        key: 'sb_publishable_lraxIbb_tQtXr7y-yAa15Q_OqWrDmUN',
+        table: 'tracks',
+        bucket: 'liquidbrush-audio'
+      }
+    ],
     tracksUrl: 'tracks.json',
     // El visualizador puede leer las frecuencias reales del audio con la Web Audio API,
     // pero SOLO si el servidor del audio (Backblaze B2, Supabase, Cloudinary…) envía la
@@ -218,20 +229,21 @@
 
   /* ---------- Carga de datos ---------- */
   // Convierte "cancion.mp3" en la URL pública del bucket; las URLs completas se dejan igual
-  function resolveMediaUrl(path) {
+  function resolveMediaUrl(path, source = CONFIG.sources[0]) {
     const value = typeof path === 'string' ? path.trim() : '';
-    const { url, bucket } = CONFIG.supabase;
+    const { url, bucket } = source || {};
     if (!value || /^(https?:|data:|blob:)/i.test(value) || !url || !bucket) return value;
     const cleanPath = value.replace(/^\/+/, '').split('/').map(encodeURIComponent).join('/');
     return `${url}/storage/v1/object/public/${bucket}/${cleanPath}`;
   }
 
-  async function fetchFromSupabase() {
-    const { url, key, table } = CONFIG.supabase;
+  async function fetchFromSupabase(source) {
+    const { url, key, table } = source;
     const endpoint = `${url}/rest/v1/${table}?select=*&order=position.asc,id.asc`;
     const response = await fetch(endpoint, { headers: { apikey: key }, cache: 'no-cache' });
     if (!response.ok) throw new Error(`Supabase HTTP ${response.status}`);
-    return response.json();
+    const rows = await response.json();
+    return rows.map((row) => ({ ...row, source }));
   }
 
   async function fetchFromJson() {
@@ -240,14 +252,21 @@
     return response.json();
   }
 
+  // Lee todos los proyectos en paralelo; uno caído no impide mostrar los demás
   async function fetchTrackData() {
-    if (CONFIG.supabase.url && CONFIG.supabase.key) {
-      try {
-        return await fetchFromSupabase();
-      } catch (error) {
-        console.warn('[LiquidBrush] Supabase no disponible, se usa tracks.json.', error);
+    const results = await Promise.allSettled(CONFIG.sources.map(fetchFromSupabase));
+    const rows = [];
+    let anyOk = false;
+    results.forEach((result, i) => {
+      if (result.status === 'fulfilled') {
+        anyOk = true;
+        rows.push(...result.value);
+      } else {
+        console.warn(`[LiquidBrush] Supabase "${CONFIG.sources[i].name}" no disponible.`, result.reason);
       }
-    }
+    });
+    if (anyOk) return rows;
+    console.warn('[LiquidBrush] Ningún proyecto de Supabase respondió, se usa tracks.json.');
     return fetchFromJson();
   }
 
@@ -263,16 +282,19 @@
           const title = t.title || 'Sin título';
           const album = t.album || '';
           const art = t.cover ? null : generateArt(`${album}|${title}`);
+          const source = t.source || CONFIG.sources[0];
+          const rawId = String(t.id ?? i + 1);
           return {
-            id: String(t.id ?? i + 1),
+            // Los ids del proyecto principal no llevan prefijo (conserva los favoritos guardados)
+            id: source === CONFIG.sources[0] ? rawId : `${source.name}:${rawId}`,
             title,
             // Sin artista se muestra el nombre de la playlist
             artist: t.artist || album || 'Artista desconocido',
             knownArtist: t.artist || '',
             album,
             duration: t.duration || '',
-            src: resolveMediaUrl(t.src),
-            cover: resolveMediaUrl(t.cover) || art.url,
+            src: resolveMediaUrl(t.src, source),
+            cover: resolveMediaUrl(t.cover, source) || art.url,
             hue: art ? art.hue : null,
             lyrics: typeof t.lyrics === 'string' ? t.lyrics : ''
           };
