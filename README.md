@@ -1,6 +1,8 @@
-# LoopMusiK
+# LiquidBrush
 
-Reproductor web personal estilo Spotify, 100 % estático (HTML + CSS + JS) y listo para GitHub Pages.
+Reproductor web personal de estética surrealista y cromada (tema "Cromo Surreal" por defecto), 100 % estático (HTML + CSS + JS) y listo para GitHub Pages.
+
+El tema "Cromo Surreal" incluye una escena animada: esfera de cromo en el horizonte, suelo de ajedrez, nubes, gotas de metal líquido, ojos que siguen el cursor y un reloj derretido cuyas agujas solo avanzan mientras suena la música.
 
 ## Publicar en GitHub Pages
 
@@ -9,9 +11,9 @@ Reproductor web personal estilo Spotify, 100 % estático (HTML + CSS + JS) y lis
 
 ## Añadir tus canciones (Supabase)
 
-La app lee la tabla `tracks` del proyecto Supabase **LoopMusiK** (configurado en `CONFIG.supabase` de `app.js`). Para añadir una canción no hace falta tocar GitHub:
+La app lee la tabla `tracks` del proyecto Supabase **LoopMusiK** (nombre original del proyecto) (configurado en `CONFIG.supabase` de `app.js`). Para añadir una canción no hace falta tocar GitHub:
 
-1. **Storage → `loopmusik-audio` → Upload**: sube el MP3 (y la carátula, si quieres).
+1. **Storage → `loopmusik-audio` → Upload**: sube los MP3 sueltos (Supabase **no descomprime** archivos .zip) y las carátulas si quieres. Los nombres de archivo no pueden llevar tildes, ñ ni símbolos como `[ ] # % ? ¿ ¡`.
 2. **Table Editor → `tracks` → Insert row**: rellena `title`, `artist`, `album`, `duration`, `lyrics` y:
    - `src`: el nombre del archivo en el bucket (p. ej. `mi-cancion.mp3` o `album/mi-cancion.mp3`) o una URL completa.
    - `cover`: igual que `src` (opcional).

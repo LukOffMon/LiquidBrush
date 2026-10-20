@@ -1,5 +1,5 @@
 /* =========================================================
-   LoopMusiK — lógica del reproductor
+   LiquidBrush — lógica del reproductor
    ========================================================= */
 (() => {
   'use strict';
@@ -24,15 +24,16 @@
   };
 
   const KEYS = {
-    favorites: 'loopmusik:favorites',
-    theme: 'loopmusik:theme',
-    volume: 'loopmusik:volume',
-    muted: 'loopmusik:muted',
-    shuffle: 'loopmusik:shuffle',
-    repeat: 'loopmusik:repeat'
+    favorites: 'liquidbrush:favorites',
+    theme: 'liquidbrush:theme',
+    volume: 'liquidbrush:volume',
+    muted: 'liquidbrush:muted',
+    shuffle: 'liquidbrush:shuffle',
+    repeat: 'liquidbrush:repeat'
   };
 
   const THEMES = {
+    chrome: '#100d1c',
     dark: '#121212',
     cyberpunk: '#0a0612',
     minimal: '#f4f3f0',
@@ -45,7 +46,7 @@
   const PLACEHOLDER_COVER = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">' +
     '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">' +
-    '<stop offset="0" stop-color="#3a3a3a"/><stop offset="1" stop-color="#161616"/>' +
+    '<stop offset="0" stop-color="#e9edf4"/><stop offset=".5" stop-color="#5a6273"/><stop offset="1" stop-color="#1d1a30"/>' +
     '</linearGradient></defs>' +
     '<rect width="300" height="300" fill="url(#g)"/>' +
     '<path fill="#6b6b6b" d="M150 75v100.6a32 32 0 1 0 18 28.4V115h42V75z"/>' +
@@ -209,7 +210,7 @@
       try {
         return await fetchFromSupabase();
       } catch (error) {
-        console.warn('[LoopMusiK] Supabase no disponible, se usa tracks.json.', error);
+        console.warn('[LiquidBrush] Supabase no disponible, se usa tracks.json.', error);
       }
     }
     return fetchFromJson();
@@ -244,7 +245,7 @@
         els.npContext.textContent = 'Biblioteca vacía';
       }
     } catch (error) {
-      console.error('[LoopMusiK] Error al cargar tracks.json:', error);
+      console.error('[LiquidBrush] Error al cargar tracks.json:', error);
       els.listInfo.textContent = '';
       els.npContext.textContent = 'Error de carga';
       const li = document.createElement('li');
@@ -274,9 +275,13 @@
     if (!visible.length) {
       const li = document.createElement('li');
       li.className = 'list-empty';
-      li.textContent = state.view === 'favorites' && !state.query
-        ? 'Aún no tienes favoritas. Pulsa el ♥ de una canción para guardarla aquí.'
-        : 'No se encontraron canciones.';
+      if (!state.tracks.length) {
+        li.textContent = 'La biblioteca está vacía por ahora. Las canciones que añadas en Supabase aparecerán aquí.';
+      } else if (state.view === 'favorites' && !state.query) {
+        li.textContent = 'Aún no tienes favoritas. Pulsa el ♥ de una canción para guardarla aquí.';
+      } else {
+        li.textContent = 'No se encontraron canciones.';
+      }
       fragment.appendChild(li);
     }
 
@@ -454,7 +459,7 @@
     els.miniArtist.textContent = track.artist;
     els.npFavBtn.disabled = false;
     updateFavButton(els.npFavBtn, state.favorites.has(track.id));
-    document.title = `${track.title} · ${track.artist} — LoopMusiK`;
+    document.title = `${track.title} · ${track.artist} — LiquidBrush`;
 
     updateProgressUI(0, parseDuration(track.duration));
     renderLyrics(track.lyrics);
@@ -478,7 +483,7 @@
     } catch (error) {
       // AbortError: se cambió de canción antes de empezar a sonar; no es un fallo real.
       if (error.name === 'AbortError') return;
-      console.error('[LoopMusiK] No se pudo reproducir:', error);
+      console.error('[LiquidBrush] No se pudo reproducir:', error);
       if (error.name === 'NotAllowedError') {
         showToast('El navegador bloqueó la reproducción automática. Pulsa ▶ para escuchar.');
       } else {
@@ -870,7 +875,7 @@
       analyser.connect(audioCtx.destination);
       freqData = new Uint8Array(analyser.frequencyBinCount);
     } catch (error) {
-      console.warn('[LoopMusiK] Web Audio no disponible, se usa el visualizador simulado.', error);
+      console.warn('[LiquidBrush] Web Audio no disponible, se usa el visualizador simulado.', error);
       analyser = null;
       freqData = null;
     }
@@ -905,11 +910,15 @@
 
     function refreshColors() {
       const styles = getComputedStyle(document.documentElement);
+      const read = (name) => styles.getPropertyValue(name).trim();
       const theme = document.documentElement.dataset.theme;
+      const neon = theme === 'cyberpunk' || theme === 'synthwave';
       colors = {
-        a: styles.getPropertyValue('--accent').trim() || colors.a,
-        b: styles.getPropertyValue('--accent-2').trim() || colors.b,
-        glow: theme === 'cyberpunk' || theme === 'synthwave' ? 10 : 0
+        a: read('--viz-a') || read('--accent') || colors.a,
+        b: read('--viz-b') || read('--accent-2') || colors.b,
+        c: read('--viz-c'),
+        glow: neon ? 10 : theme === 'chrome' ? 6 : 0,
+        reflect: read('--viz-reflect') === '1'
       };
       draw();
     }
@@ -957,26 +966,46 @@
       ctx.clearRect(0, 0, width, height);
       if (!bars.length || !width || !height) return;
       const barWidth = (width - GAP * (bars.length - 1)) / bars.length;
-      const gradient = ctx.createLinearGradient(0, height, 0, 0);
+      const radius = Math.min(3, barWidth / 2);
+      // Con reflejo, las barras ocupan la parte de arriba y se reflejan como en un suelo de cromo
+      const base = colors.reflect ? height * 0.72 : height;
+
+      const gradient = ctx.createLinearGradient(0, base, 0, 0);
       gradient.addColorStop(0, colors.a);
+      if (colors.c) gradient.addColorStop(0.55, colors.c);
       gradient.addColorStop(1, colors.b);
       ctx.fillStyle = gradient;
-      ctx.shadowColor = colors.a;
+      ctx.shadowColor = colors.reflect ? colors.b : colors.a;
       ctx.shadowBlur = colors.glow;
 
-      bars.forEach((value, i) => {
-        const barHeight = Math.max(3, value * (height - colors.glow / 2));
-        const x = i * (barWidth + GAP);
-        const y = height - barHeight;
-        const radius = Math.min(3, barWidth / 2);
+      const rect = (x, y, w, h, radii) => {
         if (typeof ctx.roundRect === 'function') {
           ctx.beginPath();
-          ctx.roundRect(x, y, barWidth, barHeight, [radius, radius, 0, 0]);
+          ctx.roundRect(x, y, w, h, radii);
           ctx.fill();
         } else {
-          ctx.fillRect(x, y, barWidth, barHeight);
+          ctx.fillRect(x, y, w, h);
         }
+      };
+
+      bars.forEach((value, i) => {
+        const barHeight = Math.max(3, value * (base - colors.glow / 2));
+        rect(i * (barWidth + GAP), base - barHeight, barWidth, barHeight, [radius, radius, 0, 0]);
       });
+
+      if (!colors.reflect) return;
+      const mirror = ctx.createLinearGradient(0, base, 0, height);
+      mirror.addColorStop(0, colors.b);
+      mirror.addColorStop(1, 'transparent');
+      ctx.save();
+      ctx.globalAlpha = 0.28;
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = mirror;
+      bars.forEach((value, i) => {
+        const barHeight = Math.min(height - base - 1, Math.max(2, value * (base - colors.glow / 2) * 0.45));
+        rect(i * (barWidth + GAP), base + 1, barWidth, barHeight, [0, 0, radius, radius]);
+      });
+      ctx.restore();
     }
 
     function start() {
@@ -995,12 +1024,38 @@
 
   /* ---------- Temas ---------- */
   function applyTheme(theme) {
-    const safeTheme = Object.prototype.hasOwnProperty.call(THEMES, theme) ? theme : 'dark';
+    const safeTheme = Object.prototype.hasOwnProperty.call(THEMES, theme) ? theme : 'chrome';
     document.documentElement.dataset.theme = safeTheme;
     els.themeSelect.value = safeTheme;
     if (els.metaTheme) els.metaTheme.setAttribute('content', THEMES[safeTheme]);
     storage.set(KEYS.theme, safeTheme);
     requestAnimationFrame(() => visualizer.refreshColors());
+  }
+
+  /* ---------- Escena surrealista: los ojos siguen el cursor ---------- */
+  function setupSurrealEyes() {
+    const irises = [...document.querySelectorAll('.eye-iris')];
+    if (!irises.length || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    let pointer = null;
+    let frameId = null;
+
+    const update = () => {
+      frameId = null;
+      irises.forEach((iris) => {
+        const rect = iris.closest('.eye').getBoundingClientRect();
+        if (!rect.width) return; // escena oculta en los demás temas
+        const dx = pointer.x - (rect.left + rect.width / 2);
+        const dy = pointer.y - (rect.top + rect.height / 2);
+        const distance = Math.hypot(dx, dy) || 1;
+        const reach = Math.min(1, distance / 260);
+        iris.style.transform = `translate(${(dx / distance) * 16 * reach}px, ${(dy / distance) * 9 * reach}px)`;
+      });
+    };
+
+    window.addEventListener('pointermove', (event) => {
+      pointer = { x: event.clientX, y: event.clientY };
+      if (!frameId) frameId = requestAnimationFrame(update);
+    }, { passive: true });
   }
 
   /* ---------- Media Session (controles en la pantalla de bloqueo) ---------- */
@@ -1189,7 +1244,7 @@
     state.lastVolume = els.audio.volume || 0.8;
     els.audio.muted = storage.get(KEYS.muted, false) === true;
 
-    applyTheme(storage.get(KEYS.theme, 'dark'));
+    applyTheme(storage.get(KEYS.theme, 'chrome'));
   }
 
   function init() {
@@ -1205,6 +1260,7 @@
     updateProgressUI(0, 0);
     bindEvents();
     setupMediaSessionHandlers();
+    setupSurrealEyes();
     loadTracks();
   }
 

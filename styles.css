@@ -1,5 +1,5 @@
 /* =========================================================
-   LoopMusiK — estilos
+   LiquidBrush — estilos
    ========================================================= */
 
 /* Color dinámico (tomado de la carátula). Al registrarlo como <color>
@@ -32,6 +32,7 @@
   --dyn-strength: 40%;
   --font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --brand-font: 'Inter', system-ui, sans-serif;
+  --title-font: 'Inter', system-ui, sans-serif;
   --radius: 16px;
   color-scheme: dark;
 }
@@ -102,6 +103,35 @@
   color-scheme: dark;
 }
 
+[data-theme="chrome"] {
+  --bg: #100d1c;
+  --bg-2: #2a2140;
+  --surface: #16132a;
+  --surface-2: #221e3a;
+  --surface-hover: #2e2950;
+  --text: #f2f4f9;
+  --text-muted: #aab1c3;
+  --accent: #d7dde8;
+  --accent-2: #9ee7ff;
+  --on-accent: #12101e;
+  --heart: #ff9ce0;
+  --border: rgba(220, 228, 240, 0.18);
+  --shadow: 0 20px 50px rgba(5, 3, 15, 0.6);
+  --glow: 0 0 22px rgba(205, 220, 255, 0.35);
+  --text-glow: 0 0 12px rgba(220, 230, 255, 0.45);
+  --player-bg: rgba(16, 13, 30, 0.8);
+  --dyn-strength: 24%;
+  --brand-font: 'Rubik Wet Paint', 'Syne', sans-serif;
+  --title-font: 'Syne', 'Inter', sans-serif;
+  --chrome: linear-gradient(135deg, #ffffff 0%, #b8c1d1 14%, #5a6273 28%, #f1f4f9 44%, #7c8597 58%, #e6ebf3 72%, #4a5162 86%, #ffffff 100%);
+  --iridescent: linear-gradient(90deg, #9ee7ff, #e3c8ff, #ffc6e8, #fff2c6, #9ee7ff);
+  --viz-a: #5d6678;
+  --viz-b: #ffffff;
+  --viz-c: #c9b8ff;
+  --viz-reflect: 1;
+  color-scheme: dark;
+}
+
 /* ---------- Base ---------- */
 *,
 *::before,
@@ -121,7 +151,9 @@ body {
   min-height: 100dvh;
   font-family: var(--font);
   color: var(--text);
-  background: var(--bg);
+  /* Transparente: el color de fondo lo pone <html>; si lo pintara <body>
+     taparía las capas de fondo (.bg-glow y .surreal, con z-index negativo) */
+  background: transparent;
   line-height: 1.4;
   -webkit-font-smoothing: antialiased;
   transition: --dyn 1.4s ease, background-color 0.4s ease, color 0.4s ease;
@@ -387,6 +419,7 @@ body.is-playing .cover-wrap {
 }
 
 .np-title {
+  font-family: var(--title-font);
   font-size: 1.6rem;
   font-weight: 800;
   letter-spacing: -0.02em;
@@ -505,6 +538,7 @@ body.is-playing .cover-wrap {
 
 /* ---------- Biblioteca ---------- */
 .library {
+  position: relative;
   min-width: 0;
   padding: 20px;
   border-radius: 22px;
@@ -689,6 +723,7 @@ body.is-playing .cover-wrap {
 }
 
 .track-title {
+  font-family: var(--title-font);
   font-weight: 700;
 }
 
@@ -1046,6 +1081,404 @@ body.is-playing .eq span {
   transform: translate(-50%, 0);
 }
 
+/* =========================================================
+   Tema "Cromo Surreal"
+   ========================================================= */
+@property --spin {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.svg-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.surreal {
+  display: none;
+}
+
+/* Cielo crepuscular con horizonte */
+[data-theme="chrome"] .bg-glow {
+  background:
+    radial-gradient(70% 50% at 20% 10%, color-mix(in srgb, var(--dyn) var(--dyn-strength), transparent) 0%, transparent 70%),
+    radial-gradient(40% 30% at 85% 20%, rgba(158, 231, 255, 0.18) 0%, transparent 70%),
+    linear-gradient(180deg, #0b0a18 0%, #1b1636 26%, #43386b 50%, #8f76a6 63%, #dca9bb 70%, #f6d8c7 73%, #251f3d 73.2%, #100d1c 100%);
+}
+
+[data-theme="chrome"] .surreal {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Esfera de cromo hundiéndose en el horizonte */
+.chrome-sun {
+  position: absolute;
+  left: 58%;
+  bottom: calc(27vh - 13vmin);
+  width: 36vmin;
+  height: 36vmin;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 34% 28%, #ffffff 0%, #f1f3fa 9%, transparent 22%),
+    radial-gradient(circle at 50% 50%, transparent 55%, rgba(255, 210, 230, 0.55) 70%, transparent 74%),
+    linear-gradient(180deg, #f7f9fd 0%, #b5bdd0 30%, #4b4f6b 48%, #1d1a30 52%, #c99ab0 66%, #f3cdbf 82%, #5a4a72 100%);
+  box-shadow: 0 0 80px rgba(246, 216, 199, 0.35), inset -12px -20px 40px rgba(10, 6, 25, 0.55);
+  animation: float-y 12s ease-in-out infinite alternate;
+}
+
+body.is-playing .chrome-sun {
+  animation: float-y 12s ease-in-out infinite alternate, sun-pulse 2.4s ease-in-out infinite;
+}
+
+/* Nubes estilo Magritte */
+.cloud {
+  position: absolute;
+  left: 0;
+  width: 160px;
+  height: 46px;
+  border-radius: 46px;
+  background: linear-gradient(180deg, #ffffff 0%, #f1e8f7 60%, #cdbfe0 100%);
+  opacity: 0.9;
+  filter: drop-shadow(0 10px 18px rgba(30, 20, 60, 0.25));
+  animation: drift 120s linear infinite;
+}
+
+.cloud::before,
+.cloud::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  background: inherit;
+}
+
+.cloud::before {
+  width: 70px;
+  height: 70px;
+  left: 24px;
+  top: -36px;
+}
+
+.cloud::after {
+  width: 92px;
+  height: 92px;
+  right: 22px;
+  top: -52px;
+}
+
+.cloud-1 { top: 13vh; transform: scale(1.1); animation-duration: 140s; animation-delay: -30s; }
+.cloud-2 { top: 30vh; transform: scale(0.75); animation-duration: 105s; animation-delay: -80s; opacity: 0.75; }
+.cloud-3 { top: 6vh; transform: scale(0.55); animation-duration: 170s; animation-delay: -120s; opacity: 0.6; }
+
+/* Suelo de ajedrez cromado en perspectiva */
+.floor {
+  position: absolute;
+  left: -60%;
+  right: -60%;
+  bottom: 0;
+  height: 100vh;
+  background:
+    linear-gradient(180deg, rgba(246, 216, 199, 0.35) 0%, transparent 30%),
+    repeating-conic-gradient(#e9edf4 0 25%, #3a3f52 0 50%) 0 0 / 90px 90px;
+  transform: perspective(100vh) rotateX(60deg);
+  transform-origin: bottom center;
+  -webkit-mask-image: linear-gradient(to top, #000 35%, transparent 100%);
+  mask-image: linear-gradient(to top, #000 35%, transparent 100%);
+  opacity: 0.85;
+}
+
+/* Escalera al cielo */
+.ladder {
+  position: absolute;
+  right: 6vw;
+  bottom: 16vh;
+  width: 54px;
+  height: 46vh;
+  transform: rotate(9deg);
+  -webkit-mask-image: linear-gradient(to top, #000 60%, transparent 100%);
+  mask-image: linear-gradient(to top, #000 60%, transparent 100%);
+  filter: drop-shadow(0 12px 18px rgba(10, 6, 25, 0.5));
+  animation: float-y 9s ease-in-out infinite alternate;
+}
+
+/* Reloj derretido: el tiempo solo avanza cuando suena la música */
+.melting-clock {
+  position: absolute;
+  left: 3vw;
+  bottom: 7vh;
+  width: clamp(150px, 18vw, 250px);
+  filter: drop-shadow(0 16px 22px rgba(10, 6, 25, 0.55));
+  animation: float-y 10s ease-in-out infinite alternate;
+}
+
+.clock-hand {
+  transform-origin: 120px 72px;
+  animation: spin 12s linear infinite;
+  animation-play-state: paused;
+}
+
+.clock-hour {
+  animation-duration: 144s;
+}
+
+body.is-playing .clock-hand {
+  animation-play-state: running;
+}
+
+/* Gotas de metal líquido */
+.blob {
+  position: absolute;
+  background:
+    radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.95) 0 7%, transparent 18%),
+    linear-gradient(135deg, #f5f7fb 0%, #8a93a6 28%, #2d3240 46%, #dfe5ee 60%, #6d7587 80%, #fafcff 100%);
+  background-size: 100% 100%, 220% 220%;
+  box-shadow:
+    inset -10px -14px 30px rgba(0, 0, 0, 0.45),
+    inset 10px 10px 25px rgba(255, 255, 255, 0.55),
+    0 22px 40px rgba(10, 6, 25, 0.45);
+  border-radius: 42% 58% 63% 37% / 41% 44% 56% 59%;
+  animation:
+    morph 14s ease-in-out infinite alternate,
+    float-y 8s ease-in-out infinite alternate,
+    sheen 10s linear infinite;
+}
+
+.blob-1 { top: 15vh; left: 3vw; width: 92px; height: 92px; }
+.blob-2 { top: 34vh; right: 3vw; width: 140px; height: 140px; animation-duration: 18s, 11s, 14s; }
+.blob-3 { bottom: 30vh; left: 44vw; width: 70px; height: 70px; animation-duration: 12s, 7s, 9s; }
+.blob-4 { top: 9vh; left: 52vw; width: 46px; height: 46px; animation-duration: 10s, 6s, 8s; }
+
+/* Ojos flotantes que siguen el cursor */
+.eye {
+  position: absolute;
+  filter: drop-shadow(0 14px 20px rgba(10, 6, 25, 0.5));
+  animation: float-y 7s ease-in-out infinite alternate;
+}
+
+.eye svg {
+  display: block;
+  width: 100%;
+  overflow: visible;
+}
+
+.eye-1 { top: 19vh; right: 11vw; width: 120px; }
+.eye-2 { top: 56vh; right: 2vw; width: 86px; transform: rotate(-10deg); animation-duration: 9s; }
+
+.eye-blink {
+  transform-origin: 60px 35px;
+  animation: blink 7s ease-in-out infinite;
+}
+
+.eye-2 .eye-blink {
+  animation-delay: -3s;
+}
+
+.eye-wander {
+  animation: wander 9s ease-in-out infinite;
+}
+
+.eye-iris {
+  transition: transform 0.15s ease-out;
+}
+
+/* Cromo en la interfaz */
+[data-theme="chrome"] .topbar {
+  border-bottom: 0;
+  background: color-mix(in srgb, #0b0a18 72%, transparent);
+}
+
+[data-theme="chrome"] .topbar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 22px;
+  pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 22'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23ffffff'/%3E%3Cstop offset='.4' stop-color='%23aeb6c6'/%3E%3Cstop offset='.7' stop-color='%234e5566'/%3E%3Cstop offset='1' stop-color='%23e3e8f0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath fill='url(%23g)' d='M0 0H180V4C172 4 170 6 170 10C170 16 162 16 162 10C162 6 158 4 150 4H112C104 4 102 7 102 13C102 21 92 21 92 13C92 7 90 4 82 4H46C40 4 38 6 38 8C38 12 32 12 32 8C32 6 30 4 24 4H0Z'/%3E%3C/svg%3E") repeat-x 0 0 / 180px 22px;
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.4));
+}
+
+[data-theme="chrome"] .brand-logo,
+[data-theme="chrome"] .tab.is-active,
+[data-theme="chrome"] .play-btn,
+[data-theme="chrome"] .play-btn:hover:not(:disabled) {
+  background-color: #d7dde8;
+  background-image: var(--chrome);
+  background-size: 220% 220%;
+  color: var(--on-accent);
+  animation: sheen 6s linear infinite;
+}
+
+[data-theme="chrome"] .play-btn:hover:not(:disabled) {
+  filter: brightness(1.12);
+}
+
+[data-theme="chrome"] .brand-name {
+  font-size: 1.55rem;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  background: var(--chrome);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.45));
+  animation: sheen 8s linear infinite;
+}
+
+[data-theme="chrome"] .brand-name span {
+  background: var(--iridescent);
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: none;
+  animation: sheen 9s linear infinite;
+}
+
+[data-theme="chrome"] .np-title {
+  background: linear-gradient(180deg, #ffffff 0%, #e2e7f0 45%, #8a93a6 56%, #f5f7fb 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  letter-spacing: -0.01em;
+}
+
+[data-theme="chrome"] .np-eyebrow {
+  background: var(--iridescent);
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: sheen 9s linear infinite;
+}
+
+[data-theme="chrome"] .now-playing,
+[data-theme="chrome"] .library {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--surface) 64%, transparent);
+  -webkit-backdrop-filter: blur(3px) saturate(130%);
+  backdrop-filter: blur(3px) saturate(130%);
+  box-shadow: var(--shadow);
+}
+
+/* Borde de cromo (degradado enmascarado) */
+[data-theme="chrome"] .now-playing::before,
+[data-theme="chrome"] .library::before,
+[data-theme="chrome"] .lyrics::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1.5px;
+  border-radius: inherit;
+  background: var(--chrome);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  pointer-events: none;
+}
+
+[data-theme="chrome"] .lyrics {
+  position: relative;
+  border-color: transparent;
+}
+
+/* Marco de cromo giratorio en la carátula */
+[data-theme="chrome"] .cover-wrap {
+  padding: 5px;
+  background: conic-gradient(from var(--spin), #ffffff, #8b94a7, #2d3240, #e8edf5, #c9b8ff, #6e7789, #fdfdff, #4b5263, #9ee7ff, #ffffff);
+  animation: spin-angle 9s linear infinite;
+}
+
+[data-theme="chrome"] .cover {
+  border-radius: 12px;
+}
+
+[data-theme="chrome"] .player {
+  border-top: 0;
+}
+
+[data-theme="chrome"] .player::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 2px;
+  background: var(--chrome);
+  background-size: 200% 100%;
+  animation: sheen 8s linear infinite;
+}
+
+[data-theme="chrome"] .track.is-current {
+  background: linear-gradient(90deg, rgba(215, 221, 232, 0.16), rgba(201, 184, 255, 0.1) 60%, transparent);
+}
+
+[data-theme="chrome"] .track.is-current .track-title {
+  color: #ffffff;
+}
+
+[data-theme="chrome"] .mini-cover,
+[data-theme="chrome"] .track-cover {
+  box-shadow: 0 0 0 1.5px rgba(230, 235, 245, 0.55);
+}
+
+[data-theme="chrome"] .range::-webkit-slider-runnable-track {
+  background: linear-gradient(to right, #ffffff 0%, #9aa3b5 calc(var(--fill) * 0.5), #e6ebf3 var(--fill), var(--surface-hover) var(--fill));
+}
+
+/* ---------- Animaciones de la escena ---------- */
+@keyframes float-y {
+  from { translate: 0 -10px; }
+  to { translate: 0 12px; }
+}
+
+@keyframes drift {
+  from { left: -260px; }
+  to { left: calc(100vw + 60px); }
+}
+
+@keyframes morph {
+  0% { border-radius: 42% 58% 63% 37% / 41% 44% 56% 59%; }
+  33% { border-radius: 63% 37% 41% 59% / 58% 36% 64% 42%; }
+  66% { border-radius: 36% 64% 52% 48% / 38% 61% 39% 62%; }
+  100% { border-radius: 55% 45% 34% 66% / 63% 47% 53% 37%; }
+}
+
+@keyframes sheen {
+  from { background-position: 0% 50%; }
+  to { background-position: 220% 50%; }
+}
+
+@keyframes blink {
+  0%, 90%, 100% { transform: scaleY(1); }
+  94% { transform: scaleY(0.06); }
+}
+
+@keyframes wander {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(-10px, 3px); }
+  50% { transform: translate(8px, -4px); }
+  75% { transform: translate(4px, 5px); }
+}
+
+@keyframes sun-pulse {
+  0%, 100% { box-shadow: 0 0 80px rgba(246, 216, 199, 0.35), inset -12px -20px 40px rgba(10, 6, 25, 0.55); }
+  50% { box-shadow: 0 0 130px rgba(246, 216, 199, 0.6), inset -12px -20px 40px rgba(10, 6, 25, 0.55); }
+}
+
+@keyframes spin-angle {
+  to { --spin: 360deg; }
+}
+
 /* ---------- Responsivo ---------- */
 @media (max-width: 860px) {
   .topbar {
@@ -1150,6 +1583,29 @@ body.is-playing .eq span {
   .mini-cover {
     width: 44px;
     height: 44px;
+  }
+}
+
+@media (max-width: 860px) {
+  .ladder,
+  .blob-4,
+  .eye-2 {
+    display: none;
+  }
+
+  .eye-1 {
+    top: 11vh;
+    right: 4vw;
+    width: 84px;
+  }
+
+  .blob-2 {
+    width: 96px;
+    height: 96px;
+  }
+
+  [data-theme="chrome"] .brand-name {
+    font-size: 1.3rem;
   }
 }
 

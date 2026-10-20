@@ -1,22 +1,22 @@
 <!DOCTYPE html>
-<html lang="es" data-theme="dark">
+<html lang="es" data-theme="chrome">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="description" content="LoopMusiK — tu reproductor web personal de música.">
-  <meta name="theme-color" content="#121212">
-  <title>LoopMusiK</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%231db954'/%3E%3Cpath fill='%23000' d='M12 5v8.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V9h4V5h-6z' transform='translate(0 -1.5) scale(.95)'/%3E%3C/svg%3E">
+  <meta name="description" content="LiquidBrush — música que se derrite: tu reproductor web personal, surrealista y cromado.">
+  <meta name="theme-color" content="#100d1c">
+  <title>LiquidBrush</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23ffffff'/%3E%3Cstop offset='.45' stop-color='%236b7385'/%3E%3Cstop offset='.55' stop-color='%233a3f4f'/%3E%3Cstop offset='1' stop-color='%23e9eef5'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='24' height='24' rx='6' fill='url(%23g)'/%3E%3Cpath fill='%23100d1c' transform='translate(2.4 2.4) scale(.8)' d='M7 14c-1.66 0-3 1.34-3 3 0 1.31-1.16 2-2 2 .92 1.22 2.49 2 4 2 2.21 0 4-1.79 4-4 0-1.66-1.34-3-3-3zm13.71-9.37-1.34-1.34a.996.996 0 0 0-1.41 0L9 12.25 11.75 15l8.96-8.96a.996.996 0 0 0 0-1.41z'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@700;900&family=Rubik+Wet+Paint&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <script>
     /* Aplica el tema guardado antes de pintar la página para evitar parpadeos */
     (function () {
       try {
-        var saved = JSON.parse(localStorage.getItem('loopmusik:theme'));
-        if (['dark', 'cyberpunk', 'minimal', 'synthwave'].indexOf(saved) !== -1) {
+        var saved = JSON.parse(localStorage.getItem('liquidbrush:theme'));
+        if (['chrome', 'dark', 'cyberpunk', 'minimal', 'synthwave'].indexOf(saved) !== -1) {
           document.documentElement.setAttribute('data-theme', saved);
         }
       } catch (e) { /* sin acceso a localStorage */ }
@@ -26,8 +26,119 @@
 <body>
   <div class="bg-glow" aria-hidden="true"></div>
 
+  <!-- Degradados compartidos por la escena surrealista (no usar display:none: rompe los degradados) -->
+  <svg class="svg-defs" aria-hidden="true" focusable="false">
+    <defs>
+      <linearGradient id="chrome-v" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#ffffff"/>
+        <stop offset=".22" stop-color="#c5cddb"/>
+        <stop offset=".46" stop-color="#4e5566"/>
+        <stop offset=".53" stop-color="#262a35"/>
+        <stop offset=".62" stop-color="#d9e0ea"/>
+        <stop offset=".82" stop-color="#8790a3"/>
+        <stop offset="1" stop-color="#f4f7fb"/>
+      </linearGradient>
+      <linearGradient id="chrome-h" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#5a6273"/>
+        <stop offset=".3" stop-color="#ffffff"/>
+        <stop offset=".55" stop-color="#7c8597"/>
+        <stop offset=".75" stop-color="#e6ebf3"/>
+        <stop offset="1" stop-color="#3f4554"/>
+      </linearGradient>
+      <radialGradient id="melt-face" cx=".4" cy=".3" r=".85">
+        <stop offset="0" stop-color="#ffffff"/>
+        <stop offset=".55" stop-color="#e4e8f0"/>
+        <stop offset="1" stop-color="#9aa2b4"/>
+      </radialGradient>
+      <radialGradient id="iris-grad">
+        <stop offset="0" stop-color="#1b1030"/>
+        <stop offset=".35" stop-color="#6a5cff"/>
+        <stop offset=".6" stop-color="#4fd6ff"/>
+        <stop offset=".85" stop-color="#ff8fd8"/>
+        <stop offset="1" stop-color="#2b1d4a"/>
+      </radialGradient>
+      <clipPath id="eye-clip"><path d="M4 35 Q60 -14 116 35 Q60 84 4 35 Z"/></clipPath>
+    </defs>
+  </svg>
+
+  <!-- Escena surrealista (solo visible con el tema "Cromo Surreal") -->
+  <div class="surreal" aria-hidden="true">
+    <div class="chrome-sun"></div>
+    <div class="cloud cloud-1"></div>
+    <div class="cloud cloud-2"></div>
+    <div class="cloud cloud-3"></div>
+    <div class="floor"></div>
+
+    <svg class="ladder" viewBox="0 0 60 300" preserveAspectRatio="xMidYMax meet">
+      <rect x="4" y="0" width="6" height="300" rx="3" fill="url(#chrome-h)"/>
+      <rect x="50" y="0" width="6" height="300" rx="3" fill="url(#chrome-h)"/>
+      <rect x="6" y="28" width="48" height="5" rx="2.5" fill="url(#chrome-v)"/>
+      <rect x="6" y="68" width="48" height="5" rx="2.5" fill="url(#chrome-v)"/>
+      <rect x="6" y="108" width="48" height="5" rx="2.5" fill="url(#chrome-v)"/>
+      <rect x="6" y="148" width="48" height="5" rx="2.5" fill="url(#chrome-v)"/>
+      <rect x="6" y="188" width="48" height="5" rx="2.5" fill="url(#chrome-v)"/>
+      <rect x="6" y="228" width="48" height="5" rx="2.5" fill="url(#chrome-v)"/>
+      <rect x="6" y="268" width="48" height="5" rx="2.5" fill="url(#chrome-v)"/>
+    </svg>
+
+    <svg class="melting-clock" viewBox="0 0 240 220">
+      <rect x="8" y="116" width="226" height="12" rx="6" fill="url(#chrome-v)"/>
+      <path d="M30 70C30 30 80 15 130 18C185 21 215 45 212 85C210 110 196 118 180 122C168 126 164 140 166 165C168 190 160 208 148 208C135 208 131 192 134 168C137 140 128 128 112 130C98 132 94 140 92 152C90 162 84 168 78 166C70 164 70 152 70 142C70 130 60 124 46 120C34 116 30 100 30 70Z" fill="url(#melt-face)" stroke="url(#chrome-v)" stroke-width="6" stroke-linejoin="round"/>
+      <g stroke="#3a3f4f" stroke-width="3" stroke-linecap="round">
+        <line x1="120" y1="27" x2="120" y2="35"/>
+        <line x1="180" y1="72" x2="172" y2="72"/>
+        <line x1="60" y1="74" x2="68" y2="74"/>
+      </g>
+      <ellipse cx="150" cy="172" rx="2.5" ry="15" fill="#3a3f4f"/>
+      <g class="clock-hand clock-hour"><line x1="120" y1="72" x2="120" y2="50" stroke="#2a2e3a" stroke-width="5" stroke-linecap="round"/></g>
+      <g class="clock-hand clock-minute"><line x1="120" y1="72" x2="152" y2="58" stroke="#2a2e3a" stroke-width="3" stroke-linecap="round"/></g>
+      <circle cx="120" cy="72" r="5" fill="url(#chrome-v)"/>
+    </svg>
+
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+    <div class="blob blob-4"></div>
+
+    <div class="eye eye-1">
+      <svg viewBox="0 0 120 70">
+        <g class="eye-blink">
+          <path d="M4 35 Q60 -14 116 35 Q60 84 4 35 Z" fill="url(#melt-face)"/>
+          <g clip-path="url(#eye-clip)">
+            <g class="eye-wander">
+              <g class="eye-iris">
+                <circle cx="60" cy="35" r="20" fill="url(#iris-grad)"/>
+                <circle cx="60" cy="35" r="8" fill="#07060c"/>
+                <circle cx="53" cy="28" r="4" fill="#ffffff" opacity=".9"/>
+              </g>
+            </g>
+          </g>
+          <path d="M4 35 Q60 -14 116 35 Q60 84 4 35 Z" fill="none" stroke="url(#chrome-v)" stroke-width="4"/>
+        </g>
+      </svg>
+    </div>
+    <div class="eye eye-2">
+      <svg viewBox="0 0 120 70">
+        <g class="eye-blink">
+          <path d="M4 35 Q60 -14 116 35 Q60 84 4 35 Z" fill="url(#melt-face)"/>
+          <g clip-path="url(#eye-clip)">
+            <g class="eye-wander">
+              <g class="eye-iris">
+                <circle cx="60" cy="35" r="20" fill="url(#iris-grad)"/>
+                <circle cx="60" cy="35" r="8" fill="#07060c"/>
+                <circle cx="53" cy="28" r="4" fill="#ffffff" opacity=".9"/>
+              </g>
+            </g>
+          </g>
+          <path d="M4 35 Q60 -14 116 35 Q60 84 4 35 Z" fill="none" stroke="url(#chrome-v)" stroke-width="4"/>
+        </g>
+      </svg>
+    </div>
+  </div>
+
   <!-- Iconos SVG reutilizables -->
   <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+    <symbol id="i-brush" viewBox="0 0 24 24"><path d="M7 14c-1.66 0-3 1.34-3 3 0 1.31-1.16 2-2 2 .92 1.22 2.49 2 4 2 2.21 0 4-1.79 4-4 0-1.66-1.34-3-3-3zm13.71-9.37-1.34-1.34a.996.996 0 0 0-1.41 0L9 12.25 11.75 15l8.96-8.96a.996.996 0 0 0 0-1.41z"/></symbol>
     <symbol id="i-note" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></symbol>
     <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.14v13.72a1 1 0 0 0 1.52.85l10.79-6.86a1 1 0 0 0 0-1.7L9.52 4.29A1 1 0 0 0 8 5.14z"/></symbol>
     <symbol id="i-pause" viewBox="0 0 24 24"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></symbol>
@@ -48,14 +159,15 @@
   <div class="app">
     <!-- Barra superior -->
     <header class="topbar">
-      <a class="brand" href="./" aria-label="LoopMusiK, inicio">
-        <span class="brand-logo"><svg class="icon" aria-hidden="true"><use href="#i-note"></use></svg></span>
-        <span class="brand-name">Loop<span>MusiK</span></span>
+      <a class="brand" href="./" aria-label="LiquidBrush, inicio">
+        <span class="brand-logo"><svg class="icon" aria-hidden="true"><use href="#i-brush"></use></svg></span>
+        <span class="brand-name">Liquid<span>Brush</span></span>
       </a>
       <label class="theme-picker">
         <svg class="icon" aria-hidden="true"><use href="#i-palette"></use></svg>
         <span class="sr-only">Tema de color</span>
         <select id="themeSelect">
+          <option value="chrome">Cromo Surreal</option>
           <option value="dark">Dark Mode Standard</option>
           <option value="cyberpunk">Cyberpunk</option>
           <option value="minimal">Minimalista</option>
@@ -74,8 +186,8 @@
         <div class="np-info">
           <div class="np-text">
             <p id="npContext" class="np-eyebrow">Cargando biblioteca…</p>
-            <h1 id="npTitle" class="np-title">LoopMusiK</h1>
-            <p id="npArtist" class="np-artist">Tu música, en bucle.</p>
+            <h1 id="npTitle" class="np-title">LiquidBrush</h1>
+            <p id="npArtist" class="np-artist">Música que se derrite en tus oídos.</p>
             <p id="npAlbum" class="np-album"></p>
           </div>
           <button id="npFavBtn" class="icon-btn fav-btn fav-btn-lg" type="button" aria-pressed="false" aria-label="Añadir a favoritos" disabled>
