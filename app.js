@@ -29,8 +29,11 @@
     volume: 'liquidbrush:volume',
     muted: 'liquidbrush:muted',
     shuffle: 'liquidbrush:shuffle',
-    repeat: 'liquidbrush:repeat'
+    repeat: 'liquidbrush:repeat',
+    lyricsPrefix: 'liquidbrush:lyrics:'
   };
+
+  const LYRICS_API = 'https://lrclib.net/api';
 
   const THEMES = {
     chrome: '#100d1c',
@@ -52,6 +55,37 @@
     '<path fill="#6b6b6b" d="M150 75v100.6a32 32 0 1 0 18 28.4V115h42V75z"/>' +
     '</svg>'
   );
+
+  // Portada surrealista generada para las canciones sin carátula (y su tono para el fondo)
+  function hashString(text) {
+    let hash = 2166136261;
+    for (const char of text) {
+      hash ^= char.codePointAt(0);
+      hash = Math.imul(hash, 16777619);
+    }
+    return hash >>> 0;
+  }
+
+  function generateArt(seedText) {
+    const seed = hashString(seedText);
+    const hue = seed % 360;
+    const hue2 = (hue + 40 + ((seed >>> 9) % 140)) % 360;
+    const shapes = [
+      '<circle cx="150" cy="138" r="66" fill="url(#c)"/>',
+      `<path d="M58 150Q150 74 242 150Q150 226 58 150Z" fill="#f4f6fb" stroke="url(#c)" stroke-width="7"/><circle cx="150" cy="150" r="30" fill="hsl(${hue2} 80% 58%)"/><circle cx="150" cy="150" r="12" fill="#07060c"/><circle cx="141" cy="141" r="5" fill="#fff"/>`,
+      '<path d="M104 70h92v96c0 26-12 30-12 58 0 16-18 16-18 0 0-24-14-26-14-6 0 12-14 12-14 0 0-26-34-30-34-58z" fill="url(#c)"/>',
+      '<circle cx="150" cy="140" r="62" fill="none" stroke="url(#c)" stroke-width="15"/><circle cx="190" cy="100" r="18" fill="url(#c)"/>'
+    ];
+    const svg =
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">' +
+      `<defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="hsl(${hue} 55% 12%)"/><stop offset=".64" stop-color="hsl(${hue2} 62% 64%)"/><stop offset=".645" stop-color="hsl(${hue} 30% 10%)"/></linearGradient>` +
+      `<linearGradient id="c" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".45" stop-color="#8a93a6"/><stop offset=".5" stop-color="#232733"/><stop offset=".62" stop-color="hsl(${hue2} 70% 82%)"/><stop offset="1" stop-color="#f4f7fb"/></linearGradient>` +
+      '<pattern id="p" width="24" height="24" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="#e9edf4"/><rect x="12" y="12" width="12" height="12" fill="#e9edf4"/></pattern></defs>' +
+      '<rect width="300" height="300" fill="url(#s)"/><rect y="194" width="300" height="106" fill="url(#p)" opacity=".28"/>' +
+      shapes[(seed >>> 4) % shapes.length] +
+      '</svg>';
+    return { url: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg), hue };
+  }
 
   /* ---------- Estado ---------- */
   const state = {
@@ -91,7 +125,8 @@
     lyricsBody: $('lyricsBody'),
     lyricsBadge: $('lyricsBadge'),
     searchInput: $('searchInput'),
-    tabs: document.querySelectorAll('.tab'),
+    tabsBar: document.querySelector('.tabs'),
+    lyricsBtn: $('lyricsBtn'),
     favCount: $('favCount'),
     listInfo: $('listInfo'),
     trackList: $('trackList'),
@@ -224,18 +259,27 @@
 
       state.tracks = data
         .filter((t) => t && typeof t.src === 'string' && t.src.trim())
-        .map((t, i) => ({
-          id: String(t.id ?? i + 1),
-          title: t.title || 'Sin título',
-          artist: t.artist || 'Artista desconocido',
-          album: t.album || '',
-          duration: t.duration || '',
-          src: resolveMediaUrl(t.src),
-          cover: resolveMediaUrl(t.cover) || PLACEHOLDER_COVER,
-          lyrics: typeof t.lyrics === 'string' ? t.lyrics : ''
-        }));
+        .map((t, i) => {
+          const title = t.title || 'Sin título';
+          const album = t.album || '';
+          const art = t.cover ? null : generateArt(`${album}|${title}`);
+          return {
+            id: String(t.id ?? i + 1),
+            title,
+            // Sin artista se muestra el nombre de la playlist
+            artist: t.artist || album || 'Artista desconocido',
+            knownArtist: t.artist || '',
+            album,
+            duration: t.duration || '',
+            src: resolveMediaUrl(t.src),
+            cover: resolveMediaUrl(t.cover) || art.url,
+            hue: art ? art.hue : null,
+            lyrics: typeof t.lyrics === 'string' ? t.lyrics : ''
+          };
+        });
       state.trackMap = new Map(state.tracks.map((t) => [t.id, t]));
 
+      renderTabs();
       renderList();
 
       if (state.tracks.length) {
@@ -262,6 +306,7 @@
     const q = normalize(state.query);
     return state.tracks.filter((track) => {
       if (state.view === 'favorites' && !state.favorites.has(track.id)) return false;
+      if (state.view.startsWith('pl:') && track.album !== state.view.slice(3)) return false;
       if (!q) return true;
       return [track.title, track.artist, track.album].some((field) => normalize(field).includes(q));
     });
@@ -270,7 +315,18 @@
   function renderList() {
     const visible = getVisibleTracks();
     const fragment = document.createDocumentFragment();
-    visible.forEach((track, i) => fragment.appendChild(createTrackItem(track, i)));
+
+    // Cada playlist se muestra como un bloque separado con su propio encabezado
+    const groups = new Map();
+    visible.forEach((track) => {
+      const name = track.album || 'Sin playlist';
+      if (!groups.has(name)) groups.set(name, []);
+      groups.get(name).push(track);
+    });
+    groups.forEach((tracks, name) => {
+      fragment.appendChild(createPlaylistHeader(name, tracks));
+      tracks.forEach((track, i) => fragment.appendChild(createTrackItem(track, i)));
+    });
 
     if (!visible.length) {
       const li = document.createElement('li');
@@ -293,6 +349,105 @@
       : `${total} canci${total === 1 ? 'ón' : 'ones'}`;
 
     updateFavCount();
+  }
+
+  function getPlaylists() {
+    const names = [];
+    state.tracks.forEach((t) => {
+      if (t.album && !names.includes(t.album)) names.push(t.album);
+    });
+    return names;
+  }
+
+  function renderTabs() {
+    const views = [
+      { view: 'all', label: 'Todas' },
+      { view: 'favorites', label: 'Favoritas' },
+      ...getPlaylists().map((name) => ({ view: `pl:${name}`, label: name }))
+    ];
+    const fragment = document.createDocumentFragment();
+    views.forEach(({ view, label }) => {
+      const tab = document.createElement('button');
+      tab.type = 'button';
+      tab.className = 'tab';
+      tab.setAttribute('role', 'tab');
+      tab.dataset.view = view;
+      tab.textContent = label;
+      if (view === 'favorites') {
+        const count = document.createElement('span');
+        count.className = 'count';
+        count.id = 'favCount';
+        tab.append(' ', count);
+      }
+      const active = view === state.view;
+      tab.classList.toggle('is-active', active);
+      tab.setAttribute('aria-selected', String(active));
+      fragment.appendChild(tab);
+    });
+    els.tabsBar.replaceChildren(fragment);
+    els.favCount = document.getElementById('favCount');
+  }
+
+  function setView(view) {
+    state.view = view;
+    els.tabsBar.querySelectorAll('.tab').forEach((tab) => {
+      const active = tab.dataset.view === view;
+      tab.classList.toggle('is-active', active);
+      tab.setAttribute('aria-selected', String(active));
+    });
+    renderList();
+    els.trackList.closest('.library').scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }
+
+  function formatTotal(seconds) {
+    const minutes = Math.round(seconds / 60);
+    if (minutes < 60) return `${minutes} min`;
+    return `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
+  }
+
+  function createPlaylistHeader(name, tracks) {
+    const li = document.createElement('li');
+    li.className = 'playlist-header';
+
+    const art = document.createElement('img');
+    art.className = 'playlist-art';
+    art.src = tracks[0].cover;
+    art.alt = '';
+    art.width = 56;
+    art.height = 56;
+
+    const text = document.createElement('div');
+    text.className = 'playlist-text';
+    const label = document.createElement('span');
+    label.className = 'playlist-label';
+    label.textContent = 'Playlist';
+    const title = document.createElement('h2');
+    title.className = 'playlist-name';
+    title.textContent = name;
+    const meta = document.createElement('span');
+    meta.className = 'playlist-meta';
+    const total = tracks.reduce((sum, t) => sum + parseDuration(t.duration), 0);
+    meta.textContent = `${tracks.length} canci${tracks.length === 1 ? 'ón' : 'ones'} · ${formatTotal(total)}`;
+    text.append(label, title, meta);
+
+    const play = document.createElement('button');
+    play.type = 'button';
+    play.className = 'icon-btn play-btn playlist-play';
+    play.dataset.action = 'play-playlist';
+    play.dataset.playlist = name;
+    play.setAttribute('aria-label', `Reproducir la playlist ${name}`);
+    play.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-play"></use></svg>';
+
+    li.append(art, text, play);
+    return li;
+  }
+
+  function playPlaylist(name) {
+    const tracks = getVisibleTracks().filter((t) => (t.album || 'Sin playlist') === name);
+    if (!tracks.length) return;
+    const start = state.shuffle ? tracks[Math.floor(Math.random() * tracks.length)] : tracks[0];
+    buildQueue(start.id);
+    loadTrack(getTrack(state.queue[state.queueIndex]), true);
   }
 
   function createTrackItem(track, index) {
@@ -339,11 +494,7 @@
     artist.textContent = track.artist;
     text.append(title, artist);
 
-    const album = document.createElement('span');
-    album.className = 'track-album';
-    album.textContent = track.album;
-
-    main.append(num, img, text, album);
+    main.append(num, img, text);
 
     const fav = document.createElement('button');
     fav.type = 'button';
@@ -403,16 +554,21 @@
   }
 
   /* ---------- Cola de reproducción ---------- */
-  function describeContext() {
+  function describeContext(start) {
     if (state.query.trim()) return `Búsqueda: «${state.query.trim()}»`;
     if (state.view === 'favorites') return 'Reproduciendo desde Favoritas';
+    if (start?.album) return `Playlist · ${start.album}`;
     return 'Reproduciendo desde tu biblioteca';
   }
 
   function buildQueue(startId) {
-    const visibleIds = getVisibleTracks().map((t) => t.id);
-    state.baseQueue = visibleIds.includes(startId) ? visibleIds : state.tracks.map((t) => t.id);
-    state.queueContext = visibleIds.includes(startId) ? describeContext() : 'Reproduciendo desde tu biblioteca';
+    const start = getTrack(startId);
+    let candidates = getVisibleTracks();
+    if (!candidates.some((t) => t.id === startId)) candidates = state.tracks;
+    // Las playlists no se mezclan: la cola es la playlist de la canción elegida
+    if (state.view !== 'favorites' && start) candidates = candidates.filter((t) => t.album === start.album);
+    state.baseQueue = candidates.map((t) => t.id);
+    state.queueContext = describeContext(start);
     state.queue = state.baseQueue.slice();
     state.queueIndex = Math.max(0, state.queue.indexOf(startId));
     if (state.shuffle) applyShuffle();
@@ -462,7 +618,7 @@
     document.title = `${track.title} · ${track.artist} — LiquidBrush`;
 
     updateProgressUI(0, parseDuration(track.duration));
-    renderLyrics(track.lyrics);
+    showLyricsFor(track);
     highlightCurrent();
     updateDynamicColor(track);
     updateMediaSession(track);
@@ -677,7 +833,78 @@
     return { synced: false, text: text.trim() };
   }
 
-  function renderLyrics(text) {
+  // Busca la letra en LRCLIB (gratis, sin clave). Devuelve '' si no existe y null si falló la conexión.
+  const lyricsCache = new Map();
+
+  async function lyricsRequest(path, retries = 1) {
+    const response = await fetch(`${LYRICS_API}${path}`);
+    if (response.status === 404) return null;
+    if (response.status === 503 && retries > 0) {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      return lyricsRequest(path, retries - 1);
+    }
+    if (!response.ok) throw new Error(`LRCLIB HTTP ${response.status}`);
+    return response.json();
+  }
+
+  function pickLyrics(entry) {
+    if (!entry) return '';
+    if (entry.instrumental) return '[00:00.00] ♪ Instrumental ♪';
+    return entry.syncedLyrics || entry.plainLyrics || '';
+  }
+
+  async function fetchLyrics(track) {
+    if (lyricsCache.has(track.id)) return lyricsCache.get(track.id);
+    const stored = storage.get(KEYS.lyricsPrefix + track.id, null);
+    if (typeof stored === 'string') {
+      lyricsCache.set(track.id, stored);
+      return stored;
+    }
+
+    const duration = Math.round(parseDuration(track.duration));
+    // Artista principal, sin "ft." ni colaboradores
+    const artist = track.knownArtist.replace(/\s*\b(ft|feat)\b\.?.*$/i, '').split(',')[0].trim();
+    let text = '';
+    try {
+      if (artist) {
+        const params = new URLSearchParams({ artist_name: artist, track_name: track.title });
+        if (duration) params.set('duration', String(duration));
+        text = pickLyrics(await lyricsRequest(`/get?${params}`));
+      }
+      if (!text) {
+        const results = await lyricsRequest(`/search?${new URLSearchParams({ q: `${track.title} ${artist}`.trim() })}`);
+        if (Array.isArray(results)) {
+          // Sin artista conocido solo se acepta si la duración coincide (evita letras equivocadas)
+          const matches = results.filter((r) => (duration ? Math.abs(r.duration - duration) <= 4 : Boolean(artist)));
+          matches.sort((a, b) => Number(Boolean(b.syncedLyrics)) - Number(Boolean(a.syncedLyrics)));
+          text = pickLyrics(matches[0]);
+        }
+      }
+    } catch (error) {
+      console.warn('[LiquidBrush] No se pudo obtener la letra:', error);
+      return null;
+    }
+    lyricsCache.set(track.id, text);
+    storage.set(KEYS.lyricsPrefix + track.id, text);
+    return text;
+  }
+
+  function showLyricsFor(track) {
+    if (track.lyrics) {
+      renderLyrics(track.lyrics);
+      return;
+    }
+    renderLyrics('', 'Buscando la letra…');
+    fetchLyrics(track).then((text) => {
+      if (state.currentTrack?.id !== track.id) return;
+      renderLyrics(text, text === null
+        ? 'No se pudo conectar con el servicio de letras. Vuelve a intentarlo en un momento.'
+        : 'Letra no disponible para esta canción.');
+      syncLyrics(els.audio.currentTime, true);
+    });
+  }
+
+  function renderLyrics(text, emptyMessage = 'Letra no disponible para esta canción.') {
     state.lyrics = parseLyrics(text);
     state.activeLyric = -1;
     els.lyricsBody.replaceChildren();
@@ -687,7 +914,7 @@
     if (!state.lyrics) {
       const p = document.createElement('p');
       p.className = 'lyrics-empty';
-      p.textContent = 'Letra no disponible para esta canción.';
+      p.textContent = emptyMessage;
       els.lyricsBody.appendChild(p);
       return;
     }
@@ -750,6 +977,10 @@
   }
 
   function updateDynamicColor(track) {
+    if (track.hue !== null && track.hue !== undefined) {
+      applyDynamicColor(hslToRgb(track.hue / 360, 0.65, 0.5));
+      return;
+    }
     if (colorCache.has(track.id)) {
       const cached = colorCache.get(track.id);
       if (cached) applyDynamicColor(cached);
@@ -891,11 +1122,14 @@
     let height = 0;
     let bars = [];
     let rafId = null;
+    let lastFrame = 0;
+    let onScreen = true;
     let colors = { a: '#1db954', b: '#1ed760', glow: 0 };
+    const FRAME_MS = 1000 / 30; // 30 fps bastan para unas barras y ahorran batería
 
     function resize() {
       const rect = canvas.getBoundingClientRect();
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
       width = rect.width;
       height = rect.height;
       canvas.width = Math.round(width * dpr);
@@ -911,13 +1145,11 @@
     function refreshColors() {
       const styles = getComputedStyle(document.documentElement);
       const read = (name) => styles.getPropertyValue(name).trim();
-      const theme = document.documentElement.dataset.theme;
-      const neon = theme === 'cyberpunk' || theme === 'synthwave';
       colors = {
         a: read('--viz-a') || read('--accent') || colors.a,
         b: read('--viz-b') || read('--accent-2') || colors.b,
         c: read('--viz-c'),
-        glow: neon ? 10 : theme === 'chrome' ? 6 : 0,
+        glow: 0, // el resplandor (shadowBlur) era lo más costoso de dibujar
         reflect: read('--viz-reflect') === '1'
       };
       draw();
@@ -946,13 +1178,22 @@
     }
 
     function frame(time) {
+      if (!onScreen) {
+        rafId = null;
+        return;
+      }
+      if (time - lastFrame < FRAME_MS) {
+        rafId = requestAnimationFrame(frame);
+        return;
+      }
+      lastFrame = time;
       const playing = !els.audio.paused && !els.audio.ended;
       const targets = playing ? levels(time) : null;
       let moving = playing;
 
       bars = bars.map((value, i) => {
         const target = targets ? targets[i] : IDLE_LEVEL;
-        const speed = target > value ? 0.45 : 0.12;
+        const speed = target > value ? 0.6 : 0.2;
         const nextValue = value + (target - value) * speed;
         if (Math.abs(nextValue - target) > 0.004) moving = true;
         return nextValue;
@@ -1009,7 +1250,15 @@
     }
 
     function start() {
-      if (!rafId) rafId = requestAnimationFrame(frame);
+      if (!rafId && onScreen) rafId = requestAnimationFrame(frame);
+    }
+
+    // Si el visualizador sale de la pantalla (p. ej. al bajar por la lista en el móvil) deja de dibujarse
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(([entry]) => {
+        onScreen = entry.isIntersecting;
+        if (onScreen) start();
+      }).observe(canvas);
     }
 
     if ('ResizeObserver' in window) {
@@ -1036,6 +1285,7 @@
   function setupSurrealEyes() {
     const irises = [...document.querySelectorAll('.eye-iris')];
     if (!irises.length || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (!window.matchMedia('(pointer: fine)').matches) return; // en táctil no hay cursor que seguir
     let pointer = null;
     let frameId = null;
 
@@ -1066,7 +1316,7 @@
         title: track.title,
         artist: track.artist,
         album: track.album,
-        artwork: track.cover === PLACEHOLDER_COVER ? [] : [{ src: track.cover, sizes: '300x300' }]
+        artwork: track.hue !== null ? [] : [{ src: track.cover, sizes: '300x300' }]
       });
     } catch {
       /* metadatos no soportados */
@@ -1157,6 +1407,11 @@
 
     // Lista (delegación de eventos)
     els.trackList.addEventListener('click', (event) => {
+      const playlistButton = event.target.closest('[data-action="play-playlist"]');
+      if (playlistButton) {
+        playPlaylist(playlistButton.dataset.playlist);
+        return;
+      }
       const target = event.target.closest('[data-action]');
       const item = event.target.closest('.track');
       if (!target || !item) return;
@@ -1176,22 +1431,30 @@
     });
 
     // Buscador en tiempo real
+    let searchFrame = null;
     els.searchInput.addEventListener('input', () => {
       state.query = els.searchInput.value;
-      renderList();
+      if (searchFrame) cancelAnimationFrame(searchFrame);
+      searchFrame = requestAnimationFrame(() => {
+        searchFrame = null;
+        renderList();
+      });
     });
 
     // Pestañas Todas / Favoritas
-    els.tabs.forEach((tab) => {
-      tab.addEventListener('click', () => {
-        state.view = tab.dataset.view;
-        els.tabs.forEach((t) => {
-          const active = t === tab;
-          t.classList.toggle('is-active', active);
-          t.setAttribute('aria-selected', String(active));
-        });
-        renderList();
-      });
+    els.tabsBar.addEventListener('click', (event) => {
+      const tab = event.target.closest('.tab');
+      if (tab) setView(tab.dataset.view);
+    });
+
+    // Botón "Letra" del reproductor: abre el panel y lo lleva a la vista
+    els.lyricsBtn.addEventListener('click', () => {
+      els.lyricsPanel.open = true;
+      els.lyricsPanel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+    els.lyricsPanel.addEventListener('toggle', () => {
+      els.lyricsBtn.classList.toggle('is-active', els.lyricsPanel.open);
+      if (els.lyricsPanel.open) syncLyrics(els.audio.currentTime, true);
     });
 
     // Tema
@@ -1247,7 +1510,16 @@
     applyTheme(storage.get(KEYS.theme, 'chrome'));
   }
 
+  // Equipos modestos o "ahorro de datos": escena surrealista estática
+  function detectLiteMode() {
+    const cores = navigator.hardwareConcurrency || 8;
+    const memory = navigator.deviceMemory || 8;
+    const saveData = navigator.connection?.saveData === true;
+    if (cores <= 4 || memory <= 2 || saveData) document.documentElement.classList.add('lite');
+  }
+
   function init() {
+    detectLiteMode();
     if (CONFIG.useWebAudioAnalyser) els.audio.crossOrigin = 'anonymous';
 
     els.cover.src = PLACEHOLDER_COVER;

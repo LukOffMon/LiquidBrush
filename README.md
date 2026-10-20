@@ -14,13 +14,18 @@ El tema "Cromo Surreal" incluye una escena animada: esfera de cromo en el horizo
 La app lee la tabla `tracks` del proyecto Supabase **LoopMusiK** (nombre original del proyecto) (configurado en `CONFIG.supabase` de `app.js`). Para añadir una canción no hace falta tocar GitHub:
 
 1. **Storage → `loopmusik-audio` → Upload**: sube los MP3 sueltos (Supabase **no descomprime** archivos .zip) y las carátulas si quieres. Los nombres de archivo no pueden llevar tildes, ñ ni símbolos como `[ ] # % ? ¿ ¡`.
-2. **Table Editor → `tracks` → Insert row**: rellena `title`, `artist`, `album`, `duration`, `lyrics` y:
+2. **Table Editor → `tracks` → Insert row**: rellena `title`, `artist`, `duration`, `lyrics` y:
+   - `album`: el nombre de la **playlist**. Cada valor distinto aparece como una playlist separada, con su propio encabezado y su filtro.
    - `src`: el nombre del archivo en el bucket (p. ej. `mi-cancion.mp3` o `album/mi-cancion.mp3`) o una URL completa.
    - `cover`: igual que `src` (opcional).
-   - `position`: orden en la lista.
+   - `position`: orden en la lista (DiscoBse usa 1–80 y OyeComoVa 101–149, para que cada playlist quede en su bloque).
    - `is_published`: desmárcalo para ocultar la canción sin borrarla.
 
 La tabla es de solo lectura para la web (RLS); solo se edita desde el panel de Supabase.
+
+### Letras
+
+Si `lyrics` está vacío, la app busca la letra automáticamente en [LRCLIB](https://lrclib.net) (gratis, sin clave; muchas vienen sincronizadas) y la guarda en el navegador. Funciona mejor cuando la canción tiene `artist` y `duration` correctos. Si escribes tu propia letra en `lyrics`, se usa esa.
 
 ## Respaldo: tracks.json
 
