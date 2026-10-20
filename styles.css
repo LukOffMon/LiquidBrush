@@ -817,6 +817,32 @@ body.is-playing .cover-wrap {
   height: 24px;
 }
 
+.playlist-header.is-collapsible {
+  grid-template-columns: 56px minmax(0, 1fr) auto auto;
+  cursor: pointer;
+}
+
+.playlist-toggle {
+  width: 40px;
+  height: 40px;
+}
+
+.playlist-toggle .icon {
+  width: 26px;
+  height: 26px;
+  transition: transform 0.2s ease;
+}
+
+.playlist-header.is-open .playlist-toggle .icon {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .playlist-toggle .icon {
+    transition: none;
+  }
+}
+
 [data-theme="chrome"] .playlist-name {
   background: linear-gradient(180deg, #ffffff 0%, #e2e7f0 45%, #8a93a6 56%, #f5f7fb 100%);
   -webkit-background-clip: text;

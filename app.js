@@ -108,6 +108,8 @@
     queueContext: '',
     currentTrack: null,
     favorites: new Set(),
+    // Playlists desplegadas en la vista "Todas" (de base todas empiezan minimizadas)
+    expanded: new Set(),
     view: 'all',
     query: '',
     shuffle: false,
@@ -345,9 +347,12 @@
       if (!groups.has(name)) groups.set(name, []);
       groups.get(name).push(track);
     });
+    // En "Todas" las playlists salen minimizadas; al buscar o filtrar se muestran abiertas
+    const collapsible = state.view === 'all' && !normalize(state.query);
     groups.forEach((tracks, name) => {
-      fragment.appendChild(createPlaylistHeader(name, tracks));
-      tracks.forEach((track, i) => fragment.appendChild(createTrackItem(track, i)));
+      const open = !collapsible || state.expanded.has(name);
+      fragment.appendChild(createPlaylistHeader(name, tracks, open, collapsible));
+      if (open) tracks.forEach((track, i) => fragment.appendChild(createTrackItem(track, i)));
     });
 
     if (!visible.length) {
@@ -427,9 +432,18 @@
     return `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
   }
 
-  function createPlaylistHeader(name, tracks) {
+  function togglePlaylist(name) {
+    if (state.expanded.has(name)) state.expanded.delete(name);
+    else state.expanded.add(name);
+    renderList();
+  }
+
+  function createPlaylistHeader(name, tracks, open = true, collapsible = false) {
     const li = document.createElement('li');
     li.className = 'playlist-header';
+    li.classList.toggle('is-collapsible', collapsible);
+    li.classList.toggle('is-open', open);
+    li.dataset.playlist = name;
 
     const art = document.createElement('img');
     art.className = 'playlist-art';
@@ -461,6 +475,17 @@
     play.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-play"></use></svg>';
 
     li.append(art, text, play);
+
+    if (collapsible) {
+      const toggle = document.createElement('button');
+      toggle.type = 'button';
+      toggle.className = 'icon-btn playlist-toggle';
+      toggle.dataset.action = 'toggle-playlist';
+      toggle.setAttribute('aria-expanded', String(open));
+      toggle.setAttribute('aria-label', `${open ? 'Minimizar' : 'Desplegar'} la playlist ${name}`);
+      toggle.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-chevron"></use></svg>';
+      li.append(toggle);
+    }
     return li;
   }
 
@@ -1432,6 +1457,12 @@
       const playlistButton = event.target.closest('[data-action="play-playlist"]');
       if (playlistButton) {
         playPlaylist(playlistButton.dataset.playlist);
+        return;
+      }
+      // Clic en el encabezado (o en la flecha) despliega / minimiza la playlist
+      const header = event.target.closest('.playlist-header.is-collapsible');
+      if (header) {
+        togglePlaylist(header.dataset.playlist);
         return;
       }
       const target = event.target.closest('[data-action]');
