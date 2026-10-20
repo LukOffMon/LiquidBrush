@@ -23,6 +23,8 @@ create table if not exists public.shared_playlists (
   emoji text not null default '' check (char_length(emoji) <= 8),
   color text not null default '' check (color = '' or color ~ '^#[0-9a-fA-F]{6}$'),
   track_ids text[] not null default '{}' check (cardinality(track_ids) <= 2000),
+  -- "Eliminar para todos" la oculta; la app solo muestra hidden = false
+  hidden boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -31,7 +33,6 @@ comment on table public.shared_playlists is 'Playlists de LiquidBrush guardadas 
 
 -- La web solo puede leer; crear, cambiar y borrar va por las funciones de abajo
 alter table public.shared_playlists enable row level security;
-drop policy if exists "Lectura pública de playlists compartidas" on public.shared_playlists;
 create policy "Lectura pública de playlists compartidas"
   on public.shared_playlists for select
   to anon, authenticated
@@ -56,7 +57,6 @@ begin
     insert into private.key_failures default values;
     raise exception 'clave_incorrecta' using errcode = 'P0001';
   end if;
-  delete from private.key_failures where created_at < now() - interval '1 day';
 end;
 $$;
 
@@ -81,7 +81,7 @@ begin
   if p_id is not null then
     update public.shared_playlists
        set name = trim(p_name), emoji = coalesce(p_emoji, ''), color = coalesce(p_color, ''),
-           track_ids = coalesce(p_track_ids, '{}'), updated_at = now()
+           track_ids = coalesce(p_track_ids, '{}'), hidden = false, updated_at = now()
      where id = p_id
     returning id into v_id;
   end if;
@@ -94,7 +94,8 @@ begin
 end;
 $$;
 
-create or replace function public.delete_shared_playlist(p_key text, p_id uuid)
+-- "Eliminar para todos" oculta la playlist (deja de verse en la app)
+create or replace function public.hide_shared_playlist(p_key text, p_id uuid)
 returns void
 language plpgsql
 security definer
@@ -102,15 +103,15 @@ set search_path = ''
 as $$
 begin
   perform private.require_set_key(p_key);
-  delete from public.shared_playlists where id = p_id;
+  update public.shared_playlists set hidden = true, updated_at = now() where id = p_id;
 end;
 $$;
 
 revoke all on function private.require_set_key(text) from public, anon, authenticated;
 revoke all on function public.save_shared_playlist(text, uuid, text, text, text, text[]) from public;
-revoke all on function public.delete_shared_playlist(text, uuid) from public;
+revoke all on function public.hide_shared_playlist(text, uuid) from public;
 grant execute on function public.save_shared_playlist(text, uuid, text, text, text, text[]) to anon, authenticated;
-grant execute on function public.delete_shared_playlist(text, uuid) to anon, authenticated;
+grant execute on function public.hide_shared_playlist(text, uuid) to anon, authenticated;
 
 -- Para poner o cambiar la clave, ejecuta aparte (cambiando TU_CLAVE):
 -- insert into private.app_keys (name, hash)

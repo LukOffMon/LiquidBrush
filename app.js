@@ -627,7 +627,7 @@
 
   async function loadSharedPlaylists() {
     try {
-      const response = await fetch(`${SHARED_DB.url}/rest/v1/shared_playlists?select=*&order=created_at.asc`, {
+      const response = await fetch(`${SHARED_DB.url}/rest/v1/shared_playlists?select=*&hidden=eq.false&order=created_at.asc`, {
         headers: { apikey: SHARED_DB.key },
         cache: 'no-cache'
       });
@@ -731,7 +731,7 @@
     const key = await askKey(`Eliminar «${pl.name}» para todos.`);
     if (!key) return;
     try {
-      await supabaseRpc('delete_shared_playlist', { p_key: key, p_id: pl.id });
+      await supabaseRpc('hide_shared_playlist', { p_key: key, p_id: pl.id });
       await loadSharedPlaylists();
       setView('playlists');
       showToast(`«${pl.name}» eliminada para todos.`);
