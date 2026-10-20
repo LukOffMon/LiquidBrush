@@ -24,6 +24,12 @@
         key: 'sb_publishable_lraxIbb_tQtXr7y-yAa15Q_OqWrDmUN',
         table: 'tracks',
         bucket: 'LiquidBrush2DB'
+      },
+      {
+        // Canciones guardadas en Cloudflare R2: la lista vive en este repositorio
+        // (no ocupa espacio en Supabase) y "src" lleva la URL completa del MP3
+        name: 'cloudflare',
+        list: 'cloudflare-tracks.json'
       }
     ],
     tracksUrl: 'tracks.json',
@@ -239,7 +245,15 @@
     return `${url}/storage/v1/object/public/${bucket}/${cleanPath}`;
   }
 
+  async function fetchFromList(source) {
+    const response = await fetch(source.list, { cache: 'no-cache' });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const rows = await response.json();
+    return rows.map((row) => ({ ...row, source }));
+  }
+
   async function fetchFromSupabase(source) {
+    if (source.list) return fetchFromList(source);
     const { url, key, table } = source;
     const endpoint = `${url}/rest/v1/${table}?select=*&order=position.asc,id.asc`;
     const response = await fetch(endpoint, { headers: { apikey: key }, cache: 'no-cache' });

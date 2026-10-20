@@ -18,6 +18,8 @@ La app lee la tabla `tracks` de **dos proyectos de Supabase a la vez** (lista `C
 | `principal` · LoopMusiK (`kvylexeicpvjrvhpizsz`) | `loopmusik-audio` | DiscoBse, OyeComoVa |
 | `extra` · cuenta officiallukamon (`pikoruycbgwjrxqxaajl`) | `LiquidBrush2DB` | playlists nuevas |
 
+Además, las canciones guardadas en **Cloudflare R2** (bucket `liquidbrush3db3`, playlist YK 3) se leen de [`cloudflare-tracks.json`](cloudflare-tracks.json), un archivo de este repositorio. Así no ocupan nada en Supabase: cada fila lleva `id`, `title`, `artist`, `album` (la playlist), `duration` y `src` con la URL pública completa del MP3. Para añadir una carpeta nueva, sube los MP3 y un `nombres.txt` con la lista de archivos a esa carpeta del bucket.
+
 El proyecto `extra` se prepara pegando [`supabase/proyecto-extra.sql`](supabase/proyecto-extra.sql) en su SQL Editor. Si un proyecto no responde, se siguen mostrando las canciones del otro. Cada proyecto gratis tiene 1 GB.
 
 Para añadir una canción no hace falta tocar GitHub:

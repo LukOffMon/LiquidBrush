@@ -6,7 +6,7 @@
    - Los MP3 descargados desde la app viven en AUDIO_CACHE y se
      reproducen desde ahí (con soporte de rangos para poder adelantar).
    ========================================================= */
-const VERSION = 'v1';
+const VERSION = 'v2';
 const SHELL_CACHE = `liquidbrush-shell-${VERSION}`;
 const DATA_CACHE = 'liquidbrush-data';
 const AUDIO_CACHE = 'liquidbrush-audio';
@@ -22,7 +22,8 @@ const SHELL = [
   'icon-192.png',
   'icon-512.png',
   'icon-maskable-512.png',
-  'tracks.json'
+  'tracks.json',
+  'cloudflare-tracks.json'
 ];
 
 self.addEventListener('install', (event) => {
