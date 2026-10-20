@@ -532,6 +532,23 @@
     navigator.serviceWorker.register('sw.js').catch((error) => {
       console.warn('[LiquidBrush] No se pudo activar el modo offline.', error);
     });
+
+    // Al publicarse una versión nueva, se recarga una vez (sin cortar la canción que suena)
+    const hadController = Boolean(navigator.serviceWorker.controller);
+    let refreshing = false;
+    const reload = () => {
+      if (refreshing) return;
+      refreshing = true;
+      location.reload();
+    };
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!hadController) return;
+      if (els.audio.paused) reload();
+      else {
+        showToast('Hay una versión nueva de LiquidBrush: se aplicará al pausar.');
+        els.audio.addEventListener('pause', reload, { once: true });
+      }
+    });
   }
 
   /* ---------- Playlists ---------- */

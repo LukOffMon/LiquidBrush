@@ -6,7 +6,7 @@
    - Los MP3 descargados desde la app viven en AUDIO_CACHE y se
      reproducen desde ahí (con soporte de rangos para poder adelantar).
    ========================================================= */
-const VERSION = 'v4';
+const VERSION = 'v5';
 const SHELL_CACHE = `liquidbrush-shell-${VERSION}`;
 const DATA_CACHE = 'liquidbrush-data';
 const AUDIO_CACHE = 'liquidbrush-audio';
@@ -14,8 +14,8 @@ const AUDIO_CACHE = 'liquidbrush-audio';
 const SHELL = [
   './',
   'index.html',
-  'styles.css',
-  'app.js',
+  'styles.css?v=5',
+  'app.js?v=5',
   'logo.svg',
   'manifest.webmanifest',
   'apple-touch-icon.png',
@@ -47,10 +47,11 @@ self.addEventListener('activate', (event) => {
 });
 
 // Red primero; si falla, la copia guardada
-async function networkFirst(request, cacheName) {
+async function networkFirst(request, cacheName, bypassHttpCache = false) {
   const cache = await caches.open(cacheName);
   try {
-    const response = await fetch(request);
+    // Los archivos de la app se piden siempre frescos (GitHub Pages los deja 10 min en caché)
+    const response = await fetch(bypassHttpCache ? new Request(request.url, { cache: 'no-cache' }) : request);
     if (response.ok) cache.put(request, response.clone());
     return response;
   } catch (error) {
@@ -123,7 +124,7 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (url.origin === self.location.origin) {
-    event.respondWith(networkFirst(request, SHELL_CACHE));
+    event.respondWith(networkFirst(request, SHELL_CACHE, true));
     return;
   }
 

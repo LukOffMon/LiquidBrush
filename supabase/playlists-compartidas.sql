@@ -36,7 +36,7 @@ alter table public.shared_playlists enable row level security;
 create policy "Lectura pública de playlists compartidas"
   on public.shared_playlists for select
   to anon, authenticated
-  using (true);
+  using (not hidden);
 grant select on public.shared_playlists to anon, authenticated;
 
 -- Comprueba la clave; lanza error si es incorrecta o si hubo demasiados fallos recientes
@@ -107,7 +107,17 @@ begin
 end;
 $$;
 
+-- Nombre antiguo, para versiones viejas de la app que sigan en caché
+create or replace function public.delete_shared_playlist(p_key text, p_id uuid)
+returns void
+language sql
+security definer
+set search_path = ''
+as $$ select public.hide_shared_playlist(p_key, p_id); $$;
+
 revoke all on function private.require_set_key(text) from public, anon, authenticated;
+revoke all on function public.delete_shared_playlist(text, uuid) from public;
+grant execute on function public.delete_shared_playlist(text, uuid) to anon, authenticated;
 revoke all on function public.save_shared_playlist(text, uuid, text, text, text, text[]) from public;
 revoke all on function public.hide_shared_playlist(text, uuid) from public;
 grant execute on function public.save_shared_playlist(text, uuid, text, text, text, text[]) to anon, authenticated;
