@@ -23,7 +23,7 @@
         url: 'https://pikoruycbgwjrxqxaajl.supabase.co',
         key: 'sb_publishable_lraxIbb_tQtXr7y-yAa15Q_OqWrDmUN',
         table: 'tracks',
-        bucket: 'liquidbrush-audio'
+        bucket: 'LiquidBrush2DB'
       }
     ],
     tracksUrl: 'tracks.json',

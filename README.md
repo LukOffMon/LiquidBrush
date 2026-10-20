@@ -16,13 +16,13 @@ La app lee la tabla `tracks` de **dos proyectos de Supabase a la vez** (lista `C
 | Proyecto | Bucket | Contenido |
 | --- | --- | --- |
 | `principal` · LoopMusiK (`kvylexeicpvjrvhpizsz`) | `loopmusik-audio` | DiscoBse, OyeComoVa |
-| `extra` · cuenta officiallukamon (`pikoruycbgwjrxqxaajl`) | `liquidbrush-audio` | playlists nuevas |
+| `extra` · cuenta officiallukamon (`pikoruycbgwjrxqxaajl`) | `LiquidBrush2DB` | playlists nuevas |
 
 El proyecto `extra` se prepara pegando [`supabase/proyecto-extra.sql`](supabase/proyecto-extra.sql) en su SQL Editor. Si un proyecto no responde, se siguen mostrando las canciones del otro. Cada proyecto gratis tiene 1 GB.
 
 Para añadir una canción no hace falta tocar GitHub:
 
-1. **Storage → bucket del proyecto (`loopmusik-audio` o `liquidbrush-audio`) → Upload**: sube los MP3 sueltos (Supabase **no descomprime** archivos .zip) y las carátulas si quieres. Los nombres de archivo no pueden llevar tildes, ñ ni símbolos como `[ ] # % ? ¿ ¡`.
+1. **Storage → bucket del proyecto (`loopmusik-audio` o `LiquidBrush2DB`) → Upload**: sube los MP3 sueltos (Supabase **no descomprime** archivos .zip) y las carátulas si quieres. Los nombres de archivo no pueden llevar tildes, ñ ni símbolos como `[ ] # % ? ¿ ¡`.
 2. **Table Editor → `tracks` → Insert row**: rellena `title`, `artist`, `duration`, `lyrics` y:
    - `album`: el nombre de la **playlist**. Cada valor distinto aparece como una playlist separada, con su propio encabezado y su filtro.
    - `src`: el nombre del archivo en el bucket (p. ej. `mi-cancion.mp3` o `album/mi-cancion.mp3`) o una URL completa.

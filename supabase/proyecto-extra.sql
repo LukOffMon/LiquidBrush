@@ -16,7 +16,7 @@ create table if not exists public.tracks (
   created_at timestamptz not null default now()
 );
 
-comment on table public.tracks is 'Canciones de LiquidBrush. src y cover aceptan una URL completa o la ruta del archivo dentro del bucket liquidbrush-audio. album = nombre de la playlist.';
+comment on table public.tracks is 'Canciones de LiquidBrush. src y cover aceptan una URL completa o la ruta del archivo dentro del bucket LiquidBrush2DB. album = nombre de la playlist.';
 
 -- 2) La web solo puede leer canciones publicadas; nadie puede escribir con la clave pública
 alter table public.tracks enable row level security;
@@ -29,7 +29,7 @@ create policy "Lectura pública de canciones publicadas"
 
 grant select on public.tracks to anon, authenticated;
 
--- 3) Bucket público para los MP3 y las carátulas
+-- 3) Bucket público para los MP3 y las carátulas (ya creado desde el panel; esto solo asegura que sea público)
 insert into storage.buckets (id, name, public)
-values ('liquidbrush-audio', 'liquidbrush-audio', true)
+values ('LiquidBrush2DB', 'LiquidBrush2DB', true)
 on conflict (id) do update set public = true;
