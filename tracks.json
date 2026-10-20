@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "title": "Ejemplo Canción 1",
+    "artist": "Artista Ejemplo",
+    "album": "Álbum Ejemplo",
+    "duration": "6:12",
+    "src": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+    "cover": "https://picsum.photos/id/10/300/300",
+    "lyrics": "Letra de prueba de la canción...\n\nEsta es una letra estática:\nse muestra completa, sin sincronizar.\n\nCuando subas tus canciones, escribe aquí la letra\nusando \\n para separar cada línea."
+  },
+  {
+    "id": 2,
+    "title": "Ejemplo Canción 2",
+    "artist": "Artista Neón",
+    "album": "Noches Digitales",
+    "duration": "7:05",
+    "src": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
+    "cover": "https://picsum.photos/id/1015/300/300",
+    "lyrics": "[00:00.00] ♪ Intro ♪\n[00:06.00] Esta letra está sincronizada en formato LRC\n[00:12.00] Cada línea empieza con [minutos:segundos]\n[00:18.00] y se ilumina justo cuando suena\n[00:24.00] Haz clic en cualquier línea\n[00:30.00] para saltar a ese momento de la canción\n[00:38.00] Las luces de la ciudad se encienden\n[00:46.00] y el ritmo vuelve a empezar en bucle\n[00:54.00] Loop, loop, LoopMusiK\n[01:02.00] ♪"
+  },
+  {
+    "id": 3,
+    "title": "Ejemplo Canción 3",
+    "artist": "Artista Ejemplo",
+    "album": "Retro Atardecer",
+    "duration": "5:44",
+    "src": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
+    "cover": "https://picsum.photos/id/1039/300/300",
+    "lyrics": ""
+  }
+]
