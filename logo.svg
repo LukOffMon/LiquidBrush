@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="LiquidBrush">
+  <defs>
+    <!-- Fondo: noche violeta con el resplandor del horizonte -->
+    <linearGradient id="lb-bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1d1638"/>
+      <stop offset=".62" stop-color="#100d1c"/>
+      <stop offset="1" stop-color="#07060c"/>
+    </linearGradient>
+    <radialGradient id="lb-glow" cx=".5" cy=".7" r=".55">
+      <stop offset="0" stop-color="#ff7ad9" stop-opacity=".55"/>
+      <stop offset=".5" stop-color="#7a5cff" stop-opacity=".18"/>
+      <stop offset="1" stop-color="#7a5cff" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Cromo: cielo claro, línea de horizonte oscura y reflejo iridiscente abajo -->
+    <linearGradient id="lb-chrome" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset=".3" stop-color="#c5cddb"/>
+      <stop offset=".54" stop-color="#4e5566"/>
+      <stop offset=".6" stop-color="#1f2330"/>
+      <stop offset=".68" stop-color="#e6c8f2"/>
+      <stop offset=".84" stop-color="#9fb4d8"/>
+      <stop offset="1" stop-color="#f4f7fb"/>
+    </linearGradient>
+    <linearGradient id="lb-iri" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7ef9ff"/>
+      <stop offset=".5" stop-color="#ff7ad9"/>
+      <stop offset="1" stop-color="#ffe27a"/>
+    </linearGradient>
+    <clipPath id="lb-tile"><rect width="64" height="64" rx="15"/></clipPath>
+  </defs>
+
+  <g clip-path="url(#lb-tile)">
+    <rect width="64" height="64" fill="url(#lb-bg)"/>
+    <rect width="64" height="64" fill="url(#lb-glow)"/>
+    <!-- Suelo de ajedrez en perspectiva -->
+    <g opacity=".22" fill="#e9edf4">
+      <path d="M0 56h8l-1 8H0zM16 56h8v8h-9zM32 56h8l1 8h-9zM48 56h8l2 8h-9z"/>
+    </g>
+  </g>
+
+  <!-- Gota de metal líquido con punta de pincel -->
+  <path d="M39 5C36 15 49 24 49 37C49 46.4 41.4 53 32 53C22.6 53 15 46.4 15 37C15 26 30 20 39 5Z"
+        fill="url(#lb-chrome)" stroke="url(#lb-iri)" stroke-width="1.6" stroke-linejoin="round"/>
+  <!-- Gota que se escurre -->
+  <path d="M25 52.5C25 55 23.2 56.4 23.2 58.4A1.9 1.9 0 0 0 27 58.4C27 56.4 25 55 25 52.5Z" fill="url(#lb-chrome)"/>
+  <!-- Brillos -->
+  <ellipse cx="23.5" cy="33" rx="2.6" ry="6" transform="rotate(24 23.5 33)" fill="#fff" opacity=".9"/>
+  <circle cx="41.5" cy="43" r="1.6" fill="#fff" opacity=".75"/>
+  <!-- Destello -->
+  <path d="M50 10l1.1 3.4L54.5 14.5l-3.4 1.1L50 19l-1.1-3.4L45.5 14.5l3.4-1.1z" fill="#fff"/>
+
+  <rect x=".75" y=".75" width="62.5" height="62.5" rx="14.25" fill="none" stroke="url(#lb-iri)" stroke-opacity=".45" stroke-width="1.5"/>
+</svg>

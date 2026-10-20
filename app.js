@@ -302,12 +302,13 @@
           };
         });
       state.trackMap = new Map(state.tracks.map((t) => [t.id, t]));
+      await refreshDownloads();
 
       renderTabs();
       renderList();
 
       if (state.tracks.length) {
-        buildQueue(state.tracks[0].id);
+        buildQueue((state.tracks.find(isPlayable) || state.tracks[0]).id);
         loadTrack(getTrack(state.queue[state.queueIndex]), false);
       } else {
         els.npContext.textContent = 'Biblioteca vacía';
@@ -323,6 +324,166 @@
         : 'No se pudieron cargar las canciones (ni de Supabase ni de tracks.json).';
       els.trackList.replaceChildren(li);
     }
+  }
+
+  /* ---------- Modo offline (descargas) ---------- */
+  // Los MP3 descargados se guardan en esta caché; sw.js los sirve cuando no hay conexión
+  const AUDIO_CACHE = 'liquidbrush-audio';
+  // ~320 kbps, solo para avisar del tamaño aproximado antes de descargar
+  const BYTES_PER_SECOND = 40000;
+  const offline = {
+    supported: 'caches' in window && 'serviceWorker' in navigator,
+    downloaded: new Set(),
+    jobs: new Map()
+  };
+
+  const cacheKey = (src) => new URL(src, location.href).href;
+  const isDownloaded = (track) => offline.downloaded.has(cacheKey(track.src));
+  const isPlayable = (track) => navigator.onLine || isDownloaded(track);
+  const playlistTracks = (name) => state.tracks.filter((t) => (t.album || 'Sin playlist') === name);
+
+  async function refreshDownloads() {
+    if (!offline.supported) return;
+    try {
+      const keys = await (await caches.open(AUDIO_CACHE)).keys();
+      offline.downloaded = new Set(keys.map((request) => request.url));
+    } catch (error) {
+      console.warn('[LiquidBrush] No se pudieron leer las descargas.', error);
+    }
+  }
+
+  function formatBytes(bytes) {
+    if (bytes >= 1e9) return `${(bytes / 1e9).toFixed(1)} GB`;
+    return `${Math.max(1, Math.round(bytes / 1e6))} MB`;
+  }
+
+  function updatePlaylistHeader(header) {
+    const name = header.dataset.playlist;
+    const tracks = playlistTracks(name);
+    const saved = tracks.filter(isDownloaded).length;
+    const job = offline.jobs.get(name);
+    const meta = header.querySelector('.playlist-meta');
+    let status = '';
+    if (job) status = ` · Descargando ${job.done}/${job.total}…`;
+    else if (saved && saved === tracks.length) status = ' · Disponible sin conexión';
+    else if (saved) status = ` · ${saved}/${tracks.length} descargadas`;
+    meta.textContent = meta.dataset.base + status;
+
+    const button = header.querySelector('.playlist-download');
+    if (!button) return;
+    const done = !job && saved === tracks.length && tracks.length > 0;
+    button.classList.toggle('is-busy', Boolean(job));
+    button.classList.toggle('is-done', done);
+    setIcon(button, done ? 'download-done' : 'download');
+    const label = job
+      ? `Detener la descarga de ${name}`
+      : done ? `Quitar las descargas de ${name}` : `Descargar ${name} para escuchar sin conexión`;
+    button.setAttribute('aria-label', label);
+    button.title = label;
+  }
+
+  function updateDownloadUI() {
+    els.trackList.querySelectorAll('.playlist-header').forEach(updatePlaylistHeader);
+    els.trackList.querySelectorAll('.track').forEach((li) => {
+      const track = getTrack(li.dataset.id);
+      if (track) li.classList.toggle('is-downloaded', isDownloaded(track));
+    });
+  }
+
+  async function removeDownloads(name) {
+    if (!confirm(`¿Quitar las descargas de «${name}»? Ya no se podrá escuchar sin conexión.`)) return;
+    const cache = await caches.open(AUDIO_CACHE);
+    await Promise.all(playlistTracks(name).map((t) => cache.delete(cacheKey(t.src))));
+    await refreshDownloads();
+    updateDownloadUI();
+    showToast(`Descargas de «${name}» eliminadas.`);
+  }
+
+  async function toggleDownload(name) {
+    const running = offline.jobs.get(name);
+    if (running) {
+      running.cancelled = true;
+      return;
+    }
+    const tracks = playlistTracks(name);
+    const missing = tracks.filter((t) => !isDownloaded(t));
+    if (!missing.length) {
+      removeDownloads(name);
+      return;
+    }
+    if (!navigator.onLine) {
+      showToast('Sin conexión: conéctate para descargar.');
+      return;
+    }
+    const estimate = missing.reduce((sum, t) => sum + parseDuration(t.duration), 0) * BYTES_PER_SECOND;
+    const songs = `${missing.length} canci${missing.length === 1 ? 'ón' : 'ones'}`;
+    if (!confirm(`¿Descargar ${songs} de «${name}» para escucharlas sin conexión? Ocupará unos ${formatBytes(estimate)} en este dispositivo.`)) return;
+
+    // Pide al navegador que no borre las descargas cuando falte espacio
+    navigator.storage?.persist?.().catch(() => {});
+    const job = { done: tracks.length - missing.length, total: tracks.length, cancelled: false, noSpace: false };
+    offline.jobs.set(name, job);
+    updateDownloadUI();
+
+    const cache = await caches.open(AUDIO_CACHE);
+    const pending = missing.slice();
+    let failed = 0;
+    // Dos descargas a la vez: rápido sin saturar la conexión
+    const worker = async () => {
+      while (pending.length && !job.cancelled) {
+        const track = pending.shift();
+        try {
+          const response = await fetch(track.src, { mode: 'cors' });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const blob = await response.blob();
+          await cache.put(cacheKey(track.src), new Response(blob, {
+            headers: { 'Content-Type': blob.type || 'audio/mpeg', 'Content-Length': String(blob.size) }
+          }));
+          offline.downloaded.add(cacheKey(track.src));
+          job.done++;
+        } catch (error) {
+          failed++;
+          console.warn(`[LiquidBrush] No se pudo descargar «${track.title}».`, error);
+          if (error.name === 'QuotaExceededError') {
+            job.noSpace = true;
+            job.cancelled = true;
+          }
+        }
+        updateDownloadUI();
+      }
+    };
+    await Promise.all([worker(), worker()]);
+    offline.jobs.delete(name);
+    updateDownloadUI();
+
+    if (job.noSpace) showToast('No queda espacio en el dispositivo para más descargas.');
+    else if (job.cancelled) showToast(`Descarga de «${name}» detenida (${job.done}/${job.total}).`);
+    else if (failed) showToast(`«${name}»: ${failed} canci${failed === 1 ? 'ón' : 'ones'} no se pudieron descargar. Pulsa ⬇ para reintentar.`);
+    else showToast(`«${name}» lista para escuchar sin conexión.`);
+  }
+
+  function updateOnlineStatus(notify = false) {
+    const isOffline = !navigator.onLine;
+    document.body.classList.toggle('is-offline', isOffline);
+    if (notify) showToast(isOffline ? 'Sin conexión: solo suenan las canciones descargadas.' : 'Conexión recuperada.');
+  }
+
+  // Sin conexión se saltan las canciones que no están descargadas
+  function findPlayable(start, step) {
+    const len = state.queue.length;
+    for (let n = 0; n < len; n++) {
+      const i = (((start + step * n) % len) + len) % len;
+      const track = getTrack(state.queue[i]);
+      if (track && isPlayable(track)) return i;
+    }
+    return -1;
+  }
+
+  function registerServiceWorker() {
+    if (!('serviceWorker' in navigator) || !location.protocol.startsWith('http')) return;
+    navigator.serviceWorker.register('sw.js').catch((error) => {
+      console.warn('[LiquidBrush] No se pudo activar el modo offline.', error);
+    });
   }
 
   /* ---------- Lista de canciones ---------- */
@@ -463,7 +624,8 @@
     const meta = document.createElement('span');
     meta.className = 'playlist-meta';
     const total = tracks.reduce((sum, t) => sum + parseDuration(t.duration), 0);
-    meta.textContent = `${tracks.length} canci${tracks.length === 1 ? 'ón' : 'ones'} · ${formatTotal(total)}`;
+    meta.dataset.base = `${tracks.length} canci${tracks.length === 1 ? 'ón' : 'ones'} · ${formatTotal(total)}`;
+    meta.textContent = meta.dataset.base;
     text.append(label, title, meta);
 
     const play = document.createElement('button');
@@ -476,6 +638,19 @@
 
     li.append(art, text, play);
 
+    // Descargar y desplegar van juntos (en el móvil, uno encima del otro)
+    const actions = document.createElement('div');
+    actions.className = 'playlist-actions';
+
+    if (offline.supported) {
+      const download = document.createElement('button');
+      download.type = 'button';
+      download.className = 'icon-btn playlist-download';
+      download.dataset.action = 'download-playlist';
+      download.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-download"></use></svg>';
+      actions.append(download);
+    }
+
     if (collapsible) {
       const toggle = document.createElement('button');
       toggle.type = 'button';
@@ -484,14 +659,19 @@
       toggle.setAttribute('aria-expanded', String(open));
       toggle.setAttribute('aria-label', `${open ? 'Minimizar' : 'Desplegar'} la playlist ${name}`);
       toggle.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-chevron"></use></svg>';
-      li.append(toggle);
+      actions.append(toggle);
     }
+    if (actions.childElementCount) li.append(actions);
+    updatePlaylistHeader(li);
     return li;
   }
 
   function playPlaylist(name) {
-    const tracks = getVisibleTracks().filter((t) => (t.album || 'Sin playlist') === name);
-    if (!tracks.length) return;
+    const tracks = getVisibleTracks().filter((t) => (t.album || 'Sin playlist') === name && isPlayable(t));
+    if (!tracks.length) {
+      showToast('Sin conexión: descarga la playlist (⬇) para escucharla offline.');
+      return;
+    }
     const start = state.shuffle ? tracks[Math.floor(Math.random() * tracks.length)] : tracks[0];
     buildQueue(start.id);
     loadTrack(getTrack(state.queue[state.queueIndex]), true);
@@ -502,6 +682,7 @@
     li.className = 'track';
     li.dataset.id = track.id;
     if (state.currentTrack?.id === track.id) li.classList.add('is-current');
+    if (isDownloaded(track)) li.classList.add('is-downloaded');
 
     const main = document.createElement('button');
     main.type = 'button';
@@ -539,6 +720,7 @@
     artist.className = 'track-artist';
     artist.style.display = 'block';
     artist.textContent = track.artist;
+    artist.insertAdjacentHTML('afterbegin', '<svg class="icon track-offline" aria-hidden="true"><use href="#i-download-done"></use></svg>');
     text.append(title, artist);
 
     main.append(num, img, text);
@@ -639,6 +821,11 @@
       togglePlay();
       return;
     }
+    const track = getTrack(id);
+    if (track && !isPlayable(track)) {
+      showToast('Sin conexión: descarga la playlist (⬇) para escucharla offline.');
+      return;
+    }
     buildQueue(id);
     loadTrack(getTrack(id), true);
   }
@@ -722,6 +909,14 @@
       }
     }
 
+    if (!navigator.onLine) {
+      index = findPlayable(index, 1);
+      if (index < 0) {
+        els.audio.pause();
+        showToast('Sin conexión: no hay canciones descargadas en esta lista.');
+        return;
+      }
+    }
     state.queueIndex = index;
     loadTrack(getTrack(state.queue[index]), true);
   }
@@ -734,6 +929,7 @@
     }
     let index = state.queueIndex - 1;
     if (index < 0) index = state.repeat === 'all' ? state.queue.length - 1 : 0;
+    if (!navigator.onLine) index = Math.max(0, findPlayable(index, -1));
     if (index === state.queueIndex) {
       els.audio.currentTime = 0;
       play();
@@ -1423,7 +1619,9 @@
     audio.addEventListener('error', () => {
       if (!audio.getAttribute('src')) return;
       setPlayingUI(false);
-      showToast(`No se pudo cargar el audio de «${state.currentTrack?.title ?? 'la canción'}».`);
+      showToast(navigator.onLine
+        ? `No se pudo cargar el audio de «${state.currentTrack?.title ?? 'la canción'}».`
+        : 'Sin conexión: esta canción no está descargada.');
     });
 
     // Controles
@@ -1449,6 +1647,10 @@
       if (state.currentTrack) seekTo(value);
     });
 
+    // Conexión
+    window.addEventListener('online', () => updateOnlineStatus(true));
+    window.addEventListener('offline', () => updateOnlineStatus(true));
+
     // Volumen
     els.volume.addEventListener('input', () => setVolume(els.volume.value));
 
@@ -1457,6 +1659,11 @@
       const playlistButton = event.target.closest('[data-action="play-playlist"]');
       if (playlistButton) {
         playPlaylist(playlistButton.dataset.playlist);
+        return;
+      }
+      const downloadButton = event.target.closest('[data-action="download-playlist"]');
+      if (downloadButton) {
+        toggleDownload(downloadButton.closest('.playlist-header').dataset.playlist);
         return;
       }
       // Clic en el encabezado (o en la flecha) despliega / minimiza la playlist
@@ -1586,6 +1793,8 @@
     bindEvents();
     setupMediaSessionHandlers();
     setupSurrealEyes();
+    updateOnlineStatus();
+    registerServiceWorker();
     loadTracks();
   }
 

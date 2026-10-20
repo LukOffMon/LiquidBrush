@@ -36,6 +36,14 @@ La tabla es de solo lectura para la web (RLS); solo se edita desde el panel de S
 
 Si `lyrics` está vacío, la app busca la letra automáticamente en [LRCLIB](https://lrclib.net) (gratis, sin clave; muchas vienen sincronizadas) y la guarda en el navegador. Funciona mejor cuando la canción tiene `artist` y `duration` correctos. Si escribes tu propia letra en `lyrics`, se usa esa.
 
+## Modo offline
+
+- La app se puede **instalar** (en el móvil: *Añadir a pantalla de inicio*) y abre sin conexión gracias a `sw.js`, que guarda la app y la última lista de canciones.
+- Cada playlist tiene un botón **⬇ Descargar**: guarda sus MP3 en el dispositivo para escucharlos sin internet. Púlsalo de nuevo para detener la descarga; cuando la playlist está completa, sirve para quitar las descargas.
+- Sin conexión, las canciones no descargadas se ven atenuadas y se saltan al pasar a la siguiente.
+- Para descargar, el servidor del audio debe enviar CORS (Supabase ya lo hace; en Cloudflare R2 hay que añadir la política CORS del bucket).
+- Si cambias `sw.js`, sube el número de `VERSION` para que los navegadores renueven la app guardada.
+
 ## Respaldo: tracks.json
 
 Si Supabase no responde, la app usa `tracks.json`. Cada canción:
