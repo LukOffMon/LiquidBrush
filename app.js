@@ -6,6 +6,15 @@
 
   /* ---------- Configuración ---------- */
   const CONFIG = {
+    // Fuente principal: la tabla "tracks" de Supabase. Si falla, se usa tracks.json.
+    // La clave publicable es segura en el navegador: la tabla solo permite leer (RLS).
+    supabase: {
+      url: 'https://kvylexeicpvjrvhpizsz.supabase.co',
+      key: 'sb_publishable__E4pzkc1jZe8u9UtpWglHg_Z9KFYPso',
+      table: 'tracks',
+      // En "src" y "cover" basta con poner el nombre del archivo subido a este bucket
+      bucket: 'loopmusik-audio'
+    },
     tracksUrl: 'tracks.json',
     // El visualizador puede leer las frecuencias reales del audio con la Web Audio API,
     // pero SOLO si el servidor del audio (Backblaze B2, Supabase, Cloudinary…) envía la
@@ -172,13 +181,45 @@
   }
 
   /* ---------- Carga de datos ---------- */
+  // Convierte "cancion.mp3" en la URL pública del bucket; las URLs completas se dejan igual
+  function resolveMediaUrl(path) {
+    const value = typeof path === 'string' ? path.trim() : '';
+    const { url, bucket } = CONFIG.supabase;
+    if (!value || /^(https?:|data:|blob:)/i.test(value) || !url || !bucket) return value;
+    const cleanPath = value.replace(/^\/+/, '').split('/').map(encodeURIComponent).join('/');
+    return `${url}/storage/v1/object/public/${bucket}/${cleanPath}`;
+  }
+
+  async function fetchFromSupabase() {
+    const { url, key, table } = CONFIG.supabase;
+    const endpoint = `${url}/rest/v1/${table}?select=*&order=position.asc,id.asc`;
+    const response = await fetch(endpoint, { headers: { apikey: key }, cache: 'no-cache' });
+    if (!response.ok) throw new Error(`Supabase HTTP ${response.status}`);
+    return response.json();
+  }
+
+  async function fetchFromJson() {
+    const response = await fetch(CONFIG.tracksUrl, { cache: 'no-cache' });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return response.json();
+  }
+
+  async function fetchTrackData() {
+    if (CONFIG.supabase.url && CONFIG.supabase.key) {
+      try {
+        return await fetchFromSupabase();
+      } catch (error) {
+        console.warn('[LoopMusiK] Supabase no disponible, se usa tracks.json.', error);
+      }
+    }
+    return fetchFromJson();
+  }
+
   async function loadTracks() {
     els.listInfo.textContent = 'Cargando canciones…';
     try {
-      const response = await fetch(CONFIG.tracksUrl, { cache: 'no-cache' });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json();
-      if (!Array.isArray(data)) throw new Error('tracks.json debe contener un array de canciones');
+      const data = await fetchTrackData();
+      if (!Array.isArray(data)) throw new Error('La lista de canciones debe ser un array');
 
       state.tracks = data
         .filter((t) => t && typeof t.src === 'string' && t.src.trim())
@@ -188,8 +229,8 @@
           artist: t.artist || 'Artista desconocido',
           album: t.album || '',
           duration: t.duration || '',
-          src: t.src.trim(),
-          cover: t.cover || PLACEHOLDER_COVER,
+          src: resolveMediaUrl(t.src),
+          cover: resolveMediaUrl(t.cover) || PLACEHOLDER_COVER,
           lyrics: typeof t.lyrics === 'string' ? t.lyrics : ''
         }));
       state.trackMap = new Map(state.tracks.map((t) => [t.id, t]));
@@ -210,7 +251,7 @@
       li.className = 'list-empty';
       li.textContent = location.protocol === 'file:'
         ? 'No se pudo cargar tracks.json. Abre la app desde un servidor (GitHub Pages o, en local, "npx serve") en lugar de hacer doble clic en index.html.'
-        : 'No se pudo cargar tracks.json. Revisa que el archivo exista y que su formato JSON sea válido.';
+        : 'No se pudieron cargar las canciones (ni de Supabase ni de tracks.json).';
       els.trackList.replaceChildren(li);
     }
   }

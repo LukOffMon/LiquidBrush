@@ -7,9 +7,22 @@ Reproductor web personal estilo Spotify, 100 % estático (HTML + CSS + JS) y lis
 1. **Settings → Pages** → *Source: Deploy from a branch* → rama `main`, carpeta `/ (root)` → **Save**.
 2. En unos minutos estará en `https://<tu-usuario>.github.io/<nombre-del-repo>/`.
 
-## Añadir tus canciones
+## Añadir tus canciones (Supabase)
 
-Edita `tracks.json`. Cada canción:
+La app lee la tabla `tracks` del proyecto Supabase **LoopMusiK** (configurado en `CONFIG.supabase` de `app.js`). Para añadir una canción no hace falta tocar GitHub:
+
+1. **Storage → `loopmusik-audio` → Upload**: sube el MP3 (y la carátula, si quieres).
+2. **Table Editor → `tracks` → Insert row**: rellena `title`, `artist`, `album`, `duration`, `lyrics` y:
+   - `src`: el nombre del archivo en el bucket (p. ej. `mi-cancion.mp3` o `album/mi-cancion.mp3`) o una URL completa.
+   - `cover`: igual que `src` (opcional).
+   - `position`: orden en la lista.
+   - `is_published`: desmárcalo para ocultar la canción sin borrarla.
+
+La tabla es de solo lectura para la web (RLS); solo se edita desde el panel de Supabase.
+
+## Respaldo: tracks.json
+
+Si Supabase no responde, la app usa `tracks.json`. Cada canción:
 
 ```json
 {
