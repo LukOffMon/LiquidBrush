@@ -19,7 +19,14 @@ SOURCES = [
     ('', 'https://kvylexeicpvjrvhpizsz.supabase.co', 'sb_publishable__E4pzkc1jZe8u9UtpWglHg_Z9KFYPso'),
     ('extra:', 'https://pikoruycbgwjrxqxaajl.supabase.co', 'sb_publishable_lraxIbb_tQtXr7y-yAa15Q_OqWrDmUN'),
 ]
-COVER_IMAGES = 15  # covers/cover-01.jpg … cover-15.jpg
+COVER_IMAGES = 15  # covers/cover-01.jpg … cover-15.jpg se reparten al azar
+# Portadas elegidas a mano para una playlist concreta (covers/cover-16.jpg en adelante)
+FIXED_COVERS = {
+    'corazon-en-reparacion': 16,
+    'rimas-del-barrio': 17,
+    'vinilo-de-papa': 18,
+    'atardecer-en-la-costa': 19,
+}
 ART_STYLES = ['orbits', 'stripes', 'waves', 'sun', 'rings', 'grid', 'bars', 'blobs', 'checker', 'dots', 'zigzag', 'eclipse']
 
 
@@ -236,7 +243,7 @@ def main():
          sorted([t for t in unique if 360 <= sec(t) < 1200], key=sec, reverse=True)[:40]),
     ]
 
-    order = list(range(len(playlists)))
+    order = [i for i, p in enumerate(playlists) if p[0] not in FIXED_COVERS]
     rng.shuffle(order)
     image_slots = set(order[:COVER_IMAGES])
     images = rng.sample(range(1, COVER_IMAGES + 1), COVER_IMAGES)
@@ -245,7 +252,9 @@ def main():
     for i, (pid, name, description, items) in enumerate(playlists):
         if not items:
             continue
-        if i in image_slots:
+        if pid in FIXED_COVERS:
+            cover = {'type': 'image', 'src': f'covers/cover-{FIXED_COVERS[pid]:02d}.jpg'}
+        elif i in image_slots:
             cover = {'type': 'image', 'src': f'covers/cover-{images.pop():02d}.jpg'}
         else:
             cover = {'type': 'art', 'style': ART_STYLES[art_i % len(ART_STYLES)], 'color': art_colors[art_i % len(art_colors)]}

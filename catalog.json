@@ -1577,9 +1577,8 @@
    "name": "Rimas del Barrio",
    "description": "Rap en español con flow y letras: Cruzzi, Rels B, Charles Ans, C. Tangana, Trueno.",
    "cover": {
-    "type": "art",
-    "style": "sun",
-    "color": "#7a5cff"
+    "type": "image",
+    "src": "covers/cover-17.jpg"
    },
    "trackIds": [
     "extra:39",
@@ -1851,9 +1850,8 @@
    "name": "Vinilo de Papá",
    "description": "Rock clásico de colección: Queen, Led Zeppelin, Santana, Fleetwood Mac, Deep Purple.",
    "cover": {
-    "type": "art",
-    "style": "checker",
-    "color": "#9b5cff"
+    "type": "image",
+    "src": "covers/cover-18.jpg"
    },
    "trackIds": [
     "82",
@@ -2734,9 +2732,8 @@
    "name": "Corazón en Reparación",
    "description": "Canciones tristes de todos los géneros, del rap al shoegaze, para sanar despacio.",
    "cover": {
-    "type": "art",
-    "style": "grid",
-    "color": "#3ddc97"
+    "type": "image",
+    "src": "covers/cover-16.jpg"
    },
    "trackIds": [
     "cloudflare:r2c-132",
@@ -2966,9 +2963,8 @@
    "name": "Atardecer en la Costa",
    "description": "Sol, arena y buena onda: indie soleado, clásicos, Santana, Bob Marley y algo de rap suave.",
    "cover": {
-    "type": "art",
-    "style": "checker",
-    "color": "#9b5cff"
+    "type": "image",
+    "src": "covers/cover-19.jpg"
    },
    "trackIds": [
     "cloudflare:r2c-142",
