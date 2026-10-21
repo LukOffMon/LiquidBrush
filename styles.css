@@ -87,6 +87,46 @@
   color-scheme: dark;
 }
 
+/* ---------- Fuente de la interfaz ---------- */
+/* La interfaz usa una letra callejera; canciones, artistas y letras siguen con Inter */
+:root {
+  --song-font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+:root[data-font="street"] {
+  --ui-font: 'Permanent Marker', 'Inter', system-ui, sans-serif;
+  --heading-font: var(--ui-font);
+}
+
+:root[data-font="graffiti"] {
+  --ui-font: 'Sedgwick Ave', 'Permanent Marker', 'Inter', system-ui, sans-serif;
+  --heading-font: var(--ui-font);
+}
+
+/* Estas fuentes tienen un solo grosor: sin negrita falsa (se vería borrosa) */
+:root[data-font="street"] body,
+:root[data-font="graffiti"] body {
+  font-synthesis: none;
+  letter-spacing: 0.01em;
+}
+
+:root[data-font="street"] .brand-name,
+:root[data-font="graffiti"] .brand-name {
+  font-synthesis: weight;
+  letter-spacing: -0.02em;
+}
+
+/* Tamaño del texto (Configuración). «Del sistema» en iPhone/iPad sigue el ajuste de iOS */
+:root[data-text="small"] { font-size: 93.75%; }
+:root[data-text="large"] { font-size: 112.5%; }
+:root[data-text="xl"] { font-size: 125%; }
+
+@supports (font: -apple-system-body) {
+  :root.is-ios[data-text="system"] {
+    font: -apple-system-body;
+  }
+}
+
 /* ---------- Base ---------- */
 *,
 *::before,
@@ -105,7 +145,7 @@ body {
   margin: 0;
   min-height: 100vh;
   min-height: 100dvh;
-  font-family: var(--font);
+  font-family: var(--ui-font, var(--font));
   color: var(--text);
   /* Transparente: el color de fondo lo pone <html>; si lo pintara <body>
      taparía las capas de fondo (.bg-glow y .surreal, con z-index negativo) */
@@ -240,53 +280,6 @@ label {
 
 .brand {
   flex-shrink: 0;
-}
-
-.theme-picker {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  min-width: 0;
-}
-
-.theme-picker .icon {
-  position: absolute;
-  left: 10px;
-  width: 18px;
-  height: 18px;
-  color: var(--accent);
-  pointer-events: none;
-}
-
-.theme-picker select {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  min-width: 0;
-  text-overflow: ellipsis;
-  padding: 8px 28px 8px 34px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background-color: var(--surface-2);
-  background-image:
-    linear-gradient(45deg, transparent 50%, var(--text-muted) 50%),
-    linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
-  background-position: calc(100% - 15px) 50%, calc(100% - 10px) 50%;
-  background-size: 5px 5px;
-  background-repeat: no-repeat;
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: border-color 0.2s;
-}
-
-.theme-picker select:hover {
-  border-color: var(--accent);
-}
-
-.theme-picker option {
-  background: var(--surface);
-  color: var(--text);
 }
 
 .layout {
@@ -968,7 +961,7 @@ body.is-playing .cover-wrap {
 }
 
 .stat-value {
-  font-family: var(--title-font);
+  font-family: var(--heading-font, var(--title-font));
   font-size: 1.45rem;
   font-weight: 800;
   line-height: 1.1;
@@ -997,7 +990,7 @@ body.is-playing .cover-wrap {
 
 .stat-title {
   margin: 0;
-  font-family: var(--title-font);
+  font-family: var(--heading-font, var(--title-font));
   font-size: 1rem;
   font-weight: 800;
 }
@@ -1336,7 +1329,7 @@ button.bar-row:hover {
 
 .view-title {
   margin: 2px 0 0;
-  font-family: var(--title-font);
+  font-family: var(--heading-font, var(--title-font));
   font-size: 1.6rem;
   font-weight: 800;
   line-height: 1.1;
@@ -1381,7 +1374,7 @@ button.bar-row:hover {
 
 .pl-section-title {
   margin: 0 0 4px;
-  font-family: var(--title-font);
+  font-family: var(--heading-font, var(--title-font));
   font-size: 1.05rem;
   font-weight: 800;
 }
@@ -1461,7 +1454,7 @@ button.bar-row:hover {
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
-  font-family: var(--title-font);
+  font-family: var(--heading-font, var(--title-font));
   font-size: 0.95rem;
   font-weight: 800;
   line-height: 1.2;
@@ -1579,7 +1572,7 @@ button.bar-row:hover {
 
 .pl-hero-name {
   margin: 4px 0 0;
-  font-family: var(--title-font);
+  font-family: var(--heading-font, var(--title-font));
   font-size: 1.7rem;
   font-weight: 800;
   line-height: 1.1;
@@ -1678,7 +1671,7 @@ body.is-offline .track:not(.is-downloaded) {
   align-items: center;
   gap: 8px;
   margin: 0;
-  font-family: var(--title-font);
+  font-family: var(--heading-font, var(--title-font));
   font-size: 1.3rem;
   font-weight: 800;
 }
@@ -2667,21 +2660,641 @@ body.is-playing .cover-wrap {
   to { --spin: 360deg; }
 }
 
+/* =========================================================
+   Configuración, filtros, recientes, fijadas y navegación
+   ========================================================= */
+
+/* ---------- Canciones, artistas y letras con letra clásica ---------- */
+/* (va después de la base, que hace que los campos hereden la fuente) */
+.track-title,
+.track-artist,
+.track-duration,
+.np-artist,
+.np-album,
+.mini-title,
+.mini-artist,
+.lyrics-body,
+.top-song-text,
+.recent-title,
+.recent-artist,
+.comment-text,
+.comment-by,
+input,
+textarea {
+  font-synthesis: weight;
+  letter-spacing: normal;
+}
+
+.track-artist,
+.track-duration,
+.np-artist,
+.np-album,
+.mini-title,
+.mini-artist,
+.lyrics-body,
+.top-song-meta,
+.recent-title,
+.recent-artist,
+.comment-text,
+.comment-by,
+.top-song-text,
+input,
+textarea {
+  font-family: var(--song-font);
+}
+
+/* ---------- Botón de configuración ---------- */
+.settings-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: auto;
+  height: 40px;
+  padding: 0 14px 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.settings-btn .icon {
+  width: 20px;
+  height: 20px;
+  color: var(--accent);
+  transition: transform 0.4s ease;
+}
+
+.settings-btn:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+.settings-btn:hover .icon {
+  transform: rotate(60deg);
+}
+
+/* ---------- Ventana de configuración ---------- */
+.settings {
+  width: min(520px, calc(100vw - 24px));
+}
+
+.settings .sheet-body {
+  gap: 12px;
+}
+
+.settings-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.settings-group {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 14px 10px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface-2) 55%, transparent);
+}
+
+.settings-group-title {
+  margin: 8px 0 2px;
+  font-family: var(--heading-font, var(--title-font));
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--accent);
+  text-shadow: var(--text-glow);
+}
+
+.setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+  font-weight: 400;
+}
+
+.settings-group-title + .setting {
+  border-top: 0;
+}
+
+.setting-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.setting-name {
+  font-weight: 700;
+}
+
+.setting-hint {
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--text-muted);
+}
+
+.setting-select {
+  -webkit-appearance: none;
+  appearance: none;
+  flex-shrink: 0;
+  max-width: 55%;
+  height: 38px;
+  padding: 0 30px 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background-color: var(--surface-2);
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--text-muted) 50%),
+    linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
+  background-position: calc(100% - 16px) 50%, calc(100% - 11px) 50%;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+  color: var(--text);
+  font-family: var(--ui-font, var(--font));
+  font-size: 0.875rem;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.setting-select option {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.setting input:disabled + .switch-track {
+  opacity: 0.4;
+}
+
+.eq-bands {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 0 8px;
+}
+
+.eq-band {
+  display: grid;
+  grid-template-columns: minmax(70px, 88px) minmax(0, 1fr) 52px;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+}
+
+.eq-name {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.eq-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.eq-hz {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
+.eq-value {
+  font-size: 0.78rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+.eq-range:disabled {
+  opacity: 0.4;
+}
+
+/* ---------- Filtros rápidos (píldoras) ---------- */
+.chips {
+  display: flex;
+  gap: 8px;
+  margin: 14px 4px 0;
+  padding: 2px 0 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.chips::-webkit-scrollbar,
+.recent-scroller::-webkit-scrollbar,
+.search-pl-row::-webkit-scrollbar {
+  display: none;
+}
+
+.chip {
+  flex-shrink: 0;
+  padding: 7px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.chip:hover {
+  background: var(--surface-hover);
+}
+
+.chip.is-active {
+  border-color: transparent;
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: var(--glow);
+}
+
+[data-theme="chrome"] .chip.is-active {
+  background-color: #d7dde8;
+  background-image: var(--chrome);
+  background-size: 220% 220%;
+}
+
+.chip-sep {
+  flex-shrink: 0;
+  width: 1px;
+  margin: 4px 2px;
+  background: var(--border);
+}
+
+/* ---------- Escuchadas hace poco ---------- */
+.recent-row {
+  margin: 16px 4px 0;
+}
+
+.recent-head .pl-section-title {
+  margin: 0;
+}
+
+.recent-scroller {
+  display: flex;
+  gap: 12px;
+  padding: 10px 2px 4px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.recent-card {
+  flex: 0 0 112px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  scroll-snap-align: start;
+}
+
+.recent-card img {
+  width: 112px;
+  height: 112px;
+  margin-bottom: 4px;
+  border-radius: 12px;
+  object-fit: cover;
+  background: var(--surface-2);
+  box-shadow: var(--shadow);
+  transition: transform 0.2s;
+}
+
+@media (hover: hover) {
+  .recent-card:hover img {
+    transform: translateY(-3px);
+  }
+}
+
+.recent-card.is-current img {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.recent-title,
+.recent-artist {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recent-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.recent-artist {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* ---------- Portadas en mosaico ---------- */
+.pl-mosaic {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+
+.pl-mosaic.is-single {
+  grid-template-columns: 1fr;
+}
+
+.pl-mosaic img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+
+.pl-cover-badge {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  font-size: 1rem;
+  line-height: 1;
+  background: linear-gradient(160deg, var(--pl-color), color-mix(in srgb, var(--pl-color) 35%, #07060c));
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+}
+
+/* ---------- Fijadas ---------- */
+.pl-card {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.pl-pin {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(7, 6, 12, 0.72);
+  color: #fff;
+}
+
+.pl-pin .icon {
+  width: 15px;
+  height: 15px;
+}
+
+.pin-btn.is-active {
+  color: var(--accent);
+}
+
+/* ---------- Playlists en lista ---------- */
+.pl-wrap.is-list .pl-grid {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+}
+
+.pl-wrap.is-list .pl-card {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px 8px 8px;
+}
+
+.pl-wrap.is-list .pl-cover {
+  flex-shrink: 0;
+  width: 60px;
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.pl-wrap.is-list .pl-cover-emoji {
+  font-size: 1.7rem;
+}
+
+.pl-wrap.is-list .pl-cover-badge {
+  right: 2px;
+  bottom: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+}
+
+.pl-wrap.is-list .pl-card-text {
+  flex: 1;
+}
+
+.pl-wrap.is-list .pl-badge,
+.pl-wrap.is-list .pl-pin {
+  position: static;
+  flex-shrink: 0;
+}
+
+.pl-wrap.is-list .pl-card-new {
+  min-height: 0;
+  flex-direction: row;
+  justify-content: flex-start;
+  padding: 14px;
+}
+
+.pl-wrap.is-list .pl-card-new .icon {
+  width: 28px;
+  height: 28px;
+}
+
+/* ---------- Playlists en la búsqueda ---------- */
+.search-playlists {
+  margin: 14px 4px 6px;
+}
+
+.search-pl-row {
+  display: flex;
+  gap: 10px;
+  padding: 10px 2px 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.search-pl-row .pl-card {
+  flex: 0 0 140px;
+}
+
+/* ---------- Color de la playlist abierta ---------- */
+.library {
+  scroll-margin-top: 72px;
+}
+
+.library.is-tinted {
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--view-tint) 40%, var(--surface)) 0,
+    color-mix(in srgb, var(--view-tint) 12%, color-mix(in srgb, var(--surface) 88%, transparent)) 340px,
+    color-mix(in srgb, var(--surface) 88%, transparent) 620px);
+}
+
+.pl-hero {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--pl-color) 48%, transparent), transparent 80%);
+  transition: background 0.6s ease;
+}
+
+/* ---------- Animaciones: rebote al tocar y cambio de vista ---------- */
+.is-pop {
+  animation: tap-pop 0.34s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+@keyframes tap-pop {
+  0% { transform: scale(1); }
+  35% { transform: scale(0.86); }
+  70% { transform: scale(1.07); }
+  100% { transform: scale(1); }
+}
+
+.library-view.anim-forward { animation: view-forward 0.34s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.library-view.anim-back { animation: view-back 0.34s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.library-view.anim-fade { animation: view-fade 0.26s ease-out; }
+
+@keyframes view-forward {
+  from { opacity: 0; transform: translateX(32px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes view-back {
+  from { opacity: 0; transform: translateX(-32px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes view-fade {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+.no-motion .is-pop,
+.no-motion .library-view,
+.no-motion .fav-btn.is-active .icon {
+  animation: none !important;
+}
+
+/* ---------- Navegación inferior (móvil) ---------- */
+.bottom-nav {
+  grid-area: nav;
+  display: flex;
+  justify-content: space-around;
+  gap: 4px;
+  margin: 2px -16px 0;
+  padding: 6px 8px 0;
+  border-top: 1px solid var(--border);
+}
+
+.nav-btn {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  padding: 4px 2px;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.nav-btn span {
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nav-btn.is-active {
+  color: var(--accent);
+  text-shadow: var(--text-glow);
+}
+
+@media (max-width: 860px) {
+  .player {
+    grid-template-areas:
+      "track volume"
+      "center center"
+      "nav nav";
+    padding-bottom: calc(4px + env(safe-area-inset-bottom));
+  }
+
+  .layout {
+    padding-bottom: 280px;
+  }
+
+  .toast {
+    bottom: 250px;
+  }
+}
+
+@media (min-width: 861px) {
+  .bottom-nav {
+    display: none;
+  }
+}
+
+@media (max-width: 380px) {
+  .settings-btn {
+    width: 40px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .settings-btn-label {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .settings .sheet-body {
+    padding: 16px;
+  }
+
+  .setting-select {
+    max-width: 50%;
+  }
+
+  .recent-card {
+    flex-basis: 104px;
+  }
+
+  .recent-card img {
+    width: 104px;
+    height: 104px;
+  }
+}
+
 /* ---------- Responsivo ---------- */
 /* Tablet y superiores */
 @media (min-width: 641px) {
   .brand-name {
     font-size: 1.3rem;
-  }
-
-  .theme-picker .icon {
-    left: 12px;
-  }
-
-  .theme-picker select {
-    padding: 9px 36px 9px 38px;
-    background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%;
-    font-size: 0.875rem;
   }
 
   .library {

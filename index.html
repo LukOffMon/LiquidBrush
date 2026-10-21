@@ -21,16 +21,21 @@
   <link rel="dns-prefetch" href="https://pub-342aee3eb054410cb02224940f684884.r2.dev">
   <link rel="preload" href="catalog.json" as="fetch" crossorigin>
   <link rel="preload" href="cloudflare-tracks.json" as="fetch" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Rubik+Wet+Paint&family=Syne:wght@700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=9">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Permanent+Marker&family=Rubik+Wet+Paint&family=Sedgwick+Ave&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=10">
   <script>
-    /* Aplica el tema guardado antes de pintar la página para evitar parpadeos */
+    /* Aplica el tema, la fuente y el tamaño de letra guardados antes de pintar (sin parpadeos) */
     (function () {
+      var root = document.documentElement;
+      root.setAttribute('data-font', 'street');
+      root.setAttribute('data-text', 'system');
       try {
         var saved = JSON.parse(localStorage.getItem('liquidbrush:theme'));
-        if (['chrome', 'minimal'].indexOf(saved) !== -1) {
-          document.documentElement.setAttribute('data-theme', saved);
-        }
+        if (['chrome', 'minimal'].indexOf(saved) !== -1) root.setAttribute('data-theme', saved);
+        var settings = JSON.parse(localStorage.getItem('liquidbrush:settings')) || {};
+        if (['street', 'graffiti', 'classic'].indexOf(settings.font) !== -1) root.setAttribute('data-font', settings.font);
+        if (['system', 'small', 'normal', 'large', 'xl'].indexOf(settings.textSize) !== -1) root.setAttribute('data-text', settings.textSize);
+        if (settings.motion === false) root.classList.add('no-motion');
       } catch (e) { /* sin acceso a localStorage */ }
     })();
   </script>
@@ -176,6 +181,12 @@
     <symbol id="i-volume-mute" viewBox="0 0 24 24"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3 3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4 9.91 6.09 12 8.18V4z"/></symbol>
     <symbol id="i-lyrics" viewBox="0 0 24 24"><path d="M3 5h18v2H3zm0 4h12v2H3zm0 4h18v2H3zm0 4h12v2H3zm15-1.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM20.5 9v8h-1.6V9z"/></symbol>
     <symbol id="i-search" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.31.06-.62.06-.94s-.02-.63-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.62l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54A.48.48 0 0 0 13.92 2h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.48.48 0 0 0-.59.22L2.73 8.47c-.12.21-.07.48.12.62l2.03 1.58c-.05.31-.08.64-.08.94s.02.63.07.94l-2.03 1.58a.49.49 0 0 0-.12.62l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.48.48 0 0 0-.12-.62l-2.01-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24"><path d="M3 5h4v4H3V5zm6 1h12v2H9V6zM3 10h4v4H3v-4zm6 1h12v2H9v-2zm-6 4h4v4H3v-4zm6 1h12v2H9v-2z"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M16 3v2h-1v6l2 3v2h-4.2v5h-1.6v-5H7v-2l2-3V5H8V3h8z"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M12 3 2 11.5h3V21h5.5v-6h3v6H19v-9.5h3L12 3z"/></symbol>
+    <symbol id="i-library" viewBox="0 0 24 24"><path d="M4 3h2v18H4V3zm4 0h2v18H8V3zm4.2.6 1.9-.6 5.6 17.4-1.9.6-5.6-17.4z"/></symbol>
     <symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 3a9 9 0 0 0 0 18c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></symbol>
   </svg>
 
@@ -186,14 +197,10 @@
         <img class="brand-logo" src="logo.svg" alt="" width="36" height="36">
         <span class="brand-name">Liquid<span>Brush</span></span>
       </a>
-      <label class="theme-picker">
-        <svg class="icon" aria-hidden="true"><use href="#i-palette"></use></svg>
-        <span class="sr-only">Tema de color</span>
-        <select id="themeSelect">
-          <option value="chrome">Surrealista</option>
-          <option value="minimal">Minimalista</option>
-        </select>
-      </label>
+      <button id="settingsBtn" class="icon-btn settings-btn" type="button" aria-label="Configuración" title="Configuración">
+        <svg class="icon" aria-hidden="true"><use href="#i-settings"></use></svg>
+        <span class="settings-btn-label">Ajustes</span>
+      </button>
     </header>
 
     <main class="layout">
@@ -284,11 +291,16 @@
           </div>
         </div>
 
+        <section id="recentRow" class="recent-row" aria-label="Escuchadas hace poco" hidden></section>
+        <div id="libraryView" class="library-view">
         <div id="viewHead" class="view-head"></div>
+        <div id="filterChips" class="chips" role="toolbar" aria-label="Filtros" hidden></div>
         <p id="listInfo" class="list-info" aria-live="polite"></p>
+        <div id="searchPlaylists" class="search-playlists" hidden></div>
         <div id="playlistGrid" class="pl-wrap" hidden></div>
         <div id="statsPanel" class="stats" hidden></div>
         <ul id="trackList" class="track-list"></ul>
+        </div>
         <input id="importInput" type="file" accept="application/json,.json" hidden>
       </section>
     </main>
@@ -342,6 +354,22 @@
         </button>
         <input id="volume" class="range volume" type="range" min="0" max="1" step="0.01" value="0.8" aria-label="Volumen">
       </div>
+
+      <!-- Navegación inferior (móvil) -->
+      <nav id="bottomNav" class="bottom-nav" aria-label="Navegación">
+        <button class="nav-btn" type="button" data-nav="now">
+          <svg class="icon" aria-hidden="true"><use href="#i-home"></use></svg><span>Sonando</span>
+        </button>
+        <button class="nav-btn" type="button" data-nav="search">
+          <svg class="icon" aria-hidden="true"><use href="#i-search"></use></svg><span>Buscar</span>
+        </button>
+        <button class="nav-btn" type="button" data-nav="library">
+          <svg class="icon" aria-hidden="true"><use href="#i-library"></use></svg><span>Biblioteca</span>
+        </button>
+        <button class="nav-btn" type="button" data-nav="playlists">
+          <svg class="icon" aria-hidden="true"><use href="#i-grid"></use></svg><span>Playlists</span>
+        </button>
+      </nav>
     </footer>
   </div>
 
@@ -402,12 +430,95 @@
     </form>
   </dialog>
 
+  <!-- Configuración -->
+  <dialog id="settingsDialog" class="sheet settings" aria-labelledby="settingsTitle">
+    <form method="dialog" class="sheet-body">
+      <div class="settings-head">
+        <h2 id="settingsTitle" class="sheet-title"><svg class="icon" aria-hidden="true"><use href="#i-settings"></use></svg> Configuración</h2>
+        <button class="icon-btn" type="submit" value="close" aria-label="Cerrar">
+          <svg class="icon" aria-hidden="true"><use href="#i-close"></use></svg>
+        </button>
+      </div>
+
+      <section class="settings-group" aria-labelledby="setLookTitle">
+        <h3 id="setLookTitle" class="settings-group-title">Apariencia</h3>
+        <label class="setting">
+          <span class="setting-text"><span class="setting-name">Tema</span></span>
+          <select id="themeSelect" class="setting-select">
+            <option value="chrome">Surrealista</option>
+            <option value="minimal">Minimalista</option>
+          </select>
+        </label>
+        <label class="setting">
+          <span class="setting-text">
+            <span class="setting-name">Fuente</span>
+            <span class="setting-hint">Las canciones y las letras siempre usan una letra clásica.</span>
+          </span>
+          <select id="fontSelect" class="setting-select">
+            <option value="street">Callejera</option>
+            <option value="graffiti">Grafiti</option>
+            <option value="classic">Clásica</option>
+          </select>
+        </label>
+        <label class="setting">
+          <span class="setting-text">
+            <span class="setting-name">Tamaño del texto</span>
+            <span class="setting-hint">«Del sistema» sigue el tamaño de letra de tu móvil.</span>
+          </span>
+          <select id="textSizeSelect" class="setting-select">
+            <option value="system">Del sistema</option>
+            <option value="small">Pequeño</option>
+            <option value="normal">Normal</option>
+            <option value="large">Grande</option>
+            <option value="xl">Muy grande</option>
+          </select>
+        </label>
+        <label class="setting">
+          <span class="setting-text"><span class="setting-name">Playlists</span></span>
+          <select id="plViewSelect" class="setting-select">
+            <option value="grid">Cuadrícula</option>
+            <option value="list">Lista</option>
+          </select>
+        </label>
+        <label class="setting switch">
+          <span class="setting-text">
+            <span class="setting-name">Animaciones</span>
+            <span class="setting-hint">Rebotes al tocar y transiciones entre vistas.</span>
+          </span>
+          <input id="motionToggle" type="checkbox" role="switch">
+          <span class="switch-track" aria-hidden="true"></span>
+        </label>
+        <label class="setting switch" id="hapticsRow">
+          <span class="setting-text">
+            <span class="setting-name">Vibración</span>
+            <span id="hapticsHint" class="setting-hint">Al dar «Me gusta», reproducir o mover la barra.</span>
+          </span>
+          <input id="hapticsToggle" type="checkbox" role="switch">
+          <span class="switch-track" aria-hidden="true"></span>
+        </label>
+      </section>
+
+      <section class="settings-group" aria-labelledby="setSoundTitle">
+        <h3 id="setSoundTitle" class="settings-group-title">Sonido · Ecualizador</h3>
+        <label class="setting">
+          <span class="setting-text"><span class="setting-name">Perfil</span></span>
+          <select id="eqPreset" class="setting-select"></select>
+        </label>
+        <div id="eqBands" class="eq-bands"></div>
+        <p id="eqNote" class="sheet-note"></p>
+      </section>
+    </form>
+  </dialog>
+
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <div id="commentBubble" class="comment-bubble" role="status" aria-live="polite" hidden></div>
 
   <audio id="audio" preload="metadata"></audio>
   <audio id="audio2" preload="auto"></audio>
-  <script src="app.js?v=9" defer></script>
+  <!-- Reproductores para el ecualizador (necesitan CORS en el servidor del audio) -->
+  <audio id="audio3" preload="metadata" crossorigin="anonymous"></audio>
+  <audio id="audio4" preload="auto" crossorigin="anonymous"></audio>
+  <script src="app.js?v=10" defer></script>
 </body>
 </html>

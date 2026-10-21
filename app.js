@@ -35,12 +35,10 @@
     tracksUrl: 'tracks.json',
     // Playlists de base (por género y mezclas), su portada y el género de cada canción.
     // Lo genera tools/build_catalog.py.
-    catalogUrl: 'catalog.json',
-    // El visualizador puede leer las frecuencias reales del audio con la Web Audio API,
-    // pero SOLO si el servidor del audio (Backblaze B2, Supabase, Cloudinary…) envía la
-    // cabecera "Access-Control-Allow-Origin". Si lo activas sin CORS, el audio no sonará.
-    // Con false, el visualizador usa una animación simulada que funciona con cualquier URL.
-    useWebAudioAnalyser: false
+    catalogUrl: 'catalog.json'
+    // El ecualizador (y el visualizador con frecuencias reales) usa la Web Audio API, que solo
+    // puede leer el audio si su servidor envía la cabecera "Access-Control-Allow-Origin".
+    // Las canciones de servidores sin CORS suenan igual, pero sin ecualizar.
   };
 
   const KEYS = {
@@ -61,7 +59,9 @@
     dj: 'liquidbrush:dj',
     djFade: 'liquidbrush:djfade',
     listen: 'liquidbrush:listen',
-    libraryCache: 'liquidbrush:library-cache'
+    libraryCache: 'liquidbrush:library-cache',
+    settings: 'liquidbrush:settings',
+    pins: 'liquidbrush:pins'
   };
 
   const LYRICS_API = 'https://lrclib.net/api';
@@ -133,6 +133,9 @@
     countedId: null,
     statsOffset: 0,
     query: '',
+    // Filtros rápidos de la lista: all | downloaded | favorites | unplayed, y un género
+    filter: 'all',
+    genre: '',
     shuffle: false,
     repeat: 'off',
     isSeeking: false,
@@ -149,6 +152,25 @@
   const els = {
     audio: $('audio'),
     audio2: $('audio2'),
+    audio3: $('audio3'),
+    audio4: $('audio4'),
+    settingsBtn: $('settingsBtn'),
+    settingsDialog: $('settingsDialog'),
+    fontSelect: $('fontSelect'),
+    textSizeSelect: $('textSizeSelect'),
+    plViewSelect: $('plViewSelect'),
+    motionToggle: $('motionToggle'),
+    hapticsToggle: $('hapticsToggle'),
+    hapticsHint: $('hapticsHint'),
+    eqPreset: $('eqPreset'),
+    eqBands: $('eqBands'),
+    eqNote: $('eqNote'),
+    recentRow: $('recentRow'),
+    libraryView: $('libraryView'),
+    filterChips: $('filterChips'),
+    searchPlaylists: $('searchPlaylists'),
+    bottomNav: $('bottomNav'),
+    nowPlaying: document.querySelector('.now-playing'),
     commentsCount: $('commentsCount'),
     commentsList: $('commentsList'),
     commentForm: $('commentForm'),
@@ -257,6 +279,39 @@
 
   const normalize = (text) =>
     String(text ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+
+  /* ---------- Configuración (botón ⚙) ---------- */
+  const FONTS = ['street', 'graffiti', 'classic'];
+  const TEXT_SIZES = ['system', 'small', 'normal', 'large', 'xl'];
+  const settings = (() => {
+    const saved = storage.get(KEYS.settings, {}) || {};
+    const gains = Array.isArray(saved.eq?.gains) && saved.eq.gains.length === 5
+      ? saved.eq.gains.map((g) => clamp(Number(g) || 0, -12, 12))
+      : [0, 0, 0, 0, 0];
+    return {
+      font: FONTS.includes(saved.font) ? saved.font : 'street',
+      textSize: TEXT_SIZES.includes(saved.textSize) ? saved.textSize : 'system',
+      plView: saved.plView === 'list' ? 'list' : 'grid',
+      motion: saved.motion !== false,
+      haptics: saved.haptics !== false,
+      eq: { preset: typeof saved.eq?.preset === 'string' ? saved.eq.preset : 'flat', gains }
+    };
+  })();
+  const saveSettings = () => storage.set(KEYS.settings, settings);
+
+  function applyLook() {
+    const root = document.documentElement;
+    root.dataset.font = settings.font;
+    root.dataset.text = settings.textSize;
+    root.classList.toggle('no-motion', !settings.motion);
+  }
+
+  // Vibración corta (Android); iOS no deja vibrar desde la web
+  function haptic(pattern = 10) {
+    if (settings.haptics && typeof navigator.vibrate === 'function') {
+      try { navigator.vibrate(pattern); } catch { /* sin permiso */ }
+    }
+  }
 
   function shuffleArray(list) {
     const copy = list.slice();
@@ -408,6 +463,7 @@
     const seenSongs = new Set();
     state.libraryTracks = state.tracks.filter((t) => !seenSongs.has(t.songKey) && seenSongs.add(t.songKey));
     await refreshDownloads();
+    if (eqActive()) probeCors().then(updateEqNote);
 
     // Si la playlist que estaba abierta ya no existe, se vuelve a Playlists
     if (state.view === 'playlist' && !getPlaylist(state.openPlaylist)) state.view = 'playlists';
@@ -697,7 +753,9 @@
     shared: [],
     local: [],
     recent: [],
-    plays: {}
+    plays: {},
+    // Playlists fijadas arriba (claves "sys:…", "local:…"), solo en este dispositivo
+    pins: []
   };
 
   const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -769,6 +827,7 @@
     storage.set(KEYS.recent, library.recent);
     storage.set(KEYS.plays, library.plays);
     countPlayInLog(id);
+    if (state.view === 'library') renderRecentRow();
   }
 
   async function loadCatalog() {
@@ -1318,7 +1377,10 @@
   // Dos reproductores: al final de cada canción la siguiente entra por el otro y se mezclan
   // con una curva de potencia constante. "Inteligente": la mezcla se acorta en canciones
   // cortas, no se usa con «repetir una» y al saltar a mano es un fundido rápido.
-  const decks = [els.audio, els.audio2];
+  // Dos reproductores normales y dos que pasan por el ecualizador (Web Audio: necesitan CORS)
+  const plainDecks = [els.audio, els.audio2];
+  const eqDecks = [els.audio3, els.audio4];
+  const decks = [...plainDecks, ...eqDecks];
   const dj = { enabled: false, fade: 6, transitioning: false, timer: null, outgoing: null };
   const deckGain = new Map(decks.map((deck) => [deck, 1]));
 
@@ -1326,7 +1388,6 @@
     deck.volume = clamp(state.volume * (deckGain.get(deck) ?? 1), 0, 1);
   }
 
-  const otherDeck = (deck) => (deck === decks[0] ? decks[1] : decks[0]);
   // En iOS el volumen no se puede cambiar desde la web: en vez de mezcla larga, un empalme corto
   const smartFade = (duration) => (IS_IOS ? 1 : Math.max(1.5, Math.min(dj.fade, duration * 0.1)));
 
@@ -1364,20 +1425,29 @@
     }, 50);
   }
 
-  // Elige el reproductor para la siguiente canción y, si toca, empieza la mezcla
-  function prepareDeck(autoplay, fade) {
+  // Elige el reproductor para la siguiente canción (con o sin ecualizador) y, si toca, empieza la mezcla
+  function prepareDeck(track, autoplay, fade) {
     const outgoing = els.audio;
+    const pool = wantsEq(track) && ensureEqGraph() ? eqDecks : plainDecks;
     const mixing = dj.enabled && fade > 0 && autoplay && !outgoing.paused && Boolean(outgoing.getAttribute('src'));
     dj.transitioning = false;
+    eq.swapFrom = null;
     if (mixing) {
-      els.audio = otherDeck(outgoing);
+      els.audio = pool[0] === outgoing ? pool[1] : pool[0];
       els.audio.muted = outgoing.muted;
       startCrossfade(outgoing, els.audio, fade);
     } else {
       if (dj.timer) finishCrossfade();
-      const idle = otherDeck(els.audio);
-      if (idle.getAttribute('src')) releaseDeck(idle);
+      if (!pool.includes(els.audio)) {
+        els.audio = pool[0];
+        els.audio.muted = outgoing.muted;
+        deckGain.set(els.audio, 1);
+        applyVolume(els.audio);
+      }
     }
+    decks.forEach((deck) => {
+      if (deck !== els.audio && deck !== dj.outgoing && deck.getAttribute('src')) releaseDeck(deck);
+    });
   }
 
   function checkDjTransition() {
@@ -1718,7 +1788,7 @@
 
   function getVisibleTracks() {
     const q = normalize(state.query);
-    const list = baseTracks();
+    const list = applyFilters(baseTracks());
     if (!q) return list;
     return list.filter((track) => [track.title, track.artist, track.album, track.genre].some((field) => normalize(field).includes(q)));
   }
@@ -1746,12 +1816,21 @@
     return el;
   }
 
+  // Hasta 4 portadas distintas de las canciones (las de un mismo álbum cuentan una vez)
+  function mosaicCovers(tracks) {
+    const covers = [];
+    for (const track of tracks.slice(0, 60)) {
+      if (!covers.includes(track.cover)) covers.push(track.cover);
+      if (covers.length === 4) break;
+    }
+    return covers.length === 4 ? covers : covers.slice(0, 1);
+  }
+
   function playlistCover(pl, size) {
     const tracks = playlistTracksOf(pl);
     // Tarjetas: miniatura de 320 px; la cabecera de la playlist usa la imagen grande
     const src = pl.cover?.type === 'image' ? (size <= 160 ? pl.cover.src.replace(/\.jpg$/, '-sm.jpg') : pl.cover.src)
-      : pl.cover?.type === 'art' ? coverArt(pl)
-      : pl.kind === 'system' ? tracks[0]?.cover : '';
+      : pl.cover?.type === 'art' ? coverArt(pl) : '';
     if (src) {
       const img = document.createElement('img');
       img.className = 'pl-cover';
@@ -1761,6 +1840,29 @@
       img.height = size;
       img.loading = 'lazy';
       return img;
+    }
+    // Sin portada propia: mosaico con las portadas de sus canciones (y su icono en una esquina)
+    const covers = mosaicCovers(tracks);
+    if (covers.length) {
+      const mosaic = makeEl('span', `pl-cover pl-mosaic${covers.length === 4 ? '' : ' is-single'}`);
+      mosaic.setAttribute('aria-hidden', 'true');
+      const cell = covers.length === 4 ? Math.ceil(size / 2) : size;
+      covers.forEach((cover) => {
+        const img = document.createElement('img');
+        img.src = cover;
+        img.alt = '';
+        img.width = cell;
+        img.height = cell;
+        img.loading = 'lazy';
+        img.addEventListener('error', () => { img.src = PLACEHOLDER_COVER; }, { once: true });
+        mosaic.append(img);
+      });
+      if (pl.emoji && pl.kind !== 'system') {
+        const badge = makeEl('span', 'pl-cover-badge', pl.emoji);
+        badge.style.setProperty('--pl-color', pl.color || PLAYLIST_COLORS[0]);
+        mosaic.append(badge);
+      }
+      return mosaic;
     }
     const cover = makeEl('span', 'pl-cover pl-cover-emoji', pl.emoji || '💿');
     cover.style.setProperty('--pl-color', pl.color || PLAYLIST_COLORS[0]);
@@ -1802,8 +1904,10 @@
       nextMonth.disabled = state.statsOffset >= 0;
       actions.append(prevMonth, nextMonth);
     } else if (state.view === 'playlists' && !searching) {
+      const asList = settings.plView === 'list';
       actions.append(
         makeButton('btn btn-primary', 'new-playlist', 'Crear una playlist nueva', 'playlist-add', 'Nueva'),
+        makeButton('icon-btn', 'toggle-plview', asList ? 'Ver en cuadrícula' : 'Ver en lista', asList ? 'grid' : 'list'),
         makeButton('icon-btn', 'import', 'Importar una copia de seguridad', 'upload'),
         makeButton('icon-btn', 'export', 'Descargar una copia de seguridad de tus playlists', 'download')
       );
@@ -1838,6 +1942,7 @@
     const header = makeEl('div', 'pl-hero');
     header.dataset.key = pl.key;
     header.style.setProperty('--pl-color', pl.color || 'var(--accent)');
+    tintFromCover(pl, header);
     const text = makeEl('div', 'pl-hero-text');
     const meta = makeEl('span', 'playlist-meta');
     meta.dataset.base = `${songsLabel(tracks.length)} · ${formatTotal(total)}`;
@@ -1853,6 +1958,10 @@
       makeButton('icon-btn', 'shuffle-view', 'Reproducir en aleatorio', 'shuffle')
     );
     if (offline.supported && tracks.length) actions.append(makeButton('icon-btn playlist-download', 'download-playlist', 'Descargar', 'download'));
+    const pinned = isPinned(pl.key);
+    const pin = makeButton(`icon-btn pin-btn${pinned ? ' is-active' : ''}`, 'pin-playlist', pinned ? 'Dejar de fijar' : 'Fijar arriba en Playlists', 'pin');
+    pin.setAttribute('aria-pressed', String(pinned));
+    actions.append(pin);
     if (pl.kind === 'local') {
       actions.append(
         makeButton('btn btn-primary', 'share-playlist', 'Guardar para todos con la KeyForSet', 'key', pl.sharedId ? 'Actualizar para todos' : 'Guardar para todos'),
@@ -1894,8 +2003,200 @@
     card.append(playlistCover(pl, 160), text);
     if (pl.kind === 'shared') card.append(makeEl('span', 'pl-badge', 'Para todos'));
     if (pl.sharedId) card.append(makeEl('span', 'pl-badge', 'Editando'));
+    if (isPinned(pl.key)) {
+      const pin = makeEl('span', 'pl-pin');
+      pin.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-pin"></use></svg>';
+      pin.title = 'Fijada';
+      card.append(pin);
+    }
     return card;
   }
+
+  /* ---------- Playlists fijadas ---------- */
+  const isPinned = (key) => library.pins.includes(key);
+
+  function togglePin(key) {
+    const pl = getPlaylist(key);
+    if (!pl) return;
+    const pinned = !isPinned(key);
+    library.pins = pinned ? [key, ...library.pins] : library.pins.filter((k) => k !== key);
+    storage.set(KEYS.pins, library.pins);
+    haptic(pinned ? [12, 40, 12] : 10);
+    showToast(pinned ? `📌 Fijada arriba: «${pl.name}»` : `«${pl.name}» ya no está fijada.`);
+    renderList();
+  }
+
+  /* ---------- Color de la cabecera según la portada de la playlist ---------- */
+  function coverSample(pl) {
+    if (pl.cover?.type === 'image') return { src: pl.cover.src.replace(/\.jpg$/, '-sm.jpg') };
+    if (pl.cover?.type === 'art') return pl.cover.color ? { hex: pl.cover.color } : null;
+    const first = playlistTracksOf(pl)[0];
+    if (!first) return null;
+    if (first.hue !== null && first.hue !== undefined) return { rgb: hslToRgb(first.hue / 360, 0.65, 0.5) };
+    return { src: first.cover };
+  }
+
+  function setViewTint(color) {
+    if (color) {
+      els.library.style.setProperty('--view-tint', color);
+      els.library.classList.add('is-tinted');
+    } else {
+      els.library.classList.remove('is-tinted');
+    }
+  }
+
+  function tintFromCover(pl, hero) {
+    const sample = coverSample(pl);
+    const key = pl.key;
+    const apply = (color) => {
+      if (state.openPlaylist !== key) return;
+      if (color) hero.style.setProperty('--pl-color', color);
+      setViewTint(color || pl.color || '');
+    };
+    if (!sample) return apply(pl.color || '');
+    if (sample.hex) return apply(sample.hex);
+    if (sample.rgb) return apply(`rgb(${sample.rgb.map(Math.round).join(', ')})`);
+    const cacheId = `cover:${sample.src}`;
+    if (colorCache.has(cacheId)) {
+      const rgb = colorCache.get(cacheId);
+      return apply(rgb ? `rgb(${rgb.map(Math.round).join(', ')})` : pl.color || '');
+    }
+    const probe = new Image();
+    probe.crossOrigin = 'anonymous';
+    probe.decoding = 'async';
+    probe.onload = () => {
+      const rgb = extractColor(probe);
+      colorCache.set(cacheId, rgb);
+      apply(rgb ? `rgb(${rgb.map(Math.round).join(', ')})` : pl.color || '');
+    };
+    probe.onerror = () => {
+      colorCache.set(cacheId, null);
+      apply(pl.color || '');
+    };
+    probe.src = sample.src;
+    // Mientras carga, el color propio de la playlist
+    setViewTint(pl.color || '');
+  }
+
+  /* ---------- Escuchadas hace poco (fila de portadas) ---------- */
+  function renderRecentRow() {
+    const show = state.view === 'library' && !normalize(state.query);
+    const tracks = show ? library.recent.map(getTrack).filter(Boolean).slice(0, 12) : [];
+    els.recentRow.hidden = !tracks.length;
+    if (!tracks.length) {
+      els.recentRow.replaceChildren();
+      return;
+    }
+    const scroller = makeEl('div', 'recent-scroller');
+    tracks.forEach((track) => {
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'recent-card';
+      card.dataset.action = 'recent-play';
+      card.dataset.value = track.id;
+      card.setAttribute('aria-label', `Reproducir ${track.title} de ${track.artist}`);
+      if (state.currentTrack?.id === track.id) card.classList.add('is-current');
+      const img = document.createElement('img');
+      img.src = track.cover;
+      img.alt = '';
+      img.width = 112;
+      img.height = 112;
+      img.loading = 'lazy';
+      img.addEventListener('error', () => { img.src = PLACEHOLDER_COVER; }, { once: true });
+      card.append(img, makeEl('span', 'recent-title', track.title), makeEl('span', 'recent-artist', track.knownArtist || track.genre || track.artist));
+      scroller.append(card);
+    });
+    const head = makeEl('div', 'recent-head');
+    head.append(makeEl('h3', 'pl-section-title', 'Escuchadas hace poco'));
+    els.recentRow.replaceChildren(head, scroller);
+  }
+
+  // Reproduce una colección concreta (p. ej. el historial) como cola, sin cambiar de vista
+  function playCollection(tracks, startId, context) {
+    const start = getTrack(startId);
+    if (!start) return;
+    if (!isPlayable(start)) {
+      showToast('Sin conexión: esta canción no está descargada.');
+      return;
+    }
+    state.baseQueue = tracks.map((t) => t.id);
+    state.queueContext = context;
+    state.queue = state.baseQueue.slice();
+    state.queueIndex = Math.max(0, state.queue.indexOf(startId));
+    if (state.shuffle) applyShuffle();
+    loadTrack(start, true, dj.enabled ? 1.5 : 0);
+  }
+
+  /* ---------- Filtros rápidos (píldoras) ---------- */
+  const FILTERS = {
+    all: 'Todo',
+    downloaded: 'Descargadas',
+    favorites: 'Favoritas',
+    unplayed: 'Sin escuchar'
+  };
+
+  function applyFilters(list) {
+    let result = list;
+    if (state.filter === 'downloaded') result = result.filter(isDownloaded);
+    else if (state.filter === 'favorites') result = result.filter((t) => state.favorites.has(t.id));
+    else if (state.filter === 'unplayed') result = result.filter((t) => !library.plays[t.id]);
+    if (state.genre) result = result.filter((t) => t.genre === state.genre);
+    return result;
+  }
+
+  function makeChip(action, value, label, active) {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = `chip${active ? ' is-active' : ''}`;
+    chip.dataset.action = action;
+    chip.dataset.value = value;
+    chip.setAttribute('aria-pressed', String(active));
+    chip.textContent = label;
+    return chip;
+  }
+
+  function renderChips(show) {
+    els.filterChips.hidden = !show;
+    if (!show) {
+      els.filterChips.replaceChildren();
+      return;
+    }
+    const chips = Object.entries(FILTERS)
+      .filter(([key]) => !(key === 'favorites' && state.view === 'favorites') && !(key === 'downloaded' && !offline.supported))
+      .map(([key, label]) => makeChip('filter', key, label, state.filter === key && !(key === 'all' && state.genre)));
+    // Géneros de la lista que se ve, de más a menos canciones
+    const counts = new Map();
+    baseTracks().forEach((t) => { if (t.genre) counts.set(t.genre, (counts.get(t.genre) || 0) + 1); });
+    const genres = [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([genre]) => genre);
+    if (state.genre && !genres.includes(state.genre)) state.genre = '';
+    if (genres.length > 1) {
+      chips.push(makeEl('span', 'chip-sep'));
+      genres.forEach((genre) => chips.push(makeChip('genre', genre, genre, state.genre === genre)));
+    }
+    els.filterChips.replaceChildren(...chips);
+  }
+
+  /* ---------- Playlists que coinciden con la búsqueda ---------- */
+  function renderSearchPlaylists(q) {
+    const matches = q
+      ? [...pinnedFirst([...systemPlaylists(), ...sharedPlaylists(), ...localPlaylists()])]
+        .filter((pl) => normalize(`${pl.name} ${pl.description || ''}`).includes(q))
+        .slice(0, 12)
+      : [];
+    els.searchPlaylists.hidden = !matches.length;
+    if (!matches.length) {
+      els.searchPlaylists.replaceChildren();
+      return;
+    }
+    const row = makeEl('div', 'search-pl-row');
+    matches.forEach((pl) => row.append(createPlaylistCard(pl)));
+    els.searchPlaylists.replaceChildren(makeEl('h3', 'pl-section-title', 'Playlists'), row);
+  }
+
+  const pinnedFirst = (playlists) => [
+    ...playlists.filter((pl) => isPinned(pl.key)),
+    ...playlists.filter((pl) => !isPinned(pl.key))
+  ];
 
   function renderPlaylistGrid() {
     const section = (title, note, playlists, extra) => {
@@ -1911,11 +2212,17 @@
     const newCard = makeButton('pl-card pl-card-new', 'new-playlist', 'Crear una playlist nueva', 'playlist-add', 'Nueva playlist');
     const autos = autoPlaylists().filter((pl) => pl.trackIds.some((id) => state.trackMap.has(id)));
 
-    const parts = [
-      section('Playlists de LiquidBrush', '', [...systemPlaylists(), ...sharedPlaylists()]),
-      section('Mis playlists', 'Se guardan solo en este navegador. Si borras la caché o los datos del sitio, se perderán: guárdalas para todos con la KeyForSet o descarga una copia de seguridad (botón ⬇ de arriba).', localPlaylists(), newCard)
-    ];
-    if (autos.length) parts.push(section('Para ti', '', autos));
+    const unpinned = (playlists) => playlists.filter((pl) => !isPinned(pl.key));
+    const pinned = library.pins.map(getPlaylist).filter(Boolean);
+    const parts = [];
+    if (pinned.length) parts.push(section('📌 Fijadas', '', pinned));
+    parts.push(
+      section('Playlists de LiquidBrush', pinned.length ? '' : 'Mantén pulsada una playlist (o clic derecho) para fijarla arriba.', unpinned([...systemPlaylists(), ...sharedPlaylists()])),
+      section('Mis playlists', 'Se guardan solo en este navegador. Si borras la caché o los datos del sitio, se perderán: guárdalas para todos con la KeyForSet o descarga una copia de seguridad (botón ⬇ de arriba).', unpinned(localPlaylists()), newCard)
+    );
+    const autoLeft = unpinned(autos);
+    if (autoLeft.length) parts.push(section('Para ti', '', autoLeft));
+    els.playlistGrid.classList.toggle('is-list', settings.plView === 'list');
     els.playlistGrid.replaceChildren(...parts);
   }
 
@@ -1926,13 +2233,19 @@
   }
 
   function renderList() {
-    const searching = Boolean(normalize(state.query));
+    const q = normalize(state.query);
+    const searching = Boolean(q);
     renderViewHead();
     const showStats = state.view === 'stats';
     const showGrid = state.view === 'playlists' && !searching;
     els.playlistGrid.hidden = !showGrid;
     els.statsPanel.hidden = !showStats;
     els.trackList.hidden = showGrid || showStats;
+    if (state.view !== 'playlist') setViewTint('');
+    renderRecentRow();
+    renderChips(!showGrid && !showStats && state.tracks.length > 0);
+    renderSearchPlaylists(showStats || state.view === 'playlist' ? '' : q);
+    els.searchPlaylists.classList.toggle('is-list', settings.plView === 'list');
     updateCounts();
 
     if (showStats) {
@@ -1962,6 +2275,7 @@
       const li = makeEl('li', 'list-empty');
       if (!state.tracks.length) li.textContent = 'La biblioteca está vacía por ahora.';
       else if (searching) li.textContent = 'No se encontraron canciones.';
+      else if (state.filter !== 'all' || state.genre) li.textContent = 'Ninguna canción coincide con este filtro.';
       else if (state.view === 'favorites') li.textContent = 'Aún no tienes favoritas. Pulsa el ♥ de una canción para guardarla aquí.';
       else if (pl?.kind === 'local') li.textContent = 'Playlist vacía. Pulsa el ＋ de cualquier canción en la Biblioteca para añadirla aquí.';
       else li.textContent = 'Todavía no hay canciones aquí.';
@@ -2011,9 +2325,17 @@
     }
   }
 
-  function setView(view) {
+  function setView(view, { playlist = null } = {}) {
+    const previous = state.view;
+    const previousPlaylist = state.openPlaylist;
     state.view = view;
-    if (view !== 'playlist') state.openPlaylist = null;
+    state.openPlaylist = view === 'playlist' ? playlist || state.openPlaylist : null;
+    const changed = previous !== view || previousPlaylist !== state.openPlaylist;
+    if (changed) {
+      state.filter = 'all';
+      state.genre = '';
+      animateView(view === 'playlist' ? 'forward' : previous === 'playlist' && view === 'playlists' ? 'back' : 'fade');
+    }
     if (VIEWS.includes(view)) storage.set(KEYS.view, view);
     const tabView = view === 'playlist' ? 'playlists' : view;
     els.tabsBar.querySelectorAll('.tab').forEach((tab) => {
@@ -2022,12 +2344,24 @@
       tab.setAttribute('aria-selected', String(active));
     });
     renderList();
+    updateNav();
   }
 
   function openPlaylist(key) {
-    state.openPlaylist = key;
-    setView('playlist');
+    // Al abrir una playlist desde la búsqueda se limpia el texto
+    state.query = '';
+    els.searchInput.value = '';
+    setView('playlist', { playlist: key });
     els.trackList.closest('.library').scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }
+
+  // Transición suave al cambiar de vista (entra deslizándose)
+  function animateView(direction) {
+    if (!settings.motion) return;
+    const view = els.libraryView;
+    view.classList.remove('anim-forward', 'anim-back', 'anim-fade');
+    void view.offsetWidth; // reinicia la animación
+    view.classList.add(`anim-${direction}`);
   }
 
   function playTracks(list, shuffle = false) {
@@ -2149,6 +2483,7 @@
     const track = getTrack(id);
     if (!track) return;
     const added = !state.favorites.has(id);
+    haptic(added ? [10, 30, 10] : 10);
     if (added) state.favorites.add(id);
     else state.favorites.delete(id);
     storage.set(KEYS.favorites, [...state.favorites]);
@@ -2223,7 +2558,7 @@
     state.pendingSeek = null;
     state.countedId = null;
 
-    prepareDeck(autoplay, fade);
+    prepareDeck(track, autoplay, fade);
     els.audio.src = track.src;
 
     els.cover.src = track.cover;
@@ -2258,18 +2593,21 @@
 
   async function play({ quiet = false } = {}) {
     state.userPaused = false;
+    state.wantsPlay = true;
     if (!state.currentTrack) {
       if (!state.tracks.length) return;
       buildQueue(state.tracks[0].id);
       loadTrack(getTrack(state.queue[state.queueIndex]), false);
     }
-    setupAudioGraph();
-    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    if (eq.ctx && eq.ctx.state !== 'running') eq.ctx.resume().catch(() => {});
+    const deck = els.audio;
     try {
-      await els.audio.play();
+      await deck.play();
     } catch (error) {
       // AbortError: se cambió de canción antes de empezar a sonar; no es un fallo real.
       if (error.name === 'AbortError') return;
+      // Con el ecualizador, un servidor sin CORS se resuelve solo (vuelve a sonar sin ecualizar)
+      if (eqDecks.includes(deck) && error.name !== 'NotAllowedError') return;
       // Reanudación automática fallida (iOS no deja quitarle el audio a otra app): se reintenta al volver
       if (quiet) return;
       console.error('[LiquidBrush] No se pudo reproducir:', error);
@@ -2282,6 +2620,7 @@
   }
 
   function togglePlay() {
+    haptic(8);
     if (!state.currentTrack || els.audio.paused) play();
     else pauseByUser();
   }
@@ -2289,6 +2628,7 @@
   // Pausa pedida desde la app; cualquier otra pausa (otra app con sonido, una llamada) se reanuda sola
   function pauseByUser() {
     state.userPaused = true;
+    state.wantsPlay = false;
     interruption.clear();
     els.audio.pause();
   }
@@ -2738,29 +3078,164 @@
     return [hue2rgb(p, q, h + 1 / 3) * 255, hue2rgb(p, q, h) * 255, hue2rgb(p, q, h - 1 / 3) * 255];
   }
 
-  /* ---------- Web Audio (opcional, requiere CORS en el audio) ---------- */
-  let audioCtx = null;
-  let analyser = null;
-  let freqData = null;
+  /* ---------- Ecualizador (Web Audio, requiere CORS en el audio) ---------- */
+  const EQ_BANDS = [
+    { freq: 60, type: 'lowshelf', label: 'Bajos', hz: '60 Hz' },
+    { freq: 230, type: 'peaking', label: 'Graves', hz: '230 Hz' },
+    { freq: 910, type: 'peaking', label: 'Medios', hz: '910 Hz' },
+    { freq: 3600, type: 'peaking', label: 'Voces', hz: '3,6 kHz' },
+    { freq: 14000, type: 'highshelf', label: 'Agudos', hz: '14 kHz' }
+  ];
+  const EQ_PRESETS = {
+    flat: { name: 'Plano', gains: [0, 0, 0, 0, 0] },
+    bass: { name: 'Más bajos', gains: [6, 3, 0, 0, 0] },
+    deep: { name: 'Bajos profundos', gains: [9, 5, -1, 0, 1] },
+    perreo: { name: 'Perreo / Trap', gains: [7, 3, -1, 1, 3] },
+    hiphop: { name: 'Hip-hop', gains: [5, 3, -1, 2, 1] },
+    electronic: { name: 'Electrónica', gains: [5, 2, 0, 2, 5] },
+    rock: { name: 'Rock', gains: [4, 1, -2, 2, 4] },
+    vocal: { name: 'Voces claras', gains: [-2, -1, 3, 4, 1] },
+    treble: { name: 'Agudos brillantes', gains: [0, 0, 0, 3, 6] },
+    acoustic: { name: 'Acústico', gains: [2, 1, 1, 2, 2] },
+    night: { name: 'Noche (suave)', gains: [-2, 0, 1, 0, -3] },
+    custom: { name: 'Personalizado', gains: null }
+  };
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  // cors: origen → true/false según si su servidor permite leer el audio (se comprueba una vez por sesión)
+  const eq = { ctx: null, input: null, filters: [], analyser: null, freqData: null, cors: new Map(), probing: null, swapFrom: null, warned: new Set() };
 
-  function setupAudioGraph() {
-    if (!CONFIG.useWebAudioAnalyser || audioCtx) return;
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContextClass) return;
+  const eqActive = () => Boolean(AudioContextClass) && settings.eq.gains.some((g) => Math.abs(g) >= 0.5);
+  const originOf = (src) => {
+    try { return new URL(src, location.href).origin; } catch { return ''; }
+  };
+  function eqCanPlay(track) {
+    if (/^(data|blob):/i.test(track.src)) return true;
+    const origin = originOf(track.src);
+    return origin === location.origin || eq.cors.get(origin) === true;
+  }
+  const wantsEq = (track) => Boolean(track) && eqActive() && eqCanPlay(track);
+
+  function ensureEqGraph() {
+    if (eq.ctx) return true;
+    if (!AudioContextClass) return false;
     try {
-      audioCtx = new AudioContextClass();
-      const source = audioCtx.createMediaElementSource(els.audio);
-      analyser = audioCtx.createAnalyser();
+      const ctx = new AudioContextClass();
+      const input = ctx.createGain();
+      const filters = EQ_BANDS.map((band) => {
+        const filter = ctx.createBiquadFilter();
+        filter.type = band.type;
+        filter.frequency.value = band.freq;
+        filter.Q.value = 1.1;
+        return filter;
+      });
+      const analyser = ctx.createAnalyser();
       analyser.fftSize = 128;
       analyser.smoothingTimeConstant = 0.8;
-      source.connect(analyser);
-      analyser.connect(audioCtx.destination);
-      freqData = new Uint8Array(analyser.frequencyBinCount);
+      [input, ...filters].reduce((from, to) => { from.connect(to); return to; }).connect(analyser);
+      analyser.connect(ctx.destination);
+      eqDecks.forEach((deck) => ctx.createMediaElementSource(deck).connect(input));
+      Object.assign(eq, { ctx, input, filters, analyser, freqData: new Uint8Array(analyser.frequencyBinCount) });
+      applyEqGains();
+      return true;
     } catch (error) {
-      console.warn('[LiquidBrush] Web Audio no disponible, se usa el visualizador simulado.', error);
-      analyser = null;
-      freqData = null;
+      console.warn('[LiquidBrush] El ecualizador no está disponible en este navegador.', error);
+      eq.ctx = null;
+      return false;
     }
+  }
+
+  function applyEqGains() {
+    if (!eq.ctx) return;
+    const now = eq.ctx.currentTime;
+    settings.eq.gains.forEach((gain, i) => eq.filters[i].gain.setTargetAtTime(gain, now, 0.05));
+    // Baja un poco el volumen de entrada al realzar bandas para que no sature
+    const boost = Math.max(0, ...settings.eq.gains);
+    eq.input.gain.setTargetAtTime(10 ** ((-boost * 0.6) / 20), now, 0.05);
+  }
+
+  // Comprueba qué servidores de audio permiten CORS (una petición HEAD por servidor)
+  function probeCors() {
+    if (eq.probing) return eq.probing;
+    const samples = new Map();
+    state.tracks.forEach((t) => {
+      const origin = originOf(t.src);
+      if (origin && origin !== location.origin && !eq.cors.has(origin) && !samples.has(origin)) samples.set(origin, t.src);
+    });
+    eq.probing = Promise.all([...samples].map(async ([origin, src]) => {
+      try {
+        const response = await fetch(src, { method: 'HEAD', mode: 'cors', cache: 'no-store' });
+        eq.cors.set(origin, response.ok);
+      } catch {
+        eq.cors.set(origin, false);
+      }
+    })).finally(() => { eq.probing = null; });
+    return eq.probing;
+  }
+
+  // Al activar el ecualizador con una canción sonando, pasa al reproductor ecualizado sin cortar:
+  // el de antes sigue sonando hasta que el nuevo empieza
+  function syncEqRouting() {
+    const track = state.currentTrack;
+    if (!track || !els.audio.getAttribute('src') || eqDecks.includes(els.audio)) return;
+    if (!wantsEq(track) || !ensureEqGraph()) return;
+    if (dj.timer) finishCrossfade();
+    const from = els.audio;
+    const target = eqDecks[0];
+    const playing = !from.paused;
+    els.audio = target;
+    target.muted = from.muted;
+    deckGain.set(target, 1);
+    applyVolume(target);
+    state.pendingSeek = from.currentTime;
+    target.src = track.src;
+    if (!playing) {
+      releaseDeck(from);
+      return;
+    }
+    eq.swapFrom = from;
+    target.addEventListener('playing', () => {
+      if (eq.swapFrom === from) {
+        eq.swapFrom = null;
+        releaseDeck(from);
+      }
+    }, { once: true });
+    play({ quiet: true });
+  }
+
+  // Un servidor sin CORS no deja ecualizar: la canción vuelve a sonar sin ecualizador
+  function recoverFromEqError() {
+    const track = state.currentTrack;
+    if (!track || !eqDecks.includes(els.audio)) return false;
+    const origin = originOf(track.src);
+    eq.cors.set(origin, false);
+    const failed = els.audio;
+    if (eq.swapFrom?.getAttribute('src')) {
+      els.audio = eq.swapFrom;
+      eq.swapFrom = null;
+      releaseDeck(failed);
+    } else {
+      const time = failed.currentTime || 0;
+      const autoplay = state.wantsPlay === true;
+      loadTrack(track, autoplay);
+      state.pendingSeek = time || null;
+    }
+    if (!eq.warned.has(origin)) {
+      eq.warned.add(origin);
+      showToast('Esta canción no se puede ecualizar (su servidor no lo permite): suena sin ecualizador.');
+    }
+    updateEqNote();
+    return true;
+  }
+
+  function updateEqNote() {
+    if (!AudioContextClass) {
+      els.eqNote.textContent = 'Este navegador no permite ecualizar el audio.';
+      return;
+    }
+    const notes = ['Se aplica al momento. Solo funciona con canciones cuyo servidor lo permite (CORS); las demás suenan igual, sin ecualizar.'];
+    if ([...eq.cors.values()].some((ok) => !ok)) notes.push('Ahora mismo las canciones de Cloudflare R2 no se pueden ecualizar: hace falta activar CORS en el bucket.');
+    if (IS_IOS) notes.push('En iPhone/iPad, con el ecualizador activado la música podría pararse al salir de la app. Con «Plano» suena como siempre.');
+    els.eqNote.textContent = notes.join(' ');
   }
 
   /* ---------- Visualizador (Canvas) ---------- */
@@ -2807,12 +3282,13 @@
     }
 
     function levels(time) {
-      if (analyser && freqData) {
-        analyser.getByteFrequencyData(freqData);
-        const usable = Math.floor(freqData.length * 0.75);
+      // Con el ecualizador se leen las frecuencias reales
+      if (eq.analyser && eqDecks.includes(els.audio)) {
+        eq.analyser.getByteFrequencyData(eq.freqData);
+        const usable = Math.floor(eq.freqData.length * 0.75);
         return bars.map((_, i) => {
           const bin = Math.floor((i / bars.length) * usable);
-          return clamp(freqData[bin] / 255, IDLE_LEVEL, 1);
+          return clamp(eq.freqData[bin] / 255, IDLE_LEVEL, 1);
         });
       }
       // Animación simulada: ondas superpuestas + un poco de ruido
@@ -3098,6 +3574,7 @@
     on('volumechange', updateVolumeUI);
     on('error', () => {
       if (!els.audio.getAttribute('src')) return;
+      if (recoverFromEqError()) return;
       setPlayingUI(false);
       showToast(navigator.onLine
         ? `No se pudo cargar el audio de «${state.currentTrack?.title ?? 'la canción'}».`
@@ -3149,6 +3626,7 @@
 
     // Barra de progreso: clic o arrastre (ratón y táctil)
     els.progress.addEventListener('input', () => {
+      if (!state.isSeeking) haptic(6);
       state.isSeeking = true;
       const value = Number(els.progress.value);
       updateProgressUI(value, getDuration());
@@ -3157,6 +3635,7 @@
       const value = Number(els.progress.value);
       state.isSeeking = false;
       if (state.currentTrack) seekTo(value);
+      haptic(12);
     });
 
     // Conexión
@@ -3183,6 +3662,23 @@
       const pl = getPlaylist(state.openPlaylist);
       switch (action) {
         case 'open-playlist': openPlaylist(target.dataset.key); break;
+        case 'pin-playlist': if (pl) togglePin(pl.key); break;
+        case 'toggle-plview': setPlaylistView(settings.plView === 'list' ? 'grid' : 'list'); break;
+        case 'filter':
+          state.filter = target.dataset.value;
+          if (state.filter === 'all') state.genre = '';
+          renderList();
+          break;
+        case 'genre':
+          state.genre = state.genre === target.dataset.value ? '' : target.dataset.value;
+          renderList();
+          break;
+        case 'recent-play': {
+          const recent = library.recent.map(getTrack).filter(Boolean);
+          if (state.currentTrack?.id === target.dataset.value) togglePlay();
+          else playCollection(recent, target.dataset.value, 'Escuchadas hace poco');
+          break;
+        }
         case 'back': setView('playlists'); break;
         case 'stats-prev': state.statsOffset -= 1; renderList(); break;
         case 'stats-next': state.statsOffset = Math.min(0, state.statsOffset + 1); renderList(); break;
@@ -3309,6 +3805,128 @@
       });
     });
 
+    // Configuración
+    els.settingsBtn.addEventListener('click', openSettings);
+    els.settingsDialog.addEventListener('click', (event) => {
+      if (event.target === els.settingsDialog) els.settingsDialog.close();
+    });
+    els.fontSelect.addEventListener('change', () => {
+      settings.font = els.fontSelect.value;
+      saveSettings();
+      applyLook();
+    });
+    els.textSizeSelect.addEventListener('change', () => {
+      settings.textSize = els.textSizeSelect.value;
+      saveSettings();
+      applyLook();
+    });
+    els.plViewSelect.addEventListener('change', () => setPlaylistView(els.plViewSelect.value));
+    els.motionToggle.addEventListener('change', () => {
+      settings.motion = els.motionToggle.checked;
+      saveSettings();
+      applyLook();
+    });
+    els.hapticsToggle.addEventListener('change', () => {
+      settings.haptics = els.hapticsToggle.checked;
+      saveSettings();
+      haptic(15);
+    });
+    els.eqPreset.addEventListener('change', () => {
+      const preset = EQ_PRESETS[els.eqPreset.value];
+      settings.eq.preset = els.eqPreset.value;
+      if (preset?.gains) settings.eq.gains = preset.gains.slice();
+      renderEqBands();
+      onEqChange();
+    });
+    els.eqBands.addEventListener('input', (event) => {
+      const input = event.target.closest('input[data-band]');
+      if (!input) return;
+      settings.eq.gains[Number(input.dataset.band)] = Number(input.value);
+      const match = Object.entries(EQ_PRESETS).find(([, p]) => p.gains && p.gains.every((g, i) => g === settings.eq.gains[i]));
+      settings.eq.preset = match ? match[0] : 'custom';
+      els.eqPreset.value = settings.eq.preset;
+      updateBandLabel(input);
+      onEqChange();
+    });
+
+    // Navegación inferior (móvil)
+    els.bottomNav.addEventListener('click', (event) => {
+      const button = event.target.closest('.nav-btn');
+      if (!button) return;
+      const target = button.dataset.nav;
+      if (target === 'now') {
+        window.scrollTo({ top: 0, behavior: settings.motion ? 'smooth' : 'auto' });
+        return;
+      }
+      if (target === 'library' && state.view !== 'library') setView('library');
+      if (target === 'playlists' && state.view !== 'playlists') setView('playlists');
+      // El foco va primero (iOS solo abre el teclado dentro del toque)
+      if (target === 'search') els.searchInput.focus({ preventScroll: true });
+      els.library.scrollIntoView({ block: 'start', behavior: settings.motion ? 'smooth' : 'auto' });
+      updateNav();
+    });
+    els.searchInput.addEventListener('focus', updateNav);
+    els.searchInput.addEventListener('blur', updateNav);
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(([entry]) => {
+        nav.nowVisible = entry.isIntersecting;
+        updateNav();
+      }, { threshold: 0.3 }).observe(els.nowPlaying);
+    }
+
+    // Mantener pulsada una playlist (o clic derecho) la fija arriba
+    let press = null;
+    const cancelPress = () => { if (press) clearTimeout(press.timer); };
+    els.library.addEventListener('pointerdown', (event) => {
+      const card = event.target.closest('.pl-card[data-key]');
+      press = null;
+      if (!card || event.pointerType === 'mouse') return;
+      press = { card, fired: false, x: event.clientX, y: event.clientY };
+      press.timer = setTimeout(() => {
+        if (press && !press.fired) {
+          press.fired = true;
+          togglePin(card.dataset.key);
+        }
+      }, 550);
+    });
+    els.library.addEventListener('pointermove', (event) => {
+      if (press && Math.hypot(event.clientX - press.x, event.clientY - press.y) > 10) cancelPress();
+    });
+    els.library.addEventListener('pointerup', cancelPress);
+    els.library.addEventListener('pointercancel', cancelPress);
+    els.library.addEventListener('contextmenu', (event) => {
+      const card = event.target.closest('.pl-card[data-key]');
+      if (!card) return;
+      event.preventDefault();
+      if (press && press.card === card) {
+        cancelPress();
+        if (press.fired) return;
+        press.fired = true;
+      }
+      togglePin(card.dataset.key);
+    });
+    // Tras fijar con una pulsación larga, el toque no abre la playlist
+    els.library.addEventListener('click', (event) => {
+      if (press?.fired && event.target.closest('.pl-card') === press.card) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      press = null;
+    }, true);
+
+    // Rebote al tocar botones
+    document.addEventListener('click', (event) => {
+      if (!settings.motion) return;
+      const button = event.target.closest('.icon-btn, .btn, .tab, .chip, .nav-btn, .recent-card');
+      if (!button || button.disabled) return;
+      button.classList.remove('is-pop');
+      void button.offsetWidth;
+      button.classList.add('is-pop');
+    });
+    document.addEventListener('animationend', (event) => {
+      if (event.animationName === 'tap-pop') event.target.classList.remove('is-pop');
+    });
+
     // Atajos de teclado
     document.addEventListener('keydown', (event) => {
       if (event.ctrlKey || event.metaKey || event.altKey) return;
@@ -3338,6 +3956,91 @@
     });
   }
 
+  /* ---------- Ventana de configuración ---------- */
+  const nav = { nowVisible: true };
+
+  function updateNav() {
+    const searching = document.activeElement === els.searchInput;
+    const active = searching ? 'search'
+      : nav.nowVisible ? 'now'
+      : state.view === 'playlists' || state.view === 'playlist' ? 'playlists' : 'library';
+    els.bottomNav.querySelectorAll('.nav-btn').forEach((button) => {
+      const on = button.dataset.nav === active;
+      button.classList.toggle('is-active', on);
+      if (on) button.setAttribute('aria-current', 'page');
+      else button.removeAttribute('aria-current');
+    });
+  }
+
+  function setPlaylistView(view) {
+    settings.plView = view === 'list' ? 'list' : 'grid';
+    saveSettings();
+    els.plViewSelect.value = settings.plView;
+    renderList();
+  }
+
+  function updateBandLabel(input) {
+    const value = Number(input.value);
+    const label = `${value > 0 ? '+' : ''}${value} dB`;
+    input.closest('.eq-band').querySelector('.eq-value').textContent = label;
+    input.setAttribute('aria-valuetext', label);
+    input.style.setProperty('--fill', `${((value + 12) / 24) * 100}%`);
+  }
+
+  function renderEqBands() {
+    els.eqPreset.value = settings.eq.preset in EQ_PRESETS ? settings.eq.preset : 'custom';
+    els.eqBands.replaceChildren(...EQ_BANDS.map((band, i) => {
+      const row = makeEl('label', 'eq-band');
+      const name = makeEl('span', 'eq-name');
+      name.append(makeEl('span', 'eq-label', band.label), makeEl('span', 'eq-hz', band.hz));
+      const input = document.createElement('input');
+      input.type = 'range';
+      input.className = 'range eq-range';
+      input.min = '-12';
+      input.max = '12';
+      input.step = '1';
+      input.value = String(settings.eq.gains[i]);
+      input.dataset.band = String(i);
+      input.setAttribute('aria-label', `${band.label} (${band.hz})`);
+      input.disabled = !AudioContextClass;
+      row.append(name, input, makeEl('span', 'eq-value'));
+      updateBandLabel(input);
+      return row;
+    }));
+  }
+
+  function onEqChange() {
+    saveSettings();
+    if (!eqActive()) {
+      applyEqGains();
+      return;
+    }
+    // Se crea dentro del toque: los navegadores solo dejan arrancar el audio así
+    if (!ensureEqGraph()) return;
+    eq.ctx.resume().catch(() => {});
+    applyEqGains();
+    probeCors().then(() => {
+      updateEqNote();
+      syncEqRouting();
+    });
+  }
+
+  function openSettings() {
+    els.fontSelect.value = settings.font;
+    els.textSizeSelect.value = settings.textSize;
+    els.plViewSelect.value = settings.plView;
+    els.motionToggle.checked = settings.motion;
+    const canVibrate = typeof navigator.vibrate === 'function';
+    els.hapticsToggle.checked = settings.haptics && canVibrate;
+    els.hapticsToggle.disabled = !canVibrate;
+    els.hapticsHint.textContent = canVibrate
+      ? 'Al dar «Me gusta», reproducir, fijar o mover la barra.'
+      : 'Este dispositivo no deja vibrar desde la web (iPhone/iPad, ordenador).';
+    renderEqBands();
+    updateEqNote();
+    els.settingsDialog.showModal();
+  }
+
   /* ---------- Inicio ---------- */
   function restorePreferences() {
     const savedFavorites = storage.get(KEYS.favorites, []);
@@ -3356,6 +4059,8 @@
     library.plays = savedPlays && typeof savedPlays === 'object' ? savedPlays : {};
     const savedSort = storage.get(KEYS.sort, 'original');
     state.sort = savedSort in SORTS ? savedSort : 'original';
+    const savedPins = storage.get(KEYS.pins, []);
+    library.pins = Array.isArray(savedPins) ? savedPins.filter((k) => typeof k === 'string') : [];
     const savedView = storage.get(KEYS.view, 'library');
     state.view = VIEWS.includes(savedView) ? savedView : 'library';
 
@@ -3389,9 +4094,10 @@
 
   function init() {
     detectLiteMode();
+    applyLook();
+    els.eqPreset.replaceChildren(...Object.entries(EQ_PRESETS).map(([value, preset]) => new Option(preset.name, value)));
     document.documentElement.classList.toggle('is-ios', IS_IOS);
     if (IS_IOS) els.djFade.closest('.dj-fade').title = 'En iPhone/iPad la transición es un empalme corto: iOS no permite bajar el volumen desde la web.';
-    if (CONFIG.useWebAudioAnalyser) els.audio.crossOrigin = 'anonymous';
 
     els.cover.src = PLACEHOLDER_COVER;
     els.miniCover.src = PLACEHOLDER_COVER;
@@ -3407,6 +4113,7 @@
     setupMediaSessionHandlers();
     setupAudioSession();
     setupSurrealEyes();
+    updateNav();
     updateOnlineStatus();
     registerServiceWorker();
     loadTracks();
