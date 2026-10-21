@@ -2990,9 +2990,8 @@
 
   function setupAudioSession() {
     const session = navigator.audioSession;
+    // Solo se escucha el estado: fijar session.type en iOS corta la música al salir de la app
     if (!session) return;
-    // iOS 17+: es música (sigue en segundo plano y con el modo silencio), no sonidos de una web
-    try { session.type = 'playback'; } catch { /* tipo no soportado */ }
     session.addEventListener?.('statechange', () => {
       if (session.state === 'interrupted') {
         if (!els.audio.paused) return;
