@@ -3350,5 +3350,1397 @@
     "album": "Indie Vibes",
     "duration": "3:07",
     "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/194%20-%20almost%20monday%20-%20enjoy%20the%20ride.mp3"
+  },
+  {
+    "id": "r2c-003",
+    "title": "Polvo Americano",
+    "artist": "Andrés Calamaro",
+    "album": "Rock argentino",
+    "duration": "1:29",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/003%20-%20Andr%C3%A9s%20Calamaro%20-%20Polvo%20Americano.mp3"
+  },
+  {
+    "id": "r2c-004",
+    "title": "Como el viento voy a ver",
+    "artist": "Pescado Rabioso",
+    "album": "Rock argentino",
+    "duration": "6:06",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/004%20-%20Pescado%20Rabioso%20-%20Como%20el%20viento%20voy%20a%20ver.mp3"
+  },
+  {
+    "id": "r2c-005",
+    "title": "Fanny Está Sola (Remastered)",
+    "artist": "",
+    "album": "Rock argentino",
+    "duration": "3:13",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/005%20-%20Fanny%20Est%C3%A1%20Sola%20(Remastered).mp3"
+  },
+  {
+    "id": "r2c-007",
+    "title": "Mi fantasía / Buraco Incivilizado",
+    "artist": "Gustavo Pena (El Príncipe)",
+    "album": "Rock argentino",
+    "duration": "4:10",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/007%20-%2006.%20Mi%20fantas%C3%ADa%20%E2%A7%B8%20Buraco%20Incivilizado%20(1984%E2%A7%B886)%20Gustavo%20Pena%2C%20Pr%C3%ADncipe.mp3"
+  },
+  {
+    "id": "r2c-008",
+    "title": "Todas las hojas son del viento",
+    "artist": "Spinetta",
+    "album": "Rock argentino",
+    "duration": "2:13",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/008%20-%20SPINETTA%20-%20TODAS%20LAS%20HOJAS%20SON%20DEL%20VIENTO.mp3"
+  },
+  {
+    "id": "r2c-009",
+    "title": "Que el Viento Borró Tus Manos",
+    "artist": "Almendra",
+    "album": "Rock argentino",
+    "duration": "2:36",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/009%20-%20Almendra%20-%20Que%20el%20Viento%20Borr%C3%B3%20Tus%20Manos%20(Official%20Audio).mp3"
+  },
+  {
+    "id": "r2c-011",
+    "title": "Discovery Buda",
+    "artist": "Illya Kuryaki And The Valderramas",
+    "album": "Rock argentino",
+    "duration": "6:04",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/011%20-%20Illya%20Kuryaki%20And%20The%20Valderramas%20-%20Discovery%20Buda.mp3"
+  },
+  {
+    "id": "r2c-012",
+    "title": "Serpiente (viaja por la sal)",
+    "artist": "Pescado Rabioso",
+    "album": "Rock argentino",
+    "duration": "8:59",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/012%20-%20Pescado%20Rabioso%20-%20Serpiente%20(viaja%20por%20la%20sal).mp3"
+  },
+  {
+    "id": "r2c-013",
+    "title": "Instant-Taneas",
+    "artist": "",
+    "album": "Rock argentino",
+    "duration": "5:37",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/013%20-%20Instant-Taneas.mp3"
+  },
+  {
+    "id": "r2c-014",
+    "title": "Camafeo",
+    "artist": "Spinetta Jade",
+    "album": "Rock argentino",
+    "duration": "3:54",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/014%20-%20Camafeo%20-%20Spinetta%20Jade..mp3"
+  },
+  {
+    "id": "r2c-015",
+    "title": "Salir De La Melancolía",
+    "artist": "Serú Girán",
+    "album": "Rock argentino",
+    "duration": "2:03",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/015%20-%20Ser%C3%BA%20Gir%C3%A1n%20-%20Salir%20De%20La%20Melancol%C3%ADa%20(Audio).mp3"
+  },
+  {
+    "id": "r2c-016",
+    "title": "Habladurías del Mundo",
+    "artist": "Pescado Rabioso",
+    "album": "Rock argentino",
+    "duration": "4:09",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/016%20-%20Habladur%C3%ADas%20del%20Mundo%20-%20Pescado%20Rabioso.mp3"
+  },
+  {
+    "id": "r2c-017",
+    "title": "Morena Baiana",
+    "artist": "",
+    "album": "Rock argentino",
+    "duration": "2:25",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/017%20-%20Morena%20Baiana.mp3"
+  },
+  {
+    "id": "r2c-018",
+    "title": "¿Qué Vas A Hacer Tan Sola Hoy?",
+    "artist": "Viejas Locas",
+    "album": "Rock argentino",
+    "duration": "4:09",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/018%20-%20Viejas%20Locas%20-%20%C2%BFQu%C3%A9%20Vas%20A%20Hacer%20Tan%20Sola%20Hoy%EF%BC%9F%20-%20Especial.mp3"
+  },
+  {
+    "id": "r2c-020",
+    "title": "Galaxia",
+    "artist": "Illya Kuryaki And The Valderramas",
+    "album": "Rock argentino",
+    "duration": "5:20",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/020%20-%20Illya%20Kuryaki%20And%20The%20Valderramas%20-%20Galaxia.mp3"
+  },
+  {
+    "id": "r2c-021",
+    "title": "Loco",
+    "artist": "Andrés Calamaro",
+    "album": "Rock argentino",
+    "duration": "3:41",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/021%20-%20Andres%20Calamaro%20-%20Loco%20(Videoclip%20Oficial).mp3"
+  },
+  {
+    "id": "r2c-022",
+    "title": "Ganges",
+    "artist": "",
+    "album": "Rock argentino",
+    "duration": "4:02",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/022%20-%20Ganges.mp3"
+  },
+  {
+    "id": "r2c-023",
+    "title": "Entonces Es Como Dar Amor",
+    "artist": "Spinetta Jade",
+    "album": "Rock argentino",
+    "duration": "5:16",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/023%20-%20Entonces%20Es%20Como%20Dar%20Amor%20-%20Spinetta%20Jade..mp3"
+  },
+  {
+    "id": "r2c-024",
+    "title": "Bajan",
+    "artist": "Pescado Rabioso",
+    "album": "Rock argentino",
+    "duration": "3:25",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/024%20-%20Bajan.mp3"
+  },
+  {
+    "id": "r2c-025",
+    "title": "Frecuencia modulada",
+    "artist": "Serú Girán",
+    "album": "Rock argentino",
+    "duration": "3:18",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/025%20-%20Seru%20Giran%20-%20Frecuencia%20modulada.mp3"
+  },
+  {
+    "id": "r2c-026",
+    "title": "Sin disfraz",
+    "artist": "Virus",
+    "album": "Rock argentino",
+    "duration": "5:32",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/026%20-%20Virus-%20Sin%20disfraz.mp3"
+  },
+  {
+    "id": "r2c-027",
+    "title": "En una Lejana Playa del Animus",
+    "artist": "Invisible",
+    "album": "Rock argentino",
+    "duration": "9:56",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/027%20-%20Invisible%20-%20En%20una%20Lejana%20Playa%20del%20Animus%20(Official%20Audio).mp3"
+  },
+  {
+    "id": "r2c-028",
+    "title": "Te voy a Atornillar",
+    "artist": "Patricio Rey y sus Redonditos de Ricota",
+    "album": "Rock argentino",
+    "duration": "3:34",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/028%20-%20Patricio%20Rey%20y%20sus%20Redonditos%20de%20Ricota%20-%20Te%20voy%20a%20Atornillar%20(Audio%20Oficial).mp3"
+  },
+  {
+    "id": "r2c-029",
+    "title": "Post-Crucifixion",
+    "artist": "Pescado Rabioso",
+    "album": "Rock argentino",
+    "duration": "3:49",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/029%20-%20Pescado%20Rabioso%20-%20Post-Crucifixion%20(Official%20Audio).mp3"
+  },
+  {
+    "id": "r2c-031",
+    "title": "Promesas Sobre El Bidet",
+    "artist": "Charly García",
+    "album": "Rock argentino",
+    "duration": "2:45",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/031%20-%20Charly%20Garc%C3%ADa%20-%20Promesas%20Sobre%20El%20Bidet%20(Audio).mp3"
+  },
+  {
+    "id": "r2c-032",
+    "title": "No Quiere Decir",
+    "artist": "Luis Alberto Spinetta",
+    "album": "Rock argentino",
+    "duration": "4:04",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/032%20-%20L.A%20Spinetta-%20No%20Quiere%20Decir.mp3"
+  },
+  {
+    "id": "r2c-033",
+    "title": "La Herida De París",
+    "artist": "",
+    "album": "Rock argentino",
+    "duration": "4:15",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/033%20-%20La%20Herida%20De%20Par%C3%ADs.mp3"
+  },
+  {
+    "id": "r2c-034",
+    "title": "Me Gusta Ese Tajo",
+    "artist": "Pescado Rabioso",
+    "album": "Rock argentino",
+    "duration": "2:29",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/034%20-%20Me%20Gusta%20Ese%20Tajo%20-%20Pescado%20Rabioso.mp3"
+  },
+  {
+    "id": "r2c-035",
+    "title": "Nadie Más",
+    "artist": "Illya Kuryaki and the Valderramas",
+    "album": "Rock argentino",
+    "duration": "4:33",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/035%20-%20Illya%20Kuryaki%20and%20the%20Valderramas%20%20Nadie%20M%C3%A1s.mp3"
+  },
+  {
+    "id": "r2c-036",
+    "title": "Luces Rojas",
+    "artist": "Luca Prodan",
+    "album": "Rock argentino",
+    "duration": "6:57",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/036%20-%20Luca%20Prodan%20~%20Luces%20Rojas%20(sub%20esp).mp3"
+  },
+  {
+    "id": "r2c-037",
+    "title": "Semen-Up",
+    "artist": "Patricio Rey y sus Redonditos de Ricota",
+    "album": "Rock argentino",
+    "duration": "5:22",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/037%20-%20Patricio%20Rey%20y%20sus%20Redonditos%20de%20Ricota%20-%20Semen-Up%20(Audio%20Oficial).mp3"
+  },
+  {
+    "id": "r2c-038",
+    "title": "Cantata de Puentes Amarillos",
+    "artist": "Spinetta",
+    "album": "Rock argentino",
+    "duration": "9:11",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/038%20-%20SPINETTA%20-%20CANTATA%20DE%20PUENTES%20AMARILLOS.mp3"
+  },
+  {
+    "id": "r2c-039",
+    "title": "Amor De Contramano",
+    "artist": "Los Gardelitos",
+    "album": "Rock argentino",
+    "duration": "5:58",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/039%20-%20Los%20Gardelitos%20-%20Amor%20De%20Contramano%20-%20Gardeliando.mp3"
+  },
+  {
+    "id": "r2c-041",
+    "title": "Harder, Better, Faster, Stronger",
+    "artist": "Daft Punk",
+    "album": "Disco & house",
+    "duration": "3:45",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/041%20-%20Daft%20Punk%20-%20Harder%2C%20Better%2C%20Faster%2C%20Stronger%20(Official%20Audio).mp3"
+  },
+  {
+    "id": "r2c-042",
+    "title": "Virtual Insanity",
+    "artist": "Jamiroquai",
+    "album": "Disco & house",
+    "duration": "5:41",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/042%20-%20Jamiroquai%20-%20Virtual%20Insanity%20(Official%20Visualiser).mp3"
+  },
+  {
+    "id": "r2c-043",
+    "title": "Baby Be Mine",
+    "artist": "Michael Jackson",
+    "album": "Disco & house",
+    "duration": "4:22",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/043%20-%20Michael%20Jackson%20-%20Baby%20Be%20Mine%20(Audio).mp3"
+  },
+  {
+    "id": "r2c-044",
+    "title": "Da Ya Think I'm Sexy?",
+    "artist": "Rod Stewart",
+    "album": "Disco & house",
+    "duration": "4:38",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/044%20-%20Rod%20Stewart%20-%20Da%20Ya%20Think%20I'm%20Sexy%EF%BC%9F%20(Official%20HD%20Remastered%20Video).mp3"
+  },
+  {
+    "id": "r2c-045",
+    "title": "Can't Get You Out Of My Head",
+    "artist": "Kylie Minogue",
+    "album": "Disco & house",
+    "duration": "3:50",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/045%20-%20Kylie%20Minogue%20-%20Can't%20Get%20You%20Out%20Of%20My%20Head%20(Official%20Video).mp3"
+  },
+  {
+    "id": "r2c-046",
+    "title": "Crystal Dolphin",
+    "artist": "Engelwood",
+    "album": "Disco & house",
+    "duration": "1:43",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/046%20-%20Engelwood%20-%20Crystal%20Dolphin%20(Official%20Music%20Video).mp3"
+  },
+  {
+    "id": "r2c-047",
+    "title": "Sunny",
+    "artist": "Boney M.",
+    "album": "Disco & house",
+    "duration": "4:03",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/047%20-%20Boney%20M.%20-%20Sunny%20(Official%20Audio).mp3"
+  },
+  {
+    "id": "r2c-048",
+    "title": "Forget Me Nots (12\" Version)",
+    "artist": "Patrice Rushen",
+    "album": "Disco & house",
+    "duration": "7:15",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/048%20-%20Patrice%20Rushen%20-%20Forget%20Me%20Nots%20(12%EF%BC%82%20Version).mp3"
+  },
+  {
+    "id": "r2c-049",
+    "title": "Show Me Love (1993)",
+    "artist": "Robin S",
+    "album": "Disco & house",
+    "duration": "4:00",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/049%20-%20Robin%20S%20-%20Show%20Me%20Love%20(Official%20Music%20Video)%20%5B1993%5D.mp3"
+  },
+  {
+    "id": "r2c-050",
+    "title": "Them Changes",
+    "artist": "Thundercat",
+    "album": "Disco & house",
+    "duration": "3:34",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/050%20-%20Thundercat%20-%20'Them%20Changes'%20(Official%20Video).mp3"
+  },
+  {
+    "id": "r2c-051",
+    "title": "Canned Heat",
+    "artist": "Jamiroquai",
+    "album": "Disco & house",
+    "duration": "3:54",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/051%20-%20Jamiroquai%20-%20Canned%20Heat%20(Official%20Video).mp3"
+  },
+  {
+    "id": "r2c-052",
+    "title": "Thriller",
+    "artist": "Michael Jackson",
+    "album": "Disco & house",
+    "duration": "13:42",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/052%20-%20Michael%20Jackson%20-%20Thriller%20(Official%204K%20Video).mp3"
+  },
+  {
+    "id": "r2c-053",
+    "title": "Treasure",
+    "artist": "Bruno Mars",
+    "album": "Disco & house",
+    "duration": "3:11",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/053%20-%20Bruno%20Mars%20-%20Treasure%20(Official%20Music%20Video).mp3"
+  },
+  {
+    "id": "r2c-054",
+    "title": "Gypsy Woman (She's Homeless)",
+    "artist": "Crystal Waters",
+    "album": "Disco & house",
+    "duration": "3:45",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/054%20-%20Crystal%20Waters%20-%20Gypsy%20Woman%20(She's%20Homeless)%20(Official%20Music%20Video).mp3"
+  },
+  {
+    "id": "r2c-055",
+    "title": "Sing It Back (Boris Musical Mix)",
+    "artist": "Moloko",
+    "album": "Disco & house",
+    "duration": "4:38",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/055%20-%20Sing%20It%20Back%20(Boris%20Musical%20Mix)%20(Edit).mp3"
+  },
+  {
+    "id": "r2c-056",
+    "title": "What Is Love (7\" Mix)",
+    "artist": "Haddaway",
+    "album": "Disco & house",
+    "duration": "4:30",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/056%20-%20Haddaway%20-%20What%20Is%20Love%20(7%EF%BC%82%20Mix).mp3"
+  },
+  {
+    "id": "r2c-057",
+    "title": "Last Train to London",
+    "artist": "Electric Light Orchestra",
+    "album": "Disco & house",
+    "duration": "4:37",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/057%20-%20Electric%20Light%20Orchestra%20-%20Last%20Train%20to%20London%20(Official%20Video).mp3"
+  },
+  {
+    "id": "r2c-058",
+    "title": "Voyager",
+    "artist": "Daft Punk",
+    "album": "Disco & house",
+    "duration": "3:48",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/058%20-%20Daft%20Punk%20-%20Voyager%20(Official%20Audio).mp3"
+  },
+  {
+    "id": "r2c-059",
+    "title": "SexyBack (ft. Timbaland)",
+    "artist": "Justin Timberlake",
+    "album": "Disco & house",
+    "duration": "4:26",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/059%20-%20Justin%20Timberlake%20-%20SexyBack%20(Official%20Video)%20ft.%20Timbaland.mp3"
+  },
+  {
+    "id": "r2c-060",
+    "title": "World Hold On",
+    "artist": "Bob Sinclar",
+    "album": "Disco & house",
+    "duration": "3:39",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/060%20-%20Bob%20Sinclar%20-%20World%20Hold%20On%20(Official%20HD%20Video).mp3"
+  },
+  {
+    "id": "r2c-061",
+    "title": "Could You Be Loved",
+    "artist": "Bob Marley",
+    "album": "Disco & house",
+    "duration": "3:55",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/061%20-%20Bob%20Marley%20-%20Could%20You%20Be%20Loved%20(HQ).mp3"
+  },
+  {
+    "id": "r2c-062",
+    "title": "Stereo Love",
+    "artist": "Edward Maya & Vika Jigulina",
+    "album": "Disco & house",
+    "duration": "4:13",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/062%20-%20Edward%20Maya%20%26%20Vika%20Jigulina%20-%20Stereo%20Love%20(Official%20Music%20Video).mp3"
+  },
+  {
+    "id": "r2c-063",
+    "title": "Love Never Felt So Good",
+    "artist": "Michael Jackson, Justin Timberlake",
+    "album": "Disco & house",
+    "duration": "4:07",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/063%20-%20Michael%20Jackson%2C%20Justin%20Timberlake%20-%20Love%20Never%20Felt%20So%20Good%20(Official%20Video).mp3"
+  },
+  {
+    "id": "r2c-064",
+    "title": "Instant Crush (ft. Julian Casablancas)",
+    "artist": "Daft Punk",
+    "album": "Disco & house",
+    "duration": "5:40",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/064%20-%20Daft%20Punk%20-%20Instant%20Crush%20(Official%20Video)%20ft.%20Julian%20Casablancas.mp3"
+  },
+  {
+    "id": "r2c-065",
+    "title": "Message From The Stars (cover, with Holybrune & Rude Jude)",
+    "artist": "Dabeull",
+    "album": "Disco & house",
+    "duration": "2:46",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/065%20-%20Dabeull%20-%20Message%20From%20The%20Stars%20(cover)%20with%20Holybrune%20%26%20Rude%20Jude.mp3"
+  },
+  {
+    "id": "r2c-066",
+    "title": "This Love",
+    "artist": "Maroon 5",
+    "album": "Disco & house",
+    "duration": "3:25",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/066%20-%20Maroon%205%20-%20This%20Love.mp3"
+  },
+  {
+    "id": "r2c-067",
+    "title": "Andromeda",
+    "artist": "Gorillaz",
+    "album": "Disco & house",
+    "duration": "3:18",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/067%20-%20Gorillaz%20-%20Andromeda%20(Official%20Audio).mp3"
+  },
+  {
+    "id": "r2c-068",
+    "title": "Casin",
+    "artist": "glue70",
+    "album": "Disco & house",
+    "duration": "1:47",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/068%20-%20glue70%20-%20Casin.mp3"
+  },
+  {
+    "id": "r2c-069",
+    "title": "Face to Face",
+    "artist": "Daft Punk",
+    "album": "Disco & house",
+    "duration": "4:00",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/069%20-%20Daft%20Punk%20-%20Face%20to%20Face%20(Official%20Audio).mp3"
+  },
+  {
+    "id": "r2c-070",
+    "title": "Maneater",
+    "artist": "Daryl Hall & John Oates",
+    "album": "Disco & house",
+    "duration": "4:25",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/070%20-%20Daryl%20Hall%20%26%20John%20Oates%20-%20Maneater%20(Official%20Video).mp3"
+  },
+  {
+    "id": "r2c-071",
+    "title": "Mr. Blue Sky",
+    "artist": "Electric Light Orchestra",
+    "album": "Disco & house",
+    "duration": "3:43",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/071%20-%20Electric%20Light%20Orchestra%20-%20Mr.%20Blue%20Sky%20(Official%20Animated%20Video).mp3"
+  },
+  {
+    "id": "r2c-072",
+    "title": "More Than A Woman",
+    "artist": "Bee Gees",
+    "album": "Disco & house",
+    "duration": "3:16",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/072%20-%20More%20Than%20A%20Woman%20(From%20%EF%BC%82Saturday%20Night%20Fever%EF%BC%82%20Soundtrack).mp3"
+  },
+  {
+    "id": "r2c-073",
+    "title": "Le Freak",
+    "artist": "CHIC",
+    "album": "Disco & house",
+    "duration": "3:39",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/073%20-%20CHIC%20-%20Le%20Freak%20(Official%20Music%20Video).mp3"
+  },
+  {
+    "id": "r2c-074",
+    "title": "Bad (2012 Remaster)",
+    "artist": "Michael Jackson",
+    "album": "Disco & house",
+    "duration": "4:07",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/074%20-%20Bad%20(2012%20Remaster).mp3"
+  },
+  {
+    "id": "r2c-075",
+    "title": "One More Time",
+    "artist": "Daft Punk",
+    "album": "Disco & house",
+    "duration": "5:21",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/075%20-%20Daft%20Punk%20-%20One%20More%20Time%20(Official%20Video).mp3"
+  },
+  {
+    "id": "r2c-076",
+    "title": "Lady (Hear Me Tonight)",
+    "artist": "Modjo",
+    "album": "Disco & house",
+    "duration": "3:41",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/076%20-%20Modjo%20-%20Lady%20(Hear%20Me%20Tonight)%20(Official%20Video).mp3"
+  },
+  {
+    "id": "r2c-077",
+    "title": "Heart Of Glass",
+    "artist": "Blondie",
+    "album": "Disco & house",
+    "duration": "3:42",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/077%20-%20Blondie%20-%20Heart%20Of%20Glass.mp3"
+  },
+  {
+    "id": "r2c-078",
+    "title": "Feel Good Inc",
+    "artist": "Gorillaz",
+    "album": "Disco & house",
+    "duration": "4:15",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/078%20-%20Gorillaz%20-%20Feel%20Good%20Inc.%20(Official%20Video).mp3"
+  },
+  {
+    "id": "r2c-079",
+    "title": "West End Girls (2018 Remastered Version)",
+    "artist": "Pet Shop Boys",
+    "album": "Disco & house",
+    "duration": "4:46",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/079%20-%20Pet%20Shop%20Boys%20-%20West%20End%20Girls%20(2018%20Remastered%20Version).mp3"
+  },
+  {
+    "id": "r2c-080",
+    "title": "Feels Like Summer",
+    "artist": "Childish Gambino",
+    "album": "Disco & house",
+    "duration": "4:46",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/080%20-%20Childish%20Gambino%20-%20Feels%20Like%20Summer%20(Official%20Video).mp3"
+  },
+  {
+    "id": "r2c-081",
+    "title": "Digital Love",
+    "artist": "Daft Punk",
+    "album": "Disco & house",
+    "duration": "5:01",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/081%20-%20Daft%20Punk%20-%20Digital%20Love%20(Official%20Audio).mp3"
+  },
+  {
+    "id": "r2c-082",
+    "title": "24K Magic",
+    "artist": "Bruno Mars",
+    "album": "Disco & house",
+    "duration": "3:47",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/082%20-%20Bruno%20Mars%20-%2024K%20Magic%20(Official%20Music%20Video).mp3"
+  },
+  {
+    "id": "r2c-083",
+    "title": "Night Fever",
+    "artist": "Bee Gees",
+    "album": "Disco & house",
+    "duration": "3:29",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/083%20-%20Bee%20Gees%20-%20Night%20Fever.mp3"
+  },
+  {
+    "id": "r2c-084",
+    "title": "Push The Feeling On (MK Dub Revisited Edit)",
+    "artist": "Nightcrawlers",
+    "album": "Disco & house",
+    "duration": "4:02",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/084%20-%20Nightcrawlers%20-%20Push%20The%20Feeling%20On%20(MK%20Dub%20Revisited%20Edit).mp3"
+  },
+  {
+    "id": "r2c-085",
+    "title": "Don't Stop 'Til You Get Enough",
+    "artist": "Michael Jackson",
+    "album": "Disco & house",
+    "duration": "4:13",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/085%20-%20Michael%20Jackson%20-%20Don't%20Stop%20'Til%20You%20Get%20Enough%20(Official%20Video%20-%20Upscaled).mp3"
+  },
+  {
+    "id": "r2c-086",
+    "title": "Something About Us",
+    "artist": "Daft Punk",
+    "album": "Disco & house",
+    "duration": "3:48",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/086%20-%20Daft%20Punk%20-%20Something%20About%20Us%20(Official%20Video).mp3"
+  },
+  {
+    "id": "r2c-087",
+    "title": "I Think I Like It",
+    "artist": "Fake Blood",
+    "album": "Disco & house",
+    "duration": "5:35",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/087%20-%20Fake%20Blood%20-%20I%20Think%20I%20Like%20It.mp3"
+  },
+  {
+    "id": "r2c-088",
+    "title": "Glory Box",
+    "artist": "Portishead",
+    "album": "Trip hop & dream pop",
+    "duration": "3:32",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/088%20-%20Portishead%20-%20Glory%20Box.mp3"
+  },
+  {
+    "id": "r2c-089",
+    "title": "When I'm Small",
+    "artist": "Phantogram",
+    "album": "Trip hop & dream pop",
+    "duration": "4:12",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/089%20-%20Phantogram%20%EF%BC%82When%20I'm%20Small%EF%BC%82%20%5BOfficial%20Video%5D.mp3"
+  },
+  {
+    "id": "r2c-090",
+    "title": "My Moon My Man",
+    "artist": "Feist",
+    "album": "Trip hop & dream pop",
+    "duration": "3:41",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/090%20-%20Feist%20-%20My%20Moon%20My%20Man.mp3"
+  },
+  {
+    "id": "r2c-091",
+    "title": "Know Who You Are At Every Age",
+    "artist": "Cocteau Twins",
+    "album": "Trip hop & dream pop",
+    "duration": "3:38",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/091%20-%20Know%20Who%20You%20Are%20At%20Every%20Age%20(Remastered%202024).mp3"
+  },
+  {
+    "id": "r2c-092",
+    "title": "Only You",
+    "artist": "Portishead",
+    "album": "Trip hop & dream pop",
+    "duration": "4:18",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/092%20-%20Portishead%20-%20Only%20You.mp3"
+  },
+  {
+    "id": "r2c-093",
+    "title": "Master of None",
+    "artist": "Beach House",
+    "album": "Trip hop & dream pop",
+    "duration": "3:49",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/093%20-%20Beach%20House-%20'Master%20of%20None'.mp3"
+  },
+  {
+    "id": "r2c-094",
+    "title": "Tom's Diner",
+    "artist": "Suzanne Vega, DNA",
+    "album": "Trip hop & dream pop",
+    "duration": "3:47",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/094%20-%20Suzanne%20Vega%2C%20DNA%20-%20Tom's%20Diner.mp3"
+  },
+  {
+    "id": "r2c-095",
+    "title": "Angel",
+    "artist": "Massive Attack",
+    "album": "Trip hop & dream pop",
+    "duration": "5:23",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/095%20-%20Massive%20Attack%20-%20Angel.mp3"
+  },
+  {
+    "id": "r2c-096",
+    "title": "Time Moves Slow (feat. Sam Herring)",
+    "artist": "BADBADNOTGOOD",
+    "album": "Trip hop & dream pop",
+    "duration": "4:34",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/096%20-%20BADBADNOTGOOD%20-%20Time%20Moves%20Slow%20feat.%20Sam%20Herring.mp3"
+  },
+  {
+    "id": "r2c-097",
+    "title": "Sour Times",
+    "artist": "Portishead",
+    "album": "Trip hop & dream pop",
+    "duration": "4:12",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/097%20-%20Sour%20Times.mp3"
+  },
+  {
+    "id": "r2c-098",
+    "title": "Everybody Here Wants You",
+    "artist": "Jeff Buckley",
+    "album": "Trip hop & dream pop",
+    "duration": "4:56",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/098%20-%20Jeff%20Buckley%20-%20Everybody%20Here%20Wants%20You%20(Official%20Video).mp3"
+  },
+  {
+    "id": "r2c-099",
+    "title": "Little Bit",
+    "artist": "Lykke Li",
+    "album": "Trip hop & dream pop",
+    "duration": "3:50",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/099%20-%20Lykke%20Li%20-%20Little%20Bit.mp3"
+  },
+  {
+    "id": "r2c-100",
+    "title": "Like a Tattoo",
+    "artist": "Sade",
+    "album": "Trip hop & dream pop",
+    "duration": "3:41",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/100%20-%20Sade%20-%20Like%20a%20Tattoo%20(Audio).mp3"
+  },
+  {
+    "id": "r2c-101",
+    "title": "Human Nature",
+    "artist": "Madonna",
+    "album": "Trip hop & dream pop",
+    "duration": "4:34",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/101%20-%20Madonna%20-%20Human%20Nature%20(Official%20Video).mp3"
+  },
+  {
+    "id": "r2c-102",
+    "title": "All Mine",
+    "artist": "Portishead",
+    "album": "Trip hop & dream pop",
+    "duration": "4:14",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/102%20-%20Portishead%20-%20All%20Mine.mp3"
+  },
+  {
+    "id": "r2c-103",
+    "title": "Cherry-coloured Funk",
+    "artist": "Cocteau Twins",
+    "album": "Trip hop & dream pop",
+    "duration": "3:13",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/103%20-%20Cherry-coloured%20Funk.mp3"
+  },
+  {
+    "id": "r2c-104",
+    "title": "Jigsaw Falling Into Place",
+    "artist": "Radiohead",
+    "album": "Trip hop & dream pop",
+    "duration": "4:19",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/104%20-%20Radiohead%20-%20Jigsaw%20Falling%20Into%20Place.mp3"
+  },
+  {
+    "id": "r2c-105",
+    "title": "Nothing Burns Like The Cold (ft. Vince Staples)",
+    "artist": "Snoh Aalegra",
+    "album": "Trip hop & dream pop",
+    "duration": "3:38",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/105%20-%20Snoh%20Aalegra%20-%20Nothing%20Burns%20Like%20The%20Cold%20(Lyric%20Video)%20ft.%20Vince%20Staples.mp3"
+  },
+  {
+    "id": "r2c-106",
+    "title": "Intergalactic Janet",
+    "artist": "",
+    "album": "Trip hop & dream pop",
+    "duration": "2:45",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/106%20-%20Intergalactic%20Janet%F0%9F%8C%9A%E2%AD%90%F0%9F%8C%88%20-%20Original%20Song.mp3"
+  },
+  {
+    "id": "r2c-107",
+    "title": "Wandering Star",
+    "artist": "Portishead",
+    "album": "Trip hop & dream pop",
+    "duration": "4:56",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/107%20-%20Portishead%20-%20Wandering%20Star.mp3"
+  },
+  {
+    "id": "r2c-108",
+    "title": "A Forest",
+    "artist": "The Cure",
+    "album": "Trip hop & dream pop",
+    "duration": "4:42",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/108%20-%20The%20Cure%20-%20A%20Forest.mp3"
+  },
+  {
+    "id": "r2c-109",
+    "title": "Your Woman",
+    "artist": "White Town",
+    "album": "Trip hop & dream pop",
+    "duration": "4:20",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/109%20-%20White%20Town%20-%20Your%20Woman%20(Official%20HD%20Video).mp3"
+  },
+  {
+    "id": "r2c-110",
+    "title": "Look On Down From The Bridge",
+    "artist": "Mazzy Star",
+    "album": "Trip hop & dream pop",
+    "duration": "4:48",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/110%20-%20Mazzy%20Star%20-%20Look%20On%20Down%20From%20The%20Bridge.mp3"
+  },
+  {
+    "id": "r2c-111",
+    "title": "Is It A Crime",
+    "artist": "Sade",
+    "album": "Trip hop & dream pop",
+    "duration": "7:02",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/111%20-%20Sade%20-%20Is%20It%20A%20Crime%20-%20Official%20-%201986.mp3"
+  },
+  {
+    "id": "r2c-112",
+    "title": "Sour Times",
+    "artist": "Portishead",
+    "album": "Trip hop & dream pop",
+    "duration": "3:23",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/112%20-%20Portishead%20-%20Sour%20Times.mp3"
+  },
+  {
+    "id": "r2c-113",
+    "title": "Spooky",
+    "artist": "Dusty Springfield",
+    "album": "Trip hop & dream pop",
+    "duration": "2:44",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/113%20-%20Spooky.mp3"
+  },
+  {
+    "id": "r2c-114",
+    "title": "Serpentskirt",
+    "artist": "Cocteau Twins",
+    "album": "Trip hop & dream pop",
+    "duration": "3:58",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/114%20-%20Serpentskirt.mp3"
+  },
+  {
+    "id": "r2c-115",
+    "title": "Nude",
+    "artist": "Radiohead",
+    "album": "Trip hop & dream pop",
+    "duration": "4:17",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/115%20-%20Radiohead%20-%20Nude.mp3"
+  },
+  {
+    "id": "r2c-116",
+    "title": "Twilight",
+    "artist": "",
+    "album": "Trip hop & dream pop",
+    "duration": "3:49",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/116%20-%20Twilight.mp3"
+  },
+  {
+    "id": "r2c-117",
+    "title": "Roads",
+    "artist": "Portishead",
+    "album": "Trip hop & dream pop",
+    "duration": "5:16",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/117%20-%20Portishead%20-%20Roads.mp3"
+  },
+  {
+    "id": "r2c-118",
+    "title": "Crushed Velvet",
+    "artist": "Molly Lewis",
+    "album": "Trip hop & dream pop",
+    "duration": "3:15",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/118%20-%20Molly%20Lewis%20-%20Crushed%20Velvet%20(Official%20Audio).mp3"
+  },
+  {
+    "id": "r2c-119",
+    "title": "Le voyage de Pénélope",
+    "artist": "Air",
+    "album": "Trip hop & dream pop",
+    "duration": "3:11",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/119%20-%20Le%20voyage%20de%20P%C3%A9n%C3%A9lope.mp3"
+  },
+  {
+    "id": "r2c-120",
+    "title": "Daydream In Blue",
+    "artist": "I Monster",
+    "album": "Trip hop & dream pop",
+    "duration": "3:41",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/120%20-%202.%20I%20MONSTER%20-%20Daydream%20In%20Blue.mp3"
+  },
+  {
+    "id": "r2c-121",
+    "title": "Roseblood",
+    "artist": "Mazzy Star",
+    "album": "Trip hop & dream pop",
+    "duration": "4:51",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/121%20-%20Mazzy%20Star%20-%20Roseblood.mp3"
+  },
+  {
+    "id": "r2c-122",
+    "title": "Scorn",
+    "artist": "Portishead",
+    "album": "Trip hop & dream pop",
+    "duration": "6:03",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/122%20-%20Portishead%20-%20Scorn.mp3"
+  },
+  {
+    "id": "r2c-123",
+    "title": "Paradise",
+    "artist": "Sade",
+    "album": "Trip hop & dream pop",
+    "duration": "3:38",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/123%20-%20Sade%20-%20Paradise%20-%20Official%20-%201988.mp3"
+  },
+  {
+    "id": "r2c-124",
+    "title": "Tides of the Moon",
+    "artist": "",
+    "album": "Trip hop & dream pop",
+    "duration": "4:21",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/124%20-%20Tides%20of%20the%20Moon.mp3"
+  },
+  {
+    "id": "r2c-125",
+    "title": "Pandora",
+    "artist": "Cocteau Twins",
+    "album": "Trip hop & dream pop",
+    "duration": "5:36",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/125%20-%20Cocteau%20Twins%20-%20%20Pandora.mp3"
+  },
+  {
+    "id": "r2c-126",
+    "title": "Black Milk",
+    "artist": "Massive Attack",
+    "album": "Trip hop & dream pop",
+    "duration": "6:22",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/126%20-%20Black%20Milk.mp3"
+  },
+  {
+    "id": "r2c-128",
+    "title": "Dealer",
+    "artist": "Lana Del Rey",
+    "album": "Trip hop & dream pop",
+    "duration": "4:34",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/128%20-%20Lana%20Del%20Rey%20-%20Dealer%20(Official%20Audio).mp3"
+  },
+  {
+    "id": "r2c-129",
+    "title": "Erase / Rewind",
+    "artist": "The Cardigans",
+    "album": "Trip hop & dream pop",
+    "duration": "3:43",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/129%20-%20The%20Cardigans%20-%20Erase%20%E2%A7%B8%20Rewind%20%E2%80%9CDirector's%20Cut%E2%80%9D.mp3"
+  },
+  {
+    "id": "r2c-130",
+    "title": "A Grand Love Theme",
+    "artist": "Kid Loco",
+    "album": "Trip hop & dream pop",
+    "duration": "4:04",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/130%20-%20Kid%20Loco%20-%20A%20Grand%20Love%20Theme.mp3"
+  },
+  {
+    "id": "r2c-131",
+    "title": "Like Smoke",
+    "artist": "",
+    "album": "Trip hop & dream pop",
+    "duration": "4:38",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/131%20-%20Like%20Smoke.mp3"
+  },
+  {
+    "id": "r2c-132",
+    "title": "The Rip",
+    "artist": "Portishead",
+    "album": "Trip hop & dream pop",
+    "duration": "4:01",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/132%20-%20Portishead%20-%20The%20Rip.mp3"
+  },
+  {
+    "id": "r2c-133",
+    "title": "Be My Angel",
+    "artist": "Mazzy Star",
+    "album": "Trip hop & dream pop",
+    "duration": "3:18",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/133%20-%20Mazzy%20Star%20-%20Be%20My%20Angel.mp3"
+  },
+  {
+    "id": "r2c-134",
+    "title": "Cherish The Day",
+    "artist": "Sade",
+    "album": "Trip hop & dream pop",
+    "duration": "4:23",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/134%20-%20Sade%20-%20Cherish%20The%20Day%20-%20Official%20-%201993.mp3"
+  },
+  {
+    "id": "r2c-135",
+    "title": "Both Sides of the Moon (Live)",
+    "artist": "Celeste",
+    "album": "Trip hop & dream pop",
+    "duration": "4:33",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/135%20-%20Celeste%20-%20Both%20Sides%20of%20the%20Moon%20(Live).mp3"
+  },
+  {
+    "id": "r2c-136",
+    "title": "Lullaby (Remastered)",
+    "artist": "The Cure",
+    "album": "Trip hop & dream pop",
+    "duration": "4:08",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/136%20-%20Lullaby%20(Remastered).mp3"
+  },
+  {
+    "id": "r2c-138",
+    "title": "September Rain",
+    "artist": "Makoto Matsushita",
+    "album": "Trip hop & dream pop",
+    "duration": "4:32",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/138%20-%20September%20Rain%20(2020%20Remastered).mp3"
+  },
+  {
+    "id": "r2c-139",
+    "title": "Oh! Lord",
+    "artist": "",
+    "album": "Trip hop & dream pop",
+    "duration": "6:23",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/139%20-%20Oh!%20Lord.mp3"
+  },
+  {
+    "id": "r2c-140",
+    "title": "抱かれに来た女 (Dakare Ni Kita Onna)",
+    "artist": "Kingo Hamada",
+    "album": "City pop & jazz funk",
+    "duration": "4:37",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/140%20-%20Kingo%20Hamada%20%5B%E6%BF%B1%E7%94%B0%E9%87%91%E5%90%BE%5D%20-%20%E6%8A%B1%E3%81%8B%E3%82%8C%E3%81%AB%E6%9D%A5%E3%81%9F%E5%A5%B3%20%5BDakare%20Ni%20Kita%20Onna%5D%20(Lyric%20Video).mp3"
+  },
+  {
+    "id": "r2c-141",
+    "title": "My Lucky Stars",
+    "artist": "",
+    "album": "City pop & jazz funk",
+    "duration": "2:57",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/141%20-%20My%20Lucky%20Stars.mp3"
+  },
+  {
+    "id": "r2c-142",
+    "title": "トーキョーレギー (Tokyo Reggie)",
+    "artist": "Masayoshi Takanaka",
+    "album": "City pop & jazz funk",
+    "duration": "4:25",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/142%20-%20Masayoshi%20Takanaka%20-%20%E3%83%88%E3%83%BC%E3%82%AD%E3%83%A7%E3%83%BC%E3%83%AC%E3%82%AE%E3%83%BC.mp3"
+  },
+  {
+    "id": "r2c-143",
+    "title": "Are You Satisfied",
+    "artist": "Rah Band",
+    "album": "City pop & jazz funk",
+    "duration": "6:04",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/143%20-%20Rah%20Band%20-%20Are%20You%20Satisfied.mp3"
+  },
+  {
+    "id": "r2c-144",
+    "title": "April Showers (Album Version)",
+    "artist": "",
+    "album": "City pop & jazz funk",
+    "duration": "3:51",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/144%20-%20April%20Showers%20(Album%20Version).mp3"
+  },
+  {
+    "id": "r2c-145",
+    "title": "Remember Summer Days (MACROSS 82-99 Bootleg)",
+    "artist": "Anri",
+    "album": "City pop & jazz funk",
+    "duration": "4:26",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/145%20-%20Anri%20-%20Remember%20Summer%20Days%20(MACROSS%2082-99%20Bootleg).mp3"
+  },
+  {
+    "id": "r2c-146",
+    "title": "LAST CIGARETTE",
+    "artist": "",
+    "album": "City pop & jazz funk",
+    "duration": "4:47",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/146%20-%20LAST%20CIGARETTE.mp3"
+  },
+  {
+    "id": "r2c-147",
+    "title": "I Remember You",
+    "artist": "Masayoshi Takanaka",
+    "album": "City pop & jazz funk",
+    "duration": "5:30",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/147%20-%20Masayoshi%20Takanaka%20-%20I%20Remember%20You.mp3"
+  },
+  {
+    "id": "r2c-148",
+    "title": "My Reverie",
+    "artist": "",
+    "album": "City pop & jazz funk",
+    "duration": "2:27",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/148%20-%20My%20Reverie.mp3"
+  },
+  {
+    "id": "r2c-149",
+    "title": "Love Was Really Gone (2018 Remaster)",
+    "artist": "",
+    "album": "City pop & jazz funk",
+    "duration": "5:47",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/149%20-%20Love%20Was%20Really%20Gone%20(2018%20Remaster).mp3"
+  },
+  {
+    "id": "r2c-150",
+    "title": "Poxa",
+    "artist": "",
+    "album": "City pop & jazz funk",
+    "duration": "3:17",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/150%20-%20Poxa.mp3"
+  },
+  {
+    "id": "r2c-151",
+    "title": "Fire Fly (2017 Remaster)",
+    "artist": "",
+    "album": "City pop & jazz funk",
+    "duration": "5:46",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/151%20-%20Fire%20Fly%20(2017%20Remaster).mp3"
+  },
+  {
+    "id": "r2c-152",
+    "title": "OH! TENGO SUERTE",
+    "artist": "Masayoshi Takanaka",
+    "album": "City pop & jazz funk",
+    "duration": "4:15",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/152%20-%20Masayoshi%20Takanaka%20-%20OH!%20TENGO%20SUERTE.mp3"
+  },
+  {
+    "id": "r2c-153",
+    "title": "Orientalist Exotica",
+    "artist": "",
+    "album": "City pop & jazz funk",
+    "duration": "2:16",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/153%20-%20Orientalist%20Exotica.mp3"
+  },
+  {
+    "id": "r2c-154",
+    "title": "Abandoned Plaza",
+    "artist": "Macabre Plaza",
+    "album": "City pop & jazz funk",
+    "duration": "1:36",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/154%20-%20Macabre%20Plaza%20-%20Abandoned%20Plaza.mp3"
+  },
+  {
+    "id": "r2c-155",
+    "title": "Gungala nido (Bossa nova)",
+    "artist": "",
+    "album": "City pop & jazz funk",
+    "duration": "2:37",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/155%20-%20Gungala%20nido%20(Bossa%20nova).mp3"
+  },
+  {
+    "id": "r2c-156",
+    "title": "浮遊空間 (Midnight Pretenders)",
+    "artist": "Tomoko Aran",
+    "album": "City pop & jazz funk",
+    "duration": "5:45",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/156%20-%20%E4%BA%9C%E8%98%AD%E7%9F%A5%E5%AD%90%E3%80%80%E6%B5%AE%E9%81%8A%E7%A9%BA%E9%96%93%E3%80%80Midnight%20Pretenders.mp3"
+  },
+  {
+    "id": "r2c-157",
+    "title": "Sexy Dance",
+    "artist": "",
+    "album": "City pop & jazz funk",
+    "duration": "5:52",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/157%20-%20Sexy%20Dance.mp3"
+  },
+  {
+    "id": "r2c-158",
+    "title": "Tema Barroco",
+    "artist": "",
+    "album": "City pop & jazz funk",
+    "duration": "2:54",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/158%20-%20Tema%20Barroco.mp3"
+  },
+  {
+    "id": "r2c-159",
+    "title": "Paper Machine",
+    "artist": "Fujimaru Band",
+    "album": "City pop & jazz funk",
+    "duration": "2:24",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/159%20-%20Fujimaru%20Band%20-%20Paper%20Machine.mp3"
+  },
+  {
+    "id": "r2c-160",
+    "title": "I Know... (2018 Remaster)",
+    "artist": "",
+    "album": "City pop & jazz funk",
+    "duration": "2:00",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/160%20-%20I%20Know...%20(2018%20Remaster).mp3"
+  },
+  {
+    "id": "r2c-161",
+    "title": "Prélude à Go Round",
+    "artist": "",
+    "album": "City pop & jazz funk",
+    "duration": "4:00",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/161%20-%20Pr%C3%A9lude%20%C3%A0%20Go%20Round.mp3"
+  },
+  {
+    "id": "r2c-162",
+    "title": "憧れのセーシェル諸島",
+    "artist": "Masayoshi Takanaka",
+    "album": "City pop & jazz funk",
+    "duration": "6:15",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/162%20-%20Masayoshi%20Takanaka%20-%20%E6%86%A7%E3%82%8C%E3%81%AE%E3%82%BB%E3%83%BC%E3%82%B7%E3%82%A7%E3%83%AB%E8%AB%B8%E5%B3%B6.mp3"
+  },
+  {
+    "id": "r2c-163",
+    "title": "Everyday (Remastered 2013)",
+    "artist": "",
+    "album": "City pop & jazz funk",
+    "duration": "4:29",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/163%20-%20Everyday%20(Remastered%202013).mp3"
+  },
+  {
+    "id": "r2c-164",
+    "title": "Gatsby Woman (2020 Remastered)",
+    "artist": "",
+    "album": "City pop & jazz funk",
+    "duration": "4:27",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/164%20-%20Gatsby%20Woman%20(2020%20Remastered).mp3"
+  },
+  {
+    "id": "r2c-165",
+    "title": "Ozan Koukle (Remastered)",
+    "artist": "",
+    "album": "City pop & jazz funk",
+    "duration": "5:48",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/165%20-%20Ozan%20Koukle%20(Remastered).mp3"
+  },
+  {
+    "id": "r2c-166",
+    "title": "E. S. P",
+    "artist": "",
+    "album": "City pop & jazz funk",
+    "duration": "4:11",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/166%20-%20E.%20S.%20P..mp3"
+  },
+  {
+    "id": "r2c-167",
+    "title": "Slow Nights (1984)",
+    "artist": "Tomoko Aran",
+    "album": "City pop & jazz funk",
+    "duration": "3:44",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/167%20-%20Tomoko%20Aran%20-%20Slow%20Nights%20(1984)%20(EngSub).mp3"
+  },
+  {
+    "id": "r2c-168",
+    "title": "Invitations",
+    "artist": "Shakatak",
+    "album": "City pop & jazz funk",
+    "duration": "6:21",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/168%20-%20Shakatak%20-%20Invitations.mp3"
+  },
+  {
+    "id": "r2c-169",
+    "title": "DOLL HOUSE",
+    "artist": "",
+    "album": "City pop & jazz funk",
+    "duration": "3:02",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/169%20-%20DOLL%20HOUSE.mp3"
+  },
+  {
+    "id": "r2c-170",
+    "title": "First Light (2018 Remaster)",
+    "artist": "",
+    "album": "City pop & jazz funk",
+    "duration": "4:33",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/170%20-%20First%20Light%20(2018%20Remaster).mp3"
+  },
+  {
+    "id": "r2c-171",
+    "title": "Ready To Fly",
+    "artist": "Masayoshi Takanaka",
+    "album": "City pop & jazz funk",
+    "duration": "7:05",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/171%20-%20Masayoshi%20Takanaka%20-%20Ready%20To%20Fly.mp3"
+  },
+  {
+    "id": "r2c-172",
+    "title": "Troupeau bleu",
+    "artist": "Cortex",
+    "album": "City pop & jazz funk",
+    "duration": "5:03",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/172%20-%20Cortex%20-%20Troupeau%20bleu.mp3"
+  },
+  {
+    "id": "r2c-173",
+    "title": "Girl's in Love with Me (2022 Remaster)",
+    "artist": "",
+    "album": "City pop & jazz funk",
+    "duration": "5:25",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/173%20-%20Girl's%20in%20Love%20with%20Me%20(2022%20Remaster).mp3"
+  },
+  {
+    "id": "r2c-174",
+    "title": "The Breeze And I",
+    "artist": "Laurindo Almeida",
+    "album": "City pop & jazz funk",
+    "duration": "4:23",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/174%20-%20Laurindo%20Almeida%20-%20The%20Breeze%20And%20I.mp3"
+  },
+  {
+    "id": "r2c-175",
+    "title": "Chuva / Pra que chorar",
+    "artist": "Agustín Pereyra Lucena",
+    "album": "City pop & jazz funk",
+    "duration": "4:39",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/175%20-%20Agustin%20Pereyra%20Lucena%20-%20Chuva%20%E2%A7%B8%20Pra%20que%20chorar.mp3"
+  },
+  {
+    "id": "r2c-176",
+    "title": "Nights",
+    "artist": "Masayoshi Takanaka",
+    "album": "City pop & jazz funk",
+    "duration": "5:00",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/176%20-%20Masayoshi%20Takanaka%20-%20Nights.mp3"
+  },
+  {
+    "id": "r2c-177",
+    "title": "街のドルフィン (Dolphin in Town)",
+    "artist": "Kingo Hamada",
+    "album": "City pop & jazz funk",
+    "duration": "3:53",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/177%20-%20%E8%A1%97%E3%81%AE%E3%83%89%E3%83%AB%E3%83%95%E3%82%A3%E3%83%B3%20(Dolphin%20in%20Town)%20-%20Kingo%20Hamada.mp3"
+  },
+  {
+    "id": "r2c-178",
+    "title": "Tasogare (1980)",
+    "artist": "Mai Yamane",
+    "album": "City pop & jazz funk",
+    "duration": "6:02",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/178%20-%20Mai%20Yamane%20-%20Tasogare%20-%201980.mp3"
+  },
+  {
+    "id": "r2c-179",
+    "title": "The silence that you keep",
+    "artist": "Milton Wright",
+    "album": "City pop & jazz funk",
+    "duration": "3:23",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/179%20-%20Milton%20Wright%20-%20The%20silence%20that%20you%20keep.mp3"
+  },
+  {
+    "id": "r2c-182",
+    "title": "This Is All I Have for You (2018 Remaster)",
+    "artist": "",
+    "album": "City pop & jazz funk",
+    "duration": "5:08",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/182%20-%20This%20Is%20All%20I%20Have%20for%20You%20(2018%20Remaster).mp3"
+  },
+  {
+    "id": "r2c-183",
+    "title": "Efficace Swing",
+    "artist": "Cortex",
+    "album": "City pop & jazz funk",
+    "duration": "2:58",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/183%20-%20Cortex%20-%20Efficace%20Swing.mp3"
+  },
+  {
+    "id": "r2c-184",
+    "title": "F L Y (Team Fortress 2 Edit)",
+    "artist": "Spectrum",
+    "album": "City pop & jazz funk",
+    "duration": "0:25",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/184%20-%20Team%20Fortress%202%20Edit%20-%20F%20L%20Y%20%5BSpectrum%5D.mp3"
+  },
+  {
+    "id": "r2c-185",
+    "title": "Who Are You? (2022 Remaster)",
+    "artist": "",
+    "album": "City pop & jazz funk",
+    "duration": "5:23",
+    "src": "https://pub-342aee3eb054410cb02224940f684884.r2.dev/185%20-%20Who%20Are%20You%EF%BC%9F%20(2022%20Remaster).mp3"
   }
 ]
