@@ -3290,6 +3290,215 @@ textarea {
   }
 }
 
+/* =========================================================
+   Fondos de pantalla con vida
+   ========================================================= */
+.wallpaper {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background: var(--bg);
+}
+
+.has-wall .wallpaper {
+  display: block;
+}
+
+/* Con fondo, la escena surrealista dibujada se oculta (sería demasiado) */
+.has-wall .surreal {
+  display: none !important;
+}
+
+.wall-stage {
+  position: absolute;
+  inset: -5%;
+  transform: translate3d(var(--px, 0), var(--py, 0), 0) scale(calc(1 + var(--beat, 0) * 0.025));
+  will-change: transform;
+}
+
+.wall-layer {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: var(--pos, center);
+  background-repeat: no-repeat;
+  opacity: 0;
+  transition: opacity 1.8s ease;
+}
+
+.wall-layer.is-on {
+  opacity: 1;
+}
+
+/* Movimiento lento (efecto Ken Burns) */
+.wallpaper.is-alive .wall-layer {
+  animation: wall-drift 42s ease-in-out infinite alternate;
+}
+
+.wallpaper.is-alive .wall-layer:nth-child(2) {
+  animation-duration: 47s;
+  animation-direction: alternate-reverse;
+}
+
+@keyframes wall-drift {
+  0% { transform: scale(1.02) translate3d(0, 0, 0); }
+  50% { transform: scale(1.1) translate3d(-1.6%, -1.2%, 0); }
+  100% { transform: scale(1.06) translate3d(1.6%, 1%, 0); }
+}
+
+/* Velo para que el texto se lea sobre cualquier imagen */
+.wall-scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(120% 90% at 50% 40%, transparent 30%, color-mix(in srgb, var(--bg) 70%, transparent) 100%),
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--bg) 55%, transparent) 0%,
+      color-mix(in srgb, var(--bg) 28%, transparent) 40%,
+      color-mix(in srgb, var(--bg) 62%, transparent) 100%);
+}
+
+[data-theme="minimal"] .wall-scrim {
+  background: color-mix(in srgb, var(--bg) 60%, transparent);
+}
+
+.wall-life {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Paneles algo más transparentes para que el fondo se vea */
+.has-wall .now-playing,
+.has-wall .library,
+.has-wall[data-theme="chrome"] .now-playing,
+.has-wall[data-theme="chrome"] .library {
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+}
+
+.has-wall .library.is-tinted {
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--view-tint) 40%, color-mix(in srgb, var(--surface) 80%, transparent)) 0,
+    color-mix(in srgb, var(--surface) 70%, transparent) 520px);
+}
+
+@media (min-width: 861px) {
+  .has-wall:not(.lite) .now-playing,
+  .has-wall:not(.lite) .library {
+    -webkit-backdrop-filter: blur(14px) saturate(1.15);
+    backdrop-filter: blur(14px) saturate(1.15);
+  }
+}
+
+.no-motion .wall-layer,
+.lite .wall-layer {
+  animation: none !important;
+}
+
+/* ---------- Botón del fondo (mini icono en la barra superior) ---------- */
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wall-btn {
+  position: relative;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  padding: 2px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--chrome, var(--accent));
+  cursor: pointer;
+  box-shadow: var(--glow);
+}
+
+.wall-btn[hidden] {
+  display: none;
+}
+
+.wall-btn img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.wall-btn:hover img {
+  transform: rotate(-12deg) scale(1.06);
+}
+
+/* ---------- Mini iconos (stickers) ---------- */
+.sticker {
+  display: inline-block;
+  width: 1.35em;
+  height: 1.35em;
+  margin-right: 0.4em;
+  vertical-align: -0.28em;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--text) 55%, transparent), 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+.has-art {
+  overflow: hidden;
+  padding: 0 !important;
+}
+
+.has-art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.choice-face.has-art {
+  border-radius: 12px;
+}
+
+/* ---------- Selector de fondos (Configuración) ---------- */
+.wall-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  gap: 8px;
+  padding: 6px 0 12px;
+}
+
+.wall-option {
+  position: relative;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface-2);
+  cursor: pointer;
+  aspect-ratio: 3 / 4;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.wall-option img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.wall-option:hover {
+  transform: translateY(-2px);
+}
+
+.wall-option.is-active {
+  border-color: var(--accent);
+  box-shadow: var(--glow), 0 0 0 2px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
 /* ---------- Responsivo ---------- */
 /* Tablet y superiores */
 @media (min-width: 641px) {

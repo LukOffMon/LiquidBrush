@@ -22,7 +22,7 @@
   <link rel="preload" href="catalog.json" as="fetch" crossorigin>
   <link rel="preload" href="cloudflare-tracks.json" as="fetch" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Permanent+Marker&family=Rubik+Wet+Paint&family=Sedgwick+Ave&family=Syne:wght@700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=10">
+  <link rel="stylesheet" href="styles.css?v=11">
   <script>
     /* Aplica el tema, la fuente y el tamaño de letra guardados antes de pintar (sin parpadeos) */
     (function () {
@@ -36,6 +36,7 @@
         if (['street', 'graffiti', 'classic'].indexOf(settings.font) !== -1) root.setAttribute('data-font', settings.font);
         if (['system', 'small', 'normal', 'large', 'xl'].indexOf(settings.textSize) !== -1) root.setAttribute('data-text', settings.textSize);
         if (settings.motion === false) root.classList.add('no-motion');
+        if (!settings.wall || settings.wall.mode !== 'off') root.classList.add('has-wall');
       } catch (e) { /* sin acceso a localStorage */ }
     })();
   </script>
@@ -153,6 +154,16 @@
     </div>
   </div>
 
+  <!-- Fondo de pantalla: dos capas que se funden, partículas y mini iconos flotando -->
+  <div id="wallpaper" class="wallpaper" aria-hidden="true">
+    <div id="wallStage" class="wall-stage">
+      <div class="wall-layer"></div>
+      <div class="wall-layer"></div>
+    </div>
+    <div class="wall-scrim"></div>
+    <canvas id="wallLife" class="wall-life"></canvas>
+  </div>
+
   <!-- Iconos SVG reutilizables -->
   <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
     <symbol id="i-brush" viewBox="0 0 24 24"><path d="M7 14c-1.66 0-3 1.34-3 3 0 1.31-1.16 2-2 2 .92 1.22 2.49 2 4 2 2.21 0 4-1.79 4-4 0-1.66-1.34-3-3-3zm13.71-9.37-1.34-1.34a.996.996 0 0 0-1.41 0L9 12.25 11.75 15l8.96-8.96a.996.996 0 0 0 0-1.41z"/></symbol>
@@ -197,10 +208,15 @@
         <img class="brand-logo" src="logo.svg" alt="" width="36" height="36">
         <span class="brand-name">Liquid<span>Brush</span></span>
       </a>
+      <div class="topbar-actions">
+      <button id="wallBtn" class="wall-btn" type="button" aria-label="Cambiar el fondo de pantalla" title="Otro fondo">
+        <img id="wallBtnImg" src="wallpapers/icons/01.jpg" alt="" width="36" height="36">
+      </button>
       <button id="settingsBtn" class="icon-btn settings-btn" type="button" aria-label="Configuración" title="Configuración">
         <svg class="icon" aria-hidden="true"><use href="#i-settings"></use></svg>
         <span class="settings-btn-label">Ajustes</span>
       </button>
+      </div>
     </header>
 
     <main class="layout">
@@ -498,6 +514,28 @@
         </label>
       </section>
 
+      <section class="settings-group" aria-labelledby="setWallTitle">
+        <h3 id="setWallTitle" class="settings-group-title">Fondo de pantalla</h3>
+        <label class="setting">
+          <span class="setting-text"><span class="setting-name">Modo</span></span>
+          <select id="wallMode" class="setting-select">
+            <option value="song">Cambia con cada canción</option>
+            <option value="open">Uno al azar al abrir</option>
+            <option value="fixed">El que elijas</option>
+            <option value="off">Sin fondo (escena original)</option>
+          </select>
+        </label>
+        <div id="wallGrid" class="wall-grid" role="radiogroup" aria-label="Elegir fondo"></div>
+        <label class="setting switch">
+          <span class="setting-text">
+            <span class="setting-name">Fondo con vida</span>
+            <span class="setting-hint">Se mueve despacio, late con la música y deja flotar mini iconos.</span>
+          </span>
+          <input id="wallAlive" type="checkbox" role="switch">
+          <span class="switch-track" aria-hidden="true"></span>
+        </label>
+      </section>
+
       <section class="settings-group" aria-labelledby="setSoundTitle">
         <h3 id="setSoundTitle" class="settings-group-title">Sonido · Ecualizador</h3>
         <label class="setting">
@@ -519,6 +557,6 @@
   <!-- Reproductores para el ecualizador (necesitan CORS en el servidor del audio) -->
   <audio id="audio3" preload="metadata" crossorigin="anonymous"></audio>
   <audio id="audio4" preload="auto" crossorigin="anonymous"></audio>
-  <script src="app.js?v=10" defer></script>
+  <script src="app.js?v=11" defer></script>
 </body>
 </html>
