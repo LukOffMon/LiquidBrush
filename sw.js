@@ -6,7 +6,7 @@
    - Los MP3 descargados desde la app viven en AUDIO_CACHE y se
      reproducen desde ahí (con soporte de rangos para poder adelantar).
    ========================================================= */
-const VERSION = 'v7';
+const VERSION = 'v8';
 const SHELL_CACHE = `liquidbrush-shell-${VERSION}`;
 const DATA_CACHE = 'liquidbrush-data';
 const AUDIO_CACHE = 'liquidbrush-audio';
@@ -14,8 +14,8 @@ const AUDIO_CACHE = 'liquidbrush-audio';
 const SHELL = [
   './',
   'index.html',
-  'styles.css?v=7',
-  'app.js?v=7',
+  'styles.css?v=8',
+  'app.js?v=8',
   'logo.svg',
   'manifest.webmanifest',
   'apple-touch-icon.png',
@@ -82,7 +82,8 @@ async function staleWhileRevalidate(request, cacheName) {
 // El reproductor pide el audio por trozos (Range); se recortan del archivo guardado
 async function serveAudio(request, cached) {
   const range = request.headers.get('range');
-  if (!range) return cached;
+  // Copia opaca (servidor sin CORS): no se puede recortar, se entrega entera
+  if (!range || cached.type === 'opaque') return cached;
   const blob = await cached.blob();
   const size = blob.size;
   const match = /bytes=(\d*)-(\d*)/.exec(range);
@@ -121,6 +122,12 @@ self.addEventListener('fetch', (event) => {
         .then((cache) => cache.match(request.url))
         .then((cached) => (cached ? serveAudio(request, cached) : fetch(request)))
     );
+    return;
+  }
+
+  // Portadas e iconos no cambian: se sirven de la caché al instante
+  if (url.origin === self.location.origin && /\/covers\/|\.(png|jpg|svg)$/.test(url.pathname)) {
+    event.respondWith(staleWhileRevalidate(request, DATA_CACHE));
     return;
   }
 

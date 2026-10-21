@@ -69,6 +69,9 @@ GENRE_ARTISTS = {
                     'midfug', 'valgur', 'ralphie choo', 'nathy peluso', 'lizz', 'safety trance', 'perra inmunda',
                     'sajiva', 'grls', 'alex vs alex', 'simona', 'brava', 'alanis yuki', 'melodie', 'pieri', 'bovskey',
                     'kinara', 'kitty kawaii'],
+    'Rock argentino': ['spinetta', 'pescado rabioso', 'invisible', 'almendra', 'seru giran', 'charly garcia',
+                       'patricio rey', 'andres calamaro', 'illya kuryaki', 'virus', 'luca prodan', 'los gardelitos',
+                       'viejas locas', 'gustavo pena'],
     'Post-hardcore & emo': ['pierce the veil', 'sleeping with sirens', 'flyleaf', 'title fight', 'superheaven'],
     'Shoegaze & grunge': ['nirvana', 'deftones', 'chevelle', 'wisp', 'narrow head', 'whirr', 'glare', 'team sleep',
                           'flyingfish', 'panchiko'],
@@ -84,10 +87,12 @@ ALBUM_GENRES = {
     'Metal Pesado': 'Metal', 'Indie Vibes': 'Indie',
     'Rock argentino': 'Rock argentino', 'Disco & house': 'Disco & funk',
     'Trip hop & dream pop': 'Trip hop & dream pop', 'City pop & jazz funk': 'City pop & jazz funk',
+    'Bedroom pop': 'Bedroom pop', 'The Marías': 'Bedroom pop', 'Tame Impala': 'Psicodelia', 'Indie mix': 'Indie',
+    'New wave 80s': 'New wave & synth pop', 'Lo-fi & rarezas': 'Lo-fi & joyas de internet', 'Indie argentino': 'Indie argentino',
 }
 # Algunas playlists de origen mandan sobre el artista (p. ej. Nirvana en Alternativo Triste)
 ALBUM_FIRST = {'Alternativo Triste', 'Metal Pesado', 'Indie Vibes', 'Rock argentino', 'Trip hop & dream pop',
-               'City pop & jazz funk'}
+               'City pop & jazz funk', 'Bedroom pop', 'The Marías', 'Tame Impala', 'New wave 80s', 'Lo-fi & rarezas'}
 
 
 def genre_of(track):
@@ -107,16 +112,17 @@ def genre_of(track):
 # ---------- Playlists ----------
 SAD_ARTISTS = ['cigarettes after sex', 'radiohead', 'the smiths', 'tv girl', 'current joys', 'mac demarco', 'charles ans',
                'adan cruz', 'gera mx', 'joji', 'the marias', 'vacations', 'rels b', 'xxxtentacion', 'sade',
-               'crowded house', 'no doubt', 'mazzy star', 'portishead', 'lana del rey', 'jeff buckley', 'massive attack']
+               'crowded house', 'no doubt', 'clairo', 'malcolm todd', 'mazzy star', 'portishead', 'lana del rey', 'jeff buckley', 'massive attack']
 SAD_TITLES = r'\b(ya no siento nada|te quiero mucho|amor como estas|corazon|triste|cry|creep|miserable|alone|careless)\b'
 DREAM_ARTISTS = ['tame impala', 'parcels', 'daft punk', 'robert miles', 'cigarettes after sex', 'pink floyd', 'whirr',
                  'wisp', 'narrow head', 'flyingfish', 'l imperatrice', 'justice', 'night tapes', 'deftones', 'modjo',
                  'stardust', 'sade', 'bo a', 'boa', 'cocteau twins', 'mazzy star', 'beach house', 'air', 'portishead',
-                 'massive attack', 'masayoshi takanaka', 'tomoko aran', 'kid loco', 'gorillaz']
+                 'massive attack', 'masayoshi takanaka', 'tomoko aran', 'kid loco', 'gorillaz', 'empire of the sun',
+                 'mild high club', 'cocteau twins']
 SUNNY_ARTISTS = ['sports', 'almost monday', 'parcels', 'balu brigada', 'wallows', 'bob marley', 'santana', 'rels b',
                  'weezer', 'the cardigans', 'earth wind fire', 'kool the gang', 'foster the people', 'good neighbours',
                  'c tangana', 'nelly furtado', 'jamiroquai', 'boney m', 'masayoshi takanaka', 'bruno mars', 'anri',
-                 'childish gambino']
+                 'childish gambino', 'the marias', 'clairo', 'mac demarco', 'paul cherry', 'dominic fike']
 EXCLUDE_TITLES = r'reaccion|subscribe to the channel'
 
 
@@ -194,6 +200,14 @@ def main():
         ('martillo-sonico', 'Martillo Sónico', 'Metal sin piedad: Gojira, Mastodon, Slipknot, Megadeth, Death, Meshuggah.', g('Metal')),
         ('humo-y-terciopelo', 'Humo y Terciopelo', 'Trip hop y dream pop: Portishead, Massive Attack, Cocteau Twins, Mazzy Star y Sade.', g('Trip hop & dream pop')),
         ('tokio-1984', 'Tokio 1984', 'City pop japonés y jazz funk: Masayoshi Takanaka, Tomoko Aran, Anri, Kingo Hamada y Shakatak.', g('City pop & jazz funk')),
+        ('universo-marias', 'Universo Marías', 'Todo The Marías en un solo lugar, con sus colaboraciones con Bad Bunny, Cuco, Eyedress y más.',
+         [t for t in unique if has_artist(t, ['the marias'])]),
+        ('habitacion-rosa', 'Habitación Rosa', 'Bedroom pop para soñar despierto: PinkPantheress, Clairo, Malcolm Todd, Grimes, beabadoobee.', g('Bedroom pop')),
+        ('corriente-impala', 'Corriente Impala', 'Kevin Parker en estado puro: Tame Impala y sus colaboraciones con Justice, Gorillaz, Thundercat y ZHU.',
+         [t for t in unique if has_artist(t, ['tame impala']) or 'tame impala' in norm(t['title'])]),
+        ('neon-1984', 'Neón 1984', 'New wave y synth pop de los 80: Depeche Mode, New Order, Duran Duran, Tears For Fears, Billy Idol.', g('New wave & synth pop')),
+        ('cassette-perdido', 'Cassette Perdido', 'Lo-fi, soul raro y joyas escondidas de internet: Mild High Club, Mac DeMarco, Paul Cherry y rarezas sin nombre.', g('Lo-fi & joyas de internet')),
+        ('indie-argento', 'Indie Argento', 'La nueva escena argentina: Cisne Elocuente, Quemarlo Todo Por Error, Bandalos Chinos y joyas del under.', g('Indie argentino')),
         ('verano-indie', 'Verano Indie', 'Indie pop soleado: Balu Brigada, Tame Impala, Sports, almost monday, Parcels.', g('Indie')),
         # ---------- Mezclas ----------
         ('manejando-3am', 'Manejando a las 3 AM', 'Mezcla nocturna para la carretera vacía: trap, alternativo, indie, shoegaze y rap suave.',

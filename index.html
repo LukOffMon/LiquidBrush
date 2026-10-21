@@ -5,14 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="description" content="LiquidBrush — música que se derrite: tu reproductor web personal, surrealista y cromado.">
   <meta name="theme-color" content="#100d1c">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="LiquidBrush">
+  <meta name="format-detection" content="telephone=no">
   <title>LiquidBrush</title>
   <link rel="icon" href="logo.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@700;900&family=Rubik+Wet+Paint&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=7">
+  <link rel="preconnect" href="https://kvylexeicpvjrvhpizsz.supabase.co" crossorigin>
+  <link rel="preconnect" href="https://pikoruycbgwjrxqxaajl.supabase.co" crossorigin>
+  <link rel="dns-prefetch" href="https://pub-342aee3eb054410cb02224940f684884.r2.dev">
+  <link rel="preload" href="catalog.json" as="fetch" crossorigin>
+  <link rel="preload" href="cloudflare-tracks.json" as="fetch" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Rubik+Wet+Paint&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=8">
   <script>
     /* Aplica el tema guardado antes de pintar la página para evitar parpadeos */
     (function () {
@@ -180,7 +190,7 @@
         <svg class="icon" aria-hidden="true"><use href="#i-palette"></use></svg>
         <span class="sr-only">Tema de color</span>
         <select id="themeSelect">
-          <option value="chrome">Cromo Surreal</option>
+          <option value="chrome">Surrealista</option>
           <option value="minimal">Minimalista</option>
         </select>
       </label>
@@ -236,7 +246,7 @@
             <form id="commentForm" class="comment-form" autocomplete="off">
               <input id="commentAuthor" class="comment-author" type="text" maxlength="24" placeholder="Tu nombre (opcional)" aria-label="Tu nombre">
               <div class="comment-row">
-                <input id="commentText" type="text" maxlength="140" required placeholder="¿Qué te parece este momento?" aria-label="Comentario">
+                <input id="commentText" type="text" maxlength="140" required placeholder="Escribe un comentario…" aria-label="Comentario">
                 <button id="commentSubmit" class="btn btn-primary" type="submit">En 0:00</button>
               </div>
             </form>
@@ -398,6 +408,6 @@
 
   <audio id="audio" preload="metadata"></audio>
   <audio id="audio2" preload="auto"></audio>
-  <script src="app.js?v=7" defer></script>
+  <script src="app.js?v=8" defer></script>
 </body>
 </html>

@@ -60,7 +60,8 @@
     author: 'liquidbrush:author',
     dj: 'liquidbrush:dj',
     djFade: 'liquidbrush:djfade',
-    listen: 'liquidbrush:listen'
+    listen: 'liquidbrush:listen',
+    libraryCache: 'liquidbrush:library-cache'
   };
 
   const LYRICS_API = 'https://lrclib.net/api';
@@ -117,6 +118,7 @@
   /* ---------- Estado ---------- */
   const state = {
     tracks: [],
+    libraryTracks: [],
     trackMap: new Map(),
     baseQueue: [],
     queue: [],
@@ -297,7 +299,7 @@
   }
 
   async function fetchFromList(source) {
-    const response = await fetch(source.list, { cache: 'no-cache' });
+    const response = await fetch(source.list);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const rows = await response.json();
     return rows.map((row) => ({ ...row, source }));
@@ -337,62 +339,106 @@
     return fetchFromJson();
   }
 
+  // Convierte una fila de cualquier fuente en una canción de la app. La portada generada
+  // (SVG) se crea solo cuando se necesita, no para toda la biblioteca al arrancar.
+  function buildTrack(t, i) {
+    const title = t.title || 'Sin título';
+    const album = t.album || '';
+    const source = t.source || CONFIG.sources.find((s) => s.name === t.sourceName) || CONFIG.sources[0];
+    const rawId = String(t.id ?? i + 1);
+    const coverUrl = resolveMediaUrl(t.cover, source);
+    const seed = `${album}|${title}`;
+    let art = null;
+    const getArt = () => (art ||= generateArt(seed));
+    return {
+      // Los ids del proyecto principal no llevan prefijo (conserva los favoritos guardados)
+      id: source === CONFIG.sources[0] ? rawId : `${source.name}:${rawId}`,
+      title,
+      // Sin artista se muestra el nombre de la playlist
+      artist: t.artist || album || 'Artista desconocido',
+      knownArtist: t.artist || '',
+      album,
+      duration: t.duration || '',
+      src: resolveMediaUrl(t.src, source),
+      get cover() { return coverUrl || getArt().url; },
+      get hue() { return coverUrl ? null : getArt().hue; },
+      lyrics: typeof t.lyrics === 'string' ? t.lyrics : '',
+      genre: ''
+    };
+  }
+
+  async function applyTrackData(data) {
+    const previousId = state.currentTrack?.id;
+    state.tracks = data.filter((t) => t && typeof t.src === 'string' && t.src.trim()).map(buildTrack);
+    state.trackMap = new Map(state.tracks.map((t) => [t.id, t]));
+    state.tracks.forEach((t) => {
+      t.genre = library.catalog?.genres?.[t.id] || '';
+      t.songKey = commentKey(t);
+    });
+    // La Biblioteca muestra una sola copia de cada canción (algunas están en varias fuentes)
+    const seenSongs = new Set();
+    state.libraryTracks = state.tracks.filter((t) => !seenSongs.has(t.songKey) && seenSongs.add(t.songKey));
+    await refreshDownloads();
+
+    // Si la playlist que estaba abierta ya no existe, se vuelve a Playlists
+    if (state.view === 'playlist' && !getPlaylist(state.openPlaylist)) state.view = 'playlists';
+    const scroll = window.scrollY;
+    setView(state.view, { keepScroll: true });
+    window.scrollTo(0, scroll);
+
+    if (previousId && getTrack(previousId)) {
+      // Llegaron datos nuevos con algo sonando: se conserva la canción y la cola
+      state.currentTrack = getTrack(previousId);
+    } else if (state.tracks.length) {
+      buildQueue((state.tracks.find(isPlayable) || state.tracks[0]).id);
+      loadTrack(getTrack(state.queue[state.queueIndex]), false);
+    } else {
+      els.npContext.textContent = 'Biblioteca vacía';
+    }
+  }
+
+  // Abre al instante con la biblioteca de la última visita y la actualiza en segundo plano
   async function loadTracks() {
-    els.listInfo.textContent = 'Cargando canciones…';
+    let cachedRaw = null;
+    try { cachedRaw = localStorage.getItem(KEYS.libraryCache); } catch { /* sin localStorage */ }
+    let shown = false;
+    if (cachedRaw) {
+      try {
+        const cached = JSON.parse(cachedRaw);
+        if (Array.isArray(cached.rows) && cached.rows.length) {
+          library.catalog = cached.catalog || null;
+          library.shared = Array.isArray(cached.shared) ? cached.shared : [];
+          await applyTrackData(cached.rows);
+          shown = true;
+        }
+      } catch (error) {
+        console.warn('[LiquidBrush] Copia local de la biblioteca dañada; se descarga de nuevo.', error);
+      }
+    }
+    if (!shown) els.listInfo.textContent = 'Cargando canciones…';
+
     try {
       const [data] = await Promise.all([fetchTrackData(), loadSharedPlaylists(), loadCatalog()]);
       if (!Array.isArray(data)) throw new Error('La lista de canciones debe ser un array');
-
-      state.tracks = data
-        .filter((t) => t && typeof t.src === 'string' && t.src.trim())
-        .map((t, i) => {
-          const title = t.title || 'Sin título';
-          const album = t.album || '';
-          const art = t.cover ? null : generateArt(`${album}|${title}`);
-          const source = t.source || CONFIG.sources[0];
-          const rawId = String(t.id ?? i + 1);
-          return {
-            // Los ids del proyecto principal no llevan prefijo (conserva los favoritos guardados)
-            id: source === CONFIG.sources[0] ? rawId : `${source.name}:${rawId}`,
-            title,
-            // Sin artista se muestra el nombre de la playlist
-            artist: t.artist || album || 'Artista desconocido',
-            knownArtist: t.artist || '',
-            album,
-            duration: t.duration || '',
-            src: resolveMediaUrl(t.src, source),
-            cover: resolveMediaUrl(t.cover, source) || art.url,
-            hue: art ? art.hue : null,
-            lyrics: typeof t.lyrics === 'string' ? t.lyrics : '',
-            genre: ''
-          };
-        });
-      state.trackMap = new Map(state.tracks.map((t) => [t.id, t]));
-      state.tracks.forEach((t) => { t.genre = library.catalog?.genres?.[t.id] || ''; });
-      await refreshDownloads();
-
-      // Si la playlist que estaba abierta ya no existe, se vuelve a Playlists
-      if (state.view === 'playlist' && !getPlaylist(state.openPlaylist)) state.view = 'playlists';
-      setView(state.view);
-
-      if (state.tracks.length) {
-        buildQueue((state.tracks.find(isPlayable) || state.tracks[0]).id);
-        loadTrack(getTrack(state.queue[state.queueIndex]), false);
-      } else {
-        els.npContext.textContent = 'Biblioteca vacía';
-      }
+      const rows = data.map(({ source, ...rest }) => (source ? { ...rest, sourceName: source.name } : rest));
+      const fresh = JSON.stringify({ rows, catalog: library.catalog, shared: library.shared });
+      if (fresh === cachedRaw) return;
+      await applyTrackData(rows);
+      try { localStorage.setItem(KEYS.libraryCache, fresh); } catch { /* sin espacio: se descargará la próxima vez */ }
     } catch (error) {
-      console.error('[LiquidBrush] Error al cargar tracks.json:', error);
+      console.error('[LiquidBrush] Error al cargar las canciones:', error);
+      if (shown) return;
       els.listInfo.textContent = '';
       els.npContext.textContent = 'Error de carga';
       const li = document.createElement('li');
       li.className = 'list-empty';
       li.textContent = location.protocol === 'file:'
         ? 'No se pudo cargar tracks.json. Abre la app desde un servidor (GitHub Pages o, en local, "npx serve") en lugar de hacer doble clic en index.html.'
-        : 'No se pudieron cargar las canciones (ni de Supabase ni de tracks.json).';
+        : 'No se pudieron cargar las canciones. Revisa tu conexión y vuelve a abrir la app.';
       els.trackList.replaceChildren(li);
     }
   }
+
 
   /* ---------- Modo offline (descargas) ---------- */
   // Los MP3 descargados se guardan en esta caché; sw.js los sirve cuando no hay conexión
@@ -469,6 +515,27 @@
     showToast(`Descargas de «${name}» eliminadas.`);
   }
 
+  // iPhone/iPad (incluido el iPad que se presenta como Mac)
+  const IS_IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+  // Descarga una canción para guardarla en la caché. Si el servidor no envía CORS (p. ej. un bucket
+  // de R2 sin política CORS), se guarda una copia "opaca": no se puede leer desde aquí, pero el
+  // service worker sí puede entregársela al reproductor. Safari no reproduce copias opacas.
+  async function fetchForOffline(track) {
+    let response;
+    try {
+      response = await fetch(track.src, { mode: 'cors', cache: 'no-store' });
+    } catch (error) {
+      if (IS_IOS) throw Object.assign(new Error('Sin CORS en el servidor del audio'), { cors: true });
+      return fetch(track.src, { mode: 'no-cors', cache: 'no-store' });
+    }
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const blob = await response.blob();
+    return new Response(blob, {
+      headers: { 'Content-Type': blob.type || 'audio/mpeg', 'Content-Length': String(blob.size) }
+    });
+  }
+
   async function toggleDownload(key) {
     const running = offline.jobs.get(key);
     if (running) {
@@ -499,21 +566,23 @@
     const cache = await caches.open(AUDIO_CACHE);
     const pending = missing.slice();
     let failed = 0;
+    let blockedByCors = 0;
     // Dos descargas a la vez: rápido sin saturar la conexión
     const worker = async () => {
       while (pending.length && !job.cancelled) {
         const track = pending.shift();
         try {
-          const response = await fetch(track.src, { mode: 'cors' });
-          if (!response.ok) throw new Error(`HTTP ${response.status}`);
-          const blob = await response.blob();
-          await cache.put(cacheKey(track.src), new Response(blob, {
-            headers: { 'Content-Type': blob.type || 'audio/mpeg', 'Content-Length': String(blob.size) }
-          }));
+          // Un reintento si falla la red a medias
+          const response = await fetchForOffline(track).catch((error) => {
+            if (error.cors || error.name === 'QuotaExceededError') throw error;
+            return fetchForOffline(track);
+          });
+          await cache.put(cacheKey(track.src), response);
           offline.downloaded.add(cacheKey(track.src));
           job.done++;
         } catch (error) {
           failed++;
+          if (error.cors) blockedByCors++;
           console.warn(`[LiquidBrush] No se pudo descargar «${track.title}».`, error);
           if (error.name === 'QuotaExceededError') {
             job.noSpace = true;
@@ -529,6 +598,7 @@
 
     if (job.noSpace) showToast('No queda espacio en el dispositivo para más descargas.');
     else if (job.cancelled) showToast(`Descarga de «${name}» detenida (${job.done}/${job.total}).`);
+    else if (blockedByCors) showToast(`En iPhone/iPad, ${blockedByCors} canci${blockedByCors === 1 ? 'ón' : 'ones'} de Cloudflare no se pueden descargar hasta que el bucket tenga CORS activado.`);
     else if (failed) showToast(`«${name}»: ${failed} canci${failed === 1 ? 'ón' : 'ones'} no se pudieron descargar. Pulsa ⬇ para reintentar.`);
     else showToast(`«${name}» lista para escuchar sin conexión.`);
   }
@@ -673,7 +743,7 @@
 
   async function loadCatalog() {
     try {
-      const response = await fetch(CONFIG.catalogUrl, { cache: 'no-cache' });
+      const response = await fetch(CONFIG.catalogUrl);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       library.catalog = await response.json();
     } catch (error) {
@@ -1054,7 +1124,17 @@
   // Compartidos en Supabase (tabla track_comments): máximo 5 por canción y se reinician
   // cada lunes (UTC). Solo se pueden añadir con la función add_track_comment.
   const COMMENT_LIMIT = 5;
-  const comments = { trackId: null, list: [], shown: new Set(), lastTime: 0, lastLabel: '' };
+  const COMMENT_REFRESH_MS = 25000;
+  const comments = { trackId: null, key: null, list: [], shown: new Set(), lastTime: 0, lastLabel: '', timer: null };
+
+  // Los comentarios son de la canción, no de la copia: la misma canción puede estar en varias
+  // fuentes (con ids distintos) y todos deben ver los mismos comentarios.
+  function commentKey(track) {
+    const slug = (text) => normalize(String(text || '').replace(/\(.*?\)|\[.*?\]/g, ''))
+      .replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '');
+    const title = slug(track.title) || track.id;
+    return `song:${title}~${slug(mainArtist(track))}`.slice(0, 120);
+  }
   let bubbleTimer = null;
 
   function nextCommentReset() {
@@ -1064,30 +1144,44 @@
     return reset.toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' });
   }
 
-  async function loadComments(track) {
-    comments.trackId = track.id;
-    comments.list = [];
-    comments.shown.clear();
-    comments.lastTime = 0;
-    renderComments();
+  async function loadComments(track, { quiet = false } = {}) {
+    const key = commentKey(track);
+    if (!quiet) {
+      comments.trackId = track.id;
+      comments.key = key;
+      comments.list = [];
+      comments.shown.clear();
+      comments.lastTime = 0;
+      renderComments();
+    }
     try {
       const response = await fetch(
-        `${SHARED_DB.url}/rest/v1/track_comments?select=id,at_seconds,body,author&track_id=eq.${encodeURIComponent(track.id)}&order=at_seconds.asc`,
-        { headers: { apikey: SHARED_DB.key }, cache: 'no-cache' }
+        `${SHARED_DB.url}/rest/v1/track_comments?select=id,at_seconds,body,author&track_id=eq.${encodeURIComponent(key)}&order=at_seconds.asc`,
+        { headers: { apikey: SHARED_DB.key }, cache: 'no-store' }
       );
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const rows = await response.json();
-      if (comments.trackId !== track.id) return;
+      if (comments.key !== key) return;
+      const changed = rows.length !== comments.list.length || rows.some((r, i) => r.id !== comments.list[i]?.id);
       comments.list = rows;
-      renderComments();
+      if (changed || !quiet) renderComments();
     } catch (error) {
       console.warn('[LiquidBrush] No se pudieron cargar los comentarios.', error);
-      if (comments.trackId === track.id) {
+      if (!quiet && comments.key === key) {
         els.commentsNote.textContent = navigator.onLine
-          ? 'No se pudieron cargar los comentarios.'
+          ? 'No se pudieron cargar los comentarios. Se reintentará en unos segundos.'
           : 'Sin conexión: los comentarios no están disponibles.';
       }
     }
+  }
+
+  // Mientras la app está a la vista se buscan comentarios nuevos de otras personas
+  function scheduleCommentRefresh() {
+    clearInterval(comments.timer);
+    comments.timer = setInterval(() => {
+      if (document.hidden || !state.currentTrack || !navigator.onLine) return;
+      loadComments(state.currentTrack, { quiet: true });
+    }, COMMENT_REFRESH_MS);
   }
 
   function renderCommentMarks() {
@@ -1165,12 +1259,12 @@
     els.commentSubmit.disabled = true;
     try {
       const row = await supabaseRpc('add_track_comment', {
-        p_track_id: track.id,
+        p_track_id: commentKey(track),
         p_at: Math.floor(els.audio.currentTime || 0),
         p_body: body,
         p_author: author
       });
-      if (comments.trackId === track.id && row) {
+      if (comments.key === commentKey(track) && row) {
         comments.list = [...comments.list, row].sort((a, b) => a.at_seconds - b.at_seconds);
         comments.shown.add(row.id);
       }
@@ -1203,7 +1297,8 @@
   }
 
   const otherDeck = (deck) => (deck === decks[0] ? decks[1] : decks[0]);
-  const smartFade = (duration) => Math.max(1.5, Math.min(dj.fade, duration * 0.1));
+  // En iOS el volumen no se puede cambiar desde la web: en vez de mezcla larga, un empalme corto
+  const smartFade = (duration) => (IS_IOS ? 1 : Math.max(1.5, Math.min(dj.fade, duration * 0.1)));
 
   function releaseDeck(deck) {
     deck.pause();
@@ -1588,7 +1683,7 @@
   function baseTracks() {
     if (state.view === 'favorites') return state.tracks.filter((t) => state.favorites.has(t.id));
     if (state.view === 'playlist') return playlistTracksOf(getPlaylist(state.openPlaylist));
-    return sortTracks(state.tracks);
+    return sortTracks(state.libraryTracks);
   }
 
   function getVisibleTracks() {
@@ -1623,7 +1718,8 @@
 
   function playlistCover(pl, size) {
     const tracks = playlistTracksOf(pl);
-    const src = pl.cover?.type === 'image' ? pl.cover.src
+    // Tarjetas: miniatura de 320 px; la cabecera de la playlist usa la imagen grande
+    const src = pl.cover?.type === 'image' ? (size <= 160 ? pl.cover.src.replace(/\.jpg$/, '-sm.jpg') : pl.cover.src)
       : pl.cover?.type === 'art' ? coverArt(pl)
       : pl.kind === 'system' ? tracks[0]?.cover : '';
     if (src) {
@@ -1794,7 +1890,7 @@
   }
 
   function updateCounts() {
-    els.libCount.textContent = String(state.tracks.length);
+    els.libCount.textContent = String(state.libraryTracks.length);
     els.plCount.textContent = String(systemPlaylists().length + library.shared.length + library.local.length);
     updateFavCount();
   }
@@ -1827,7 +1923,10 @@
     const pl = state.view === 'playlist' ? getPlaylist(state.openPlaylist) : null;
     const removable = pl?.kind === 'local';
     const fragment = document.createDocumentFragment();
-    visible.forEach((track, i) => fragment.appendChild(createTrackItem(track, i, removable)));
+    // Solo se pintan las primeras filas; el resto se añade al acercarse al final (listas de 1000+)
+    list.items = visible;
+    list.removable = removable;
+    list.rendered = 0;
 
     if (!visible.length) {
       const li = makeEl('li', 'list-empty');
@@ -1839,6 +1938,7 @@
       fragment.appendChild(li);
     }
     els.trackList.replaceChildren(fragment);
+    if (visible.length) appendListChunk(LIST_FIRST_CHUNK);
 
     const total = visible.length;
     const seconds = visible.reduce((sum, t) => sum + parseDuration(t.duration), 0);
@@ -1846,6 +1946,39 @@
       ? `${total} resultado${total === 1 ? '' : 's'} para «${state.query.trim()}»`
       : state.view === 'playlist' ? '' : `${songsLabel(total)} · ${formatTotal(seconds)}`;
     updateDownloadUI();
+  }
+
+  const LIST_FIRST_CHUNK = 40;
+  const LIST_CHUNK = 80;
+  const list = { items: [], rendered: 0, removable: false, sentinel: null, observer: null };
+
+  function appendListChunk(size = LIST_CHUNK) {
+    const end = Math.min(list.items.length, list.rendered + size);
+    const fragment = document.createDocumentFragment();
+    for (let i = list.rendered; i < end; i++) fragment.appendChild(createTrackItem(list.items[i], i, list.removable));
+    list.rendered = end;
+    if (!list.sentinel) {
+      list.sentinel = makeEl('li', 'list-sentinel');
+      list.sentinel.setAttribute('aria-hidden', 'true');
+      list.observer = new IntersectionObserver((entries) => {
+        if (!entries.some((e) => e.isIntersecting)) return;
+        // Sigue añadiendo mientras el final esté cerca de la pantalla
+        const fill = () => {
+          if (list.rendered >= list.items.length || !list.sentinel.isConnected) return;
+          appendListChunk();
+          if (list.sentinel.getBoundingClientRect().top < window.innerHeight + 1500) requestAnimationFrame(fill);
+        };
+        fill();
+      }, { rootMargin: '0px 0px 1500px 0px' });
+    }
+    els.trackList.insertBefore(fragment, list.sentinel.isConnected ? list.sentinel : null);
+    if (list.rendered < list.items.length) {
+      if (!list.sentinel.isConnected) els.trackList.append(list.sentinel);
+      list.observer.observe(list.sentinel);
+    } else {
+      list.observer.unobserve(list.sentinel);
+      list.sentinel.remove();
+    }
   }
 
   function setView(view) {
@@ -2053,6 +2186,7 @@
   }
 
   /* ---------- Reproducción ---------- */
+  let lyricsDelay = null;
   function loadTrack(track, autoplay = true, fade = 0) {
     if (!track) return;
     state.currentTrack = track;
@@ -2077,7 +2211,13 @@
     document.title = `${track.title} · ${track.artist} — LiquidBrush`;
 
     updateProgressUI(0, parseDuration(track.duration));
-    showLyricsFor(track);
+    // Al abrir la app (sin reproducir) la letra se busca un poco después para no frenar el arranque
+    clearTimeout(lyricsDelay);
+    if (autoplay) showLyricsFor(track);
+    else {
+      renderLyrics('', 'Pulsa ▶ para escuchar; la letra aparecerá aquí.');
+      lyricsDelay = setTimeout(() => { if (state.currentTrack === track) showLyricsFor(track); }, 3000);
+    }
     highlightCurrent();
     updateDynamicColor(track);
     updateMediaSession(track);
@@ -2787,7 +2927,10 @@
         title: track.title,
         artist: track.artist,
         album: track.album,
-        artwork: track.hue !== null ? [] : [{ src: track.cover, sizes: '300x300' }]
+        // Las portadas generadas son SVG en línea: la pantalla de bloqueo muestra el logo
+        artwork: track.hue !== null
+          ? [{ src: 'icon-192.png', sizes: '192x192', type: 'image/png' }, { src: 'icon-512.png', sizes: '512x512', type: 'image/png' }]
+          : [{ src: track.cover, sizes: '300x300' }]
       });
     } catch {
       /* metadatos no soportados */
@@ -2871,7 +3014,10 @@
         : 'Sin conexión: esta canción no está descargada.');
     });
     // Guarda el tiempo escuchado antes de cerrar o esconder la app
-    document.addEventListener('visibilitychange', () => { if (document.hidden) flushListening(); });
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) flushListening();
+      else if (state.currentTrack) loadComments(state.currentTrack, { quiet: true });
+    });
     window.addEventListener('pagehide', flushListening);
 
     // Comentarios
@@ -3148,6 +3294,8 @@
 
   function init() {
     detectLiteMode();
+    document.documentElement.classList.toggle('is-ios', IS_IOS);
+    if (IS_IOS) els.djFade.closest('.dj-fade').title = 'En iPhone/iPad la transición es un empalme corto: iOS no permite bajar el volumen desde la web.';
     if (CONFIG.useWebAudioAnalyser) els.audio.crossOrigin = 'anonymous';
 
     els.cover.src = PLACEHOLDER_COVER;
@@ -3156,6 +3304,7 @@
 
     restorePreferences();
     renderComments();
+    scheduleCommentRefresh();
     updateModeButtons();
     updateVolumeUI();
     updateProgressUI(0, 0);

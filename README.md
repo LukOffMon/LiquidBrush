@@ -1,8 +1,8 @@
 # LiquidBrush
 
-Reproductor web personal de estética surrealista y cromada (temas "Cromo Surreal" (por defecto) y "Minimalista"), 100 % estático (HTML + CSS + JS) y listo para GitHub Pages.
+Reproductor web personal de estética surrealista y cromada (temas "Surrealista" (por defecto) y "Minimalista"), 100 % estático (HTML + CSS + JS) y listo para GitHub Pages.
 
-El tema "Cromo Surreal" incluye una escena animada: esfera de cromo en el horizonte, suelo de ajedrez, nubes, gotas de metal líquido, ojos que siguen el cursor y un reloj derretido cuyas agujas solo avanzan mientras suena la música.
+El tema "Surrealista" incluye una escena animada: esfera de cromo en el horizonte, suelo de ajedrez, nubes, gotas de metal líquido, ojos que siguen el cursor y un reloj derretido cuyas agujas solo avanzan mientras suena la música.
 
 ## Publicar en GitHub Pages
 
@@ -57,7 +57,7 @@ El script lee las mismas fuentes que la app, clasifica cada canción por artista
 
 ## Comentarios, transiciones DJ y estadísticas
 
-- **Comentarios con marca de tiempo**: cada canción admite 5 comentarios por semana, guardados en la tabla `track_comments` del proyecto principal. Solo se ven los de la semana actual (se reinician cada lunes, UTC) y solo se pueden añadir con la función `add_track_comment`. Se marcan sobre la barra de progreso y aparecen en una burbuja al llegar a su segundo.
+- **Comentarios con marca de tiempo**: cada canción admite 5 comentarios por semana. Se guardan por canción (título + artista), no por copia, así que se ven igual aunque la canción esté en varias fuentes, y se actualizan solos cada 25 s, guardados en la tabla `track_comments` del proyecto principal. Solo se ven los de la semana actual (se reinician cada lunes, UTC) y solo se pueden añadir con la función `add_track_comment`. Se marcan sobre la barra de progreso y aparecen en una burbuja al llegar a su segundo.
 - **Transiciones DJ** (interruptor, tecla D): mezcla la canción que termina con la siguiente usando dos reproductores; la duración es configurable (3–12 s) y se acorta en canciones cortas.
 - **Stats**: minutos por día, horas favoritas, géneros, artistas, tendencias frente al mes anterior y canciones del mes. Se calculan con un registro guardado solo en el navegador.
 
@@ -66,7 +66,8 @@ El script lee las mismas fuentes que la app, clasifica cada canción por artista
 - La app se puede **instalar** (en el móvil: *Añadir a pantalla de inicio*) y abre sin conexión gracias a `sw.js`, que guarda la app y la última lista de canciones.
 - Cada playlist tiene un botón **⬇ Descargar**: guarda sus MP3 en el dispositivo para escucharlos sin internet. Púlsalo de nuevo para detener la descarga; cuando la playlist está completa, sirve para quitar las descargas.
 - Sin conexión, las canciones no descargadas se ven atenuadas y se saltan al pasar a la siguiente.
-- Para descargar, el servidor del audio debe enviar CORS (Supabase ya lo hace; en Cloudflare R2 hay que añadir la política CORS del bucket).
+- Si el servidor del audio no envía CORS (el bucket de R2 sin política CORS), en Android y escritorio se guarda una copia "opaca" que igual suena sin conexión. Safari (iPhone/iPad) no reproduce copias opacas: para descargar ahí las canciones de Cloudflare hay que añadir la política CORS del bucket.
+- La app abre al instante con la biblioteca de la última visita (guardada en el navegador) y la actualiza en segundo plano; las listas largas se pintan por partes.
 - Si cambias `sw.js`, sube el número de `VERSION` para que los navegadores renueven la app guardada.
 
 ## Respaldo: tracks.json
