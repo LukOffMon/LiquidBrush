@@ -12,13 +12,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@700;900&family=Rubik+Wet+Paint&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=5">
+  <link rel="stylesheet" href="styles.css?v=7">
   <script>
     /* Aplica el tema guardado antes de pintar la página para evitar parpadeos */
     (function () {
       try {
         var saved = JSON.parse(localStorage.getItem('liquidbrush:theme'));
-        if (['chrome', 'dark', 'cyberpunk', 'minimal', 'synthwave'].indexOf(saved) !== -1) {
+        if (['chrome', 'minimal'].indexOf(saved) !== -1) {
           document.documentElement.setAttribute('data-theme', saved);
         }
       } catch (e) { /* sin acceso a localStorage */ }
@@ -181,10 +181,7 @@
         <span class="sr-only">Tema de color</span>
         <select id="themeSelect">
           <option value="chrome">Cromo Surreal</option>
-          <option value="dark">Dark Mode Standard</option>
-          <option value="cyberpunk">Cyberpunk</option>
           <option value="minimal">Minimalista</option>
-          <option value="synthwave">Retro Synthwave</option>
         </select>
       </label>
     </header>
@@ -215,6 +212,38 @@
 
         <canvas id="visualizer" class="visualizer" aria-hidden="true"></canvas>
 
+        <div class="np-tools">
+          <label class="switch" title="Mezcla automática entre canciones">
+            <input id="djToggle" type="checkbox" role="switch">
+            <span class="switch-track" aria-hidden="true"></span>
+            <span class="switch-label">Transiciones DJ</span>
+          </label>
+          <label class="dj-fade">
+            <span class="sr-only">Duración de la mezcla</span>
+            <select id="djFade" aria-label="Duración de la mezcla">
+              <option value="3">3 s</option>
+              <option value="6">6 s</option>
+              <option value="9">9 s</option>
+              <option value="12">12 s</option>
+            </select>
+          </label>
+        </div>
+
+        <details id="commentsPanel" class="lyrics comments" open>
+          <summary>Comentarios <span id="commentsCount" class="badge">0/5</span></summary>
+          <div class="comments-body">
+            <ul id="commentsList" class="comments-list"></ul>
+            <form id="commentForm" class="comment-form" autocomplete="off">
+              <input id="commentAuthor" class="comment-author" type="text" maxlength="24" placeholder="Tu nombre (opcional)" aria-label="Tu nombre">
+              <div class="comment-row">
+                <input id="commentText" type="text" maxlength="140" required placeholder="¿Qué te parece este momento?" aria-label="Comentario">
+                <button id="commentSubmit" class="btn btn-primary" type="submit">En 0:00</button>
+              </div>
+            </form>
+            <p id="commentsNote" class="comments-note"></p>
+          </div>
+        </details>
+
         <details id="lyricsPanel" class="lyrics" open>
           <summary>Letra <span id="lyricsBadge" class="badge" hidden>Sincronizada</span></summary>
           <div id="lyricsBody" class="lyrics-body">
@@ -241,12 +270,14 @@
             <button class="tab" type="button" role="tab" data-view="favorites" aria-selected="false">
               Favoritas <span id="favCount" class="count">0</span>
             </button>
+            <button class="tab" type="button" role="tab" data-view="stats" aria-selected="false">Stats</button>
           </div>
         </div>
 
         <div id="viewHead" class="view-head"></div>
         <p id="listInfo" class="list-info" aria-live="polite"></p>
         <div id="playlistGrid" class="pl-wrap" hidden></div>
+        <div id="statsPanel" class="stats" hidden></div>
         <ul id="trackList" class="track-list"></ul>
         <input id="importInput" type="file" accept="application/json,.json" hidden>
       </section>
@@ -283,12 +314,16 @@
 
         <div class="progress-row">
           <span id="currentTime" class="time">0:00</span>
-          <input id="progress" class="range progress" type="range" min="0" max="100" step="any" value="0" aria-label="Progreso de la canción">
+          <div class="progress-wrap">
+            <input id="progress" class="range progress" type="range" min="0" max="100" step="any" value="0" aria-label="Progreso de la canción">
+            <div id="commentMarks" class="comment-marks" aria-hidden="true"></div>
+          </div>
           <span id="totalTime" class="time">0:00</span>
         </div>
       </div>
 
       <div class="player-volume">
+        <button id="djBtn" class="icon-btn dj-btn" type="button" aria-pressed="false" aria-label="Transiciones DJ" title="Transiciones DJ (D)">DJ</button>
         <button id="lyricsBtn" class="icon-btn" type="button" aria-label="Ver letra" title="Ver letra (L)">
           <svg class="icon" aria-hidden="true"><use href="#i-lyrics"></use></svg>
         </button>
@@ -359,7 +394,10 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
+  <div id="commentBubble" class="comment-bubble" role="status" aria-live="polite" hidden></div>
+
   <audio id="audio" preload="metadata"></audio>
-  <script src="app.js?v=5" defer></script>
+  <audio id="audio2" preload="auto"></audio>
+  <script src="app.js?v=7" defer></script>
 </body>
 </html>

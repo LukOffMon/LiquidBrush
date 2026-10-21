@@ -1,6 +1,6 @@
 # LiquidBrush
 
-Reproductor web personal de estética surrealista y cromada (tema "Cromo Surreal" por defecto), 100 % estático (HTML + CSS + JS) y listo para GitHub Pages.
+Reproductor web personal de estética surrealista y cromada (temas "Cromo Surreal" (por defecto) y "Minimalista"), 100 % estático (HTML + CSS + JS) y listo para GitHub Pages.
 
 El tema "Cromo Surreal" incluye una escena animada: esfera de cromo en el horizonte, suelo de ajedrez, nubes, gotas de metal líquido, ojos que siguen el cursor y un reloj derretido cuyas agujas solo avanzan mientras suena la música.
 
@@ -44,6 +44,22 @@ Si `lyrics` está vacío, la app busca la letra automáticamente en [LRCLIB](htt
 - **Playlists**: las de LiquidBrush (una por cada `album` de la base de datos y las guardadas para todos), **Mis playlists** y las automáticas *Escuchadas hace poco* y *Tus más escuchadas*.
 - **Mis playlists** se crean en la app (nombre, icono y color) con el botón ＋ de cada canción. Se guardan **solo en ese navegador** (localStorage): si se borra la caché o los datos del sitio, se pierden. Se puede descargar o importar una copia de seguridad en JSON.
 - **Guardar para todos**: una playlist propia se publica en la tabla `shared_playlists` del proyecto principal pidiendo la **KeyForSet**. La clave no está en el código: Supabase la guarda como hash y la comprueba en las funciones `save_shared_playlist` / `hide_shared_playlist` (con límite de 10 fallos cada 10 minutos). Se configura con [`supabase/playlists-compartidas.sql`](supabase/playlists-compartidas.sql).
+
+## Catálogo de playlists de base
+
+[`catalog.json`](catalog.json) define las playlists de base (por género y mezclas de varios géneros), su descripción, su portada (imágenes de [`covers/`](covers/) o un diseño generado) y el género de cada canción. Se genera con:
+
+```bash
+python3 tools/build_catalog.py
+```
+
+El script lee las mismas fuentes que la app, clasifica cada canción por artista (o por su playlist de origen), quita duplicados y arma las listas. Vuelve a ejecutarlo cada vez que añadas música.
+
+## Comentarios, transiciones DJ y estadísticas
+
+- **Comentarios con marca de tiempo**: cada canción admite 5 comentarios por semana, guardados en la tabla `track_comments` del proyecto principal. Solo se ven los de la semana actual (se reinician cada lunes, UTC) y solo se pueden añadir con la función `add_track_comment`. Se marcan sobre la barra de progreso y aparecen en una burbuja al llegar a su segundo.
+- **Transiciones DJ** (interruptor, tecla D): mezcla la canción que termina con la siguiente usando dos reproductores; la duración es configurable (3–12 s) y se acorta en canciones cortas.
+- **Stats**: minutos por día, horas favoritas, géneros, artistas, tendencias frente al mes anterior y canciones del mes. Se calculan con un registro guardado solo en el navegador.
 
 ## Modo offline
 

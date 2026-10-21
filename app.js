@@ -33,6 +33,9 @@
       }
     ],
     tracksUrl: 'tracks.json',
+    // Playlists de base (por género y mezclas), su portada y el género de cada canción.
+    // Lo genera tools/build_catalog.py.
+    catalogUrl: 'catalog.json',
     // El visualizador puede leer las frecuencias reales del audio con la Web Audio API,
     // pero SOLO si el servidor del audio (Backblaze B2, Supabase, Cloudinary…) envía la
     // cabecera "Access-Control-Allow-Origin". Si lo activas sin CORS, el audio no sonará.
@@ -53,17 +56,18 @@
     plays: 'liquidbrush:plays',
     sort: 'liquidbrush:sort',
     view: 'liquidbrush:view',
-    setKey: 'liquidbrush:setkey'
+    setKey: 'liquidbrush:setkey',
+    author: 'liquidbrush:author',
+    dj: 'liquidbrush:dj',
+    djFade: 'liquidbrush:djfade',
+    listen: 'liquidbrush:listen'
   };
 
   const LYRICS_API = 'https://lrclib.net/api';
 
   const THEMES = {
     chrome: '#100d1c',
-    dark: '#121212',
-    cyberpunk: '#0a0612',
-    minimal: '#f4f3f0',
-    synthwave: '#0b0d2a'
+    minimal: '#f4f3f0'
   };
 
   const REPEAT_MODES = ['off', 'all', 'one'];
@@ -125,12 +129,15 @@
     openPlaylist: null,
     sort: 'original',
     countedId: null,
+    statsOffset: 0,
     query: '',
     shuffle: false,
     repeat: 'off',
     isSeeking: false,
     pendingSeek: null,
     lastVolume: 0.8,
+    // Volumen elegido; cada reproductor lo multiplica por su ganancia de mezcla (DJ)
+    volume: 0.8,
     lyrics: null,
     activeLyric: -1
   };
@@ -139,6 +146,20 @@
   const $ = (id) => document.getElementById(id);
   const els = {
     audio: $('audio'),
+    audio2: $('audio2'),
+    commentsCount: $('commentsCount'),
+    commentsList: $('commentsList'),
+    commentForm: $('commentForm'),
+    commentAuthor: $('commentAuthor'),
+    commentText: $('commentText'),
+    commentSubmit: $('commentSubmit'),
+    commentsNote: $('commentsNote'),
+    commentMarks: $('commentMarks'),
+    commentBubble: $('commentBubble'),
+    djToggle: $('djToggle'),
+    djFade: $('djFade'),
+    djBtn: $('djBtn'),
+    statsPanel: $('statsPanel'),
     themeSelect: $('themeSelect'),
     metaTheme: document.querySelector('meta[name="theme-color"]'),
     cover: $('cover'),
@@ -319,7 +340,7 @@
   async function loadTracks() {
     els.listInfo.textContent = 'Cargando canciones…';
     try {
-      const [data] = await Promise.all([fetchTrackData(), loadSharedPlaylists()]);
+      const [data] = await Promise.all([fetchTrackData(), loadSharedPlaylists(), loadCatalog()]);
       if (!Array.isArray(data)) throw new Error('La lista de canciones debe ser un array');
 
       state.tracks = data
@@ -342,10 +363,12 @@
             src: resolveMediaUrl(t.src, source),
             cover: resolveMediaUrl(t.cover, source) || art.url,
             hue: art ? art.hue : null,
-            lyrics: typeof t.lyrics === 'string' ? t.lyrics : ''
+            lyrics: typeof t.lyrics === 'string' ? t.lyrics : '',
+            genre: ''
           };
         });
       state.trackMap = new Map(state.tracks.map((t) => [t.id, t]));
+      state.tracks.forEach((t) => { t.genre = library.catalog?.genres?.[t.id] || ''; });
       await refreshDownloads();
 
       // Si la playlist que estaba abierta ya no existe, se vuelve a Playlists
@@ -560,15 +583,17 @@
   const RECENT_LIMIT = 50;
   const TOP_LIMIT = 30;
   const SORTS = {
-    original: 'Orden de las playlists',
+    original: 'Orden original',
+    genre: 'Género',
     title: 'Título (A-Z)',
     artist: 'Artista (A-Z)',
     long: 'Más largas primero',
     short: 'Más cortas primero'
   };
-  const VIEWS = ['library', 'playlists', 'favorites'];
+  const VIEWS = ['library', 'playlists', 'favorites', 'stats'];
 
   const library = {
+    catalog: null,
     shared: [],
     local: [],
     recent: [],
@@ -586,6 +611,13 @@
   }
 
   function systemPlaylists() {
+    if (library.catalog?.playlists?.length) {
+      return library.catalog.playlists.map((p) => ({
+        key: `sys:${p.id}`, kind: 'system', id: p.id, name: p.name, description: p.description || '',
+        cover: p.cover || null, trackIds: Array.isArray(p.trackIds) ? p.trackIds : []
+      }));
+    }
+    // Sin catálogo: una playlist por cada "album" de la base de datos
     const groups = new Map();
     state.tracks.forEach((t) => {
       if (!t.album) return;
@@ -636,6 +668,71 @@
     library.plays[id] = (library.plays[id] || 0) + 1;
     storage.set(KEYS.recent, library.recent);
     storage.set(KEYS.plays, library.plays);
+    countPlayInLog(id);
+  }
+
+  async function loadCatalog() {
+    try {
+      const response = await fetch(CONFIG.catalogUrl, { cache: 'no-cache' });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      library.catalog = await response.json();
+    } catch (error) {
+      console.warn('[LiquidBrush] No se pudo cargar el catálogo de playlists.', error);
+    }
+  }
+
+  // Portadas generadas (SVG) para las playlists de base que no tienen imagen
+  function coverArt(pl) {
+    const seed = hashString(pl.id || pl.name);
+    const c1 = pl.cover?.color || PLAYLIST_COLORS[seed % PLAYLIST_COLORS.length];
+    const hue = seed % 360;
+    const c2 = `hsl(${(hue + 200) % 360} 70% 18%)`;
+    const r = (n) => ((seed >>> (n % 24)) % 97) / 97;
+    let shapes = '';
+    switch (pl.cover?.style) {
+      case 'orbits':
+        for (let i = 0; i < 6; i++) shapes += `<ellipse cx="150" cy="150" rx="${40 + i * 20}" ry="${16 + i * 9}" transform="rotate(${-20 + i * 9} 150 150)" fill="none" stroke="${c1}" stroke-opacity="${0.9 - i * 0.12}" stroke-width="3"/>`;
+        shapes += `<circle cx="150" cy="150" r="26" fill="${c1}"/>`;
+        break;
+      case 'stripes':
+        for (let i = -6; i < 12; i++) shapes += `<rect x="${i * 34}" y="-60" width="16" height="420" fill="${c1}" fill-opacity="${0.25 + (i % 3) * 0.25}" transform="rotate(28 150 150)"/>`;
+        break;
+      case 'waves':
+        for (let i = 0; i < 8; i++) shapes += `<path d="M-10 ${80 + i * 22} Q 75 ${50 + i * 22} 150 ${80 + i * 22} T 310 ${80 + i * 22}" fill="none" stroke="${c1}" stroke-opacity="${1 - i * 0.1}" stroke-width="5"/>`;
+        break;
+      case 'sun':
+        for (let i = 0; i < 7; i++) shapes += `<rect x="0" y="${150 + i * 18}" width="300" height="${6 + i}" fill="${c2}"/>`;
+        shapes = `<circle cx="150" cy="150" r="92" fill="${c1}"/>${shapes}`;
+        break;
+      case 'rings':
+        for (let i = 0; i < 9; i++) shapes += `<circle cx="${110 + r(i) * 80}" cy="${110 + r(i + 5) * 80}" r="${18 + i * 14}" fill="none" stroke="${c1}" stroke-width="${2 + (i % 3)}" stroke-opacity="${0.35 + (i % 4) * 0.15}"/>`;
+        break;
+      case 'grid':
+        for (let x = 0; x < 6; x++) for (let y = 0; y < 6; y++) if ((x * 7 + y * 3 + seed) % 4 !== 0) shapes += `<rect x="${18 + x * 46}" y="${18 + y * 46}" width="36" height="36" rx="${(x + y) % 3 * 9}" fill="${c1}" fill-opacity="${0.25 + ((x + y) % 4) * 0.2}"/>`;
+        break;
+      case 'bars':
+        for (let i = 0; i < 14; i++) { const h = 40 + r(i * 3) * 190; shapes += `<rect x="${14 + i * 20}" y="${260 - h}" width="13" height="${h}" rx="6" fill="${c1}" fill-opacity="${0.5 + (i % 2) * 0.4}"/>`; }
+        break;
+      case 'blobs':
+        for (let i = 0; i < 5; i++) shapes += `<circle cx="${40 + r(i * 2) * 220}" cy="${40 + r(i * 2 + 7) * 220}" r="${40 + r(i + 3) * 60}" fill="${i % 2 ? c1 : '#ffffff'}" fill-opacity="${i % 2 ? 0.8 : 0.18}"/>`;
+        break;
+      case 'checker':
+        for (let x = 0; x < 10; x++) for (let y = 5; y < 10; y++) if ((x + y) % 2) shapes += `<rect x="${x * 30}" y="${y * 30}" width="30" height="30" fill="#e9edf4" fill-opacity="0.35"/>`;
+        shapes += `<circle cx="150" cy="110" r="60" fill="${c1}"/>`;
+        break;
+      case 'dots':
+        for (let x = 0; x < 12; x++) for (let y = 0; y < 12; y++) shapes += `<circle cx="${13 + x * 25}" cy="${13 + y * 25}" r="${2 + ((x * y + seed) % 7)}" fill="${c1}" fill-opacity="${0.3 + ((x + y) % 5) * 0.14}"/>`;
+        break;
+      case 'zigzag':
+        for (let i = 0; i < 7; i++) { let d = `M-10 ${50 + i * 34}`; for (let x = 0; x <= 320; x += 40) d += ` L${x} ${50 + i * 34 + (x / 40 % 2 ? -16 : 16)}`; shapes += `<path d="${d}" fill="none" stroke="${c1}" stroke-width="6" stroke-opacity="${1 - i * 0.11}" stroke-linejoin="round"/>`; }
+        break;
+      default:
+        shapes = `<circle cx="150" cy="150" r="100" fill="${c1}"/><circle cx="${175 + r(2) * 20}" cy="${135 + r(4) * 20}" r="92" fill="${c2}"/>`;
+    }
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">' +
+      `<defs><linearGradient id="b" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${c2}"/><stop offset="1" stop-color="#07060c"/></linearGradient></defs>` +
+      `<rect width="300" height="300" fill="url(#b)"/>${shapes}</svg>`;
+    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
   }
 
   /* ---------- Playlists guardadas para todos (Supabase + KeyForSet) ---------- */
@@ -953,6 +1050,522 @@
     }
   }
 
+  /* ---------- Comentarios con marca de tiempo ---------- */
+  // Compartidos en Supabase (tabla track_comments): máximo 5 por canción y se reinician
+  // cada lunes (UTC). Solo se pueden añadir con la función add_track_comment.
+  const COMMENT_LIMIT = 5;
+  const comments = { trackId: null, list: [], shown: new Set(), lastTime: 0, lastLabel: '' };
+  let bubbleTimer = null;
+
+  function nextCommentReset() {
+    const now = new Date();
+    const days = ((8 - now.getUTCDay()) % 7) || 7;
+    const reset = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + days));
+    return reset.toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' });
+  }
+
+  async function loadComments(track) {
+    comments.trackId = track.id;
+    comments.list = [];
+    comments.shown.clear();
+    comments.lastTime = 0;
+    renderComments();
+    try {
+      const response = await fetch(
+        `${SHARED_DB.url}/rest/v1/track_comments?select=id,at_seconds,body,author&track_id=eq.${encodeURIComponent(track.id)}&order=at_seconds.asc`,
+        { headers: { apikey: SHARED_DB.key }, cache: 'no-cache' }
+      );
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const rows = await response.json();
+      if (comments.trackId !== track.id) return;
+      comments.list = rows;
+      renderComments();
+    } catch (error) {
+      console.warn('[LiquidBrush] No se pudieron cargar los comentarios.', error);
+      if (comments.trackId === track.id) {
+        els.commentsNote.textContent = navigator.onLine
+          ? 'No se pudieron cargar los comentarios.'
+          : 'Sin conexión: los comentarios no están disponibles.';
+      }
+    }
+  }
+
+  function renderCommentMarks() {
+    const duration = getDuration();
+    els.commentMarks.replaceChildren(...(duration ? comments.list.map((c) => {
+      const mark = makeEl('span', 'comment-mark');
+      mark.style.left = `${clamp((c.at_seconds / duration) * 100, 0, 100)}%`;
+      mark.title = `${formatTime(c.at_seconds)} · ${c.body}`;
+      return mark;
+    }) : []));
+  }
+
+  function renderComments() {
+    const count = comments.list.length;
+    const full = count >= COMMENT_LIMIT;
+    els.commentsCount.textContent = `${count}/${COMMENT_LIMIT}`;
+    els.commentsList.replaceChildren(...comments.list.map((c) => {
+      const li = document.createElement('li');
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'comment-item';
+      button.dataset.at = String(c.at_seconds);
+      button.setAttribute('aria-label', `Ir a ${formatTime(c.at_seconds)}: ${c.body}`);
+      const time = makeEl('span', 'comment-time', formatTime(c.at_seconds));
+      const text = makeEl('span', 'comment-text', c.body);
+      button.append(time, text);
+      if (c.author) button.append(makeEl('span', 'comment-by', c.author));
+      li.append(button);
+      return li;
+    }));
+    if (!count) els.commentsList.append(makeEl('li', 'comments-empty', state.currentTrack
+      ? 'Nadie ha comentado esta canción esta semana. ¡Sé el primero!'
+      : 'Elige una canción para ver sus comentarios.'));
+    const disabled = full || !state.currentTrack;
+    els.commentText.disabled = disabled;
+    els.commentSubmit.disabled = disabled;
+    els.commentsNote.textContent = full
+      ? `Esta canción ya tiene ${COMMENT_LIMIT} comentarios esta semana. Se reinician el ${nextCommentReset()}.`
+      : `Máximo ${COMMENT_LIMIT} por canción. Todos se reinician cada semana (el próximo ${nextCommentReset()}).`;
+    renderCommentMarks();
+  }
+
+  function updateCommentButton(time) {
+    const label = `En ${formatTime(time)}`;
+    if (label !== comments.lastLabel) {
+      comments.lastLabel = label;
+      els.commentSubmit.textContent = label;
+    }
+  }
+
+  // Muestra el comentario cuando la canción pasa por su segundo
+  function checkCommentBubble(time) {
+    const previous = comments.lastTime;
+    comments.lastTime = time;
+    if (time < previous || time - previous > 2) return;
+    const hit = comments.list.find((c) => c.at_seconds > previous && c.at_seconds <= time && !comments.shown.has(c.id));
+    if (!hit) return;
+    comments.shown.add(hit.id);
+    els.commentBubble.textContent = `💬 ${formatTime(hit.at_seconds)} · ${hit.body}${hit.author ? ` — ${hit.author}` : ''}`;
+    els.commentBubble.hidden = false;
+    els.commentBubble.classList.add('is-visible');
+    clearTimeout(bubbleTimer);
+    bubbleTimer = setTimeout(() => {
+      els.commentBubble.classList.remove('is-visible');
+      setTimeout(() => { els.commentBubble.hidden = true; }, 300);
+    }, 4500);
+  }
+
+  async function submitComment() {
+    const track = state.currentTrack;
+    const body = els.commentText.value.trim();
+    if (!track || !body) return;
+    const author = els.commentAuthor.value.trim().slice(0, 24);
+    storage.set(KEYS.author, author);
+    els.commentSubmit.disabled = true;
+    try {
+      const row = await supabaseRpc('add_track_comment', {
+        p_track_id: track.id,
+        p_at: Math.floor(els.audio.currentTime || 0),
+        p_body: body,
+        p_author: author
+      });
+      if (comments.trackId === track.id && row) {
+        comments.list = [...comments.list, row].sort((a, b) => a.at_seconds - b.at_seconds);
+        comments.shown.add(row.id);
+      }
+      els.commentText.value = '';
+      showToast(`Comentario publicado en ${formatTime(row?.at_seconds || 0)}.`);
+    } catch (error) {
+      if (error.message === 'limite_comentarios') {
+        showToast(`Esta canción ya llegó a ${COMMENT_LIMIT} comentarios esta semana.`);
+        loadComments(track);
+        return;
+      }
+      showToast(error.message === 'demasiados_comentarios'
+        ? 'Hay muchos comentarios ahora mismo. Prueba en un minuto.'
+        : navigator.onLine ? 'No se pudo publicar el comentario.' : 'Sin conexión: no se puede comentar.');
+    } finally {
+      renderComments();
+    }
+  }
+
+  /* ---------- Transiciones DJ ---------- */
+  // Dos reproductores: al final de cada canción la siguiente entra por el otro y se mezclan
+  // con una curva de potencia constante. "Inteligente": la mezcla se acorta en canciones
+  // cortas, no se usa con «repetir una» y al saltar a mano es un fundido rápido.
+  const decks = [els.audio, els.audio2];
+  const dj = { enabled: false, fade: 6, transitioning: false, timer: null, outgoing: null };
+  const deckGain = new Map(decks.map((deck) => [deck, 1]));
+
+  function applyVolume(deck) {
+    deck.volume = clamp(state.volume * (deckGain.get(deck) ?? 1), 0, 1);
+  }
+
+  const otherDeck = (deck) => (deck === decks[0] ? decks[1] : decks[0]);
+  const smartFade = (duration) => Math.max(1.5, Math.min(dj.fade, duration * 0.1));
+
+  function releaseDeck(deck) {
+    deck.pause();
+    deck.removeAttribute('src');
+    deck.load();
+    deckGain.set(deck, 1);
+    applyVolume(deck);
+  }
+
+  function finishCrossfade() {
+    clearInterval(dj.timer);
+    dj.timer = null;
+    if (dj.outgoing && dj.outgoing !== els.audio) releaseDeck(dj.outgoing);
+    dj.outgoing = null;
+    deckGain.set(els.audio, 1);
+    applyVolume(els.audio);
+  }
+
+  function startCrossfade(outgoing, incoming, seconds) {
+    if (dj.timer) finishCrossfade();
+    dj.outgoing = outgoing;
+    const startGain = deckGain.get(outgoing) ?? 1;
+    deckGain.set(incoming, 0);
+    applyVolume(incoming);
+    const start = performance.now();
+    dj.timer = setInterval(() => {
+      const p = clamp((performance.now() - start) / (seconds * 1000), 0, 1);
+      deckGain.set(incoming, Math.sin((p * Math.PI) / 2));
+      deckGain.set(outgoing, Math.cos((p * Math.PI) / 2) * startGain);
+      applyVolume(incoming);
+      applyVolume(outgoing);
+      if (p >= 1) finishCrossfade();
+    }, 50);
+  }
+
+  // Elige el reproductor para la siguiente canción y, si toca, empieza la mezcla
+  function prepareDeck(autoplay, fade) {
+    const outgoing = els.audio;
+    const mixing = dj.enabled && fade > 0 && autoplay && !outgoing.paused && Boolean(outgoing.getAttribute('src'));
+    dj.transitioning = false;
+    if (mixing) {
+      els.audio = otherDeck(outgoing);
+      els.audio.muted = outgoing.muted;
+      startCrossfade(outgoing, els.audio, fade);
+    } else {
+      if (dj.timer) finishCrossfade();
+      const idle = otherDeck(els.audio);
+      if (idle.getAttribute('src')) releaseDeck(idle);
+    }
+  }
+
+  function checkDjTransition() {
+    const audio = els.audio;
+    if (!dj.enabled || dj.transitioning || audio.paused || state.repeat === 'one') return;
+    const duration = audio.duration;
+    if (!Number.isFinite(duration) || duration < 45) return;
+    const fade = smartFade(duration);
+    if (duration - audio.currentTime <= fade) {
+      dj.transitioning = true;
+      next(false, fade);
+    }
+  }
+
+  function setDj(enabled, announce = true) {
+    dj.enabled = enabled;
+    storage.set(KEYS.dj, enabled);
+    els.djToggle.checked = enabled;
+    els.djBtn.classList.toggle('is-active', enabled);
+    els.djBtn.setAttribute('aria-pressed', String(enabled));
+    els.djFade.disabled = !enabled;
+    if (!enabled && dj.timer) finishCrossfade();
+    if (announce) showToast(enabled ? `Transiciones DJ activadas (mezcla de ${dj.fade} s)` : 'Transiciones DJ desactivadas');
+  }
+
+  /* ---------- Registro de escucha (para Stats) ---------- */
+  // Por día: segundos por canción (s), reproducciones (p) y segundos por hora (h). Solo en este navegador.
+  const LISTEN_DAYS = 400;
+  const listen = { log: {}, pending: 0, pendingId: null, lastPos: null, dirty: false };
+
+  const dayKey = (date = new Date()) =>
+    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+  function dayEntry(key = dayKey()) {
+    if (!listen.log[key]) listen.log[key] = { s: {}, p: {}, h: new Array(24).fill(0) };
+    return listen.log[key];
+  }
+
+  function trackListening(time) {
+    const id = state.currentTrack?.id;
+    if (!id) return;
+    if (listen.pendingId !== id) {
+      flushListening();
+      listen.pendingId = id;
+      listen.lastPos = time;
+      return;
+    }
+    const delta = time - (listen.lastPos ?? time);
+    listen.lastPos = time;
+    if (delta > 0 && delta < 3 && !els.audio.paused) listen.pending += delta;
+    if (listen.pending >= 30) flushListening();
+  }
+
+  function flushListening() {
+    if (listen.pendingId && listen.pending > 0) {
+      const entry = dayEntry();
+      entry.s[listen.pendingId] = Math.round((entry.s[listen.pendingId] || 0) + listen.pending);
+      entry.h[new Date().getHours()] = Math.round(entry.h[new Date().getHours()] + listen.pending);
+      listen.pending = 0;
+      listen.dirty = true;
+    }
+    if (listen.dirty) saveListening();
+  }
+
+  function countPlayInLog(id) {
+    const entry = dayEntry();
+    entry.p[id] = (entry.p[id] || 0) + 1;
+    listen.dirty = true;
+    saveListening();
+  }
+
+  function saveListening() {
+    const keys = Object.keys(listen.log).sort();
+    keys.slice(0, Math.max(0, keys.length - LISTEN_DAYS)).forEach((key) => { delete listen.log[key]; });
+    storage.set(KEYS.listen, listen.log);
+    listen.dirty = false;
+  }
+
+  /* ---------- Stats: hábitos de escucha del mes ---------- */
+  const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  const WEEKDAYS = ['domingos', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábados'];
+
+  function monthInfo(offset) {
+    const now = new Date();
+    const first = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+    const days = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
+    const keys = Array.from({ length: days }, (_, i) => dayKey(new Date(first.getFullYear(), first.getMonth(), i + 1)));
+    return { keys, label: `${MONTHS[first.getMonth()]} ${first.getFullYear()}`, year: first.getFullYear(), month: first.getMonth() };
+  }
+
+  // Artista principal (sin "ft." ni colaboradores) para agrupar
+  const mainArtist = (track) => (track?.knownArtist || '')
+    .replace(/\s*\b(ft|feat|featuring)\b\.?.*$/i, '')
+    .split(/,| x | & | y /i)[0].trim();
+
+  function aggregate(keys) {
+    const result = { seconds: 0, plays: 0, perDay: [], hours: new Array(24).fill(0), weekdays: new Array(7).fill(0),
+      tracks: new Map(), artists: new Map(), genres: new Map() };
+    keys.forEach((key) => {
+      const entry = listen.log[key];
+      let daySeconds = 0;
+      if (entry) {
+        Object.entries(entry.s || {}).forEach(([id, secs]) => {
+          daySeconds += secs;
+          result.tracks.set(id, (result.tracks.get(id) || 0) + secs);
+          const track = getTrack(id);
+          const artist = mainArtist(track);
+          if (artist) result.artists.set(artist, (result.artists.get(artist) || 0) + secs);
+          const genre = track?.genre || 'Sin género';
+          result.genres.set(genre, (result.genres.get(genre) || 0) + secs);
+        });
+        Object.values(entry.p || {}).forEach((n) => { result.plays += n; });
+        (entry.h || []).forEach((secs, hour) => { result.hours[hour] += secs || 0; });
+      }
+      const [y, m, d] = key.split('-').map(Number);
+      result.weekdays[new Date(y, m - 1, d).getDay()] += daySeconds;
+      result.perDay.push({ key, day: Number(key.slice(8)), seconds: daySeconds });
+      result.seconds += daySeconds;
+    });
+    return result;
+  }
+
+  const minutesLabel = (secs) => {
+    const minutes = Math.round(secs / 60);
+    return minutes >= 60 ? `${Math.floor(minutes / 60)} h ${minutes % 60} min` : `${minutes} min`;
+  };
+  const topOf = (map, n) => [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, n);
+
+  function statTile(value, label) {
+    const tile = makeEl('div', 'stat-tile');
+    tile.append(makeEl('span', 'stat-value', value), makeEl('span', 'stat-label', label));
+    return tile;
+  }
+
+  function statCard(title, subtitle) {
+    const card = makeEl('section', 'stat-card');
+    card.append(makeEl('h3', 'stat-title', title));
+    if (subtitle) card.append(makeEl('p', 'stat-sub', subtitle));
+    return card;
+  }
+
+  // Barras verticales de una sola serie; el valor sale al pasar el cursor o tocar la barra
+  function columnChart(values, labelFor, tipFor, tickEvery) {
+    const max = Math.max(...values, 1);
+    const chart = makeEl('div', 'col-chart');
+    chart.setAttribute('role', 'img');
+    const bars = makeEl('div', 'col-bars');
+    values.forEach((value, i) => {
+      const col = makeEl('span', 'col');
+      col.tabIndex = 0;
+      col.dataset.tip = tipFor(value, i);
+      col.setAttribute('aria-label', col.dataset.tip);
+      const bar = makeEl('span', 'col-bar');
+      bar.style.height = value ? `${Math.max(3, (value / max) * 100)}%` : '0';
+      col.append(bar);
+      bars.append(col);
+    });
+    const axis = makeEl('div', 'col-axis');
+    values.forEach((_, i) => axis.append(makeEl('span', '', i % tickEvery === 0 ? labelFor(i) : '')));
+    chart.append(bars, axis);
+    return chart;
+  }
+
+  // Barras horizontales con etiqueta y valor en texto (se leen sin depender del color)
+  function barList(rows, action) {
+    const max = Math.max(...rows.map((r) => r.value), 1);
+    const list = makeEl('ol', 'bar-list');
+    rows.forEach((row) => {
+      const li = document.createElement('li');
+      const el = action ? document.createElement('button') : makeEl('div');
+      if (action) {
+        el.type = 'button';
+        el.dataset.action = action;
+        el.dataset.value = row.key;
+      }
+      el.className = 'bar-row';
+      el.title = row.tip || '';
+      const label = makeEl('span', 'bar-label', row.label);
+      const track = makeEl('span', 'bar-track');
+      const fill = makeEl('span', 'bar-fill');
+      fill.style.width = `${Math.max(2, (row.value / max) * 100)}%`;
+      track.append(fill);
+      el.append(label, track, makeEl('span', 'bar-value', row.text));
+      li.append(el);
+      list.append(li);
+    });
+    return list;
+  }
+
+  function renderStats() {
+    flushListening();
+    const info = monthInfo(state.statsOffset);
+    const current = aggregate(info.keys);
+    const previous = aggregate(monthInfo(state.statsOffset - 1).keys);
+    const panel = els.statsPanel;
+
+    if (current.seconds < 60) {
+      panel.replaceChildren(makeEl('p', 'list-empty', state.statsOffset === 0
+        ? 'Todavía no hay suficiente música este mes. Escucha un rato y vuelve: aquí verás tus minutos, géneros y artistas.'
+        : `No hay registros de ${info.label}.`));
+      return;
+    }
+
+    const activeDays = current.perDay.filter((d) => d.seconds >= 60);
+    let streak = 0;
+    let run = 0;
+    current.perDay.forEach((d) => {
+      run = d.seconds >= 60 ? run + 1 : 0;
+      streak = Math.max(streak, run);
+    });
+    const topHour = current.hours.indexOf(Math.max(...current.hours));
+    const topWeekday = current.weekdays.indexOf(Math.max(...current.weekdays));
+
+    const tiles = makeEl('div', 'stat-tiles');
+    tiles.append(
+      statTile(minutesLabel(current.seconds), 'escuchados'),
+      statTile(String(current.plays), 'reproducciones'),
+      statTile(String(current.tracks.size), 'canciones distintas'),
+      statTile(String(current.artists.size), 'artistas'),
+      statTile(`${streak} día${streak === 1 ? '' : 's'}`, 'racha más larga'),
+      statTile(`${String(topHour).padStart(2, '0')}:00`, `tu hora · más los ${WEEKDAYS[topWeekday]}`)
+    );
+
+    const daily = statCard('Minutos por día', `${activeDays.length} de ${info.keys.length} días con música`);
+    daily.append(columnChart(
+      current.perDay.map((d) => d.seconds / 60),
+      (i) => String(i + 1),
+      (v, i) => `${i + 1} de ${info.label.split(' ')[0]}: ${Math.round(v)} min`,
+      5
+    ));
+
+    const hours = statCard('¿A qué hora escuchas?', 'Minutos por hora del día');
+    hours.append(columnChart(
+      current.hours.map((s) => s / 60),
+      (i) => `${i}h`,
+      (v, i) => `${String(i).padStart(2, '0')}:00 – ${String(i).padStart(2, '0')}:59: ${Math.round(v)} min`,
+      6
+    ));
+
+    const genres = statCard('Géneros más escuchados');
+    genres.append(barList(topOf(current.genres, 6).map(([name, secs]) => ({
+      key: name, label: name, value: secs,
+      text: `${Math.round((secs / current.seconds) * 100)} %`, tip: minutesLabel(secs)
+    })), 'stats-genre'));
+
+    const artists = statCard('Artistas del mes', 'Toca uno para ver sus canciones');
+    artists.append(barList(topOf(current.artists, 8).map(([name, secs]) => ({
+      key: name, label: name, value: secs, text: minutesLabel(secs)
+    })), 'stats-artist'));
+
+    // Tendencia personal: quién ganó más peso frente al mes anterior
+    const trending = [...current.artists.entries()]
+      .filter(([, secs]) => secs >= 120)
+      .map(([name, secs]) => {
+        const before = previous.artists.get(name) || 0;
+        const delta = secs / current.seconds - (previous.seconds ? before / previous.seconds : 0);
+        return { name, secs, before, delta };
+      })
+      .filter((a) => a.delta > 0)
+      .sort((a, b) => b.delta - a.delta)
+      .slice(0, 5);
+    const trend = statCard('En tendencia para ti', 'Los que más subieron frente al mes anterior');
+    if (trending.length) {
+      const list = makeEl('ol', 'trend-list');
+      trending.forEach((a) => {
+        const li = document.createElement('li');
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'trend-row';
+        button.dataset.action = 'stats-artist';
+        button.dataset.value = a.name;
+        button.append(
+          makeEl('span', 'trend-name', a.name),
+          makeEl('span', a.before ? 'trend-up' : 'trend-new', a.before ? `▲ +${Math.round(a.delta * 100)} pts` : 'Nuevo'),
+          makeEl('span', 'trend-time', minutesLabel(a.secs))
+        );
+        li.append(button);
+        list.append(li);
+      });
+      trend.append(list);
+    } else {
+      trend.append(makeEl('p', 'stat-sub', 'Sigue escuchando: cuando alguien suba posiciones aparecerá aquí.'));
+    }
+
+    const songs = statCard('Canciones del mes');
+    const songList = makeEl('ol', 'top-songs');
+    topOf(current.tracks, 5).forEach(([id, secs]) => {
+      const track = getTrack(id);
+      if (!track) return;
+      const li = document.createElement('li');
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'top-song';
+      button.dataset.action = 'stats-play';
+      button.dataset.value = id;
+      const img = document.createElement('img');
+      img.src = track.cover;
+      img.alt = '';
+      img.width = 40;
+      img.height = 40;
+      const text = makeEl('span', 'top-song-text');
+      text.append(makeEl('span', 'top-song-title', track.title), makeEl('span', 'top-song-meta', `${track.knownArtist || track.genre || ''} · ${minutesLabel(secs)}`));
+      button.append(img, text);
+      li.append(button);
+      songList.append(li);
+    });
+    songs.append(songList);
+
+    const grid = makeEl('div', 'stat-grid');
+    grid.append(daily, hours, genres, artists, trend, songs);
+    panel.replaceChildren(tiles, grid, makeEl('p', 'pl-note', 'Tus estadísticas se calculan y guardan solo en este dispositivo.'));
+  }
+
   /* ---------- Vistas: Biblioteca, Playlists y Favoritas ---------- */
   function sortTracks(list) {
     const sorted = list.slice();
@@ -965,6 +1578,7 @@
         if (!a.knownArtist !== !b.knownArtist) return a.knownArtist ? -1 : 1;
         return collator.compare(a.knownArtist, b.knownArtist) || byTitle(a, b);
       });
+      case 'genre': return sorted.sort((a, b) => collator.compare(a.genre || '~', b.genre || '~') || byTitle(a, b));
       case 'long': return sorted.sort((a, b) => parseDuration(b.duration) - parseDuration(a.duration));
       case 'short': return sorted.sort((a, b) => parseDuration(a.duration) - parseDuration(b.duration));
       default: return sorted;
@@ -981,7 +1595,7 @@
     const q = normalize(state.query);
     const list = baseTracks();
     if (!q) return list;
-    return list.filter((track) => [track.title, track.artist, track.album].some((field) => normalize(field).includes(q)));
+    return list.filter((track) => [track.title, track.artist, track.album, track.genre].some((field) => normalize(field).includes(q)));
   }
 
   function makeButton(className, action, label, icon, text = '') {
@@ -1009,10 +1623,13 @@
 
   function playlistCover(pl, size) {
     const tracks = playlistTracksOf(pl);
-    if (pl.kind === 'system' && tracks[0]) {
+    const src = pl.cover?.type === 'image' ? pl.cover.src
+      : pl.cover?.type === 'art' ? coverArt(pl)
+      : pl.kind === 'system' ? tracks[0]?.cover : '';
+    if (src) {
       const img = document.createElement('img');
       img.className = 'pl-cover';
-      img.src = tracks[0].cover;
+      img.src = src;
       img.alt = '';
       img.width = size;
       img.height = size;
@@ -1045,14 +1662,20 @@
     const titles = {
       library: ['Toda tu música', 'Biblioteca'],
       playlists: searching ? ['Buscando en la biblioteca', 'Resultados'] : ['Oficiales, compartidas y tuyas', 'Playlists'],
-      favorites: ['Tus corazones', 'Favoritas']
+      favorites: ['Tus corazones', 'Favoritas'],
+      stats: [monthInfo(state.statsOffset).label, 'Tus estadísticas']
     };
     const [eyebrow, title] = titles[state.view];
     const text = makeEl('div', 'view-text');
     text.append(makeEl('p', 'view-eyebrow', eyebrow), makeEl('h2', 'view-title', title));
 
     const actions = makeEl('div', 'view-actions');
-    if (state.view === 'playlists' && !searching) {
+    if (state.view === 'stats') {
+      const prevMonth = makeButton('icon-btn', 'stats-prev', 'Mes anterior', 'back');
+      const nextMonth = makeButton('icon-btn stats-next', 'stats-next', 'Mes siguiente', 'back');
+      nextMonth.disabled = state.statsOffset >= 0;
+      actions.append(prevMonth, nextMonth);
+    } else if (state.view === 'playlists' && !searching) {
       actions.append(
         makeButton('btn btn-primary', 'new-playlist', 'Crear una playlist nueva', 'playlist-add', 'Nueva'),
         makeButton('icon-btn', 'import', 'Importar una copia de seguridad', 'upload'),
@@ -1093,7 +1716,9 @@
     const meta = makeEl('span', 'playlist-meta');
     meta.dataset.base = `${songsLabel(tracks.length)} · ${formatTotal(total)}`;
     meta.textContent = meta.dataset.base;
-    text.append(makeEl('span', `pl-kind pl-kind-${pl.kind}`, KIND_LABELS[pl.kind]), makeEl('h2', 'pl-hero-name', pl.name), meta);
+    text.append(makeEl('span', `pl-kind pl-kind-${pl.kind}`, KIND_LABELS[pl.kind]), makeEl('h2', 'pl-hero-name', pl.name));
+    if (pl.description) text.append(makeEl('p', 'pl-hero-desc', pl.description));
+    text.append(meta);
     header.append(playlistCover(pl, 112), text);
 
     const actions = makeEl('div', 'pl-actions');
@@ -1137,7 +1762,9 @@
     const count = playlistTracksOf(pl).length;
     card.setAttribute('aria-label', `${pl.name}, ${songsLabel(count)}`);
     const text = makeEl('span', 'pl-card-text');
-    text.append(makeEl('span', 'pl-card-name', pl.name), makeEl('span', 'pl-card-meta', songsLabel(count)));
+    text.append(makeEl('span', 'pl-card-name', pl.name));
+    if (pl.description) text.append(makeEl('span', 'pl-card-desc', pl.description));
+    text.append(makeEl('span', 'pl-card-meta', songsLabel(count)));
     card.append(playlistCover(pl, 160), text);
     if (pl.kind === 'shared') card.append(makeEl('span', 'pl-badge', 'Para todos'));
     if (pl.sharedId) card.append(makeEl('span', 'pl-badge', 'Editando'));
@@ -1175,10 +1802,19 @@
   function renderList() {
     const searching = Boolean(normalize(state.query));
     renderViewHead();
+    const showStats = state.view === 'stats';
     const showGrid = state.view === 'playlists' && !searching;
     els.playlistGrid.hidden = !showGrid;
-    els.trackList.hidden = showGrid;
+    els.statsPanel.hidden = !showStats;
+    els.trackList.hidden = showGrid || showStats;
     updateCounts();
+
+    if (showStats) {
+      renderStats();
+      els.trackList.replaceChildren();
+      els.listInfo.textContent = '';
+      return;
+    }
 
     if (showGrid) {
       renderPlaylistGrid();
@@ -1240,7 +1876,7 @@
     if (shuffle && !state.shuffle) toggleShuffle();
     const start = shuffle ? playable[Math.floor(Math.random() * playable.length)] : playable[0];
     buildQueue(start.id);
-    loadTrack(getTrack(state.queue[state.queueIndex]), true);
+    loadTrack(getTrack(state.queue[state.queueIndex]), true, dj.enabled ? 1.5 : 0);
   }
 
   function formatTotal(seconds) {
@@ -1292,9 +1928,11 @@
     artist.className = 'track-artist';
     artist.style.display = 'block';
     // En la Biblioteca se indica de qué playlist viene cada canción
-    artist.textContent = track.knownArtist && track.album && state.view !== 'playlist'
-      ? `${track.knownArtist} · ${track.album}`
-      : track.artist;
+    // En la Biblioteca se indica el género de cada canción
+    const tag = track.genre || track.album;
+    artist.textContent = track.knownArtist && tag && state.view !== 'playlist'
+      ? `${track.knownArtist} · ${tag}`
+      : track.knownArtist || tag || track.artist;
     artist.insertAdjacentHTML('afterbegin', '<svg class="icon track-offline" aria-hidden="true"><use href="#i-download-done"></use></svg>');
     text.append(title, artist);
 
@@ -1411,16 +2049,17 @@
       return;
     }
     buildQueue(id);
-    loadTrack(getTrack(id), true);
+    loadTrack(getTrack(id), true, dj.enabled ? 1.5 : 0);
   }
 
   /* ---------- Reproducción ---------- */
-  function loadTrack(track, autoplay = true) {
+  function loadTrack(track, autoplay = true, fade = 0) {
     if (!track) return;
     state.currentTrack = track;
     state.pendingSeek = null;
     state.countedId = null;
 
+    prepareDeck(autoplay, fade);
     els.audio.src = track.src;
 
     els.cover.src = track.cover;
@@ -1428,10 +2067,10 @@
     els.miniCover.src = track.cover;
     els.npContext.textContent = state.queueContext;
     els.npTitle.textContent = track.title;
-    els.npArtist.textContent = track.artist;
-    els.npAlbum.textContent = track.album;
+    els.npArtist.textContent = track.knownArtist || track.genre || track.artist;
+    els.npAlbum.textContent = track.knownArtist ? track.genre || track.album : '';
     els.miniTitle.textContent = track.title;
-    els.miniArtist.textContent = track.artist;
+    els.miniArtist.textContent = track.knownArtist || track.genre || track.artist;
     els.npFavBtn.disabled = false;
     els.npAddBtn.disabled = false;
     updateFavButton(els.npFavBtn, state.favorites.has(track.id));
@@ -1442,6 +2081,7 @@
     highlightCurrent();
     updateDynamicColor(track);
     updateMediaSession(track);
+    loadComments(track);
 
     if (autoplay) play();
   }
@@ -1473,7 +2113,7 @@
     else els.audio.pause();
   }
 
-  function next(manual = true) {
+  function next(manual = true, fade = manual && dj.enabled ? 1.5 : 0) {
     if (!state.queue.length) return;
     let index = state.queueIndex + 1;
 
@@ -1504,7 +2144,7 @@
       }
     }
     state.queueIndex = index;
-    loadTrack(getTrack(state.queue[index]), true);
+    loadTrack(getTrack(state.queue[index]), true, fade);
   }
 
   function prev() {
@@ -1522,7 +2162,7 @@
       return;
     }
     state.queueIndex = index;
-    loadTrack(getTrack(state.queue[index]), true);
+    loadTrack(getTrack(state.queue[index]), true, dj.enabled ? 1.5 : 0);
   }
 
   function handleEnded() {
@@ -1606,29 +2246,31 @@
   /* ---------- Volumen ---------- */
   function setVolume(value) {
     const volume = clamp(Number(value) || 0, 0, 1);
-    els.audio.volume = volume;
+    state.volume = volume;
+    decks.forEach(applyVolume);
     if (volume > 0) {
       state.lastVolume = volume;
-      if (els.audio.muted) els.audio.muted = false;
+      if (els.audio.muted) decks.forEach((deck) => { deck.muted = false; });
     }
     storage.set(KEYS.volume, volume);
     storage.set(KEYS.muted, els.audio.muted);
+    updateVolumeUI();
   }
 
   function toggleMute() {
-    if (els.audio.muted || els.audio.volume === 0) {
-      els.audio.muted = false;
-      if (els.audio.volume === 0) els.audio.volume = state.lastVolume || 0.6;
+    if (els.audio.muted || state.volume === 0) {
+      decks.forEach((deck) => { deck.muted = false; });
+      if (state.volume === 0) setVolume(state.lastVolume || 0.6);
     } else {
-      els.audio.muted = true;
+      decks.forEach((deck) => { deck.muted = true; });
     }
     storage.set(KEYS.muted, els.audio.muted);
-    storage.set(KEYS.volume, els.audio.volume);
+    updateVolumeUI();
   }
 
   function updateVolumeUI() {
-    const silent = els.audio.muted || els.audio.volume === 0;
-    const shown = silent ? 0 : els.audio.volume;
+    const silent = els.audio.muted || state.volume === 0;
+    const shown = silent ? 0 : state.volume;
     els.volume.value = String(shown);
     els.volume.style.setProperty('--fill', `${shown * 100}%`);
     els.volume.setAttribute('aria-valuetext', `${Math.round(shown * 100)} %`);
@@ -2176,46 +2818,81 @@
 
   /* ---------- Eventos ---------- */
   function bindEvents() {
-    const { audio } = els;
-
-    // Audio
-    audio.addEventListener('play', () => setPlayingUI(true));
+    // Audio: los dos reproductores (DJ) comparten eventos, pero solo cuenta el activo
+    const on = (type, handler) => decks.forEach((deck) => deck.addEventListener(type, (event) => {
+      if (event.target === els.audio) handler(event);
+    }));
+    on('play', () => setPlayingUI(true));
     // Cuenta para "Escuchadas hace poco" y "Tus más escuchadas" (una vez por canción cargada)
-    audio.addEventListener('playing', () => {
+    on('playing', () => {
       const id = state.currentTrack?.id;
       if (id && state.countedId !== id) {
         state.countedId = id;
         recordPlay(id);
       }
     });
-    audio.addEventListener('pause', () => setPlayingUI(false));
-    audio.addEventListener('ended', handleEnded);
-    audio.addEventListener('waiting', () => els.playBtn.classList.add('is-loading'));
+    on('pause', () => {
+      setPlayingUI(false);
+      flushListening();
+    });
+    on('ended', handleEnded);
+    on('waiting', () => els.playBtn.classList.add('is-loading'));
     ['playing', 'canplay', 'pause', 'error', 'emptied'].forEach((type) => {
-      audio.addEventListener(type, () => els.playBtn.classList.remove('is-loading'));
+      on(type, () => els.playBtn.classList.remove('is-loading'));
     });
-    audio.addEventListener('timeupdate', () => {
+    on('timeupdate', () => {
+      const time = els.audio.currentTime;
+      trackListening(time);
+      checkDjTransition();
+      checkCommentBubble(time);
+      updateCommentButton(time);
       if (state.isSeeking) return;
-      updateProgressUI(audio.currentTime, getDuration());
-      syncLyrics(audio.currentTime);
+      updateProgressUI(time, getDuration());
+      syncLyrics(time);
     });
-    audio.addEventListener('loadedmetadata', () => {
+    on('loadedmetadata', () => {
       if (state.pendingSeek !== null) {
-        audio.currentTime = clamp(state.pendingSeek, 0, audio.duration || 0);
+        els.audio.currentTime = clamp(state.pendingSeek, 0, els.audio.duration || 0);
         state.pendingSeek = null;
       }
-      updateProgressUI(audio.currentTime, getDuration());
+      updateProgressUI(els.audio.currentTime, getDuration());
+      renderCommentMarks();
     });
-    audio.addEventListener('durationchange', () => {
-      if (!state.isSeeking) updateProgressUI(audio.currentTime, getDuration());
+    on('durationchange', () => {
+      if (!state.isSeeking) updateProgressUI(els.audio.currentTime, getDuration());
+      renderCommentMarks();
     });
-    audio.addEventListener('volumechange', updateVolumeUI);
-    audio.addEventListener('error', () => {
-      if (!audio.getAttribute('src')) return;
+    on('volumechange', updateVolumeUI);
+    on('error', () => {
+      if (!els.audio.getAttribute('src')) return;
       setPlayingUI(false);
       showToast(navigator.onLine
         ? `No se pudo cargar el audio de «${state.currentTrack?.title ?? 'la canción'}».`
         : 'Sin conexión: esta canción no está descargada.');
+    });
+    // Guarda el tiempo escuchado antes de cerrar o esconder la app
+    document.addEventListener('visibilitychange', () => { if (document.hidden) flushListening(); });
+    window.addEventListener('pagehide', flushListening);
+
+    // Comentarios
+    els.commentForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      submitComment();
+    });
+    els.commentsList.addEventListener('click', (event) => {
+      const item = event.target.closest('.comment-item');
+      if (!item || !state.currentTrack) return;
+      seekTo(Number(item.dataset.at));
+      if (els.audio.paused) play();
+    });
+
+    // Transiciones DJ
+    els.djToggle.addEventListener('change', () => setDj(els.djToggle.checked));
+    els.djBtn.addEventListener('click', () => setDj(!dj.enabled));
+    els.djFade.addEventListener('change', () => {
+      dj.fade = Number(els.djFade.value) || 6;
+      storage.set(KEYS.djFade, dj.fade);
+      showToast(`Mezcla de ${dj.fade} segundos`);
     });
 
     // Controles
@@ -2266,6 +2943,22 @@
       switch (action) {
         case 'open-playlist': openPlaylist(target.dataset.key); break;
         case 'back': setView('playlists'); break;
+        case 'stats-prev': state.statsOffset -= 1; renderList(); break;
+        case 'stats-next': state.statsOffset = Math.min(0, state.statsOffset + 1); renderList(); break;
+        case 'stats-artist':
+        case 'stats-genre':
+          els.searchInput.value = target.dataset.value;
+          state.query = target.dataset.value;
+          setView('library');
+          break;
+        case 'stats-play': {
+          const track = getTrack(target.dataset.value);
+          if (track) {
+            buildQueue(track.id);
+            loadTrack(track, true, dj.enabled ? 1.5 : 0);
+          }
+          break;
+        }
         case 'play-view': playTracks(getVisibleTracks()); break;
         case 'shuffle-view': playTracks(getVisibleTracks(), true); break;
         case 'download-playlist': toggleDownload(state.openPlaylist); break;
@@ -2394,6 +3087,7 @@
         case 'KeyN': next(true); break;
         case 'KeyP': prev(); break;
         case 'KeyM': toggleMute(); break;
+        case 'KeyD': setDj(!dj.enabled); break;
         case 'KeyS': toggleShuffle(); break;
         case 'KeyR': cycleRepeat(); break;
         case 'KeyL': els.lyricsPanel.open = !els.lyricsPanel.open; break;
@@ -2425,9 +3119,21 @@
     state.view = VIEWS.includes(savedView) ? savedView : 'library';
 
     const savedVolume = Number(storage.get(KEYS.volume, 0.8));
-    els.audio.volume = Number.isFinite(savedVolume) ? clamp(savedVolume, 0, 1) : 0.8;
-    state.lastVolume = els.audio.volume || 0.8;
-    els.audio.muted = storage.get(KEYS.muted, false) === true;
+    state.volume = Number.isFinite(savedVolume) ? clamp(savedVolume, 0, 1) : 0.8;
+    state.lastVolume = state.volume || 0.8;
+    const muted = storage.get(KEYS.muted, false) === true;
+    decks.forEach((deck) => {
+      deck.muted = muted;
+      applyVolume(deck);
+    });
+
+    const savedFade = Number(storage.get(KEYS.djFade, 6));
+    dj.fade = [3, 6, 9, 12].includes(savedFade) ? savedFade : 6;
+    els.djFade.value = String(dj.fade);
+    setDj(storage.get(KEYS.dj, false) === true, false);
+    els.commentAuthor.value = storage.get(KEYS.author, '') || '';
+    const savedListen = storage.get(KEYS.listen, {});
+    listen.log = savedListen && typeof savedListen === 'object' ? savedListen : {};
 
     applyTheme(storage.get(KEYS.theme, 'chrome'));
   }
@@ -2449,6 +3155,7 @@
     if (window.matchMedia('(max-width: 860px)').matches) els.lyricsPanel.open = false;
 
     restorePreferences();
+    renderComments();
     updateModeButtons();
     updateVolumeUI();
     updateProgressUI(0, 0);
