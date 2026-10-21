@@ -668,7 +668,8 @@
       if (els.audio.paused) reload();
       else {
         showToast('Hay una versión nueva de LiquidBrush: se aplicará al pausar.');
-        els.audio.addEventListener('pause', reload, { once: true });
+        // Solo con una pausa tuya: si otra app corta el audio, recargar perdería la canción
+        state.reloadOnPause = reload;
       }
     });
   }
@@ -2255,7 +2256,8 @@
     if (autoplay) play();
   }
 
-  async function play() {
+  async function play({ quiet = false } = {}) {
+    state.userPaused = false;
     if (!state.currentTrack) {
       if (!state.tracks.length) return;
       buildQueue(state.tracks[0].id);
@@ -2268,6 +2270,8 @@
     } catch (error) {
       // AbortError: se cambió de canción antes de empezar a sonar; no es un fallo real.
       if (error.name === 'AbortError') return;
+      // Reanudación automática fallida (iOS no deja quitarle el audio a otra app): se reintenta al volver
+      if (quiet) return;
       console.error('[LiquidBrush] No se pudo reproducir:', error);
       if (error.name === 'NotAllowedError') {
         showToast('El navegador bloqueó la reproducción automática. Pulsa ▶ para escuchar.');
@@ -2279,7 +2283,14 @@
 
   function togglePlay() {
     if (!state.currentTrack || els.audio.paused) play();
-    else els.audio.pause();
+    else pauseByUser();
+  }
+
+  // Pausa pedida desde la app; cualquier otra pausa (otra app con sonido, una llamada) se reanuda sola
+  function pauseByUser() {
+    state.userPaused = true;
+    interruption.clear();
+    els.audio.pause();
   }
 
   function next(manual = true, fade = manual && dj.enabled ? 1.5 : 0) {
@@ -2298,7 +2309,7 @@
         }
       } else {
         // Fin de la lista sin bucle: se detiene al principio de la última canción
-        els.audio.pause();
+        pauseByUser();
         els.audio.currentTime = 0;
         return;
       }
@@ -2307,7 +2318,7 @@
     if (!navigator.onLine) {
       index = findPlayable(index, 1);
       if (index < 0) {
-        els.audio.pause();
+        pauseByUser();
         showToast('Sin conexión: no hay canciones descargadas en esta lista.');
         return;
       }
@@ -2948,6 +2959,48 @@
     }, { passive: true });
   }
 
+  /* ---------- Interrupciones de audio (otra app con sonido, llamadas) ---------- */
+  // Al abrir otra app que suena (p. ej. Chess.com) el sistema pausa la música sin pasar por la app.
+  // Se distingue de otras pausas del sistema (desconectar los auriculares) porque llega justo
+  // al salir de LiquidBrush o porque iOS marca la sesión de audio como interrumpida.
+  const interruption = {
+    active: false,
+    hiddenAt: 0,
+    timers: [],
+    start() {
+      const session = navigator.audioSession;
+      const justLeft = document.hidden && Date.now() - this.hiddenAt < 8000;
+      if (session?.state !== 'interrupted' && !justLeft) return;
+      this.clear();
+      this.active = true;
+      // En segundo plano se reintenta un par de veces (Android devuelve el audio enseguida)
+      if (document.hidden) this.timers = [800, 2500, 6000].map((ms) => setTimeout(() => this.resume(), ms));
+    },
+    resume() {
+      if (!this.active || !els.audio.paused || !state.currentTrack) return;
+      if (navigator.audioSession?.state === 'interrupted') return;
+      play({ quiet: true });
+    },
+    clear() {
+      this.active = false;
+      this.timers.forEach(clearTimeout);
+      this.timers = [];
+    }
+  };
+
+  function setupAudioSession() {
+    const session = navigator.audioSession;
+    if (!session) return;
+    // iOS 17+: es música (sigue en segundo plano y con el modo silencio), no sonidos de una web
+    try { session.type = 'playback'; } catch { /* tipo no soportado */ }
+    session.addEventListener?.('statechange', () => {
+      if (session.state === 'interrupted') {
+        if (!els.audio.paused) return;
+        interruption.start();
+      } else interruption.resume();
+    });
+  }
+
   /* ---------- Media Session (controles en la pantalla de bloqueo) ---------- */
   function updateMediaSession(track) {
     if (!('mediaSession' in navigator) || typeof MediaMetadata === 'undefined') return;
@@ -2970,7 +3023,7 @@
     if (!('mediaSession' in navigator)) return;
     const handlers = {
       play: () => play(),
-      pause: () => els.audio.pause(),
+      pause: () => pauseByUser(),
       previoustrack: () => prev(),
       nexttrack: () => next(true),
       seekbackward: (details) => seekBy(-(details.seekOffset || 10)),
@@ -2994,7 +3047,10 @@
     const on = (type, handler) => decks.forEach((deck) => deck.addEventListener(type, (event) => {
       if (event.target === els.audio) handler(event);
     }));
-    on('play', () => setPlayingUI(true));
+    on('play', () => {
+      setPlayingUI(true);
+      interruption.clear();
+    });
     // Cuenta para "Escuchadas hace poco" y "Tus más escuchadas" (una vez por canción cargada)
     on('playing', () => {
       const id = state.currentTrack?.id;
@@ -3006,6 +3062,12 @@
     on('pause', () => {
       setPlayingUI(false);
       flushListening();
+      if (state.userPaused) {
+        state.userPaused = false;
+        state.reloadOnPause?.();
+      } else if (!els.audio.ended && els.audio.getAttribute('src')) {
+        interruption.start();
+      }
     });
     on('ended', handleEnded);
     on('waiting', () => els.playBtn.classList.add('is-loading'));
@@ -3044,8 +3106,13 @@
     });
     // Guarda el tiempo escuchado antes de cerrar o esconder la app
     document.addEventListener('visibilitychange', () => {
-      if (document.hidden) flushListening();
-      else if (state.currentTrack) loadComments(state.currentTrack, { quiet: true });
+      if (document.hidden) {
+        interruption.hiddenAt = Date.now();
+        flushListening();
+        return;
+      }
+      interruption.resume();
+      if (state.currentTrack) loadComments(state.currentTrack, { quiet: true });
     });
     window.addEventListener('pagehide', flushListening);
 
@@ -3339,6 +3406,7 @@
     updateProgressUI(0, 0);
     bindEvents();
     setupMediaSessionHandlers();
+    setupAudioSession();
     setupSurrealEyes();
     updateOnlineStatus();
     registerServiceWorker();
