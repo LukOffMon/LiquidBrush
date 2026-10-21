@@ -367,10 +367,39 @@
     };
   }
 
+  // Canciones duplicadas que se quitaron: favoritas, playlists propias e historial pasan a la copia que queda
+  function applyAliases(aliases) {
+    if (!aliases || !Object.keys(aliases).length) return;
+    const map = (id) => aliases[id] || id;
+    const favorites = new Set([...state.favorites].map(map));
+    if (favorites.size !== state.favorites.size || [...state.favorites].some((id) => aliases[id])) {
+      state.favorites = favorites;
+      storage.set(KEYS.favorites, [...favorites]);
+    }
+    let changed = false;
+    library.local.forEach((p) => {
+      const ids = [...new Set(p.trackIds.map(map))];
+      if (ids.join() !== p.trackIds.join()) { p.trackIds = ids; changed = true; }
+    });
+    if (changed) saveLocalPlaylists();
+    if (library.recent.some((id) => aliases[id])) {
+      library.recent = [...new Set(library.recent.map(map))];
+      storage.set(KEYS.recent, library.recent);
+    }
+    Object.entries(aliases).forEach(([from, to]) => {
+      if (library.plays[from]) {
+        library.plays[to] = (library.plays[to] || 0) + library.plays[from];
+        delete library.plays[from];
+        storage.set(KEYS.plays, library.plays);
+      }
+    });
+  }
+
   async function applyTrackData(data) {
     const previousId = state.currentTrack?.id;
     state.tracks = data.filter((t) => t && typeof t.src === 'string' && t.src.trim()).map(buildTrack);
     state.trackMap = new Map(state.tracks.map((t) => [t.id, t]));
+    applyAliases(library.catalog?.aliases);
     state.tracks.forEach((t) => {
       t.genre = library.catalog?.genres?.[t.id] || '';
       t.songKey = commentKey(t);

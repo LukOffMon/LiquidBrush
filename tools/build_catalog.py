@@ -252,7 +252,10 @@ def main():
             art_i += 1
         out.append({'id': pid, 'name': name, 'description': description, 'cover': cover, 'trackIds': [t['id'] for t in items]})
 
-    catalog = {'version': 1, 'genres': genres, 'playlists': out}
+    # Copias borradas del bucket por ser idénticas a otra: la app redirige favoritas y playlists propias
+    aliases_file = ROOT / 'tools' / 'aliases.json'
+    aliases = json.loads(aliases_file.read_text()) if aliases_file.exists() else {}
+    catalog = {'version': 1, 'genres': genres, 'playlists': out, 'aliases': aliases}
     (ROOT / 'catalog.json').write_text(json.dumps(catalog, ensure_ascii=False, indent=1))
     print(f'{len(tracks)} canciones, {len(unique)} únicas, {len(out)} playlists')
     for p in out:
