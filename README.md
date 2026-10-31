@@ -11,7 +11,14 @@ El tema "Surrealista" incluye una escena animada: esfera de cromo en el horizont
 
 ## Añadir tus canciones (Cloudflare R2)
 
-La música vive en el bucket **`liquidpepper4db`** de Cloudflare R2 (URL pública: `https://pub-cb798ce2901a49a6a6363d57fbd5ee19.r2.dev`) y la lista de canciones en [`cloudflare-tracks.json`](cloudflare-tracks.json), un archivo de este repositorio. No hay base de datos: la app lee ese archivo y reproduce los MP3 directamente desde el bucket.
+La música vive en buckets de Cloudflare R2. Cada bucket tiene su lista de canciones en la carpeta [`musica/`](musica/) de este repositorio. No hay base de datos: la app lee esas listas y reproduce los MP3 directamente desde cada bucket.
+
+| Lista | Bucket | URL pública |
+| --- | --- | --- |
+| [`musica/pepper.json`](musica/pepper.json) | `liquidpepper4db` | `https://pub-cb798ce2901a49a6a6363d57fbd5ee19.r2.dev` |
+| [`musica/b05e.json`](musica/b05e.json) | — | `https://pub-b05e243e7441423f9c4a25dfe8411da3.r2.dev` |
+
+Para sumar otro bucket: añade una entrada en `CONFIG.sources` (en `app.js`) con `name`, `list` y `base`, crea `musica/<name>.json` y añádelo a la lista `SHELL` de `sw.js`.
 
 Cada fila del archivo:
 
@@ -31,7 +38,7 @@ Cada fila del archivo:
 - `cover` (opcional) y `lyrics` (opcional) funcionan igual que `src` y que en `tracks.json`.
 - `id` debe ser único y no cambiar nunca: favoritas, playlists propias e historial se guardan por `id`.
 
-Para sumar música: sube los MP3 al bucket (una carpeta por playlist), añade sus filas a `cloudflare-tracks.json` y vuelve a generar el catálogo (ver más abajo).
+Para sumar música: sube los MP3 al bucket (una carpeta por playlist), añade sus filas a la lista de ese bucket en `musica/` y vuelve a generar el catálogo (ver más abajo).
 
 ### Letras
 
@@ -51,7 +58,7 @@ Si `lyrics` está vacío, la app busca la letra automáticamente en [LRCLIB](htt
 python3 tools/build_catalog.py
 ```
 
-El script lee `cloudflare-tracks.json`, clasifica cada canción por artista (o por su playlist de origen), quita duplicados y arma las listas. Vuelve a ejecutarlo cada vez que añadas música.
+El script lee todas las listas de `musica/`, clasifica cada canción por artista (o por su playlist de origen), quita duplicados y arma las listas. Vuelve a ejecutarlo cada vez que añadas música.
 
 ## Transiciones DJ y estadísticas
 
@@ -69,7 +76,7 @@ El script lee `cloudflare-tracks.json`, clasifica cada canción por artista (o p
 
 ## Respaldo: tracks.json
 
-Si `cloudflare-tracks.json` no carga, la app usa `tracks.json`. Cada canción:
+Si no carga ninguna lista de `musica/`, la app usa `tracks.json`. Cada canción:
 
 ```json
 {

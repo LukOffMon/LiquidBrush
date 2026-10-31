@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Genera catalog.json: género de cada canción y las playlists de base de LiquidBrush.
 
-Lee las canciones de la misma lista que la app (cloudflare-tracks.json), asigna un género por artista (o por la playlist de origen)
+Lee las canciones de las mismas listas que la app (musica/*.json, una por bucket de R2), asigna un género por artista (o por la playlist de origen)
 y arma las playlists por género y las mezclas. Ejecútalo cada vez que se sume música:
 
     python3 tools/build_catalog.py
@@ -31,8 +31,9 @@ def norm(text):
 
 def load_tracks():
     tracks = []
-    for row in json.loads((ROOT / 'cloudflare-tracks.json').read_text()):
-        tracks.append({k: row[k] for k in ('title', 'artist', 'album', 'duration')} | {'id': f'cloudflare:{row["id"]}'})
+    for path in sorted((ROOT / 'musica').glob('*.json')):
+        for row in json.loads(path.read_text()):
+            tracks.append({k: row.get(k, '') for k in ('title', 'artist', 'album', 'duration')} | {'id': f'{path.stem}:{row["id"]}'})
     return tracks
 
 

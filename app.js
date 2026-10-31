@@ -6,15 +6,22 @@
 
   /* ---------- Configuración ---------- */
   const CONFIG = {
-    // Canciones guardadas en Cloudflare R2 (bucket liquidpepper4db). La lista vive en este
-    // repositorio: cada fila lleva "src" con la URL pública completa del MP3, o solo la ruta
-    // dentro del bucket si se rellena "base" con la URL pública (https://pub-….r2.dev).
-    // Si la lista falla, se usa tracks.json.
+    // Buckets de Cloudflare R2. Cada uno tiene su lista de canciones en musica/<name>.json
+    // (el nombre del archivo debe coincidir con "name": tools/build_catalog.py lo usa igual).
+    // En "src" basta con la ruta del MP3 dentro del bucket: se le pone delante "base".
+    // El "name" forma parte del id de cada canción: no cambiarlo una vez haya música.
+    // Si fallan todas las listas, se usa tracks.json.
     sources: [
       {
-        name: 'cloudflare',
-        list: 'cloudflare-tracks.json',
+        // Bucket liquidpepper4db
+        name: 'pepper',
+        list: 'musica/pepper.json',
         base: 'https://pub-cb798ce2901a49a6a6363d57fbd5ee19.r2.dev'
+      },
+      {
+        name: 'b05e',
+        list: 'musica/b05e.json',
+        base: 'https://pub-b05e243e7441423f9c4a25dfe8411da3.r2.dev'
       }
     ],
     tracksUrl: 'tracks.json',
