@@ -14,13 +14,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 COVER_IMAGES = 15  # covers/cover-01.jpg … cover-15.jpg se reparten al azar
-# Portadas elegidas a mano para una playlist concreta (covers/cover-16.jpg en adelante)
-FIXED_COVERS = {
-    'corazon-en-reparacion': 16,
-    'rimas-del-barrio': 17,
-    'vinilo-de-papa': 18,
-    'atardecer-en-la-costa': 19,
-}
+# Portadas elegidas a mano para una playlist concreta (covers/cover-16.jpg … cover-19.jpg, libres por ahora)
+FIXED_COVERS = {}
 ART_STYLES = ['orbits', 'stripes', 'waves', 'sun', 'rings', 'grid', 'bars', 'blobs', 'checker', 'dots', 'zigzag', 'eclipse']
 
 
@@ -106,19 +101,6 @@ def genre_of(track):
 
 
 # ---------- Playlists ----------
-SAD_ARTISTS = ['cigarettes after sex', 'radiohead', 'the smiths', 'tv girl', 'current joys', 'mac demarco', 'charles ans',
-               'adan cruz', 'gera mx', 'joji', 'the marias', 'vacations', 'rels b', 'xxxtentacion', 'sade',
-               'crowded house', 'no doubt', 'clairo', 'malcolm todd', 'mazzy star', 'portishead', 'lana del rey', 'jeff buckley', 'massive attack']
-SAD_TITLES = r'\b(ya no siento nada|te quiero mucho|amor como estas|corazon|triste|cry|creep|miserable|alone|careless)\b'
-DREAM_ARTISTS = ['tame impala', 'parcels', 'daft punk', 'robert miles', 'cigarettes after sex', 'pink floyd', 'whirr',
-                 'wisp', 'narrow head', 'flyingfish', 'l imperatrice', 'justice', 'night tapes', 'deftones', 'modjo',
-                 'stardust', 'sade', 'bo a', 'boa', 'cocteau twins', 'mazzy star', 'beach house', 'air', 'portishead',
-                 'massive attack', 'masayoshi takanaka', 'tomoko aran', 'kid loco', 'gorillaz', 'empire of the sun',
-                 'mild high club', 'cocteau twins']
-SUNNY_ARTISTS = ['sports', 'almost monday', 'parcels', 'balu brigada', 'wallows', 'bob marley', 'santana', 'rels b',
-                 'weezer', 'the cardigans', 'earth wind fire', 'kool the gang', 'foster the people', 'good neighbours',
-                 'c tangana', 'nelly furtado', 'jamiroquai', 'boney m', 'masayoshi takanaka', 'bruno mars', 'anri',
-                 'childish gambino', 'the marias', 'clairo', 'mac demarco', 'paul cherry', 'dominic fike']
 EXCLUDE_TITLES = r'reaccion|subscribe to the channel'
 
 
@@ -174,63 +156,8 @@ def main():
     rng = random.Random(2026)
     sec = lambda t: seconds(t['duration'])
 
-    neo = g('Neoperreo')
-    half = len(neo) // 2
-    playlists = [
-        ('perreo-subterraneo', 'Perreo Subterráneo', 'Neoperreo mexa y dembow del under: DENNALAPORRI, Doony Graff, EZYA, Yeyo y compañía. Volumen 1.', neo[:half]),
-        ('bellakeo-digital', 'Bellakeo Digital', 'La otra mitad del neoperreo: beats sucios, voces con autotune y perreo hasta el suelo. Volumen 2.', neo[half:]),
-        ('club-cibernetico', 'Club Cibernético', 'Club latino experimental: nusar3000, MJ Nebreda, Lila Sky, Cherry Chola y el sonido de la pista del futuro.', g('Club latino')),
-        ('reggaeton-de-oro', 'Reggaetón de Oro', 'Los clásicos del reggaetón que no envejecen: Ñengo Flow, Don Omar, Farruko, Zion, De La Ghetto.', g('Reggaetón clásico')),
-        ('trap-lunar', 'Trap Lunar', 'Trap latino para la madrugada: Yan Block, Omar Courtz, Myke Towers, Bryant Myers y más.', g('Trap latino')),
-        ('rimas-del-barrio', 'Rimas del Barrio', 'Rap en español con flow y letras: Cruzzi, Rels B, Charles Ans, C. Tangana, Trueno.', g('Rap en español', 'Hip hop')),
-        ('tokyo-headbang', 'Tokyo Headbang', 'Kawaii metal y rock japonés: BABYMETAL, Hanabie, ATARASHII GAKKO! y un toque de K-pop.', g('Kawaii metal & J-rock', 'K-pop')),
-        ('eurodance-eterno', 'Eurodance Eterno', 'Los himnos de pista de los 90 y 2000: Haddaway, Eiffel 65, Daft Punk, Robert Miles, Darude.', g('Eurodance')),
-        ('fiesta-y2k', 'Fiesta Y2K', 'Pop fiestero de los 2000: LMFAO, Nelly Furtado, Timbaland, Black Eyed Peas, Calvin Harris.', g('Pop Y2K')),
-        ('bola-de-espejos', 'Bola de Espejos', 'Disco, funk y groove para mover los hombros: Bee Gees, Michael Jackson, Jamiroquai, CHIC, Bruno Mars.', g('Disco & funk')),
-        ('rock-nacional-eterno', 'Rock Nacional Eterno', 'Lo mejor del rock argentino: Spinetta, Pescado Rabioso, Serú Girán, Charly García, los Redondos y Calamaro.', g('Rock argentino')),
-        ('vinilo-de-papa', 'Vinilo de Papá', 'Rock clásico de colección: Queen, Led Zeppelin, Santana, Fleetwood Mac, Deep Purple.', g('Rock clásico')),
-        ('seda-y-saxofon', 'Seda y Saxofón', 'Soul, soft rock y baladas elegantes: Sade, George Michael, Spandau Ballet, Bob Marley.', g('Soul & soft')),
-        ('grunge-def', 'Grunge-Def', 'Grunge, shoegaze y nu metal: Nirvana, Deftones, Chevelle, Whirr, Narrow Head.', g('Shoegaze & grunge')),
-        ('gritos-en-el-diario', 'Gritos en el Diario', 'Post-hardcore y emo para cantar a todo pulmón: Pierce The Veil, Sleeping With Sirens, Title Fight.', g('Post-hardcore & emo')),
-        ('lluvia-en-la-ventana', 'Lluvia en la Ventana', 'Alternativo melancólico: Radiohead, Cigarettes After Sex, The Smiths, TV Girl, The Cure.', g('Alternativo')),
-        ('martillo-sonico', 'Martillo Sónico', 'Metal sin piedad: Gojira, Mastodon, Slipknot, Megadeth, Death, Meshuggah.', g('Metal')),
-        ('humo-y-terciopelo', 'Humo y Terciopelo', 'Trip hop y dream pop: Portishead, Massive Attack, Cocteau Twins, Mazzy Star y Sade.', g('Trip hop & dream pop')),
-        ('tokio-1984', 'Tokio 1984', 'City pop japonés y jazz funk: Masayoshi Takanaka, Tomoko Aran, Anri, Kingo Hamada y Shakatak.', g('City pop & jazz funk')),
-        ('universo-marias', 'Universo Marías', 'Todo The Marías en un solo lugar, con sus colaboraciones con Bad Bunny, Cuco, Eyedress y más.',
-         [t for t in unique if has_artist(t, ['the marias'])]),
-        ('habitacion-rosa', 'Habitación Rosa', 'Bedroom pop para soñar despierto: PinkPantheress, Clairo, Malcolm Todd, Grimes, beabadoobee.', g('Bedroom pop')),
-        ('corriente-impala', 'Corriente Impala', 'Kevin Parker en estado puro: Tame Impala y sus colaboraciones con Justice, Gorillaz, Thundercat y ZHU.',
-         [t for t in unique if has_artist(t, ['tame impala']) or 'tame impala' in norm(t['title'])]),
-        ('neon-1984', 'Neón 1984', 'New wave y synth pop de los 80: Depeche Mode, New Order, Duran Duran, Tears For Fears, Billy Idol.', g('New wave & synth pop')),
-        ('cassette-perdido', 'Cassette Perdido', 'Lo-fi, soul raro y joyas escondidas de internet: Mild High Club, Mac DeMarco, Paul Cherry y rarezas sin nombre.', g('Lo-fi & joyas de internet')),
-        ('indie-argento', 'Indie Argento', 'La nueva escena argentina: Cisne Elocuente, Quemarlo Todo Por Error, Bandalos Chinos y joyas del under.', g('Indie argentino')),
-        ('verano-indie', 'Verano Indie', 'Indie pop soleado: Balu Brigada, Tame Impala, Sports, almost monday, Parcels.', g('Indie')),
-        # ---------- Mezclas ----------
-        ('manejando-3am', 'Manejando a las 3 AM', 'Mezcla nocturna para la carretera vacía: trap, alternativo, indie, shoegaze y rap suave.',
-         interleave([g('Trap latino'), g('Alternativo'), g('Indie'), g('Shoegaze & grunge'), g('Rap en español'), g('City pop & jazz funk')], 45, rng)),
-        ('modo-bestia', 'Modo Bestia', 'Para el gym o para romper cosas: metal, neoperreo duro, trap y eurodance a todo volumen.',
-         interleave([g('Metal'), g('Neoperreo'), g('Trap latino'), g('Eurodance'), g('Kawaii metal & J-rock')], 50, rng)),
-        ('corazon-en-reparacion', 'Corazón en Reparación', 'Canciones tristes de todos los géneros, del rap al shoegaze, para sanar despacio.',
-         interleave([[t for t in unique if has_artist(t, SAD_ARTISTS) or re.search(SAD_TITLES, norm(t['title']))]], 45, rng)),
-        ('fiesta-en-la-azotea', 'Fiesta en la Azotea', 'Perreo, reggaetón clásico, eurodance, disco y pop Y2K: la fiesta completa sin cambiar de lista.',
-         interleave([g('Neoperreo'), g('Reggaetón clásico'), g('Eurodance'), g('Pop Y2K'), g('Disco & funk'), g('Club latino')], 60, rng)),
-        ('domingo-con-resaca', 'Domingo con Resaca', 'Bajito y sin prisas: soul, indie, alternativo y rap tranquilo para el día después.',
-         interleave([g('Soul & soft'), g('Indie'), g('Alternativo'), g('Trip hop & dream pop'), [t for t in g('Rap en español') if has_artist(t, ['rels b', 'charles ans', 'adan cruz'])]], 40, rng)),
-        ('viaje-astral', 'Viaje Astral', 'Psicodelia, dream pop y electrónica flotante: Tame Impala, Parcels, Daft Punk, Robert Miles, shoegaze.',
-         interleave([[t for t in unique if has_artist(t, DREAM_ARTISTS) and sec(t) < 1200]], 40, rng)),
-        ('atardecer-en-la-costa', 'Atardecer en la Costa', 'Sol, arena y buena onda: indie soleado, clásicos, Santana, Bob Marley y algo de rap suave.',
-         interleave([[t for t in unique if has_artist(t, SUNNY_ARTISTS)]], 40, rng)),
-        ('caos-bonito', 'Caos Bonito', 'Un género distinto en cada canción: del metal al disco y del perreo al shoegaze. Para valientes.',
-         interleave([v for k, v in sorted(by_genre.items())], 60, rng)),
-        ('cafe-a-medianoche', 'Café a Medianoche', 'Trip hop, city pop, soul y jazz para la madrugada tranquila, con una taza en la mano.',
-         interleave([g('Trip hop & dream pop'), g('City pop & jazz funk'), g('Soul & soft')], 40, rng)),
-        ('ruleta-rusa', 'Ruleta Rusa', 'Una selección al azar de toda la biblioteca. Dale play sin mirar.',
-         rng.sample(unique, min(50, len(unique)))),
-        ('joyitas-express', 'Joyitas Express', 'Puras canciones de menos de 2:30. Ideal para cuando hay poco tiempo.',
-         interleave([[t for t in unique if 0 < sec(t) <= 150]], 50, rng)),
-        ('epicas-6-minutos', 'Épicas de +6 Minutos', 'Canciones largas para perderse: solos, viajes y finales eternos.',
-         sorted([t for t in unique if 360 <= sec(t) < 1200], key=sec, reverse=True)[:40]),
-    ]
+    # Playlists de base: (id, nombre, descripción, canciones). Vacío hasta que vuelva a haber música.
+    playlists = []
 
     order = [i for i, p in enumerate(playlists) if p[0] not in FIXED_COVERS]
     rng.shuffle(order)
