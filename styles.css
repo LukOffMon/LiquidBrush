@@ -778,109 +778,6 @@ body.is-playing .cover-wrap {
   text-shadow: var(--text-glow);
 }
 
-/* ---------- Comentarios con marca de tiempo ---------- */
-.comments-body {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 0 16px 16px;
-}
-
-.comments-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.comment-item {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 2px 10px;
-  width: 100%;
-  padding: 8px 10px;
-  border: 0;
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--text) 5%, transparent);
-  color: var(--text);
-  text-align: left;
-  cursor: pointer;
-}
-
-.comment-item:hover {
-  background: var(--surface-hover);
-}
-
-.comment-time {
-  grid-row: span 2;
-  align-self: start;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--accent) 22%, transparent);
-  color: var(--accent);
-  font-size: 0.75rem;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-}
-
-.comment-text {
-  font-size: 0.875rem;
-  overflow-wrap: anywhere;
-}
-
-.comment-by {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-}
-
-.comments-empty,
-.comments-note {
-  margin: 0;
-  font-size: 0.78rem;
-  color: var(--text-muted);
-}
-
-.comment-form {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.comment-row {
-  display: flex;
-  gap: 6px;
-}
-
-.comment-form input {
-  min-width: 0;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface-2);
-  color: var(--text);
-  outline: none;
-}
-
-.comment-row input {
-  flex: 1;
-}
-
-.comment-author {
-  max-width: 220px;
-  font-size: 0.8rem;
-}
-
-.comment-form input:focus {
-  border-color: var(--accent);
-}
-
-.comment-form .btn:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
 .progress-wrap {
   position: relative;
   flex: 1;
@@ -891,52 +788,6 @@ body.is-playing .cover-wrap {
 
 .progress-wrap .progress {
   width: 100%;
-}
-
-.comment-marks {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.comment-mark {
-  position: absolute;
-  top: -3px;
-  width: 6px;
-  height: 6px;
-  margin-left: -3px;
-  border-radius: 50%;
-  background: var(--heart);
-  box-shadow: 0 0 6px var(--heart);
-}
-
-.comment-bubble {
-  position: fixed;
-  left: 50%;
-  bottom: calc(230px + env(safe-area-inset-bottom));
-  z-index: 31;
-  max-width: min(90vw, 460px);
-  padding: 10px 16px;
-  border-radius: 16px 16px 16px 4px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  color: var(--text);
-  font-size: 0.9rem;
-  box-shadow: var(--shadow);
-  transform: translate(-50%, 12px);
-  opacity: 0;
-  transition: opacity 0.3s, transform 0.3s;
-}
-
-.comment-bubble.is-visible {
-  opacity: 1;
-  transform: translate(-50%, 0);
-}
-
-@media (max-width: 640px) {
-  .comment-bubble {
-    bottom: calc(160px + env(safe-area-inset-bottom));
-  }
 }
 
 /* ---------- Stats ---------- */
@@ -1562,11 +1413,6 @@ button.bar-row:hover {
 
 .pl-kind-local {
   background: color-mix(in srgb, #ffe27a 22%, transparent);
-  color: var(--text);
-}
-
-.pl-kind-shared {
-  background: color-mix(in srgb, #3ddc97 22%, transparent);
   color: var(--text);
 }
 
@@ -2677,8 +2523,6 @@ body.is-playing .cover-wrap {
 .top-song-text,
 .recent-title,
 .recent-artist,
-.comment-text,
-.comment-by,
 input,
 textarea {
   font-synthesis: weight;
@@ -2695,8 +2539,6 @@ textarea {
 .top-song-meta,
 .recent-title,
 .recent-artist,
-.comment-text,
-.comment-by,
 .top-song-text,
 input,
 textarea {

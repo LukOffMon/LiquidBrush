@@ -1,12 +1,12 @@
 /* =========================================================
    LiquidBrush — service worker (modo offline)
    - La app (HTML, CSS, JS, logo) se guarda para abrir sin conexión.
-   - Las listas de canciones de Supabase se sirven desde la red y,
-     sin conexión, desde la última copia guardada.
+   - La lista de canciones se sirve desde la red y, sin conexión,
+     desde la última copia guardada.
    - Los MP3 descargados desde la app viven en AUDIO_CACHE y se
      reproducen desde ahí (con soporte de rangos para poder adelantar).
    ========================================================= */
-const VERSION = 'v16';
+const VERSION = 'v17';
 const SHELL_CACHE = `liquidbrush-shell-${VERSION}`;
 const DATA_CACHE = 'liquidbrush-data';
 const AUDIO_CACHE = 'liquidbrush-audio';
@@ -14,8 +14,8 @@ const AUDIO_CACHE = 'liquidbrush-audio';
 const SHELL = [
   './',
   'index.html',
-  'styles.css?v=11',
-  'app.js?v=11',
+  'styles.css?v=12',
+  'app.js?v=12',
   'favicon.png',
   'manifest.webmanifest',
   'apple-touch-icon.png',
@@ -133,11 +133,6 @@ self.addEventListener('fetch', (event) => {
 
   if (url.origin === self.location.origin) {
     event.respondWith(networkFirst(request, SHELL_CACHE, true));
-    return;
-  }
-
-  if (url.pathname.includes('/rest/v1/')) {
-    event.respondWith(networkFirst(request, DATA_CACHE));
     return;
   }
 

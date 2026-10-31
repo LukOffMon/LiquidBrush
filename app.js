@@ -6,30 +6,15 @@
 
   /* ---------- Configuración ---------- */
   const CONFIG = {
-    // Proyectos de Supabase de los que se leen canciones (tabla "tracks" de cada uno).
-    // Si todos fallan, se usa tracks.json. Las claves publicables son seguras en el
-    // navegador: las tablas solo permiten leer (RLS).
-    // En "src" y "cover" basta con poner el nombre del archivo subido al bucket del proyecto.
+    // Canciones guardadas en Cloudflare R2 (bucket liquidpepper4db). La lista vive en este
+    // repositorio: cada fila lleva "src" con la URL pública completa del MP3, o solo la ruta
+    // dentro del bucket si se rellena "base" con la URL pública (https://pub-….r2.dev).
+    // Si la lista falla, se usa tracks.json.
     sources: [
       {
-        name: 'principal',
-        url: 'https://kvylexeicpvjrvhpizsz.supabase.co',
-        key: 'sb_publishable__E4pzkc1jZe8u9UtpWglHg_Z9KFYPso',
-        table: 'tracks',
-        bucket: 'loopmusik-audio'
-      },
-      {
-        name: 'extra',
-        url: 'https://pikoruycbgwjrxqxaajl.supabase.co',
-        key: 'sb_publishable_lraxIbb_tQtXr7y-yAa15Q_OqWrDmUN',
-        table: 'tracks',
-        bucket: 'LiquidBrush2DB'
-      },
-      {
-        // Canciones guardadas en Cloudflare R2: la lista vive en este repositorio
-        // (no ocupa espacio en Supabase) y "src" lleva la URL completa del MP3
         name: 'cloudflare',
-        list: 'cloudflare-tracks.json'
+        list: 'cloudflare-tracks.json',
+        base: ''
       }
     ],
     tracksUrl: 'tracks.json',
@@ -54,8 +39,6 @@
     plays: 'liquidbrush:plays',
     sort: 'liquidbrush:sort',
     view: 'liquidbrush:view',
-    setKey: 'liquidbrush:setkey',
-    author: 'liquidbrush:author',
     dj: 'liquidbrush:dj',
     djFade: 'liquidbrush:djfade',
     listen: 'liquidbrush:listen',
@@ -180,15 +163,6 @@
     wallMode: $('wallMode'),
     wallGrid: $('wallGrid'),
     wallAlive: $('wallAlive'),
-    commentsCount: $('commentsCount'),
-    commentsList: $('commentsList'),
-    commentForm: $('commentForm'),
-    commentAuthor: $('commentAuthor'),
-    commentText: $('commentText'),
-    commentSubmit: $('commentSubmit'),
-    commentsNote: $('commentsNote'),
-    commentMarks: $('commentMarks'),
-    commentBubble: $('commentBubble'),
     djToggle: $('djToggle'),
     djFade: $('djFade'),
     djBtn: $('djBtn'),
@@ -217,10 +191,6 @@
     trackList: $('trackList'),
     library: document.querySelector('.library'),
     npAddBtn: $('npAddBtn'),
-    keyDialog: $('keyDialog'),
-    keyMessage: $('keyMessage'),
-    keyInput: $('keyInput'),
-    keyRemember: $('keyRemember'),
     plDialog: $('plDialog'),
     plDialogTitle: $('plDialogTitle'),
     plName: $('plName'),
@@ -412,28 +382,18 @@
   }
 
   /* ---------- Carga de datos ---------- */
-  // Convierte "cancion.mp3" en la URL pública del bucket; las URLs completas se dejan igual
+  // Convierte "carpeta/cancion.mp3" en la URL pública del bucket; las URLs completas se dejan igual
   function resolveMediaUrl(path, source = CONFIG.sources[0]) {
     const value = typeof path === 'string' ? path.trim() : '';
-    const { url, bucket } = source || {};
-    if (!value || /^(https?:|data:|blob:)/i.test(value) || !url || !bucket) return value;
+    const base = (source?.base || '').replace(/\/+$/, '');
+    if (!value || /^(https?:|data:|blob:)/i.test(value) || !base) return value;
     const cleanPath = value.replace(/^\/+/, '').split('/').map(encodeURIComponent).join('/');
-    return `${url}/storage/v1/object/public/${bucket}/${cleanPath}`;
+    return `${base}/${cleanPath}`;
   }
 
   async function fetchFromList(source) {
-    const response = await fetch(source.list);
+    const response = await fetch(source.list, { cache: 'no-cache' });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const rows = await response.json();
-    return rows.map((row) => ({ ...row, source }));
-  }
-
-  async function fetchFromSupabase(source) {
-    if (source.list) return fetchFromList(source);
-    const { url, key, table } = source;
-    const endpoint = `${url}/rest/v1/${table}?select=*&order=position.asc,id.asc`;
-    const response = await fetch(endpoint, { headers: { apikey: key }, cache: 'no-cache' });
-    if (!response.ok) throw new Error(`Supabase HTTP ${response.status}`);
     const rows = await response.json();
     return rows.map((row) => ({ ...row, source }));
   }
@@ -444,9 +404,9 @@
     return response.json();
   }
 
-  // Lee todos los proyectos en paralelo; uno caído no impide mostrar los demás
+  // Lee todas las listas en paralelo; una caída no impide mostrar las demás
   async function fetchTrackData() {
-    const results = await Promise.allSettled(CONFIG.sources.map(fetchFromSupabase));
+    const results = await Promise.allSettled(CONFIG.sources.map(fetchFromList));
     const rows = [];
     let anyOk = false;
     results.forEach((result, i) => {
@@ -454,11 +414,11 @@
         anyOk = true;
         rows.push(...result.value);
       } else {
-        console.warn(`[LiquidBrush] Supabase "${CONFIG.sources[i].name}" no disponible.`, result.reason);
+        console.warn(`[LiquidBrush] Lista "${CONFIG.sources[i].name}" no disponible.`, result.reason);
       }
     });
     if (anyOk) return rows;
-    console.warn('[LiquidBrush] Ningún proyecto de Supabase respondió, se usa tracks.json.');
+    console.warn('[LiquidBrush] Ninguna lista respondió, se usa tracks.json.');
     return fetchFromJson();
   }
 
@@ -474,8 +434,7 @@
     let art = null;
     const getArt = () => (art ||= generateArt(seed));
     return {
-      // Los ids del proyecto principal no llevan prefijo (conserva los favoritos guardados)
-      id: source === CONFIG.sources[0] ? rawId : `${source.name}:${rawId}`,
+      id: `${source.name}:${rawId}`,
       title,
       // Sin artista se muestra el nombre de la playlist
       artist: t.artist || album || 'Artista desconocido',
@@ -518,6 +477,14 @@
     });
   }
 
+  // Identifica la canción (no la copia): la misma canción puede estar repetida con ids distintos
+  function songKey(track) {
+    const slug = (text) => normalize(String(text || '').replace(/\(.*?\)|\[.*?\]/g, ''))
+      .replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '');
+    const title = slug(track.title) || track.id;
+    return `song:${title}~${slug(mainArtist(track))}`.slice(0, 120);
+  }
+
   async function applyTrackData(data) {
     const previousId = state.currentTrack?.id;
     state.tracks = data.filter((t) => t && typeof t.src === 'string' && t.src.trim()).map(buildTrack);
@@ -525,7 +492,7 @@
     applyAliases(library.catalog?.aliases);
     state.tracks.forEach((t) => {
       t.genre = library.catalog?.genres?.[t.id] || '';
-      t.songKey = commentKey(t);
+      t.songKey = songKey(t);
     });
     // La Biblioteca muestra una sola copia de cada canción (algunas están en varias fuentes)
     const seenSongs = new Set();
@@ -560,7 +527,6 @@
         const cached = JSON.parse(cachedRaw);
         if (Array.isArray(cached.rows) && cached.rows.length) {
           library.catalog = cached.catalog || null;
-          library.shared = Array.isArray(cached.shared) ? cached.shared : [];
           await applyTrackData(cached.rows);
           shown = true;
         }
@@ -571,10 +537,10 @@
     if (!shown) els.listInfo.textContent = 'Cargando canciones…';
 
     try {
-      const [data] = await Promise.all([fetchTrackData(), loadSharedPlaylists(), loadCatalog()]);
+      const [data] = await Promise.all([fetchTrackData(), loadCatalog()]);
       if (!Array.isArray(data)) throw new Error('La lista de canciones debe ser un array');
       const rows = data.map(({ source, ...rest }) => (source ? { ...rest, sourceName: source.name } : rest));
-      const fresh = JSON.stringify({ rows, catalog: library.catalog, shared: library.shared });
+      const fresh = JSON.stringify({ rows, catalog: library.catalog });
       if (fresh === cachedRaw) return;
       await applyTrackData(rows);
       try { localStorage.setItem(KEYS.libraryCache, fresh); } catch { /* sin espacio: se descargará la próxima vez */ }
@@ -799,8 +765,7 @@
   }
 
   /* ---------- Playlists ---------- */
-  // Oficiales: las de la base de datos (una por "album").
-  // Guardadas para todos: creadas en la app con la KeyForSet (tabla shared_playlists).
+  // Oficiales: las del catálogo (o una por "album").
   // Mías: solo en este navegador (localStorage). Automáticas: recientes y más escuchadas.
   const PLAYLIST_EMOJIS = ['💿', '🎧', '🔥', '🌙', '🫧', '🪩', '💜', '🖤', '🌈', '⚡', '🍒', '👁️', '🦋', '🌊', '🧠', '✨',
     ...WALLPAPERS.map((w) => `art:${w.id}`)];
@@ -819,7 +784,6 @@
 
   const library = {
     catalog: null,
-    shared: [],
     local: [],
     recent: [],
     plays: {},
@@ -844,7 +808,7 @@
         cover: p.cover || null, trackIds: Array.isArray(p.trackIds) ? p.trackIds : []
       }));
     }
-    // Sin catálogo: una playlist por cada "album" de la base de datos
+    // Sin catálogo: una playlist por cada "album" de la lista de canciones
     const groups = new Map();
     state.tracks.forEach((t) => {
       if (!t.album) return;
@@ -854,17 +818,10 @@
     return [...groups].map(([name, trackIds]) => ({ key: `sys:${name}`, kind: 'system', name, trackIds }));
   }
 
-  function sharedPlaylists() {
-    return library.shared.map((p) => ({
-      key: `shared:${p.id}`, kind: 'shared', id: p.id, name: p.name,
-      emoji: p.emoji, color: p.color, trackIds: Array.isArray(p.track_ids) ? p.track_ids : []
-    }));
-  }
-
   function localPlaylists() {
     return library.local.map((p) => ({
       key: `local:${p.id}`, kind: 'local', id: p.id, name: p.name,
-      emoji: p.emoji, color: p.color, trackIds: p.trackIds, sharedId: p.sharedId || null
+      emoji: p.emoji, color: p.color, trackIds: p.trackIds
     }));
   }
 
@@ -883,7 +840,7 @@
   function getPlaylist(key) {
     if (!key) return null;
     const [kind] = key.split(':');
-    const list = { sys: systemPlaylists, shared: sharedPlaylists, local: localPlaylists, auto: autoPlaylists }[kind];
+    const list = { sys: systemPlaylists, local: localPlaylists, auto: autoPlaylists }[kind];
     return list ? list().find((p) => p.key === key) || null : null;
   }
 
@@ -963,123 +920,12 @@
     return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
   }
 
-  /* ---------- Playlists guardadas para todos (Supabase + KeyForSet) ---------- */
-  // Viven en el proyecto principal. La clave nunca está en el código: Supabase la comprueba.
-  const SHARED_DB = CONFIG.sources[0];
-
-  async function loadSharedPlaylists() {
-    try {
-      const response = await fetch(`${SHARED_DB.url}/rest/v1/shared_playlists?select=*&hidden=eq.false&order=created_at.asc`, {
-        headers: { apikey: SHARED_DB.key },
-        cache: 'no-cache'
-      });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      library.shared = await response.json();
-    } catch (error) {
-      console.warn('[LiquidBrush] No se pudieron cargar las playlists guardadas para todos.', error);
-    }
-  }
-
-  async function supabaseRpc(fn, body) {
-    const response = await fetch(`${SHARED_DB.url}/rest/v1/rpc/${fn}`, {
-      method: 'POST',
-      headers: { apikey: SHARED_DB.key, 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-    const text = await response.text();
-    if (!response.ok) {
-      let message = '';
-      try { message = JSON.parse(text).message || ''; } catch { /* respuesta sin JSON */ }
-      const error = new Error(message || `HTTP ${response.status}`);
-      error.status = response.status;
-      throw error;
-    }
-    return text ? JSON.parse(text) : null;
-  }
-
-  function readSessionKey() {
-    try { return sessionStorage.getItem(KEYS.setKey) || ''; } catch { return ''; }
-  }
-
-  function writeSessionKey(value) {
-    try {
-      if (value) sessionStorage.setItem(KEYS.setKey, value);
-      else sessionStorage.removeItem(KEYS.setKey);
-    } catch { /* sin sessionStorage */ }
-  }
-
   function openDialog(dialog) {
     return new Promise((resolve) => {
       dialog.returnValue = '';
       dialog.addEventListener('close', () => resolve(dialog.returnValue), { once: true });
       dialog.showModal();
     });
-  }
-
-  async function askKey(message) {
-    const remembered = readSessionKey();
-    if (remembered) return remembered;
-    els.keyMessage.textContent = message;
-    els.keyInput.value = '';
-    const result = await openDialog(els.keyDialog);
-    const value = els.keyInput.value;
-    els.keyInput.value = '';
-    if (result !== 'ok' || !value) return null;
-    if (els.keyRemember.checked) writeSessionKey(value);
-    return value;
-  }
-
-  function handleKeyError(error) {
-    if (error.message === 'clave_incorrecta') {
-      writeSessionKey('');
-      showToast('KeyForSet incorrecta. No se guardó nada.');
-    } else if (error.message === 'demasiados_intentos') {
-      writeSessionKey('');
-      showToast('Demasiados intentos fallidos. Espera 10 minutos y vuelve a probar.');
-    } else if (error.status === 404) {
-      showToast('El guardado para todos aún no está activado en Supabase.');
-    } else {
-      console.error('[LiquidBrush] Error al guardar para todos:', error);
-      showToast(navigator.onLine ? 'No se pudo guardar. Inténtalo de nuevo.' : 'Sin conexión: conéctate para guardar para todos.');
-    }
-  }
-
-  async function sharePlaylist(pl) {
-    if (!pl.trackIds.length) {
-      showToast('La playlist está vacía: añade canciones antes de guardarla.');
-      return;
-    }
-    const verb = pl.sharedId ? 'Actualizar' : 'Guardar';
-    const key = await askKey(`${verb} «${pl.name}» para todos. Quedará en la base de datos y la verá cualquiera que abra LiquidBrush, en cualquier dispositivo.`);
-    if (!key) return;
-    try {
-      const id = await supabaseRpc('save_shared_playlist', {
-        p_key: key, p_id: pl.sharedId, p_name: pl.name,
-        p_emoji: pl.emoji || '', p_color: pl.color || '', p_track_ids: pl.trackIds
-      });
-      // Ya no es temporal: la copia local deja de hacer falta
-      library.local = library.local.filter((p) => p.id !== pl.id);
-      saveLocalPlaylists();
-      await loadSharedPlaylists();
-      openPlaylist(`shared:${id}`);
-      showToast(`«${pl.name}» guardada para todos.`);
-    } catch (error) {
-      handleKeyError(error);
-    }
-  }
-
-  async function deleteSharedPlaylist(pl) {
-    if (!confirm(`¿Eliminar «${pl.name}» para todos? Desaparecerá en todos los dispositivos.`)) return;
-    const key = await askKey(`Eliminar «${pl.name}» para todos.`);
-    if (!key) return;
-    try {
-      await supabaseRpc('hide_shared_playlist', { p_key: key, p_id: pl.id });
-      await loadSharedPlaylists();
-      setView('playlists');
-      showToast(`«${pl.name}» eliminada para todos.`);
-    } catch (error) {
-      handleKeyError(error);
-    }
   }
 
   /* ---------- Mis playlists (solo en este navegador) ---------- */
@@ -1123,7 +969,7 @@
   async function createPlaylist(initialTrackIds = []) {
     const data = await editPlaylistDialog(null);
     if (!data) return null;
-    const playlist = { id: newId(), ...data, trackIds: [...new Set(initialTrackIds)], sharedId: null, createdAt: Date.now() };
+    const playlist = { id: newId(), ...data, trackIds: [...new Set(initialTrackIds)], createdAt: Date.now() };
     library.local.push(playlist);
     saveLocalPlaylists();
     return playlist;
@@ -1148,22 +994,19 @@
     showToast(`«${playlist.name}» eliminada.`);
   }
 
-  function copyToLocal(pl, linkShared = false) {
+  function copyToLocal(pl) {
     const playlist = {
       id: newId(),
-      name: linkShared ? pl.name : `${pl.name} (mía)`.slice(0, 60),
+      name: `${pl.name} (mía)`.slice(0, 60),
       emoji: pl.emoji || '💿',
       color: pl.color || PLAYLIST_COLORS[Math.floor(Math.random() * PLAYLIST_COLORS.length)],
       trackIds: playlistTracksOf(pl).map((t) => t.id),
-      sharedId: linkShared ? pl.id : null,
       createdAt: Date.now()
     };
     library.local.push(playlist);
     saveLocalPlaylists();
     openPlaylist(`local:${playlist.id}`);
-    showToast(linkShared
-      ? 'Copia lista para editar. Cuando termines, pulsa «Actualizar para todos».'
-      : `Copiada a tus playlists: «${playlist.name}».`);
+    showToast(`Copiada a tus playlists: «${playlist.name}».`);
   }
 
   function addToLocal(id, trackId) {
@@ -1260,7 +1103,6 @@
           emoji: typeof p.emoji === 'string' ? p.emoji.slice(0, 16) : '💿',
           color: /^#[0-9a-f]{6}$/i.test(p.color) ? p.color : PLAYLIST_COLORS[0],
           trackIds: p.trackIds.map(String),
-          sharedId: p.sharedId || null,
           createdAt: p.createdAt || Date.now()
         });
         added++;
@@ -1275,170 +1117,6 @@
     } catch (error) {
       console.warn('[LiquidBrush] No se pudo importar:', error);
       showToast('Ese archivo no es una copia de seguridad de LiquidBrush.');
-    }
-  }
-
-  /* ---------- Comentarios con marca de tiempo ---------- */
-  // Compartidos en Supabase (tabla track_comments): máximo 5 por canción y se reinician
-  // cada lunes (UTC). Solo se pueden añadir con la función add_track_comment.
-  const COMMENT_LIMIT = 5;
-  const COMMENT_REFRESH_MS = 25000;
-  const comments = { trackId: null, key: null, list: [], shown: new Set(), lastTime: 0, lastLabel: '', timer: null };
-
-  // Los comentarios son de la canción, no de la copia: la misma canción puede estar en varias
-  // fuentes (con ids distintos) y todos deben ver los mismos comentarios.
-  function commentKey(track) {
-    const slug = (text) => normalize(String(text || '').replace(/\(.*?\)|\[.*?\]/g, ''))
-      .replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '');
-    const title = slug(track.title) || track.id;
-    return `song:${title}~${slug(mainArtist(track))}`.slice(0, 120);
-  }
-  let bubbleTimer = null;
-
-  function nextCommentReset() {
-    const now = new Date();
-    const days = ((8 - now.getUTCDay()) % 7) || 7;
-    const reset = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + days));
-    return reset.toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' });
-  }
-
-  async function loadComments(track, { quiet = false } = {}) {
-    const key = commentKey(track);
-    if (!quiet) {
-      comments.trackId = track.id;
-      comments.key = key;
-      comments.list = [];
-      comments.shown.clear();
-      comments.lastTime = 0;
-      renderComments();
-    }
-    try {
-      const response = await fetch(
-        `${SHARED_DB.url}/rest/v1/track_comments?select=id,at_seconds,body,author&track_id=eq.${encodeURIComponent(key)}&order=at_seconds.asc`,
-        { headers: { apikey: SHARED_DB.key }, cache: 'no-store' }
-      );
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const rows = await response.json();
-      if (comments.key !== key) return;
-      const changed = rows.length !== comments.list.length || rows.some((r, i) => r.id !== comments.list[i]?.id);
-      comments.list = rows;
-      if (changed || !quiet) renderComments();
-    } catch (error) {
-      console.warn('[LiquidBrush] No se pudieron cargar los comentarios.', error);
-      if (!quiet && comments.key === key) {
-        els.commentsNote.textContent = navigator.onLine
-          ? 'No se pudieron cargar los comentarios. Se reintentará en unos segundos.'
-          : 'Sin conexión: los comentarios no están disponibles.';
-      }
-    }
-  }
-
-  // Mientras la app está a la vista se buscan comentarios nuevos de otras personas
-  function scheduleCommentRefresh() {
-    clearInterval(comments.timer);
-    comments.timer = setInterval(() => {
-      if (document.hidden || !state.currentTrack || !navigator.onLine) return;
-      loadComments(state.currentTrack, { quiet: true });
-    }, COMMENT_REFRESH_MS);
-  }
-
-  function renderCommentMarks() {
-    const duration = getDuration();
-    els.commentMarks.replaceChildren(...(duration ? comments.list.map((c) => {
-      const mark = makeEl('span', 'comment-mark');
-      mark.style.left = `${clamp((c.at_seconds / duration) * 100, 0, 100)}%`;
-      mark.title = `${formatTime(c.at_seconds)} · ${c.body}`;
-      return mark;
-    }) : []));
-  }
-
-  function renderComments() {
-    const count = comments.list.length;
-    const full = count >= COMMENT_LIMIT;
-    els.commentsCount.textContent = `${count}/${COMMENT_LIMIT}`;
-    els.commentsList.replaceChildren(...comments.list.map((c) => {
-      const li = document.createElement('li');
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'comment-item';
-      button.dataset.at = String(c.at_seconds);
-      button.setAttribute('aria-label', `Ir a ${formatTime(c.at_seconds)}: ${c.body}`);
-      const time = makeEl('span', 'comment-time', formatTime(c.at_seconds));
-      const text = makeEl('span', 'comment-text', c.body);
-      button.append(time, text);
-      if (c.author) button.append(makeEl('span', 'comment-by', c.author));
-      li.append(button);
-      return li;
-    }));
-    if (!count) els.commentsList.append(makeEl('li', 'comments-empty', state.currentTrack
-      ? 'Nadie ha comentado esta canción esta semana. ¡Sé el primero!'
-      : 'Elige una canción para ver sus comentarios.'));
-    const disabled = full || !state.currentTrack;
-    els.commentText.disabled = disabled;
-    els.commentSubmit.disabled = disabled;
-    els.commentsNote.textContent = full
-      ? `Esta canción ya tiene ${COMMENT_LIMIT} comentarios esta semana. Se reinician el ${nextCommentReset()}.`
-      : `Máximo ${COMMENT_LIMIT} por canción. Todos se reinician cada semana (el próximo ${nextCommentReset()}).`;
-    renderCommentMarks();
-  }
-
-  function updateCommentButton(time) {
-    const label = `En ${formatTime(time)}`;
-    if (label !== comments.lastLabel) {
-      comments.lastLabel = label;
-      els.commentSubmit.textContent = label;
-    }
-  }
-
-  // Muestra el comentario cuando la canción pasa por su segundo
-  function checkCommentBubble(time) {
-    const previous = comments.lastTime;
-    comments.lastTime = time;
-    if (time < previous || time - previous > 2) return;
-    const hit = comments.list.find((c) => c.at_seconds > previous && c.at_seconds <= time && !comments.shown.has(c.id));
-    if (!hit) return;
-    comments.shown.add(hit.id);
-    els.commentBubble.textContent = `💬 ${formatTime(hit.at_seconds)} · ${hit.body}${hit.author ? ` — ${hit.author}` : ''}`;
-    els.commentBubble.hidden = false;
-    els.commentBubble.classList.add('is-visible');
-    clearTimeout(bubbleTimer);
-    bubbleTimer = setTimeout(() => {
-      els.commentBubble.classList.remove('is-visible');
-      setTimeout(() => { els.commentBubble.hidden = true; }, 300);
-    }, 4500);
-  }
-
-  async function submitComment() {
-    const track = state.currentTrack;
-    const body = els.commentText.value.trim();
-    if (!track || !body) return;
-    const author = els.commentAuthor.value.trim().slice(0, 24);
-    storage.set(KEYS.author, author);
-    els.commentSubmit.disabled = true;
-    try {
-      const row = await supabaseRpc('add_track_comment', {
-        p_track_id: commentKey(track),
-        p_at: Math.floor(els.audio.currentTime || 0),
-        p_body: body,
-        p_author: author
-      });
-      if (comments.key === commentKey(track) && row) {
-        comments.list = [...comments.list, row].sort((a, b) => a.at_seconds - b.at_seconds);
-        comments.shown.add(row.id);
-      }
-      els.commentText.value = '';
-      showToast(`Comentario publicado en ${formatTime(row?.at_seconds || 0)}.`);
-    } catch (error) {
-      if (error.message === 'limite_comentarios') {
-        showToast(`Esta canción ya llegó a ${COMMENT_LIMIT} comentarios esta semana.`);
-        loadComments(track);
-        return;
-      }
-      showToast(error.message === 'demasiados_comentarios'
-        ? 'Hay muchos comentarios ahora mismo. Prueba en un minuto.'
-        : navigator.onLine ? 'No se pudo publicar el comentario.' : 'Sin conexión: no se puede comentar.');
-    } finally {
-      renderComments();
     }
   }
 
@@ -1945,7 +1623,6 @@
 
   const KIND_LABELS = {
     system: 'Playlist de LiquidBrush',
-    shared: 'Guardada para todos',
     local: 'Solo en este dispositivo',
     auto: 'Automática'
   };
@@ -2037,15 +1714,8 @@
     actions.append(pin);
     if (pl.kind === 'local') {
       actions.append(
-        makeButton('btn btn-primary', 'share-playlist', 'Guardar para todos con la KeyForSet', 'key', pl.sharedId ? 'Actualizar para todos' : 'Guardar para todos'),
         makeButton('icon-btn', 'edit-playlist', 'Cambiar nombre, icono o color', 'edit'),
         makeButton('icon-btn', 'delete-playlist', 'Eliminar de este dispositivo', 'delete')
-      );
-    } else if (pl.kind === 'shared') {
-      actions.append(
-        makeButton('btn', 'copy-shared', 'Hacer una copia para editarla', 'edit', 'Editar'),
-        makeButton('icon-btn', 'copy-playlist', 'Copiar a mis playlists', 'playlist-add'),
-        makeButton('icon-btn', 'delete-shared', 'Eliminar para todos (pide la KeyForSet)', 'delete')
       );
     } else {
       actions.append(makeButton('btn', 'copy-playlist', 'Copiar a mis playlists', 'playlist-add', 'Copiar a mis playlists'));
@@ -2054,9 +1724,7 @@
     wrap.append(back, header, actions);
 
     if (pl.kind === 'local') {
-      wrap.append(makeEl('p', 'pl-note', pl.sharedId
-        ? 'Copia temporal de una playlist guardada para todos. Pulsa «Actualizar para todos» (pide la KeyForSet) para publicar tus cambios.'
-        : 'Esta playlist vive solo en este navegador: si borras la caché o los datos del sitio, se pierde. Pulsa «Guardar para todos» (pide la KeyForSet) para guardarla en la base de datos, o descarga una copia de seguridad desde Playlists.'));
+      wrap.append(makeEl('p', 'pl-note', 'Esta playlist vive solo en este navegador: si borras la caché o los datos del sitio, se pierde. Descarga una copia de seguridad desde Playlists para no perderla.'));
     }
     return wrap;
   }
@@ -2074,8 +1742,6 @@
     if (pl.description) text.append(makeEl('span', 'pl-card-desc', pl.description));
     text.append(makeEl('span', 'pl-card-meta', songsLabel(count)));
     card.append(playlistCover(pl, 160), text);
-    if (pl.kind === 'shared') card.append(makeEl('span', 'pl-badge', 'Para todos'));
-    if (pl.sharedId) card.append(makeEl('span', 'pl-badge', 'Editando'));
     if (isPinned(pl.key)) {
       const pin = makeEl('span', 'pl-pin');
       pin.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-pin"></use></svg>';
@@ -2254,7 +1920,7 @@
   /* ---------- Playlists que coinciden con la búsqueda ---------- */
   function renderSearchPlaylists(q) {
     const matches = q
-      ? [...pinnedFirst([...systemPlaylists(), ...sharedPlaylists(), ...localPlaylists()])]
+      ? [...pinnedFirst([...systemPlaylists(), ...localPlaylists()])]
         .filter((pl) => normalize(`${pl.name} ${pl.description || ''}`).includes(q))
         .slice(0, 12)
       : [];
@@ -2296,8 +1962,8 @@
     const parts = [];
     if (pinned.length) parts.push(section('📌 Fijadas', '', pinned));
     parts.push(
-      section('Playlists de LiquidBrush', pinned.length ? '' : 'Mantén pulsada una playlist (o clic derecho) para fijarla arriba.', unpinned([...systemPlaylists(), ...sharedPlaylists()])),
-      section('Mis playlists', 'Se guardan solo en este navegador. Si borras la caché o los datos del sitio, se perderán: guárdalas para todos con la KeyForSet o descarga una copia de seguridad (botón ⬇ de arriba).', unpinned(localPlaylists()), newCard)
+      section('Playlists de LiquidBrush', pinned.length ? '' : 'Mantén pulsada una playlist (o clic derecho) para fijarla arriba.', unpinned(systemPlaylists())),
+      section('Mis playlists', 'Se guardan solo en este navegador. Si borras la caché o los datos del sitio, se perderán: descarga una copia de seguridad (botón ⬇ de arriba).', unpinned(localPlaylists()), newCard)
     );
     const autoLeft = unpinned(autos);
     if (autoLeft.length) parts.push(section('Para ti', '', autoLeft));
@@ -2307,7 +1973,7 @@
 
   function updateCounts() {
     els.libCount.textContent = String(state.libraryTracks.length);
-    els.plCount.textContent = String(systemPlaylists().length + library.shared.length + library.local.length);
+    els.plCount.textContent = String(systemPlaylists().length + library.local.length);
     updateFavCount();
   }
 
@@ -2666,7 +2332,6 @@
     updateDynamicColor(track);
     if (autoplay) wall.onTrack();
     updateMediaSession(track);
-    loadComments(track);
 
     if (autoplay) play();
   }
@@ -3633,8 +3298,6 @@
       const time = els.audio.currentTime;
       trackListening(time);
       checkDjTransition();
-      checkCommentBubble(time);
-      updateCommentButton(time);
       if (state.isSeeking) return;
       updateProgressUI(time, getDuration());
       syncLyrics(time);
@@ -3645,11 +3308,9 @@
         state.pendingSeek = null;
       }
       updateProgressUI(els.audio.currentTime, getDuration());
-      renderCommentMarks();
     });
     on('durationchange', () => {
       if (!state.isSeeking) updateProgressUI(els.audio.currentTime, getDuration());
-      renderCommentMarks();
     });
     on('volumechange', updateVolumeUI);
     on('error', () => {
@@ -3668,21 +3329,8 @@
         return;
       }
       interruption.resume();
-      if (state.currentTrack) loadComments(state.currentTrack, { quiet: true });
     });
     window.addEventListener('pagehide', flushListening);
-
-    // Comentarios
-    els.commentForm.addEventListener('submit', (event) => {
-      event.preventDefault();
-      submitComment();
-    });
-    els.commentsList.addEventListener('click', (event) => {
-      const item = event.target.closest('.comment-item');
-      if (!item || !state.currentTrack) return;
-      seekTo(Number(item.dataset.at));
-      if (els.audio.paused) play();
-    });
 
     // Transiciones DJ
     els.djToggle.addEventListener('change', () => setDj(els.djToggle.checked));
@@ -3786,10 +3434,7 @@
         case 'import': els.importInput.click(); break;
         case 'edit-playlist': if (pl) editLocalPlaylist(pl.id); break;
         case 'delete-playlist': if (pl) deleteLocalPlaylist(pl.id); break;
-        case 'share-playlist': if (pl) sharePlaylist(pl); break;
         case 'copy-playlist': if (pl) copyToLocal(pl); break;
-        case 'copy-shared': if (pl) copyToLocal(pl, true); break;
-        case 'delete-shared': if (pl) deleteSharedPlaylist(pl); break;
         case 'clear-recent':
           if (confirm('¿Borrar el historial de canciones escuchadas en este dispositivo?')) {
             library.recent = [];
@@ -4461,7 +4106,6 @@
     dj.fade = [3, 6, 9, 12].includes(savedFade) ? savedFade : 6;
     els.djFade.value = String(dj.fade);
     setDj(storage.get(KEYS.dj, false) === true, false);
-    els.commentAuthor.value = storage.get(KEYS.author, '') || '';
     const savedListen = storage.get(KEYS.listen, {});
     listen.log = savedListen && typeof savedListen === 'object' ? savedListen : {};
 
@@ -4488,8 +4132,6 @@
     if (window.matchMedia('(max-width: 860px)').matches) els.lyricsPanel.open = false;
 
     restorePreferences();
-    renderComments();
-    scheduleCommentRefresh();
     updateModeButtons();
     updateVolumeUI();
     updateProgressUI(0, 0);

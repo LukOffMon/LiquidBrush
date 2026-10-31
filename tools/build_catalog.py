@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """Genera catalog.json: género de cada canción y las playlists de base de LiquidBrush.
 
-Lee las canciones de las mismas fuentes que la app (los dos proyectos de Supabase y
-cloudflare-tracks.json), asigna un género por artista (o por la playlist de origen)
+Lee las canciones de la misma lista que la app (cloudflare-tracks.json), asigna un género por artista (o por la playlist de origen)
 y arma las playlists por género y las mezclas. Ejecútalo cada vez que se sume música:
 
     python3 tools/build_catalog.py
@@ -11,14 +10,9 @@ import json
 import random
 import re
 import unicodedata
-import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SOURCES = [
-    ('', 'https://kvylexeicpvjrvhpizsz.supabase.co', 'sb_publishable__E4pzkc1jZe8u9UtpWglHg_Z9KFYPso'),
-    ('extra:', 'https://pikoruycbgwjrxqxaajl.supabase.co', 'sb_publishable_lraxIbb_tQtXr7y-yAa15Q_OqWrDmUN'),
-]
 COVER_IMAGES = 15  # covers/cover-01.jpg … cover-15.jpg se reparten al azar
 # Portadas elegidas a mano para una playlist concreta (covers/cover-16.jpg en adelante)
 FIXED_COVERS = {
@@ -37,12 +31,6 @@ def norm(text):
 
 def load_tracks():
     tracks = []
-    for prefix, url, key in SOURCES:
-        req = urllib.request.Request(
-            f'{url}/rest/v1/tracks?select=id,title,artist,album,duration&order=position.asc,id.asc',
-            headers={'apikey': key, 'User-Agent': 'Mozilla/5.0'})
-        for row in json.load(urllib.request.urlopen(req, timeout=30)):
-            tracks.append({**row, 'id': f'{prefix}{row["id"]}'})
     for row in json.loads((ROOT / 'cloudflare-tracks.json').read_text()):
         tracks.append({k: row[k] for k in ('title', 'artist', 'album', 'duration')} | {'id': f'cloudflare:{row["id"]}'})
     return tracks
