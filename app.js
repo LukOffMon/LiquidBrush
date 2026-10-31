@@ -19,8 +19,9 @@
         base: 'https://pub-cb798ce2901a49a6a6363d57fbd5ee19.r2.dev'
       },
       {
-        name: 'b05e',
-        list: 'musica/b05e.json',
+        // Bucket liquidsaltdb5
+        name: 'salt',
+        list: 'musica/salt.json',
         base: 'https://pub-b05e243e7441423f9c4a25dfe8411da3.r2.dev'
       },
       {

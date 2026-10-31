@@ -16,7 +16,7 @@ La música vive en buckets de Cloudflare R2. Cada bucket tiene su lista de canci
 | Lista | Bucket | URL pública |
 | --- | --- | --- |
 | [`musica/pepper.json`](musica/pepper.json) | `liquidpepper4db` | `https://pub-cb798ce2901a49a6a6363d57fbd5ee19.r2.dev` |
-| [`musica/b05e.json`](musica/b05e.json) | — | `https://pub-b05e243e7441423f9c4a25dfe8411da3.r2.dev` |
+| [`musica/salt.json`](musica/salt.json) | `liquidsaltdb5` | `https://pub-b05e243e7441423f9c4a25dfe8411da3.r2.dev` |
 | [`musica/brush3.json`](musica/brush3.json) | `liquidbrush3db3` | `https://pub-342aee3eb054410cb02224940f684884.r2.dev` |
 
 Para sumar otro bucket: añade una entrada en `CONFIG.sources` (en `app.js`) con `name`, `list` y `base`, crea `musica/<name>.json` y añádelo a la lista `SHELL` de `sw.js`.
@@ -39,7 +39,14 @@ Cada fila del archivo:
 - `cover` (opcional) y `lyrics` (opcional) funcionan igual que `src` y que en `tracks.json`.
 - `id` debe ser único y no cambiar nunca: favoritas, playlists propias e historial se guardan por `id`.
 
-Para sumar música: sube los MP3 al bucket (una carpeta por playlist), añade sus filas a la lista de ese bucket en `musica/` y vuelve a generar el catálogo (ver más abajo).
+Para sumar música: sube los MP3 al bucket (una carpeta por playlist) y ejecuta:
+
+```bash
+python3 tools/sync_r2.py
+python3 tools/build_catalog.py
+```
+
+`sync_r2.py` lista cada bucket, crea una fila por MP3 (playlist = carpeta; título y artista sacados de `001 - Artista - Título.mp3`; duración leída del propio archivo) y respeta lo que hayas editado a mano en las filas que ya existían. Cada bucket está en una cuenta distinta de Cloudflare y necesita su clave de API de R2 en variables de entorno: `R2_PEPPER_*`, `R2_SALT_*` y `R2_BRUSH3_*` (`ACCESS_KEY_ID` y `SECRET_ACCESS_KEY` de cada una).
 
 ### Letras
 

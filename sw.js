@@ -24,7 +24,7 @@ const SHELL = [
   'icon-maskable-512.png',
   'tracks.json',
   'musica/pepper.json',
-  'musica/b05e.json',
+  'musica/salt.json',
   'musica/brush3.json',
   'catalog.json'
 ];
