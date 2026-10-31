@@ -188,7 +188,7 @@ def sync(name):
         return
     objects = sorted((k, s) for k, s in list_objects(cfg, access, secret) if k.lower().endswith(AUDIO_EXT))
     path = ROOT / 'musica' / f'{name}.json'
-    old = {row.get('src'): row for row in json.loads(path.read_text())} if path.exists() else {}
+    old = {row.get('src'): row for row in json.loads(path.read_text(encoding='utf-8'))} if path.exists() else {}
     todo = [(k, s) for k, s in objects if not (old.get(k) or {}).get('duration')]
     with ThreadPoolExecutor(8) as pool:
         durations = dict(zip([k for k, _ in todo], pool.map(lambda o: duration_of(cfg['public'], *o), todo)))
@@ -199,7 +199,7 @@ def sync(name):
         if not row.get('duration'):
             row['duration'] = durations.get(key, '')
         rows.append(row)
-    path.write_text(json.dumps(rows, ensure_ascii=False, indent=2) + '\n')
+    path.write_text(json.dumps(rows, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     albums = {}
     for r in rows:
         albums[r['album']] = albums.get(r['album'], 0) + 1

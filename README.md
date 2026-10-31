@@ -1,4 +1,6 @@
-# LiquidBrush
+# Liquid Bullet
+
+> Antes se llamaba LiquidBrush. El repositorio, los buckets y las claves de guardado del navegador (`liquidbrush:*`) mantienen el nombre anterior para no perder favoritas, playlists ni descargas.
 
 Reproductor web personal de estética surrealista y cromada (temas "Surrealista" (por defecto) y "Minimalista"), 100 % estático (HTML + CSS + JS) y listo para GitHub Pages.
 
@@ -52,10 +54,19 @@ python3 tools/build_catalog.py
 
 Si `lyrics` está vacío, la app busca la letra automáticamente en [LRCLIB](https://lrclib.net) (gratis, sin clave; muchas vienen sincronizadas) y la guarda en el navegador. Funciona mejor cuando la canción tiene `artist` y `duration` correctos. Si escribes tu propia letra en `lyrics`, se usa esa.
 
+## Continuar donde lo dejaste
+
+Al abrir la app vuelve a poner la última canción que sonaba, en el segundo exacto y con su cola («Continúa donde lo dejaste»); basta pulsar ▶. Se guarda cada pocos segundos, al pausar y al cerrar o esconder la app. Como todo lo personal de la app, vive en el navegador de cada persona (localStorage): cada navegador y cada dispositivo recuerda lo suyo.
+
+## Cola «A continuación» y temporizador
+
+- **A continuación** (botón de lista en el reproductor o tecla Q): muestra lo que va a sonar, permite saltar a cualquier canción o quitarla. Desde el botón ＋ de cualquier canción: **Reproducir a continuación** o **Al final de la cola**, sin cortar lo que suena.
+- **Temporizador** (luna en el reproductor o tecla T): pausa la música a los 15, 30, 45, 60 o 90 minutos, o al terminar la canción actual. El volumen baja poco a poco en los últimos segundos.
+
 ## Biblioteca, playlists y favoritas
 
 - **Biblioteca**: todas las canciones, con orden configurable (playlists, título, artista, duración).
-- **Playlists**: las de LiquidBrush (las del catálogo o, sin catálogo, una por cada `album`), **Mis playlists** y las automáticas *Escuchadas hace poco* y *Tus más escuchadas*.
+- **Playlists**: las de Liquid Bullet (las del catálogo o, sin catálogo, una por cada `album`), **Mis playlists** y las automáticas *Escuchadas hace poco* y *Tus más escuchadas*.
 - **Mis playlists** se crean en la app (nombre, icono y color) con el botón ＋ de cada canción. Se guardan **solo en ese navegador** (localStorage): si se borra la caché o los datos del sitio, se pierden. Se puede descargar o importar una copia de seguridad en JSON.
 
 ## Catálogo de playlists de base
@@ -129,4 +140,6 @@ python3 -m http.server 8000
 | R | Repetir (no / lista / una) |
 | M | Silenciar |
 | L | Mostrar / ocultar letra |
+| Q | Cola «A continuación» |
+| T | Temporizador de apagado |
 | / | Buscar |

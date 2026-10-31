@@ -3,28 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="description" content="LiquidBrush — música que se derrite: tu reproductor web personal, surrealista y cromado.">
+  <meta name="description" content="Liquid Bullet — música que se derrite: tu reproductor web personal, surrealista y cromado.">
   <meta name="theme-color" content="#100d1c">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="LiquidBrush">
+  <meta name="apple-mobile-web-app-title" content="Liquid Bullet">
   <meta name="format-detection" content="telephone=no">
-  <title>LiquidBrush</title>
+  <title>Liquid Bullet</title>
   <link rel="icon" href="favicon.png" type="image/png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preload" href="catalog.json" as="fetch" crossorigin>
+  <!-- Las listas (musica/*.json, catalog.json) no se precargan: app.js las pide con otras
+       opciones de caché y el navegador las descargaba dos veces -->
   <link rel="dns-prefetch" href="https://pub-cb798ce2901a49a6a6363d57fbd5ee19.r2.dev">
   <link rel="dns-prefetch" href="https://pub-b05e243e7441423f9c4a25dfe8411da3.r2.dev">
-  <link rel="preload" href="musica/pepper.json" as="fetch" crossorigin>
-  <link rel="preload" href="musica/salt.json" as="fetch" crossorigin>
   <link rel="dns-prefetch" href="https://pub-342aee3eb054410cb02224940f684884.r2.dev">
-  <link rel="preload" href="musica/brush3.json" as="fetch" crossorigin>
+  <link rel="dns-prefetch" href="https://lrclib.net">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Permanent+Marker&family=Rubik+Wet+Paint&family=Sedgwick+Ave&family=Syne:wght@700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=12">
+  <link rel="stylesheet" href="styles.css?v=13">
   <script>
     /* Aplica el tema, la fuente y el tamaño de letra guardados antes de pintar (sin parpadeos) */
     (function () {
@@ -199,15 +198,18 @@
     <symbol id="i-pin" viewBox="0 0 24 24"><path d="M16 3v2h-1v6l2 3v2h-4.2v5h-1.6v-5H7v-2l2-3V5H8V3h8z"/></symbol>
     <symbol id="i-home" viewBox="0 0 24 24"><path d="M12 3 2 11.5h3V21h5.5v-6h3v6H19v-9.5h3L12 3z"/></symbol>
     <symbol id="i-library" viewBox="0 0 24 24"><path d="M4 3h2v18H4V3zm4 0h2v18H8V3zm4.2.6 1.9-.6 5.6 17.4-1.9.6-5.6-17.4z"/></symbol>
+    <symbol id="i-queue" viewBox="0 0 24 24"><path d="M3 6h12v2H3V6zm0 4h12v2H3v-2zm0 4h8v2H3v-2zm14-4v6.27A2.5 2.5 0 1 0 18.5 19V12H22v-2h-5z"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12.3 2a9.7 9.7 0 1 0 9.7 11.6A7.7 7.7 0 0 1 12.3 2z"/></symbol>
+    <symbol id="i-play-next" viewBox="0 0 24 24"><path d="M3 10h11v2H3v-2zm0-4h11v2H3V6zm0 8h7v2H3v-2zm13-1v8l6-4-6-4z"/></symbol>
     <symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 3a9 9 0 0 0 0 18c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></symbol>
   </svg>
 
   <div class="app">
     <!-- Barra superior -->
     <header class="topbar">
-      <a class="brand" href="./" aria-label="LiquidBrush, inicio">
+      <a class="brand" href="./" aria-label="Liquid Bullet, inicio">
         <img class="brand-logo" src="icon-192.png" alt="" width="36" height="36">
-        <span class="brand-name">Liquid<span>Brush</span></span>
+        <span class="brand-name">Liquid<span>Bullet</span></span>
       </a>
       <div class="topbar-actions">
       <button id="wallBtn" class="wall-btn" type="button" aria-label="Cambiar el fondo de pantalla" title="Otro fondo">
@@ -230,7 +232,7 @@
         <div class="np-info">
           <div class="np-text">
             <p id="npContext" class="np-eyebrow">Cargando biblioteca…</p>
-            <h1 id="npTitle" class="np-title">LiquidBrush</h1>
+            <h1 id="npTitle" class="np-title">Liquid Bullet</h1>
             <p id="npArtist" class="np-artist">Música que se derrite en tus oídos.</p>
             <p id="npAlbum" class="np-album"></p>
           </div>
@@ -347,6 +349,13 @@
 
       <div class="player-volume">
         <button id="djBtn" class="icon-btn dj-btn" type="button" aria-pressed="false" aria-label="Transiciones DJ" title="Transiciones DJ (D)">DJ</button>
+        <button id="queueBtn" class="icon-btn" type="button" aria-label="A continuación" title="A continuación (Q)">
+          <svg class="icon" aria-hidden="true"><use href="#i-queue"></use></svg>
+        </button>
+        <button id="sleepBtn" class="icon-btn sleep-btn" type="button" aria-pressed="false" aria-label="Temporizador de apagado" title="Temporizador de apagado (T)">
+          <svg class="icon" aria-hidden="true"><use href="#i-moon"></use></svg>
+          <span id="sleepBadge" class="sleep-badge" hidden></span>
+        </button>
         <button id="lyricsBtn" class="icon-btn" type="button" aria-label="Ver letra" title="Ver letra (L)">
           <svg class="icon" aria-hidden="true"><use href="#i-lyrics"></use></svg>
         </button>
@@ -403,6 +412,14 @@
     <div class="sheet-body">
       <h2 id="addTitle" class="sheet-title">Añadir a playlist</h2>
       <p id="addTrackName" class="sheet-text"></p>
+      <div class="sheet-quick">
+        <button id="addPlayNext" class="btn" type="button">
+          <svg class="icon" aria-hidden="true"><use href="#i-play-next"></use></svg> Reproducir a continuación
+        </button>
+        <button id="addQueueEnd" class="btn" type="button">
+          <svg class="icon" aria-hidden="true"><use href="#i-queue"></use></svg> Al final de la cola
+        </button>
+      </div>
       <ul id="addList" class="add-list"></ul>
       <div class="sheet-actions">
         <button class="btn" type="button" data-close>Cerrar</button>
@@ -411,6 +428,38 @@
     </div>
   </dialog>
 
+  <!-- Cola de reproducción -->
+  <dialog id="queueDialog" class="sheet" aria-labelledby="queueTitle">
+    <div class="sheet-body">
+      <h2 id="queueTitle" class="sheet-title">A continuación</h2>
+      <p id="queueInfo" class="sheet-text"></p>
+      <ol id="queueList" class="queue-list"></ol>
+      <div class="sheet-actions">
+        <button class="btn" type="button" data-close>Cerrar</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Temporizador de apagado -->
+  <dialog id="sleepDialog" class="sheet" aria-labelledby="sleepTitle">
+    <div class="sheet-body">
+      <h2 id="sleepTitle" class="sheet-title"><svg class="icon" aria-hidden="true"><use href="#i-moon"></use></svg> Temporizador</h2>
+      <p id="sleepStatus" class="sheet-text"></p>
+      <div id="sleepOptions" class="sleep-options">
+        <button class="btn" type="button" data-sleep="15">15 min</button>
+        <button class="btn" type="button" data-sleep="30">30 min</button>
+        <button class="btn" type="button" data-sleep="45">45 min</button>
+        <button class="btn" type="button" data-sleep="60">1 hora</button>
+        <button class="btn" type="button" data-sleep="90">1 h 30</button>
+        <button class="btn" type="button" data-sleep="-1">Al terminar la canción</button>
+        <button class="btn" type="button" data-sleep="0">Desactivado</button>
+      </div>
+      <p class="sheet-note">El volumen baja poco a poco en los últimos segundos antes de pausar.</p>
+      <div class="sheet-actions">
+        <button class="btn" type="button" data-close>Cerrar</button>
+      </div>
+    </div>
+  </dialog>
 
   <!-- Configuración -->
   <dialog id="settingsDialog" class="sheet settings" aria-labelledby="settingsTitle">
@@ -521,6 +570,6 @@
   <!-- Reproductores para el ecualizador (necesitan CORS en el servidor del audio) -->
   <audio id="audio3" preload="metadata" crossorigin="anonymous"></audio>
   <audio id="audio4" preload="auto" crossorigin="anonymous"></audio>
-  <script src="app.js?v=14" defer></script>
+  <script src="app.js?v=15" defer></script>
 </body>
 </html>

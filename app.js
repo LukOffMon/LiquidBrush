@@ -1,5 +1,5 @@
 /* =========================================================
-   LiquidBrush — lógica del reproductor
+   Liquid Bullet — lógica del reproductor
    ========================================================= */
 (() => {
   'use strict';
@@ -59,7 +59,10 @@
     libraryCache: 'liquidbrush:library-cache',
     settings: 'liquidbrush:settings',
     wallLast: 'liquidbrush:wall-last',
-    pins: 'liquidbrush:pins'
+    pins: 'liquidbrush:pins',
+    // Las claves conservan el prefijo "liquidbrush:" del nombre anterior para no perder lo guardado
+    resume: 'liquidbrush:resume',
+    resumeQueue: 'liquidbrush:resume-queue'
   };
 
   const LYRICS_API = 'https://lrclib.net/api';
@@ -228,7 +231,18 @@
     totalTime: $('totalTime'),
     muteBtn: $('muteBtn'),
     volume: $('volume'),
-    toast: $('toast')
+    toast: $('toast'),
+    queueBtn: $('queueBtn'),
+    queueDialog: $('queueDialog'),
+    queueInfo: $('queueInfo'),
+    queueList: $('queueList'),
+    addPlayNext: $('addPlayNext'),
+    addQueueEnd: $('addQueueEnd'),
+    sleepBtn: $('sleepBtn'),
+    sleepBadge: $('sleepBadge'),
+    sleepDialog: $('sleepDialog'),
+    sleepStatus: $('sleepStatus'),
+    sleepOptions: $('sleepOptions')
   };
 
   /* ---------- Utilidades ---------- */
@@ -272,6 +286,29 @@
 
   const normalize = (text) =>
     String(text ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+
+  // "Kashmir - Remaster" → { main: 'Kashmir', version: 'Remaster' }: la versión se muestra aparte
+  // y más discreta, y no se usa al buscar la letra
+  const VERSION_WORDS = /\b(remaster(ed)?|bonus|live|edit|remix|mix|version|mono|stereo|demo|acoustic|instrumental|single|deluxe|session|take|reprise|extended|original)\b/i;
+  function splitTitle(title) {
+    const text = String(title || '');
+    const cut = text.lastIndexOf(' - ');
+    if (cut > 0 && VERSION_WORDS.test(text.slice(cut + 3))) {
+      return { main: text.slice(0, cut).trim(), version: text.slice(cut + 3).trim() };
+    }
+    return { main: text, version: '' };
+  }
+
+  function setTitle(el, title) {
+    const { main, version } = splitTitle(title);
+    el.textContent = main;
+    if (version) {
+      const tag = document.createElement('span');
+      tag.className = 'title-version';
+      tag.textContent = version;
+      el.append(' ', tag);
+    }
+  }
 
   /* ---------- Fondos de pantalla (carpeta wallpapers/) ---------- */
   // pos: zona que se mantiene a la vista cuando la imagen se recorta (pantallas anchas)
@@ -428,11 +465,11 @@
         anyOk = true;
         rows.push(...result.value);
       } else {
-        console.warn(`[LiquidBrush] Lista "${CONFIG.sources[i].name}" no disponible.`, result.reason);
+        console.warn(`[LiquidBullet] Lista "${CONFIG.sources[i].name}" no disponible.`, result.reason);
       }
     });
     if (anyOk) return rows;
-    console.warn('[LiquidBrush] Ninguna lista respondió, se usa tracks.json.');
+    console.warn('[LiquidBullet] Ninguna lista respondió, se usa tracks.json.');
     return fetchFromJson();
   }
 
@@ -524,8 +561,10 @@
       // Llegaron datos nuevos con algo sonando: se conserva la canción y la cola
       state.currentTrack = getTrack(previousId);
     } else if (state.tracks.length) {
-      buildQueue((state.tracks.find(isPlayable) || state.tracks[0]).id);
-      loadTrack(getTrack(state.queue[state.queueIndex]), false);
+      if (!resume.restore()) {
+        buildQueue((state.tracks.find(isPlayable) || state.tracks[0]).id);
+        loadTrack(getTrack(state.queue[state.queueIndex]), false);
+      }
     } else {
       els.npContext.textContent = 'Biblioteca vacía';
     }
@@ -545,7 +584,7 @@
           shown = true;
         }
       } catch (error) {
-        console.warn('[LiquidBrush] Copia local de la biblioteca dañada; se descarga de nuevo.', error);
+        console.warn('[LiquidBullet] Copia local de la biblioteca dañada; se descarga de nuevo.', error);
       }
     }
     if (!shown) els.listInfo.textContent = 'Cargando canciones…';
@@ -559,7 +598,7 @@
       await applyTrackData(rows);
       try { localStorage.setItem(KEYS.libraryCache, fresh); } catch { /* sin espacio: se descargará la próxima vez */ }
     } catch (error) {
-      console.error('[LiquidBrush] Error al cargar las canciones:', error);
+      console.error('[LiquidBullet] Error al cargar las canciones:', error);
       if (shown) return;
       els.listInfo.textContent = '';
       els.npContext.textContent = 'Error de carga';
@@ -595,7 +634,7 @@
       const keys = await (await caches.open(AUDIO_CACHE)).keys();
       offline.downloaded = new Set(keys.map((request) => request.url));
     } catch (error) {
-      console.warn('[LiquidBrush] No se pudieron leer las descargas.', error);
+      console.warn('[LiquidBullet] No se pudieron leer las descargas.', error);
     }
   }
 
@@ -716,7 +755,7 @@
         } catch (error) {
           failed++;
           if (error.cors) blockedByCors++;
-          console.warn(`[LiquidBrush] No se pudo descargar «${track.title}».`, error);
+          console.warn(`[LiquidBullet] No se pudo descargar «${track.title}».`, error);
           if (error.name === 'QuotaExceededError') {
             job.noSpace = true;
             job.cancelled = true;
@@ -756,7 +795,7 @@
   function registerServiceWorker() {
     if (!('serviceWorker' in navigator) || !location.protocol.startsWith('http')) return;
     navigator.serviceWorker.register('sw.js').catch((error) => {
-      console.warn('[LiquidBrush] No se pudo activar el modo offline.', error);
+      console.warn('[LiquidBullet] No se pudo activar el modo offline.', error);
     });
 
     // Al publicarse una versión nueva, se recarga una vez (sin cortar la canción que suena)
@@ -771,7 +810,7 @@
       if (!hadController) return;
       if (els.audio.paused) reload();
       else {
-        showToast('Hay una versión nueva de LiquidBrush: se aplicará al pausar.');
+        showToast('Hay una versión nueva de Liquid Bullet: se aplicará al pausar.');
         // Solo con una pausa tuya: si otra app corta el audio, recargar perdería la canción
         state.reloadOnPause = reload;
       }
@@ -876,7 +915,7 @@
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       library.catalog = await response.json();
     } catch (error) {
-      console.warn('[LiquidBrush] No se pudo cargar el catálogo de playlists.', error);
+      console.warn('[LiquidBullet] No se pudo cargar el catálogo de playlists.', error);
     }
   }
 
@@ -1085,7 +1124,7 @@
 
   function exportPlaylists() {
     const data = {
-      app: 'LiquidBrush',
+      app: 'Liquid Bullet',
       version: 1,
       exportedAt: new Date().toISOString(),
       playlists: library.local,
@@ -1094,7 +1133,7 @@
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `liquidbrush-mis-playlists-${new Date().toISOString().slice(0, 10)}.json`;
+    link.download = `liquid-bullet-mis-playlists-${new Date().toISOString().slice(0, 10)}.json`;
     document.body.append(link);
     link.click();
     link.remove();
@@ -1129,8 +1168,8 @@
       renderList();
       showToast(added ? `Importadas ${added} playlist${added === 1 ? '' : 's'}.` : 'No había playlists nuevas en el archivo.');
     } catch (error) {
-      console.warn('[LiquidBrush] No se pudo importar:', error);
-      showToast('Ese archivo no es una copia de seguridad de LiquidBrush.');
+      console.warn('[LiquidBullet] No se pudo importar:', error);
+      showToast('Ese archivo no es una copia de seguridad de Liquid Bullet.');
     }
   }
 
@@ -1146,7 +1185,8 @@
   const deckGain = new Map(decks.map((deck) => [deck, 1]));
 
   function applyVolume(deck) {
-    deck.volume = clamp(state.volume * (deckGain.get(deck) ?? 1), 0, 1);
+    // sleep.gain baja el volumen en el fundido final del temporizador
+    deck.volume = clamp(state.volume * (deckGain.get(deck) ?? 1) * sleep.gain, 0, 1);
   }
 
   // En iOS el volumen no se puede cambiar desde la web: en vez de mezcla larga, un empalme corto
@@ -1213,7 +1253,7 @@
 
   function checkDjTransition() {
     const audio = els.audio;
-    if (!dj.enabled || dj.transitioning || audio.paused || state.repeat === 'one') return;
+    if (!dj.enabled || dj.transitioning || audio.paused || state.repeat === 'one' || sleep.endOfTrack) return;
     const duration = audio.duration;
     if (!Number.isFinite(duration) || duration < 45) return;
     const fade = smartFade(duration);
@@ -1636,7 +1676,7 @@
   }
 
   const KIND_LABELS = {
-    system: 'Playlist de LiquidBrush',
+    system: 'Playlist de Liquid Bullet',
     local: 'Solo en este dispositivo',
     auto: 'Automática'
   };
@@ -1976,7 +2016,7 @@
     const parts = [];
     if (pinned.length) parts.push(section('📌 Fijadas', '', pinned));
     parts.push(
-      section('Playlists de LiquidBrush', pinned.length ? '' : 'Mantén pulsada una playlist (o clic derecho) para fijarla arriba.', unpinned(systemPlaylists())),
+      section('Playlists de Liquid Bullet', pinned.length ? '' : 'Mantén pulsada una playlist (o clic derecho) para fijarla arriba.', unpinned(systemPlaylists())),
       section('Mis playlists', 'Se guardan solo en este navegador. Si borras la caché o los datos del sitio, se perderán: descarga una copia de seguridad (botón ⬇ de arriba).', unpinned(localPlaylists()), newCard)
     );
     const autoLeft = unpinned(autos);
@@ -2179,12 +2219,11 @@
     const title = document.createElement('span');
     title.className = 'track-title';
     title.style.display = 'block';
-    title.textContent = track.title;
+    setTitle(title, track.title);
     const artist = document.createElement('span');
     artist.className = 'track-artist';
     artist.style.display = 'block';
-    // En la Biblioteca se indica de qué playlist viene cada canción
-    // En la Biblioteca se indica el género de cada canción
+    // En la Biblioteca se indica el género (o la playlist de origen) de cada canción
     const tag = track.genre || track.album;
     artist.textContent = track.knownArtist && tag && state.view !== 'playlist'
       ? `${track.knownArtist} · ${tag}`
@@ -2309,6 +2348,208 @@
     loadTrack(getTrack(id), true, dj.enabled ? 1.5 : 0);
   }
 
+  /* ---------- Cola: "A continuación" ---------- */
+  // Pone una canción justo después de la actual (o al final de la cola) sin cortar lo que suena
+  function queueTrack(id, atEnd = false) {
+    const track = getTrack(id);
+    if (!track) return;
+    if (!state.currentTrack) {
+      buildQueue(id);
+      loadTrack(track, true);
+      return;
+    }
+    const current = state.queueIndex;
+    if (state.queue[current] === id) {
+      showToast('Esa canción ya está sonando.');
+      return;
+    }
+    // Una sola copia por delante de la actual
+    state.queue = state.queue.filter((qid, i) => i <= current || qid !== id);
+    state.queue.splice(atEnd ? state.queue.length : current + 1, 0, id);
+    if (!state.baseQueue.includes(id)) state.baseQueue.push(id);
+    resume.saveQueue();
+    if (els.queueDialog.open) renderQueue();
+    const name = splitTitle(track.title).main;
+    showToast(atEnd ? `Al final de la cola: ${name}` : `Sonará a continuación: ${name}`);
+  }
+
+  function queueRow(track, index, label) {
+    const li = document.createElement('li');
+    li.className = 'queue-item';
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'queue-play';
+    button.dataset.index = String(index);
+    const img = document.createElement('img');
+    img.src = track.cover;
+    img.alt = '';
+    img.width = 40;
+    img.height = 40;
+    img.loading = 'lazy';
+    const text = document.createElement('span');
+    text.className = 'queue-text';
+    const title = document.createElement('span');
+    title.className = 'queue-title';
+    title.textContent = splitTitle(track.title).main;
+    const meta = document.createElement('span');
+    meta.className = 'queue-meta';
+    meta.textContent = label || [track.knownArtist || track.artist, track.duration].filter(Boolean).join(' · ');
+    text.append(title, meta);
+    button.append(img, text);
+    li.append(button);
+    if (index > state.queueIndex) {
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'icon-btn queue-remove';
+      remove.dataset.remove = String(index);
+      remove.setAttribute('aria-label', `Quitar ${track.title} de la cola`);
+      remove.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-close"></use></svg>';
+      li.append(remove);
+    } else {
+      li.classList.add('is-current');
+    }
+    return li;
+  }
+
+  const QUEUE_LIMIT = 60;
+  function renderQueue() {
+    const upcoming = state.queue.slice(state.queueIndex + 1);
+    const seconds = upcoming.reduce((sum, id) => sum + parseDuration(getTrack(id)?.duration), 0);
+    els.queueInfo.textContent = upcoming.length
+      ? `${state.queueContext} · ${songsLabel(upcoming.length)} · ${formatTotal(seconds)} por delante`
+      : 'No hay nada más en la cola. Añade canciones con ＋ › «Reproducir a continuación».';
+    const rows = [];
+    const current = state.currentTrack;
+    if (current) rows.push(queueRow(current, state.queueIndex, 'Sonando ahora'));
+    upcoming.slice(0, QUEUE_LIMIT).forEach((id, i) => {
+      const track = getTrack(id);
+      if (track) rows.push(queueRow(track, state.queueIndex + 1 + i));
+    });
+    if (upcoming.length > QUEUE_LIMIT) {
+      const more = document.createElement('li');
+      more.className = 'queue-more';
+      more.textContent = `…y ${upcoming.length - QUEUE_LIMIT} más`;
+      rows.push(more);
+    }
+    els.queueList.replaceChildren(...rows);
+  }
+
+  function openQueue() {
+    renderQueue();
+    els.queueDialog.showModal();
+  }
+
+  /* ---------- Temporizador de apagado ---------- */
+  // Baja el volumen poco a poco en los últimos segundos y pausa. Solo vive en esta pestaña.
+  const SLEEP_FADE = 20000;
+  const sleep = { end: 0, endOfTrack: false, tick: null, gain: 1 };
+
+  function setSleep(minutes) {
+    clearInterval(sleep.tick);
+    sleep.end = minutes > 0 ? Date.now() + minutes * 60000 : 0;
+    sleep.endOfTrack = minutes === -1;
+    sleep.gain = 1;
+    decks.forEach(applyVolume);
+    if (sleep.end) sleep.tick = setInterval(sleepTick, 1000);
+    updateSleepUI();
+    if (minutes > 0) showToast(`La música se pausará en ${minutes} min.`);
+    else if (sleep.endOfTrack) showToast('La música se pausará al terminar esta canción.');
+    else showToast('Temporizador desactivado.');
+  }
+
+  function sleepTick() {
+    const left = sleep.end - Date.now();
+    if (left <= 0) {
+      finishSleep();
+      return;
+    }
+    if (left < SLEEP_FADE) {
+      sleep.gain = left / SLEEP_FADE;
+      decks.forEach(applyVolume);
+    }
+    updateSleepUI();
+  }
+
+  function finishSleep() {
+    clearInterval(sleep.tick);
+    sleep.end = 0;
+    sleep.endOfTrack = false;
+    pauseByUser();
+    sleep.gain = 1;
+    decks.forEach(applyVolume);
+    updateSleepUI();
+    showToast('Temporizador: música en pausa. Que descanses 🌙');
+  }
+
+  function updateSleepUI() {
+    const active = Boolean(sleep.end || sleep.endOfTrack);
+    const minutesLeft = sleep.end ? Math.max(1, Math.ceil((sleep.end - Date.now()) / 60000)) : 0;
+    els.sleepBtn.classList.toggle('is-active', active);
+    els.sleepBtn.setAttribute('aria-pressed', String(active));
+    els.sleepBadge.hidden = !active;
+    els.sleepBadge.textContent = sleep.endOfTrack ? '♪' : `${minutesLeft}`;
+    const label = sleep.endOfTrack
+      ? 'Temporizador: al terminar esta canción'
+      : sleep.end ? `Temporizador: ${minutesLeft} min` : 'Temporizador de apagado';
+    els.sleepBtn.setAttribute('aria-label', label);
+    els.sleepBtn.title = `${label} (T)`;
+    els.sleepStatus.textContent = active ? `${label}.` : 'Elige cuándo pausar la música.';
+    els.sleepOptions.querySelectorAll('[data-sleep]').forEach((b) => {
+      const value = Number(b.dataset.sleep);
+      b.classList.toggle('is-active', value === -1 ? sleep.endOfTrack : value === 0 ? !active : false);
+    });
+  }
+
+  /* ---------- Reanudar: última canción y segundo exacto (solo en este navegador) ---------- */
+  const resume = {
+    lastSaved: 0,
+    // Se guarda a menudo pero sin escribir en cada timeupdate (cada 4 s, o al instante si force)
+    save(force = false) {
+      const track = state.currentTrack;
+      if (!track) return;
+      const now = Date.now();
+      if (!force && now - this.lastSaved < 4000) return;
+      this.lastSaved = now;
+      // Mientras el audio no ha cargado, el segundo real es el salto pendiente
+      const time = state.pendingSeek ?? els.audio.currentTime ?? 0;
+      storage.set(KEYS.resume, { id: track.id, time: Math.round(time * 10) / 10, at: now });
+    },
+    saveQueue() {
+      storage.set(KEYS.resumeQueue, { queue: state.queue, base: state.baseQueue, context: state.queueContext });
+    },
+    // Al abrir la app vuelve a poner la última canción en su segundo y con su cola; false si no hay nada
+    restore() {
+      const saved = storage.get(KEYS.resume, null);
+      const track = saved && getTrack(saved.id);
+      if (!track) return false;
+      const valid = (ids) => (Array.isArray(ids) ? ids.filter((id) => state.trackMap.has(id)) : []);
+      const stored = storage.get(KEYS.resumeQueue, null);
+      const queue = valid(stored?.queue);
+      if (queue.includes(track.id)) {
+        const base = valid(stored.base);
+        state.baseQueue = base.length ? base : queue.slice();
+        state.queue = queue;
+        state.queueIndex = queue.indexOf(track.id);
+        state.queueContext = stored.context || describeContext(track);
+      } else {
+        buildQueue(track.id);
+      }
+      loadTrack(track, false);
+      const duration = parseDuration(track.duration);
+      let time = Math.max(0, Number(saved.time) || 0);
+      // A punto de terminar: mejor desde el principio
+      if (duration && time > duration - 5) time = 0;
+      if (time >= 1) {
+        state.pendingSeek = time;
+        updateProgressUI(time, duration);
+        this.save(true);
+        els.npContext.textContent = 'Continúa donde lo dejaste';
+        showToast(`Continúa «${splitTitle(track.title).main}» en ${formatTime(time)}. Pulsa ▶`);
+      }
+      return true;
+    }
+  };
+
   /* ---------- Reproducción ---------- */
   let lyricsDelay = null;
   function loadTrack(track, autoplay = true, fade = 0) {
@@ -2324,15 +2565,15 @@
     els.cover.alt = `Carátula de ${track.album || track.title}`;
     els.miniCover.src = track.cover;
     els.npContext.textContent = state.queueContext;
-    els.npTitle.textContent = track.title;
+    setTitle(els.npTitle, track.title);
     els.npArtist.textContent = track.knownArtist || track.genre || track.artist;
     els.npAlbum.textContent = track.knownArtist ? track.genre || track.album : '';
-    els.miniTitle.textContent = track.title;
+    els.miniTitle.textContent = splitTitle(track.title).main;
     els.miniArtist.textContent = track.knownArtist || track.genre || track.artist;
     els.npFavBtn.disabled = false;
     els.npAddBtn.disabled = false;
     updateFavButton(els.npFavBtn, state.favorites.has(track.id));
-    document.title = `${track.title} · ${track.artist} — LiquidBrush`;
+    document.title = `${track.title} · ${track.artist} — Liquid Bullet`;
 
     updateProgressUI(0, parseDuration(track.duration));
     // Al abrir la app (sin reproducir) la letra se busca un poco después para no frenar el arranque
@@ -2346,6 +2587,9 @@
     updateDynamicColor(track);
     if (autoplay) wall.onTrack();
     updateMediaSession(track);
+    resume.save(true);
+    resume.saveQueue();
+    if (els.queueDialog.open) renderQueue();
 
     if (autoplay) play();
   }
@@ -2369,7 +2613,7 @@
       if (eqDecks.includes(deck) && error.name !== 'NotAllowedError') return;
       // Reanudación automática fallida (iOS no deja quitarle el audio a otra app): se reintenta al volver
       if (quiet) return;
-      console.error('[LiquidBrush] No se pudo reproducir:', error);
+      console.error('[LiquidBullet] No se pudo reproducir:', error);
       if (error.name === 'NotAllowedError') {
         showToast('El navegador bloqueó la reproducción automática. Pulsa ▶ para escuchar.');
       } else {
@@ -2445,6 +2689,16 @@
   }
 
   function handleEnded() {
+    if (sleep.endOfTrack) {
+      finishSleep();
+      // La siguiente queda preparada (sin sonar): al pulsar ▶ o al volver a abrir sigue por ahí
+      const nextId = state.queue[state.queueIndex + 1];
+      if (nextId && getTrack(nextId)) {
+        state.queueIndex += 1;
+        loadTrack(getTrack(nextId), false);
+      }
+      return;
+    }
     if (state.repeat === 'one') {
       els.audio.currentTime = 0;
       play();
@@ -2614,15 +2868,18 @@
     const duration = Math.round(parseDuration(track.duration));
     // Artista principal, sin "ft." ni colaboradores
     const artist = track.knownArtist.replace(/\s*\b(ft|feat)\b\.?.*$/i, '').split(',')[0].trim();
+    // Título sin "- Remaster", "(feat. …)" ni "[Live]": LRCLIB los guarda sin esos añadidos
+    const title = splitTitle(track.title).main.replace(/\s*[([](feat|ft|with|prod)\b.*?[)\]]/gi, '').trim() || track.title;
     let text = '';
     try {
       if (artist) {
-        const params = new URLSearchParams({ artist_name: artist, track_name: track.title });
+        const params = new URLSearchParams({ artist_name: artist, track_name: title });
         if (duration) params.set('duration', String(duration));
-        text = pickLyrics(await lyricsRequest(`/get?${params}`));
+        // Si la búsqueda exacta falla (LRCLIB a veces responde sin CORS), se prueba la búsqueda libre
+        text = pickLyrics(await lyricsRequest(`/get?${params}`).catch(() => null));
       }
       if (!text) {
-        const results = await lyricsRequest(`/search?${new URLSearchParams({ q: `${track.title} ${artist}`.trim() })}`);
+        const results = await lyricsRequest(`/search?${new URLSearchParams({ q: `${title} ${artist}`.trim() })}`);
         if (Array.isArray(results)) {
           // Sin artista conocido solo se acepta si la duración coincide (evita letras equivocadas)
           const matches = results.filter((r) => (duration ? Math.abs(r.duration - duration) <= 4 : Boolean(artist)));
@@ -2631,7 +2888,7 @@
         }
       }
     } catch (error) {
-      console.warn('[LiquidBrush] No se pudo obtener la letra:', error);
+      console.warn('[LiquidBullet] No se pudo obtener la letra:', error);
       return null;
     }
     lyricsCache.set(track.id, text);
@@ -2897,7 +3154,7 @@
       applyEqGains();
       return true;
     } catch (error) {
-      console.warn('[LiquidBrush] El ecualizador no está disponible en este navegador.', error);
+      console.warn('[LiquidBullet] El ecualizador no está disponible en este navegador.', error);
       eq.ctx = null;
       return false;
     }
@@ -3197,7 +3454,7 @@
   /* ---------- Interrupciones de audio (otra app con sonido, llamadas) ---------- */
   // Al abrir otra app que suena (p. ej. Chess.com) el sistema pausa la música sin pasar por la app.
   // Se distingue de otras pausas del sistema (desconectar los auriculares) porque llega justo
-  // al salir de LiquidBrush o porque iOS marca la sesión de audio como interrumpida.
+  // al salir de Liquid Bullet o porque iOS marca la sesión de audio como interrumpida.
   const interruption = {
     active: false,
     hiddenAt: 0,
@@ -3296,6 +3553,7 @@
     on('pause', () => {
       setPlayingUI(false);
       flushListening();
+      resume.save(true);
       if (state.userPaused) {
         state.userPaused = false;
         state.reloadOnPause?.();
@@ -3312,6 +3570,7 @@
       const time = els.audio.currentTime;
       trackListening(time);
       checkDjTransition();
+      resume.save();
       if (state.isSeeking) return;
       updateProgressUI(time, getDuration());
       syncLyrics(time);
@@ -3340,11 +3599,15 @@
       if (document.hidden) {
         interruption.hiddenAt = Date.now();
         flushListening();
+        resume.save(true);
         return;
       }
       interruption.resume();
     });
-    window.addEventListener('pagehide', flushListening);
+    window.addEventListener('pagehide', () => {
+      flushListening();
+      resume.save(true);
+    });
 
     // Transiciones DJ
     els.djToggle.addEventListener('change', () => setDj(els.djToggle.checked));
@@ -3495,6 +3758,53 @@
     els.npAddBtn.addEventListener('click', () => {
       if (state.currentTrack) openAddDialog(state.currentTrack.id);
     });
+    els.addPlayNext.addEventListener('click', () => {
+      els.addDialog.close();
+      queueTrack(addTarget);
+    });
+    els.addQueueEnd.addEventListener('click', () => {
+      els.addDialog.close();
+      queueTrack(addTarget, true);
+    });
+
+    // Cola "A continuación": tocar una canción salta a ella; ✕ la quita
+    els.queueBtn.addEventListener('click', openQueue);
+    els.queueList.addEventListener('click', (event) => {
+      const remove = event.target.closest('[data-remove]');
+      if (remove) {
+        state.queue.splice(Number(remove.dataset.remove), 1);
+        resume.saveQueue();
+        renderQueue();
+        return;
+      }
+      const row = event.target.closest('.queue-play');
+      if (!row) return;
+      const index = Number(row.dataset.index);
+      if (index === state.queueIndex) {
+        togglePlay();
+      } else {
+        state.queueIndex = index;
+        loadTrack(getTrack(state.queue[index]), true, dj.enabled ? 1.5 : 0);
+      }
+      renderQueue();
+    });
+
+    // Temporizador de apagado
+    els.sleepBtn.addEventListener('click', () => {
+      updateSleepUI();
+      els.sleepDialog.showModal();
+    });
+    els.sleepOptions.addEventListener('click', (event) => {
+      const option = event.target.closest('[data-sleep]');
+      if (!option) return;
+      setSleep(Number(option.dataset.sleep));
+      els.sleepDialog.close();
+    });
+
+    // Clic fuera del panel o en "Cerrar"
+    [els.queueDialog, els.sleepDialog].forEach((dialog) => dialog.addEventListener('click', (event) => {
+      if (event.target === dialog || event.target.closest('[data-close]')) dialog.close();
+    }));
 
     // Letras sincronizadas: clic en una línea para saltar a ese momento
     els.lyricsBody.addEventListener('click', (event) => {
@@ -3700,6 +4010,8 @@
         case 'KeyS': toggleShuffle(); break;
         case 'KeyR': cycleRepeat(); break;
         case 'KeyL': els.lyricsPanel.open = !els.lyricsPanel.open; break;
+        case 'KeyQ': openQueue(); break;
+        case 'KeyT': els.sleepBtn.click(); break;
         case 'Slash': event.preventDefault(); els.searchInput.focus(); break;
         default: break;
       }

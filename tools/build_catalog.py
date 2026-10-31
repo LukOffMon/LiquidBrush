@@ -27,7 +27,7 @@ def norm(text):
 def load_tracks():
     tracks = []
     for path in sorted((ROOT / 'musica').glob('*.json')):
-        for row in json.loads(path.read_text()):
+        for row in json.loads(path.read_text(encoding='utf-8')):
             tracks.append({k: row.get(k, '') for k in ('title', 'artist', 'album', 'duration')} | {'id': f'{path.stem}:{row["id"]}'})
     return tracks
 
@@ -179,9 +179,9 @@ def main():
 
     # Copias borradas del bucket por ser idénticas a otra: la app redirige favoritas y playlists propias
     aliases_file = ROOT / 'tools' / 'aliases.json'
-    aliases = json.loads(aliases_file.read_text()) if aliases_file.exists() else {}
+    aliases = json.loads(aliases_file.read_text(encoding='utf-8')) if aliases_file.exists() else {}
     catalog = {'version': 1, 'genres': genres, 'playlists': out, 'aliases': aliases}
-    (ROOT / 'catalog.json').write_text(json.dumps(catalog, ensure_ascii=False, indent=1))
+    (ROOT / 'catalog.json').write_text(json.dumps(catalog, ensure_ascii=False, indent=1), encoding='utf-8')
     print(f'{len(tracks)} canciones, {len(unique)} únicas, {len(out)} playlists')
     for p in out:
         print(f"  {len(p['trackIds']):4d}  {p['name']}  [{p['cover']['type']}]")

@@ -1,12 +1,12 @@
 /* =========================================================
-   LiquidBrush — service worker (modo offline)
+   Liquid Bullet — service worker (modo offline)
    - La app (HTML, CSS, JS, logo) se guarda para abrir sin conexión.
    - La lista de canciones se sirve desde la red y, sin conexión,
      desde la última copia guardada.
    - Los MP3 descargados desde la app viven en AUDIO_CACHE y se
      reproducen desde ahí (con soporte de rangos para poder adelantar).
    ========================================================= */
-const VERSION = 'v19';
+const VERSION = 'v20';
 const SHELL_CACHE = `liquidbrush-shell-${VERSION}`;
 const DATA_CACHE = 'liquidbrush-data';
 const AUDIO_CACHE = 'liquidbrush-audio';
@@ -14,8 +14,8 @@ const AUDIO_CACHE = 'liquidbrush-audio';
 const SHELL = [
   './',
   'index.html',
-  'styles.css?v=12',
-  'app.js?v=14',
+  'styles.css?v=13',
+  'app.js?v=15',
   'favicon.png',
   'manifest.webmanifest',
   'apple-touch-icon.png',

@@ -1,5 +1,5 @@
 /* =========================================================
-   LiquidBrush — estilos
+   Liquid Bullet — estilos
    ========================================================= */
 
 /* Color dinámico (tomado de la carátula). Al registrarlo como <color>
@@ -3487,4 +3487,210 @@ textarea {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* =========================================================
+   Pulido: versión del título, barra superior y móvil
+   ========================================================= */
+
+/* "- Remaster", "- Bonus"…: pequeña etiqueta junto al título */
+.title-version {
+  display: inline-block;
+  margin-left: 2px;
+  padding: 1px 7px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-family: var(--song-font);
+  font-size: 0.62em;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.5;
+  color: var(--text-muted);
+  text-shadow: none;
+  vertical-align: 0.2em;
+  -webkit-text-fill-color: currentColor;
+}
+
+.np-title .title-version {
+  font-size: 0.42em;
+  vertical-align: 0.45em;
+}
+
+/* La barra superior desenfoca lo que pasa por debajo al desplazarse */
+.topbar {
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  backdrop-filter: blur(16px) saturate(1.2);
+}
+
+/* Las explicaciones de Configuración, siempre con letra legible */
+.setting-hint {
+  font-family: var(--song-font);
+  letter-spacing: normal;
+}
+
+@media (max-width: 640px) {
+  /* En el móvil el volumen se cambia con los botones del teléfono (iOS ni siquiera deja
+     cambiarlo desde la web): se quita la barra y el título de la canción gana espacio */
+  .player .volume,
+  .player .dj-btn {
+    display: none;
+  }
+
+  .player-volume {
+    gap: 2px;
+  }
+
+  .setting-select {
+    max-width: 58%;
+    padding-left: 12px;
+    font-size: 0.82rem;
+  }
+}
+
+/* ---------- Cola "A continuación" ---------- */
+.sheet-quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sheet-quick .btn {
+  flex: 1 1 auto;
+}
+
+.queue-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 56dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.queue-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 12px;
+}
+
+.queue-item.is-current {
+  margin-bottom: 6px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.queue-play {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  padding: 6px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.queue-play:hover {
+  background: var(--surface-hover);
+}
+
+.queue-play img {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.queue-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.queue-title,
+.queue-meta {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-family: var(--song-font);
+  letter-spacing: normal;
+}
+
+.queue-title {
+  font-weight: 700;
+}
+
+.queue-item.is-current .queue-title {
+  color: var(--accent);
+}
+
+.queue-meta {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.queue-remove {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+}
+
+.queue-more {
+  padding: 8px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* ---------- Temporizador de apagado ---------- */
+.sleep-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: 8px;
+}
+
+.sleep-options .btn.is-active {
+  border-color: transparent;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.sleep-btn.is-active {
+  color: var(--accent);
+}
+
+.sleep-badge {
+  position: absolute;
+  top: 2px;
+  right: 0;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-family: var(--song-font);
+  font-size: 0.62rem;
+  font-weight: 800;
+  line-height: 17px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.sleep-badge[hidden] {
+  display: none;
+}
+
+.sheet-title .icon {
+  width: 20px;
+  height: 20px;
+  vertical-align: -3px;
 }
