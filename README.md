@@ -11,7 +11,7 @@ El tema "Surrealista" incluye una escena animada: esfera de cromo en el horizont
 
 ## Añadir tus canciones (Cloudflare R2)
 
-La música vive en el bucket **`liquidpepper4db`** de Cloudflare R2 y la lista de canciones en [`cloudflare-tracks.json`](cloudflare-tracks.json), un archivo de este repositorio. No hay base de datos: la app lee ese archivo y reproduce los MP3 directamente desde el bucket.
+La música vive en el bucket **`liquidpepper4db`** de Cloudflare R2 (URL pública: `https://pub-cb798ce2901a49a6a6363d57fbd5ee19.r2.dev`) y la lista de canciones en [`cloudflare-tracks.json`](cloudflare-tracks.json), un archivo de este repositorio. No hay base de datos: la app lee ese archivo y reproduce los MP3 directamente desde el bucket.
 
 Cada fila del archivo:
 
@@ -22,12 +22,12 @@ Cada fila del archivo:
   "artist": "Yo",
   "album": "Mi playlist",
   "duration": "3:45",
-  "src": "https://pub-xxxxxxxx.r2.dev/Mi%20playlist/001%20-%20mi-cancion.mp3"
+  "src": "Mi playlist/001 - mi-cancion.mp3"
 }
 ```
 
 - `album` es la **playlist**: cada valor distinto aparece como una playlist separada.
-- `src` es la URL pública completa del MP3. Si rellenas `base` en `CONFIG.sources` (en `app.js`) con la URL pública del bucket, basta con la ruta dentro del bucket (`Mi playlist/001 - mi-cancion.mp3`).
+- `src` es la ruta del MP3 dentro del bucket (`Mi playlist/001 - mi-cancion.mp3`): la app le pone delante la URL pública (`base` en `CONFIG.sources`, en `app.js`). También admite una URL completa.
 - `cover` (opcional) y `lyrics` (opcional) funcionan igual que `src` y que en `tracks.json`.
 - `id` debe ser único y no cambiar nunca: favoritas, playlists propias e historial se guardan por `id`.
 

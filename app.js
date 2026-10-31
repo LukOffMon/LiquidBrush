@@ -14,7 +14,7 @@
       {
         name: 'cloudflare',
         list: 'cloudflare-tracks.json',
-        base: ''
+        base: 'https://pub-cb798ce2901a49a6a6363d57fbd5ee19.r2.dev'
       }
     ],
     tracksUrl: 'tracks.json',
