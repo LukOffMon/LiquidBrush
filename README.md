@@ -17,6 +17,7 @@ La música vive en buckets de Cloudflare R2. Cada bucket tiene su lista de canci
 | --- | --- | --- |
 | [`musica/pepper.json`](musica/pepper.json) | `liquidpepper4db` | `https://pub-cb798ce2901a49a6a6363d57fbd5ee19.r2.dev` |
 | [`musica/b05e.json`](musica/b05e.json) | — | `https://pub-b05e243e7441423f9c4a25dfe8411da3.r2.dev` |
+| [`musica/brush3.json`](musica/brush3.json) | `liquidbrush3db3` | `https://pub-342aee3eb054410cb02224940f684884.r2.dev` |
 
 Para sumar otro bucket: añade una entrada en `CONFIG.sources` (en `app.js`) con `name`, `list` y `base`, crea `musica/<name>.json` y añádelo a la lista `SHELL` de `sw.js`.
 

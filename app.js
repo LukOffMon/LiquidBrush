@@ -22,6 +22,12 @@
         name: 'b05e',
         list: 'musica/b05e.json',
         base: 'https://pub-b05e243e7441423f9c4a25dfe8411da3.r2.dev'
+      },
+      {
+        // Bucket liquidbrush3db3
+        name: 'brush3',
+        list: 'musica/brush3.json',
+        base: 'https://pub-342aee3eb054410cb02224940f684884.r2.dev'
       }
     ],
     tracksUrl: 'tracks.json',
