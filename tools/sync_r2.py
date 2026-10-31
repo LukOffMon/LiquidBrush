@@ -12,7 +12,8 @@ Uso:
     python3 tools/sync_r2.py            # todos los buckets que tengan clave
     python3 tools/sync_r2.py salt       # solo uno
 
-Cada carpeta del bucket es una playlist ("album"). Del nombre del archivo se saca el título y
+Todas las canciones van a la Biblioteca ("album" vacío): las playlists las arma build_catalog.py.
+Del nombre del archivo se saca el título y
 el artista: "001 - Artista - Título.mp3" o "001 - Título.mp3". La duración se calcula leyendo
 solo el principio de cada MP3 por la URL pública. Las filas que ya existían conservan lo que se
 haya editado a mano (título, artista, letra…); las de archivos borrados del bucket se quitan.
@@ -194,8 +195,8 @@ def sync(name):
         durations = dict(zip([k for k, _ in todo], pool.map(lambda o: duration_of(cfg['public'], *o), todo)))
     rows = []
     for key, _ in objects:
-        album, artist, title = parse_name(key)
-        row = old.get(key) or {'id': make_id(key), 'title': title, 'artist': artist, 'album': album, 'src': key}
+        _, artist, title = parse_name(key)
+        row = old.get(key) or {'id': make_id(key), 'title': title, 'artist': artist, 'album': '', 'src': key}
         if not row.get('duration'):
             row['duration'] = durations.get(key, '')
         rows.append(row)

@@ -36,7 +36,7 @@ Cada fila del archivo:
 }
 ```
 
-- `album` es la **playlist**: cada valor distinto aparece como una playlist separada.
+- `album` (opcional) se deja vacío: todas las canciones van a la Biblioteca y las playlists las genera `tools/build_catalog.py`.
 - `src` es la ruta del MP3 dentro del bucket (`Mi playlist/001 - mi-cancion.mp3`): la app le pone delante la URL pública (`base` en `CONFIG.sources`, en `app.js`). También admite una URL completa.
 - `cover` (opcional) y `lyrics` (opcional) funcionan igual que `src` y que en `tracks.json`.
 - `id` debe ser único y no cambiar nunca: favoritas, playlists propias e historial se guardan por `id`.
@@ -48,7 +48,7 @@ python3 tools/sync_r2.py
 python3 tools/build_catalog.py
 ```
 
-`sync_r2.py` lista cada bucket, crea una fila por MP3 (playlist = carpeta; título y artista sacados de `001 - Artista - Título.mp3`; duración leída del propio archivo) y respeta lo que hayas editado a mano en las filas que ya existían. Cada bucket está en una cuenta distinta de Cloudflare y necesita su clave de API de R2 en variables de entorno: `R2_PEPPER_*`, `R2_SALT_*` y `R2_BRUSH3_*` (`ACCESS_KEY_ID` y `SECRET_ACCESS_KEY` de cada una).
+`sync_r2.py` lista cada bucket, crea una fila por MP3 (todas a la Biblioteca; título y artista sacados de `001 - Artista - Título.mp3`; duración leída del propio archivo) y respeta lo que hayas editado a mano en las filas que ya existían. Cada bucket está en una cuenta distinta de Cloudflare y necesita su clave de API de R2 en variables de entorno: `R2_PEPPER_*`, `R2_SALT_*` y `R2_BRUSH3_*` (`ACCESS_KEY_ID` y `SECRET_ACCESS_KEY` de cada una).
 
 ### Letras
 
@@ -71,13 +71,13 @@ Al abrir la app vuelve a poner la última canción que sonaba, en el segundo exa
 
 ## Catálogo de playlists de base
 
-[`catalog.json`](catalog.json) define las playlists de base (por género y mezclas de varios géneros), su descripción, su portada (imágenes de [`covers/`](covers/) o un diseño generado) y el género de cada canción. Se genera con:
+[`catalog.json`](catalog.json) define las 9 playlists de base (Cuarto Pastel, Ácido Lento, Lluvia Lenta, Neón Ochentero, Brillo Disco, Trueno Clásico, Vinilo Rosa, Humo Dorado y Tokio Eléctrico), su descripción, su portada (imágenes de [`covers/`](covers/)) y el estilo de cada canción. Se genera con:
 
 ```bash
 python3 tools/build_catalog.py
 ```
 
-El script lee todas las listas de `musica/`, clasifica cada canción por artista (o por su playlist de origen), quita duplicados y arma las listas. Vuelve a ejecutarlo cada vez que añadas música.
+El script lee toda la Biblioteca (`musica/*.json`), quita duplicados y pone cada canción en exactamente una playlist según su artista (la tabla `PLAYLISTS` del script). Si sube un artista nuevo, va a Cuarto Pastel y el script avisa para que lo añadas a la playlist que le toque. Vuelve a ejecutarlo cada vez que añadas música.
 
 ## Transiciones DJ y estadísticas
 
