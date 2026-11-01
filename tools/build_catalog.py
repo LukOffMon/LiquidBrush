@@ -49,7 +49,8 @@ PLAYLISTS = [
         'Ravyn Lenae', 'Frank Ocean', 'The Weeknd', 'Melanie Martinez', 'Doja Cat', 'Rihanna', 'Ariana Grande',
         'Demi Lovato', 'Billie Eilish', 'girl in red', 'JAWNY', 'Anna of the North', 'Artemas', 'Lily Allen',
         'Suki Waterhouse', 'Kaash Paige', 'Nelly Furtado', 'The Kid LAROI', 'Cafuné', 'SZA', 'PARTYNEXTDOOR', 'Joji',
-        'Labrinth', 'Montell Fish', 'Shakira', 'ZAYN', 'Chris Brown', 'Cassie', 'Amaarae', 'd4vd']),
+        'Labrinth', 'Montell Fish', 'Shakira', 'ZAYN', 'Chris Brown', 'Cassie', 'Amaarae', 'd4vd', 'Isabel LaRosa',
+        'Ari Abdul', 'Chris Grey', 'Wafia', 'Shelly', 'JMSN', 'rusowsky']),
     ('acido-lento', 'Ácido Lento', 'Psicodelia e indie que flota: Tame Impala, Inner Wave, Mild High Club, Crumb, The Strokes y Gorillaz.', [
         'Tame Impala', 'Gorillaz', 'Justice', 'Theophilus London', 'ZHU', 'The Strokes', 'Chris Rainbow',
         'Ax and the Hatchetmen', 'Coldplay', 'Sports', 'Cannons', 'Hotel Ugly', 'F3miii', 'Empire Of The Sun', 'Mareux',
@@ -57,13 +58,14 @@ PLAYLISTS = [
         'Luna Luna', 'Mark Whalen', 'Michael Seyer', "Her's", 'No Vacation', 'Divino Niño', 'Crumb', 'The Symposium',
         'Mellow Fellow', 'Banes World', 'Kowloon', 'The Buttertones', 'BOYO', 'Air', 'The Garden', 'Jean Dawson',
         'Bandalos Chinos', 'Julius Popper', 'TEMPOREX', 'Dr. Dog', 'The Drums', 'Mother Mother', 'Cults', 'Dayglow',
-        'Joy Again', 'Beach Weather', 'Yot Club', 'Dominic Fike']),
+        'Joy Again', 'Beach Weather', 'Yot Club', 'Dominic Fike', 'Lewis OfMan', 'Nicholas Bonnin']),
     ('lluvia-lenta', 'Lluvia Lenta', 'Melancolía de guitarra y niebla: Mac DeMarco, Radiohead, The Smiths, Jeff Buckley y Cigarettes After Sex.', [
         'Mac DeMarco', 'Jeff Buckley', 'The Smiths', 'The Cranberries', 'Suicide', 'Current Joys', 'Feist', 'The Sundays',
         'Beach House', 'Cigarettes After Sex', 'Slowdive', 'Strawberry Guy', 'Cocteau Twins', 'Arctic Monkeys', 'Weezer',
         'Portishead', 'Radiohead', 'Faye Webster', 'Lykke Li', 'John + Jane Q. Public', 'Twenty One Pilots',
         'Chase Atlantic', 'The Neighbourhood', 'Lana Del Rey', 'Mitski', 'Men I Trust', 'Matt Maltese', 'Pedro Guerra',
-        'bôa', 'Frankie Cosmos', 'Liana Flores', 'Ricky Montgomery']),
+        'bôa', 'Frankie Cosmos', 'Liana Flores', 'Ricky Montgomery', 'Julien Marchal', 'Izzamuzzic', 'Øneheart',
+        'reidenshi', 'Glaede', 'Umi Not Human', 'salvia palth', 'Sir Chloe', 'Two Feet', 'Vance Joy']),
     ('neon-eterno', 'Neón Eterno', 'Synth pop de los 80, eurodance de los 90 y pista de los 2000: Depeche Mode, Haddaway, Daft Punk y Black Eyed Peas.', [
         'Depeche Mode', 'Bronski Beat', 'Men At Work', 'Soft Cell', 'Chris Isaak', 'Blondie', 'Eurythmics',
         'Laura Branigan', 'R.E.M.', 'A Flock Of Seagulls', 'The Human League', 'Billy Idol', 'Daryl Hall & John Oates',
@@ -74,7 +76,7 @@ PLAYLISTS = [
         'Mr. President', 'Global Deejays', 'Technotronic', 'Scatman John', 'Timbaland', 'David Guetta', 'Kylie Minogue',
         'Madonna', 'Eiffel 65', 'Stardust', 'Darude', 'Stromae', 'Junior Senior', 'will.i.am', 'Flo Rida',
         'Black Eyed Peas', 'YoSoyMatt', 'LMFAO', 'SNAP!', 'Culture Beat', 'Calvin Harris', 'Daft Punk', 'Gesaffelstein',
-        'M83', 'Yeah Yeah Yeahs', 'Aaron Smith', 'Olivia Newton-John', 'Emmanuel', 'Gloria Estefan', 'The Rah Band']),
+        'M83', 'Yeah Yeah Yeahs', 'Aaron Smith', 'Olivia Newton-John', 'Emmanuel', 'Gloria Estefan', 'The Rah Band', 'Kino']),
     ('brillo-disco', 'Brillo Disco', 'Disco, funk y soul para la pista: Michael Jackson, Bee Gees, Earth, Wind & Fire, Prince y Stevie Wonder.', [
         'Michael Jackson', 'Paul McCartney', 'Bee Gees', 'Barry White', 'Earth', 'Kool & The Gang', 'Patrice Rushen',
         'A Taste Of Honey', 'KC & The Sunshine Band', 'Rick James', 'Bobby Caldwell', 'George Michael', 'Grover Washington',
@@ -102,7 +104,10 @@ PLAYLISTS = [
         'Emilia', 'Juanpa Gordoa', 'A.B. Quintanilla III', 'A.B. Quintanilla III Y Los Kumbia Kings', 'Kumbia Kings',
         'Cruz Martinez presenta Los Super Reyes', 'Impacto Mc', 'Calo', 'Millonario & W. Corona', 'El Pelón del Mikrophone',
         'América Sierra', 'Los Telez', 'Xandy Almeida', 'Canserbero', 'Micro TDH', 'Metro Boomin', 'A AP Ferg',
-        'Mac Miller']),
+        'Mac Miller', '3delincuentes', 'A.C.O', 'Bizor', 'Bolishe One', 'FLVCKKA', 'Joss ML', 'Enayy', 'KIDDWERO',
+        'Alicia te quiero', 'Logan Hate', 'MXLVIXJE', 'Lxmb Gold', 'JOSTIN JA', 'morenoguapo', 'Muelas De Gallo',
+        'Ivan de la Rioja', 'Angelicca', 'Robot95', 'Neto Peña', 'Señor Marrano', 'The Guadaloops', 'iza tkm',
+        'la intimidad', 'paxheko', 'Yered!!', 'Dinamarca', 'Jordan Adetunji']),
     ('trueno-clasico', 'Trueno Clásico', 'Rock de colección y metal: Deep Purple, AC/DC, Led Zeppelin, Queen, Metallica y Pink Floyd.', [
         'Santana', 'Queen', 'Elton John', 'America', 'Fleetwood Mac', 'Pink Floyd', 'Maroon 5', 'Crowded House',
         'Deep Purple', 'Led Zeppelin', 'No Doubt', 'The Kinks', 'Electric Light Orchestra', 'The Rolling Stones',
@@ -135,7 +140,7 @@ PLAYLISTS = [
         'WayV', 'P1Harmony', 'TAEMIN', 'j-hope', 'CORTIS', 'LNGSHOT', 'LE SSERAFIM', 'KATSEYE', 'KARD', 'SHINee', 'X1',
         'B.I', 'KAI', 'YEONJUN', 'Jackson Wang', 'Dynamicduo', "Girls' Generation-Oh!GG", 'NewJeans', 'ONE OR EIGHT',
         'ATEEZ', 'XG', 'Jay Park', 'Jung Kook', 'JAEHYUN', 'LEEHI', 'Wonder Girls', 'BABYMETAL', 'Broken By The Scream',
-        '花冷え。', 'KAQRIYOTERROR', 'ATARASHII GAKKO!', 'LADYBABY', 'Yousei Teikoku', 'the peggies', 'Fujii Kaze']),
+        '花冷え。', 'KAQRIYOTERROR', 'ATARASHII GAKKO!', 'LADYBABY', 'Yousei Teikoku', 'the peggies', 'Fujii Kaze', 'Lamp']),
 ]
 # Destino de las canciones de artistas que aún no están en ninguna playlist
 DEFAULT_PLAYLIST = 'cuarto-pastel'
