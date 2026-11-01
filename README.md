@@ -71,7 +71,7 @@ Al abrir la app vuelve a poner la última canción que sonaba, en el segundo exa
 
 ## Catálogo de playlists de base
 
-[`catalog.json`](catalog.json) define las 9 playlists de base (Cuarto Pastel, Ácido Lento, Lluvia Lenta, Neón Eterno, Brillo Disco, Perreo Nocturno, Trueno Clásico, Humo Dorado y Oriente Eléctrico), su descripción, su portada (imágenes de [`covers/`](covers/)) y el estilo de cada canción. Se genera con:
+[`catalog.json`](catalog.json) define las 15 playlists de base (Cuarto Pastel, Seda Nocturna, Ácido Lento, Lluvia Lenta, Neón Eterno, Brillo Disco, Perreo Nocturno, Dembow Añejo, Trap Lunar, Rima Cruda, Trueno Clásico, Humo Dorado, Vinilo Rosa, Seúl Brillante y Tokio Eléctrico), su descripción, su portada (imágenes de [`covers/`](covers/)) y el estilo de cada canción. Se genera con:
 
 ```bash
 python3 tools/build_catalog.py
