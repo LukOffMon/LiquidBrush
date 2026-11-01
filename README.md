@@ -2,7 +2,7 @@
 
 > Antes se llamaba LiquidBrush. El repositorio, los buckets y las claves de guardado del navegador (`liquidbrush:*`) mantienen el nombre anterior para no perder favoritas, playlists ni descargas.
 
-Reproductor web personal de estética surrealista y cromada (temas "Surrealista" (por defecto) y "Minimalista"), 100 % estático (HTML + CSS + JS) y listo para GitHub Pages.
+Reproductor web personal de estética surrealista y cromada (temas "Surrealista" (por defecto), "Minimalista" y "Yem" (noche, naranja y plata con destellos verdes)), 100 % estático (HTML + CSS + JS) y listo para GitHub Pages.
 
 El tema "Surrealista" incluye una escena animada: esfera de cromo en el horizonte, suelo de ajedrez, nubes, gotas de metal líquido, ojos que siguen el cursor y un reloj derretido cuyas agujas solo avanzan mientras suena la música.
 

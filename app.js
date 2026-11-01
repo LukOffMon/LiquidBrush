@@ -69,7 +69,8 @@
 
   const THEMES = {
     chrome: '#100d1c',
-    minimal: '#f4f3f0'
+    minimal: '#f4f3f0',
+    yem: '#0b0907'
   };
 
   const REPEAT_MODES = ['off', 'all', 'one'];
