@@ -2,7 +2,7 @@
 
 > Antes se llamaba LiquidBrush. El repositorio, los buckets y las claves de guardado del navegador (`liquidbrush:*`) mantienen el nombre anterior para no perder favoritas, playlists ni descargas.
 
-Reproductor web personal de estética surrealista y cromada (temas "Surrealista" (por defecto), "Minimalista" y "Yem" (noche, naranja y plata con destellos verdes)), 100 % estático (HTML + CSS + JS) y listo para GitHub Pages.
+Reproductor web personal de estética surrealista y cromada (temas "Surrealista" (por defecto), "Minimalista", "Yem" (noche, naranja y plata con destellos verdes) y "Ébano" (casi negro, marfil y oro, con letra Times New Roman)), 100 % estático (HTML + CSS + JS) y listo para GitHub Pages.
 
 El tema "Surrealista" incluye una escena animada: esfera de cromo en el horizonte, suelo de ajedrez, nubes, gotas de metal líquido, ojos que siguen el cursor y un reloj derretido cuyas agujas solo avanzan mientras suena la música.
 
@@ -69,6 +69,20 @@ Al abrir la app vuelve a poner la última canción que sonaba, en el segundo exa
 - **Biblioteca**: todas las canciones, con orden configurable (playlists, título, artista, duración).
 - **Playlists**: las de Liquid Bullet (las del catálogo o, sin catálogo, una por cada `album`), **Mis playlists** y las automáticas *Escuchadas hace poco* y *Tus más escuchadas*.
 - **Mis playlists** se crean en la app (nombre, icono y color) con el botón ＋ de cada canción. Se guardan **solo en ese navegador** (localStorage): si se borra la caché o los datos del sitio, se pierden. Se puede descargar o importar una copia de seguridad en JSON.
+
+## Lab
+
+Pestaña **Lab** (en el móvil, botón de la barra inferior):
+
+- **Mezcla estilos**: eliges varias playlists-estilo y Lab las combina por turnos, sin repetir canción ni (cuando se puede) artista seguido.
+- **Suma artistas**: buscador para añadir artistas a la mezcla.
+- **Tamaño** (20, 40, 60 o 100) y **solo lo que no he escuchado**.
+- La mezcla se reproduce o se **guarda como playlist propia**.
+- **Si te gusta…**: eliges un artista y recomienda otros por colaboraciones y estilo compartido.
+
+## Tutorial de bienvenida
+
+La primera vez que alguien abre la app sale un recorrido de 7 pasos que resalta cada parte. Queda marcado como visto en el navegador (`liquidbrush:tour`) y no vuelve a salir; se puede repetir desde **Ajustes → Ayuda**.
 
 ## Catálogo de playlists de base
 

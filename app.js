@@ -3973,12 +3973,23 @@
       if (!state.isSeeking) updateProgressUI(els.audio.currentTime, getDuration());
     });
     on('volumechange', updateVolumeUI);
+    // Si una canción no carga mientras suena la lista, se salta sola (hasta 3 seguidas)
+    let errorSkips = 0;
+    on('playing', () => { errorSkips = 0; });
     on('error', () => {
       if (!els.audio.getAttribute('src')) return;
       if (recoverFromEqError()) return;
+      const wasPlaying = document.body.classList.contains('is-playing');
       setPlayingUI(false);
+      const title = state.currentTrack?.title ?? 'la canción';
+      if (navigator.onLine && wasPlaying && errorSkips < 3 && state.queue.length > 1) {
+        errorSkips++;
+        showToast(`No se pudo cargar «${title}»: pasamos a la siguiente.`);
+        setTimeout(() => next(false, 0), 1200);
+        return;
+      }
       showToast(navigator.onLine
-        ? `No se pudo cargar el audio de «${state.currentTrack?.title ?? 'la canción'}».`
+        ? `No se pudo cargar el audio de «${title}».`
         : 'Sin conexión: esta canción no está descargada.');
     });
     // Guarda el tiempo escuchado antes de cerrar o esconder la app

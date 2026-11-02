@@ -978,6 +978,21 @@ body.is-playing .cover-wrap {
   transition: outline-color 0.2s;
 }
 
+/* Pestañas en su propia fila (pantallas medianas y móvil): ocupan todo el ancho y se
+   compactan para que quepan las cinco, Lab incluida */
+@media (max-width: 1400px) {
+  .tabs {
+    width: 100%;
+    gap: 4px;
+  }
+
+  .tab {
+    flex: 1 1 auto;
+    justify-content: center;
+    padding: 8px 10px;
+  }
+}
+
 /* ---------- Lab: mezclas a medida ---------- */
 .lab {
   display: flex;
@@ -1161,6 +1176,13 @@ body.is-playing .cover-wrap {
 .tab-lab .icon {
   width: 16px;
   height: 16px;
+}
+
+/* En el móvil Lab está en la barra inferior: la pestaña sobra y así caben las demás */
+@media (max-width: 860px) {
+  .tab-lab {
+    display: none;
+  }
 }
 
 /* ---------- Stats ---------- */
@@ -4074,7 +4096,11 @@ textarea {
     scrollbar-color: var(--surface-hover) transparent;
   }
 
+  /* La columna tiene alto fijo: sin flex-shrink la carátula se aplastaba en ventanas bajas.
+     Se queda cuadrada y se achica con la altura de la ventana */
   .cover-wrap {
+    flex-shrink: 0;
+    width: clamp(160px, calc(100dvh - 430px), 100%);
     max-width: none;
   }
 
