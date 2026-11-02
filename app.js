@@ -29,6 +29,12 @@
         name: 'brush3',
         list: 'musica/brush3.json',
         base: 'https://pub-342aee3eb054410cb02224940f684884.r2.dev'
+      },
+      {
+        // 4.º bucket (cuarta cuenta de Cloudflare)
+        name: 'db4',
+        list: 'musica/db4.json',
+        base: 'https://pub-0854e4225565462db16fa787cf2ab81c.r2.dev'
       }
     ],
     tracksUrl: 'tracks.json',

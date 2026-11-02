@@ -13,13 +13,14 @@ El tema "Surrealista" incluye una escena animada: esfera de cromo en el horizont
 
 ## Añadir tus canciones (Cloudflare R2)
 
-La música vive en buckets de Cloudflare R2. Cada bucket tiene su lista de canciones en la carpeta [`musica/`](musica/) de este repositorio. No hay base de datos: la app lee esas listas y reproduce los MP3 directamente desde cada bucket.
+La música vive en **4 buckets** de Cloudflare R2, cada uno en una cuenta distinta (10 GB gratis por cuenta). Cada bucket tiene su lista de canciones en la carpeta [`musica/`](musica/) de este repositorio. No hay base de datos: la app lee esas listas y reproduce los MP3 directamente desde cada bucket.
 
 | Lista | Bucket | URL pública |
 | --- | --- | --- |
 | [`musica/pepper.json`](musica/pepper.json) | `liquidpepper4db` | `https://pub-cb798ce2901a49a6a6363d57fbd5ee19.r2.dev` |
 | [`musica/salt.json`](musica/salt.json) | `liquidsaltdb5` | `https://pub-b05e243e7441423f9c4a25dfe8411da3.r2.dev` |
 | [`musica/brush3.json`](musica/brush3.json) | `liquidbrush3db3` | `https://pub-342aee3eb054410cb02224940f684884.r2.dev` |
+| [`musica/db4.json`](musica/db4.json) | 4.º bucket | `https://pub-0854e4225565462db16fa787cf2ab81c.r2.dev` |
 
 Para sumar otro bucket: añade una entrada en `CONFIG.sources` (en `app.js`) con `name`, `list` y `base`, crea `musica/<name>.json` y añádelo a la lista `SHELL` de `sw.js`.
 

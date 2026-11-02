@@ -26,6 +26,7 @@ const SHELL = [
   'musica/pepper.json',
   'musica/salt.json',
   'musica/brush3.json',
+  'musica/db4.json',
   'catalog.json'
 ];
 
