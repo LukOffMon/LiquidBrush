@@ -118,6 +118,35 @@
   color-scheme: dark;
 }
 
+[data-theme="ebano"] {
+  --bg: #050506;
+  --bg-2: #0a0a0c;
+  --surface: #0c0c0e;
+  --surface-2: #141416;
+  --surface-hover: #1c1c1f;
+  --text: #ece7dd;
+  --text-muted: #8e897f;
+  --accent: #e6dccb;
+  --accent-2: #c2a36b;
+  --on-accent: #0a0908;
+  --heart: #b8463f;
+  --border: rgba(236, 231, 221, 0.09);
+  --shadow: 0 24px 60px rgba(0, 0, 0, 0.8);
+  --glow: none;
+  --text-glow: none;
+  --player-bg: #070708;
+  --dyn-strength: 9%;
+  --radius: 10px;
+  --serif: 'Times New Roman', Tinos, Times, 'Liberation Serif', Georgia, serif;
+  --font: var(--serif);
+  --brand-font: var(--serif);
+  --title-font: var(--serif);
+  --viz-a: #5a554c;
+  --viz-b: #ece7dd;
+  --viz-c: #c2a36b;
+  color-scheme: dark;
+}
+
 /* ---------- Fuente de la interfaz ---------- */
 /* La interfaz usa una letra callejera; canciones, artistas y letras siguen con Inter */
 :root {
@@ -2691,6 +2720,111 @@ body.is-playing .cover-wrap {
 .has-wall[data-theme="yem"] .now-playing,
 .has-wall[data-theme="yem"] .library {
   background: color-mix(in srgb, var(--surface) 70%, transparent);
+}
+
+/* ---------- Tema Ébano: casi negro, marfil y oro viejo, letra Times New Roman ---------- */
+/* Va después de las reglas de data-font: en Ébano toda la app usa la letra con serifa */
+:root[data-theme="ebano"] {
+  --ui-font: var(--serif);
+  --heading-font: var(--serif);
+  --song-font: var(--serif);
+}
+
+:root[data-theme="ebano"] body {
+  font-synthesis: weight style;
+  letter-spacing: 0.005em;
+}
+
+[data-theme="ebano"] .bg-glow {
+  background:
+    radial-gradient(60% 40% at 50% -10%, rgba(194, 163, 107, 0.07) 0%, transparent 70%),
+    radial-gradient(80% 60% at 50% 50%, color-mix(in srgb, var(--dyn) var(--dyn-strength), transparent) 0%, transparent 70%),
+    #050506;
+}
+
+[data-theme="ebano"] .wall-scrim {
+  background: rgba(5, 5, 6, 0.86);
+}
+
+[data-theme="ebano"] .topbar {
+  background: color-mix(in srgb, #050506 88%, transparent);
+  border-bottom: 1px solid var(--border);
+}
+
+[data-theme="ebano"] .brand-name {
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+
+[data-theme="ebano"] .brand-name span {
+  color: var(--accent-2);
+}
+
+[data-theme="ebano"] .view-title,
+[data-theme="ebano"] .pl-hero-name,
+[data-theme="ebano"] .np-title {
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+
+[data-theme="ebano"] .np-eyebrow,
+[data-theme="ebano"] .view-eyebrow,
+[data-theme="ebano"] .pl-kind {
+  color: var(--accent-2);
+  font-variant: small-caps;
+  letter-spacing: 0.08em;
+}
+
+[data-theme="ebano"] .now-playing,
+[data-theme="ebano"] .library {
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  box-shadow: var(--shadow);
+}
+
+[data-theme="ebano"] .tab.is-active,
+[data-theme="ebano"] .chip.is-active,
+[data-theme="ebano"] .btn-primary {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+[data-theme="ebano"] .play-btn,
+[data-theme="ebano"] .play-btn:hover:not(:disabled) {
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: 0 0 0 1px rgba(194, 163, 107, 0.6), 0 10px 30px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="ebano"] .cover-wrap {
+  padding: 4px;
+  background: linear-gradient(160deg, #2a2620, #0c0c0e 40%, #3a3226);
+}
+
+[data-theme="ebano"] .cover {
+  border-radius: 6px;
+}
+
+[data-theme="ebano"] .player {
+  border-top: 1px solid rgba(194, 163, 107, 0.25);
+}
+
+[data-theme="ebano"] .track.is-current {
+  background: linear-gradient(90deg, rgba(194, 163, 107, 0.12), transparent 70%);
+}
+
+[data-theme="ebano"] .track.is-current .track-title {
+  color: var(--accent-2);
+}
+
+[data-theme="ebano"] .range::-webkit-slider-runnable-track {
+  background: linear-gradient(to right, var(--accent) 0%, var(--accent-2) var(--fill), var(--surface-hover) var(--fill));
+}
+
+.has-wall[data-theme="ebano"] .now-playing,
+.has-wall[data-theme="ebano"] .library {
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
 }
 
 /* ---------- Animaciones de la escena ---------- */

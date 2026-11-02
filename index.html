@@ -23,7 +23,7 @@
   <link rel="dns-prefetch" href="https://pub-342aee3eb054410cb02224940f684884.r2.dev">
   <link rel="dns-prefetch" href="https://pub-0854e4225565462db16fa787cf2ab81c.r2.dev">
   <link rel="dns-prefetch" href="https://lrclib.net">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Permanent+Marker&family=Rubik+Wet+Paint&family=Sedgwick+Ave&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Permanent+Marker&family=Rubik+Wet+Paint&family=Sedgwick+Ave&family=Syne:wght@700;800&family=Tinos:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css?v=14">
   <script>
     /* Aplica el tema, la fuente y el tamaño de letra guardados antes de pintar (sin parpadeos) */
@@ -33,7 +33,7 @@
       root.setAttribute('data-text', 'system');
       try {
         var saved = JSON.parse(localStorage.getItem('liquidbrush:theme'));
-        if (['chrome', 'minimal', 'yem'].indexOf(saved) !== -1) root.setAttribute('data-theme', saved);
+        if (['chrome', 'minimal', 'yem', 'ebano'].indexOf(saved) !== -1) root.setAttribute('data-theme', saved);
         var settings = JSON.parse(localStorage.getItem('liquidbrush:settings')) || {};
         if (['street', 'graffiti', 'classic'].indexOf(settings.font) !== -1) root.setAttribute('data-font', settings.font);
         if (['system', 'small', 'normal', 'large', 'xl'].indexOf(settings.textSize) !== -1) root.setAttribute('data-text', settings.textSize);
@@ -480,6 +480,7 @@
             <option value="chrome">Surrealista</option>
             <option value="minimal">Minimalista</option>
             <option value="yem">Yem</option>
+            <option value="ebano">Ébano</option>
           </select>
         </label>
         <label class="setting">
