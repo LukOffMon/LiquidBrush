@@ -194,6 +194,16 @@
     djFade: $('djFade'),
     djBtn: $('djBtn'),
     statsPanel: $('statsPanel'),
+    tourDialog: $('tourDialog'),
+    tourIcon: $('tourIcon'),
+    tourTitle: $('tourTitle'),
+    tourText: $('tourText'),
+    tourCount: $('tourCount'),
+    tourDots: $('tourDots'),
+    tourPrev: $('tourPrev'),
+    tourNext: $('tourNext'),
+    tourSkip: $('tourSkip'),
+    tourAgain: $('tourAgain'),
     labPanel: $('labPanel'),
     themeSelect: $('themeSelect'),
     metaTheme: document.querySelector('meta[name="theme-color"]'),
@@ -4707,6 +4717,102 @@
     return { init, applyMode, onTrack, renderGrid, updateLoop };
   })();
 
+  /* ---------- Tutorial de bienvenida (solo la primera vez) ---------- */
+  const tour = (() => {
+    const isPhone = () => window.matchMedia('(max-width: 860px)').matches;
+    // Cada paso puede señalar una parte de la app (distinta en móvil y en ordenador)
+    const STEPS = [
+      { icon: 'note', title: 'Bienvenido a Liquid Bullet',
+        text: () => `Tu música en un solo lugar: ${state.libraryTracks.length ? `${state.libraryTracks.length.toLocaleString('es')} canciones` : 'miles de canciones'} listas para sonar. Te enseñamos lo principal en 30 segundos.` },
+      { icon: 'search', title: 'Biblioteca y búsqueda',
+        text: () => 'Busca por canción, artista o estilo. Las píldoras de arriba filtran (descargadas, favoritas, sin escuchar, por estilo) y puedes ordenar la lista como quieras.',
+        target: () => (isPhone() ? '.nav-btn[data-nav="search"]' : '.search') },
+      { icon: 'grid', title: 'Playlists',
+        text: () => 'Playlists por estilo hechas con toda la biblioteca, las tuyas (botón ＋ de cada canción) y las automáticas: «Escuchadas hace poco» y «Tus más escuchadas». Mantén pulsada una para fijarla arriba.',
+        target: () => (isPhone() ? '.nav-btn[data-nav="playlists"]' : '.tab[data-view="playlists"]') },
+      { icon: 'flask', title: 'Lab',
+        text: () => 'Combina estilos y artistas y Lab te arma una mezcla a medida. En «Si te gusta…» eliges un artista y te recomienda a quién escuchar después.',
+        target: () => (isPhone() ? '.nav-btn[data-nav="lab"]' : '.tab[data-view="lab"]') },
+      { icon: 'queue', title: 'El reproductor',
+        text: () => 'Transiciones DJ entre canciones, «A continuación» para ver y ordenar la cola, temporizador de apagado y letras sincronizadas. Cada playlist se puede descargar (⬇) para escucharla sin conexión.',
+        target: () => (isPhone() ? '.player .controls' : '.player-volume') },
+      { icon: 'heart', title: 'Favoritas y Stats',
+        text: () => 'Toca ♥ para guardar una canción en Favoritas. En Stats ves tus minutos, horas, estilos y artistas del mes.',
+        target: () => (isPhone() ? '#npFavBtn' : '.tab[data-view="favorites"]') },
+      { icon: 'settings', title: 'Hazla tuya',
+        text: () => 'En Ajustes eliges tema (Surrealista, Minimalista, Yem o Ébano), letra, fondo de pantalla y ecualizador. Desde ahí también puedes volver a ver este tutorial.',
+        target: () => '#settingsBtn' }
+    ];
+    let step = 0;
+    let focused = null;
+
+    function seen() {
+      return storage.get(KEYS.tour, false) === true;
+    }
+
+    function clearFocus() {
+      focused?.classList.remove('tour-focus');
+      focused = null;
+    }
+
+    function render() {
+      const data = STEPS[step];
+      els.tourIcon.innerHTML = `<svg class="icon" aria-hidden="true"><use href="#i-${data.icon}"></use></svg>`;
+      els.tourTitle.textContent = data.title;
+      els.tourText.textContent = data.text();
+      els.tourCount.textContent = `${step + 1} de ${STEPS.length}`;
+      els.tourDots.replaceChildren(...STEPS.map((_, i) => makeEl('span', `tour-dot${i === step ? ' is-active' : ''}`)));
+      els.tourPrev.hidden = step === 0;
+      els.tourNext.textContent = step === STEPS.length - 1 ? 'Empezar' : 'Siguiente';
+      clearFocus();
+      const selector = data.target?.();
+      const target = selector ? document.querySelector(selector) : null;
+      if (target && target.getClientRects().length) {
+        focused = target;
+        target.classList.add('tour-focus');
+        target.scrollIntoView({ block: 'nearest', behavior: settings.motion ? 'smooth' : 'auto' });
+      }
+      // La tarjeta se aparta al lado contrario de lo que señala
+      const rect = target?.getBoundingClientRect();
+      els.tourDialog.classList.toggle('is-top', Boolean(rect && rect.top > window.innerHeight * 0.55));
+    }
+
+    function finish() {
+      storage.set(KEYS.tour, true);
+      clearFocus();
+      if (els.tourDialog.open) els.tourDialog.close();
+    }
+
+    function open() {
+      step = 0;
+      render();
+      if (!els.tourDialog.open) els.tourDialog.show();
+      els.tourNext.focus({ preventScroll: true });
+    }
+
+    function init() {
+      els.tourNext.addEventListener('click', () => {
+        if (step >= STEPS.length - 1) finish();
+        else { step++; render(); }
+      });
+      els.tourPrev.addEventListener('click', () => { step = Math.max(0, step - 1); render(); });
+      els.tourSkip.addEventListener('click', finish);
+      els.tourDialog.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') { event.preventDefault(); finish(); }
+        if (event.key === 'ArrowRight') els.tourNext.click();
+        if (event.key === 'ArrowLeft' && step > 0) els.tourPrev.click();
+      });
+      els.tourAgain.addEventListener('click', () => {
+        els.settingsDialog.close();
+        open();
+      });
+      // Primera visita: se muestra cuando ya cargó la app (y nunca más)
+      if (!seen()) setTimeout(open, 900);
+    }
+
+    return { init, open };
+  })();
+
   /* ---------- Ventana de configuración ---------- */
   const nav = { nowVisible: true };
 
@@ -4870,6 +4976,7 @@
     setupAudioSession();
     setupSurrealEyes();
     wall.init();
+    tour.init();
     document.querySelectorAll('.settings-group-title').forEach((title) => title.prepend(sticker(title.textContent)));
     updateNav();
     updateOnlineStatus();

@@ -850,6 +850,134 @@ body.is-playing .cover-wrap {
   width: 100%;
 }
 
+/* ---------- Tutorial de bienvenida ---------- */
+.tour {
+  position: fixed;
+  inset: auto 0 calc(24px + env(safe-area-inset-bottom)) 0;
+  z-index: 60;
+  width: min(420px, calc(100vw - 32px));
+  margin: 0 auto;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6), 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent);
+  animation: tour-in 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.tour.is-top {
+  inset: calc(84px + env(safe-area-inset-top)) 0 auto 0;
+}
+
+@media (max-width: 860px) {
+  .tour {
+    bottom: calc(220px + env(safe-area-inset-bottom));
+  }
+}
+
+@keyframes tour-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+
+.no-motion .tour {
+  animation: none;
+}
+
+.tour-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px 18px 16px;
+}
+
+.tour-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tour-icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.tour-icon .icon {
+  width: 22px;
+  height: 22px;
+}
+
+.tour-count {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.tour-skip {
+  margin-left: auto;
+}
+
+.tour-title {
+  margin: 0;
+  font-family: var(--heading-font, var(--title-font));
+  font-size: 1.25rem;
+}
+
+.tour-text {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.tour-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.tour-dots {
+  display: flex;
+  gap: 5px;
+}
+
+.tour-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--surface-hover);
+  transition: width 0.2s, background-color 0.2s;
+}
+
+.tour-dot.is-active {
+  width: 18px;
+  border-radius: 3px;
+  background: var(--accent);
+}
+
+.tour-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Lo que el tutorial está explicando queda resaltado */
+.tour-focus {
+  position: relative;
+  z-index: 55;
+  outline: 3px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: 14px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.45);
+  transition: outline-color 0.2s;
+}
+
 /* ---------- Lab: mezclas a medida ---------- */
 .lab {
   display: flex;

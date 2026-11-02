@@ -562,6 +562,11 @@
         </label>
       </section>
 
+      <section class="settings-group" aria-labelledby="setHelpTitle">
+        <h3 id="setHelpTitle" class="settings-group-title">Ayuda</h3>
+        <button id="tourAgain" class="btn" type="button">Ver el tutorial otra vez</button>
+      </section>
+
       <section class="settings-group" aria-labelledby="setSoundTitle">
         <h3 id="setSoundTitle" class="settings-group-title">Sonido · Ecualizador</h3>
         <label class="setting">
@@ -572,6 +577,26 @@
         <p id="eqNote" class="sheet-note"></p>
       </section>
     </form>
+  </dialog>
+
+  <!-- Tutorial de bienvenida: sale la primera vez y no vuelve (Ajustes → Ver el tutorial) -->
+  <dialog id="tourDialog" class="tour" aria-labelledby="tourTitle" aria-describedby="tourText">
+    <div class="tour-body">
+      <div class="tour-head">
+        <span id="tourIcon" class="tour-icon" aria-hidden="true"></span>
+        <span id="tourCount" class="tour-count"></span>
+        <button id="tourSkip" class="btn btn-ghost tour-skip" type="button">Saltar</button>
+      </div>
+      <h2 id="tourTitle" class="tour-title"></h2>
+      <p id="tourText" class="tour-text"></p>
+      <div class="tour-foot">
+        <div id="tourDots" class="tour-dots" aria-hidden="true"></div>
+        <div class="tour-actions">
+          <button id="tourPrev" class="btn" type="button">Atrás</button>
+          <button id="tourNext" class="btn btn-primary" type="button">Siguiente</button>
+        </div>
+      </div>
+    </div>
   </dialog>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
