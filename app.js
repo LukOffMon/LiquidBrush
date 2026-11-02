@@ -66,6 +66,8 @@
     settings: 'liquidbrush:settings',
     wallLast: 'liquidbrush:wall-last',
     pins: 'liquidbrush:pins',
+    lab: 'liquidbrush:lab',
+    tour: 'liquidbrush:tour',
     // Las claves conservan el prefijo "liquidbrush:" del nombre anterior para no perder lo guardado
     resume: 'liquidbrush:resume',
     resumeQueue: 'liquidbrush:resume-queue'
@@ -192,6 +194,7 @@
     djFade: $('djFade'),
     djBtn: $('djBtn'),
     statsPanel: $('statsPanel'),
+    labPanel: $('labPanel'),
     themeSelect: $('themeSelect'),
     metaTheme: document.querySelector('meta[name="theme-color"]'),
     cover: $('cover'),
@@ -841,7 +844,7 @@
     long: 'Más largas primero',
     short: 'Más cortas primero'
   };
-  const VIEWS = ['library', 'playlists', 'favorites', 'stats'];
+  const VIEWS = ['library', 'playlists', 'favorites', 'stats', 'lab'];
 
   const library = {
     catalog: null,
@@ -1572,6 +1575,360 @@
     panel.replaceChildren(tiles, grid, makeEl('p', 'pl-note', 'Tus estadísticas se calculan y guardan solo en este dispositivo.'));
   }
 
+  /* ---------- Lab: mezclas a medida y recomendaciones ---------- */
+  // Eliges estilos y artistas y Lab arma una playlist equilibrada; «Si te gusta…» sugiere
+  // artistas parecidos (colaboraciones y mismo estilo). Las elecciones se recuerdan aquí.
+  const LAB_SIZES = [20, 40, 60, 100];
+  const lab = {
+    genres: [],
+    artists: [],
+    size: 40,
+    fresh: false,
+    result: [],
+    artistQuery: '',
+    likeArtist: '',
+    ...(() => {
+      const saved = storage.get(KEYS.lab, {}) || {};
+      return {
+        genres: Array.isArray(saved.genres) ? saved.genres : [],
+        artists: Array.isArray(saved.artists) ? saved.artists : [],
+        size: LAB_SIZES.includes(saved.size) ? saved.size : 40,
+        fresh: saved.fresh === true
+      };
+    })()
+  };
+
+  function saveLab() {
+    storage.set(KEYS.lab, { genres: lab.genres, artists: lab.artists, size: lab.size, fresh: lab.fresh });
+  }
+
+  // Todos los artistas acreditados de una canción («A, B feat. C» → A, B, C). «&» no separa:
+  // es parte del nombre de dúos como «Polo & Pan» o «DOMi & JD BECK»
+  function creditedArtists(track) {
+    return String(track?.knownArtist || '')
+      .split(/\s*(?:,|\bfeat\.?|\bft\.?|\bfeaturing\b)\s*/i)
+      .map((name) => name.trim())
+      .filter((name) => name.length > 1);
+  }
+
+  // Índice de artistas: canciones, estilos y con quién colaboran
+  let labIndex = null;
+  function labArtists() {
+    if (labIndex && labIndex.size === state.libraryTracks.length) return labIndex.map;
+    const map = new Map();
+    state.libraryTracks.forEach((track) => {
+      const credits = creditedArtists(track);
+      credits.forEach((name) => {
+        const key = normalize(name);
+        if (!key) return;
+        if (!map.has(key)) map.set(key, { key, name, tracks: [], genres: new Map(), partners: new Map() });
+        const entry = map.get(key);
+        entry.tracks.push(track);
+        if (track.genre) entry.genres.set(track.genre, (entry.genres.get(track.genre) || 0) + 1);
+        credits.forEach((other) => {
+          const otherKey = normalize(other);
+          if (otherKey && otherKey !== key) entry.partners.set(otherKey, (entry.partners.get(otherKey) || 0) + 1);
+        });
+      });
+    });
+    labIndex = { size: state.libraryTracks.length, map };
+    return map;
+  }
+
+  function labGenres() {
+    return systemPlaylists().map((pl) => ({ name: pl.name, description: pl.description || '', count: playlistTracksOf(pl).length }))
+      .filter((g) => g.count > 0);
+  }
+
+  // Reparte por turnos entre los grupos elegidos y evita el mismo artista dos veces seguidas
+  function buildLabMix() {
+    const artists = labArtists();
+    const pools = [];
+    lab.genres.forEach((genre) => pools.push(state.libraryTracks.filter((t) => t.genre === genre)));
+    lab.artists.forEach((key) => {
+      const entry = artists.get(key);
+      if (entry) pools.push(entry.tracks.slice());
+    });
+    if (!pools.length) return [];
+    const plays = library.plays || {};
+    const ready = pools.map((pool) => {
+      let list = pool.filter(isPlayable);
+      if (lab.fresh) {
+        const unheard = list.filter((t) => !plays[t.id]);
+        if (unheard.length >= Math.min(8, list.length)) list = unheard;
+      }
+      return shuffleArray(list);
+    });
+    const picked = [];
+    const seen = new Set();
+    let round = 0;
+    while (picked.length < lab.size && ready.some((pool) => pool.length)) {
+      const pool = ready[round % ready.length];
+      round++;
+      while (pool.length) {
+        const track = pool.shift();
+        if (seen.has(track.songKey)) continue;
+        seen.add(track.songKey);
+        picked.push(track);
+        break;
+      }
+    }
+    // Separa canciones seguidas del mismo artista cuando se puede
+    for (let i = 1; i < picked.length; i++) {
+      if (mainArtist(picked[i]) && mainArtist(picked[i]) === mainArtist(picked[i - 1])) {
+        const swap = picked.findIndex((t, j) => j > i && mainArtist(t) !== mainArtist(picked[i - 1]));
+        if (swap > -1) [picked[i], picked[swap]] = [picked[swap], picked[i]];
+      }
+    }
+    return picked;
+  }
+
+  // «Si te gusta X»: colaboradores pesan más; luego artistas del mismo estilo con más canciones
+  function similarArtists(key, limit = 8) {
+    const artists = labArtists();
+    const base = artists.get(key);
+    if (!base) return [];
+    const scores = new Map();
+    base.partners.forEach((count, other) => scores.set(other, (scores.get(other) || 0) + 6 + count * 2));
+    const baseTotal = base.tracks.length;
+    artists.forEach((entry, other) => {
+      if (other === key) return;
+      let shared = 0;
+      base.genres.forEach((count, genre) => {
+        if (entry.genres.has(genre)) shared += (count / baseTotal) * (entry.genres.get(genre) / entry.tracks.length);
+      });
+      if (shared > 0) scores.set(other, (scores.get(other) || 0) + shared * 4 + Math.min(entry.tracks.length, 12) * 0.15);
+    });
+    return [...scores.entries()]
+      .filter(([other]) => artists.has(other))
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, limit)
+      .map(([other]) => artists.get(other));
+  }
+
+  // Sugerencia de partida: el artista que más escuchas
+  function topListenedArtist() {
+    const counts = new Map();
+    Object.entries(library.plays || {}).forEach(([id, plays]) => {
+      const track = getTrack(id);
+      const key = normalize(mainArtist(track));
+      if (key) counts.set(key, (counts.get(key) || 0) + plays);
+    });
+    return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || '';
+  }
+
+  function labChip(label, action, value, active, extra = '') {
+    const chip = makeEl('button', `chip lab-chip${active ? ' is-active' : ''}`, label);
+    chip.type = 'button';
+    chip.dataset.labAction = action;
+    chip.dataset.value = value;
+    chip.setAttribute('aria-pressed', String(active));
+    if (extra) chip.append(makeEl('span', 'lab-chip-count', extra));
+    return chip;
+  }
+
+  function labSection(title, hint) {
+    const section = makeEl('section', 'lab-section');
+    const head = makeEl('div', 'lab-section-head');
+    head.append(makeEl('h3', 'lab-section-title', title));
+    if (hint) head.append(makeEl('p', 'lab-hint', hint));
+    section.append(head);
+    return section;
+  }
+
+  function renderLab() {
+    const panel = els.labPanel;
+    if (!state.libraryTracks.length) {
+      panel.replaceChildren(makeEl('p', 'list-empty', 'Lab necesita la biblioteca: espera a que carguen las canciones.'));
+      return;
+    }
+    const artists = labArtists();
+    const genres = labGenres();
+    lab.genres = lab.genres.filter((g) => genres.some((x) => x.name === g));
+    lab.artists = lab.artists.filter((a) => artists.has(a));
+
+    // 1. Estilos
+    const styles = labSection('1 · Mezcla estilos', 'Elige uno o varios: Lab los combina por turnos.');
+    const styleChips = makeEl('div', 'lab-chips');
+    genres.forEach((g) => {
+      const chip = labChip(g.name, 'genre', g.name, lab.genres.includes(g.name), String(g.count));
+      chip.title = g.description;
+      styleChips.append(chip);
+    });
+    styles.append(styleChips);
+
+    // 2. Artistas
+    const people = labSection('2 · Suma artistas', 'Opcional. Busca y toca para añadirlos a la mezcla.');
+    const search = document.createElement('input');
+    search.type = 'search';
+    search.className = 'lab-search';
+    search.placeholder = 'Buscar artista…';
+    search.value = lab.artistQuery;
+    search.dataset.labInput = 'artist';
+    search.setAttribute('aria-label', 'Buscar artista para la mezcla');
+    const q = normalize(lab.artistQuery);
+    const ranked = [...artists.values()]
+      .filter((a) => !q || a.key.includes(q))
+      .sort((a, b) => b.tracks.length - a.tracks.length)
+      .slice(0, q ? 30 : 24);
+    const chosen = lab.artists.map((key) => artists.get(key)).filter(Boolean);
+    const artistChips = makeEl('div', 'lab-chips');
+    chosen.forEach((a) => artistChips.append(labChip(`✓ ${a.name}`, 'artist', a.key, true)));
+    ranked.filter((a) => !lab.artists.includes(a.key)).forEach((a) => artistChips.append(labChip(a.name, 'artist', a.key, false, String(a.tracks.length))));
+    if (!ranked.length && q) artistChips.append(makeEl('p', 'lab-hint', 'Ningún artista coincide.'));
+    people.append(search, artistChips);
+
+    // 3. Opciones y botón
+    const options = labSection('3 · Ajusta y crea');
+    const row = makeEl('div', 'lab-options');
+    const sizeWrap = makeEl('div', 'lab-sizes');
+    sizeWrap.setAttribute('role', 'group');
+    sizeWrap.setAttribute('aria-label', 'Tamaño de la mezcla');
+    LAB_SIZES.forEach((n) => sizeWrap.append(labChip(`${n} canciones`, 'size', String(n), lab.size === n)));
+    const fresh = labChip('Solo lo que no he escuchado', 'fresh', '1', lab.fresh);
+    row.append(sizeWrap, fresh);
+    const create = makeButton('btn btn-primary lab-create', 'lab-create', 'Crear la mezcla', 'shuffle', lab.result.length ? 'Otra mezcla' : 'Crear mezcla');
+    create.dataset.labAction = 'create';
+    create.removeAttribute('data-action');
+    const selected = lab.genres.length + lab.artists.length;
+    create.disabled = !selected;
+    const summary = makeEl('p', 'lab-hint', selected
+      ? `Mezclando: ${[...lab.genres, ...chosen.map((a) => a.name)].join(' + ')}`
+      : 'Elige al menos un estilo o un artista.');
+    const clear = makeEl('button', 'btn btn-ghost lab-clear', 'Limpiar');
+    clear.type = 'button';
+    clear.dataset.labAction = 'clear';
+    clear.hidden = !selected;
+    const actions = makeEl('div', 'lab-create-row');
+    actions.append(create, clear);
+    options.append(row, actions, summary);
+
+    const blocks = [styles, people, options];
+
+    // Resultado
+    if (lab.result.length) {
+      const result = labSection('Tu mezcla', `${songsLabel(lab.result.length)} · ${formatTotal(lab.result.reduce((s, t) => s + parseDuration(t.duration), 0))}`);
+      const bar = makeEl('div', 'lab-result-actions');
+      const play = makeButton('btn btn-primary', 'lab-play', 'Reproducir la mezcla', 'play', 'Reproducir');
+      play.dataset.labAction = 'play';
+      play.removeAttribute('data-action');
+      const save = makeButton('btn', 'lab-save', 'Guardar como playlist', 'playlist-add', 'Guardar como playlist');
+      save.dataset.labAction = 'save';
+      save.removeAttribute('data-action');
+      bar.append(play, save);
+      const listEl = makeEl('ol', 'lab-result');
+      lab.result.forEach((track) => {
+        const li = makeEl('li', 'lab-track');
+        const btn = makeEl('button', 'lab-track-btn');
+        btn.type = 'button';
+        btn.dataset.labAction = 'play-from';
+        btn.dataset.value = track.id;
+        const img = document.createElement('img');
+        img.src = track.cover;
+        img.alt = '';
+        img.width = 40;
+        img.height = 40;
+        img.loading = 'lazy';
+        const text = makeEl('span', 'lab-track-text');
+        text.append(makeEl('span', 'lab-track-title', track.title), makeEl('span', 'lab-track-artist', `${track.artist}${track.genre ? ` · ${track.genre}` : ''}`));
+        btn.append(img, text, makeEl('span', 'lab-track-time', track.duration || ''));
+        li.append(btn);
+        listEl.append(li);
+      });
+      result.append(bar, listEl);
+      blocks.push(result);
+    }
+
+    // Si te gusta…
+    const like = labSection('Si te gusta…', 'Elige un artista y te decimos a quién escuchar después.');
+    if (!lab.likeArtist || !artists.has(lab.likeArtist)) lab.likeArtist = topListenedArtist() || ranked[0]?.key || '';
+    const select = document.createElement('select');
+    select.className = 'lab-select';
+    select.dataset.labInput = 'like';
+    select.setAttribute('aria-label', 'Artista que te gusta');
+    [...artists.values()].sort((a, b) => collator.compare(a.name, b.name)).forEach((a) => {
+      select.append(new Option(`${a.name} (${a.tracks.length})`, a.key, false, a.key === lab.likeArtist));
+    });
+    const recs = makeEl('div', 'lab-recs');
+    similarArtists(lab.likeArtist).forEach((a) => {
+      const card = makeEl('button', 'lab-rec');
+      card.type = 'button';
+      card.dataset.labAction = 'rec-play';
+      card.dataset.value = a.key;
+      card.title = `Escuchar ${a.name}`;
+      const img = document.createElement('img');
+      img.src = a.tracks[0].cover;
+      img.alt = '';
+      img.width = 56;
+      img.height = 56;
+      img.loading = 'lazy';
+      const top = [...a.genres.entries()].sort((x, y) => y[1] - x[1])[0]?.[0] || '';
+      const text = makeEl('span', 'lab-rec-text');
+      text.append(makeEl('span', 'lab-rec-name', a.name), makeEl('span', 'lab-rec-meta', `${songsLabel(a.tracks.length)}${top ? ` · ${top}` : ''}`));
+      card.append(img, text);
+      recs.append(card);
+    });
+    if (!recs.childElementCount) recs.append(makeEl('p', 'lab-hint', 'No encontramos artistas parecidos todavía.'));
+    like.append(select, recs);
+    blocks.push(like);
+
+    panel.replaceChildren(...blocks);
+  }
+
+  function labCreate() {
+    lab.result = buildLabMix();
+    if (!lab.result.length) showToast('No hay canciones para esa combinación (¿sin conexión?).');
+    renderLab();
+    els.labPanel.querySelector('.lab-result')?.closest('.lab-section')?.scrollIntoView({ behavior: settings.motion ? 'smooth' : 'auto', block: 'start' });
+  }
+
+  function labName() {
+    const artists = labArtists();
+    const parts = [...lab.genres, ...lab.artists.map((key) => artists.get(key)?.name).filter(Boolean)];
+    const name = parts.length > 2 ? `${parts.slice(0, 2).join(' + ')} y más` : parts.join(' + ');
+    return `Lab · ${name}`.slice(0, 60);
+  }
+
+  function handleLabAction(target) {
+    const action = target.dataset.labAction;
+    const value = target.dataset.value;
+    const toggle = (list, item) => (list.includes(item) ? list.filter((x) => x !== item) : [...list, item]);
+    switch (action) {
+      case 'genre': lab.genres = toggle(lab.genres, value); break;
+      case 'artist': lab.artists = toggle(lab.artists, value); break;
+      case 'size': lab.size = Number(value); break;
+      case 'fresh': lab.fresh = !lab.fresh; break;
+      case 'clear': lab.genres = []; lab.artists = []; lab.result = []; break;
+      case 'create': saveLab(); labCreate(); haptic(12); return;
+      case 'play':
+        if (lab.result.length) playCollection(lab.result, lab.result.find(isPlayable)?.id, `Lab · ${labName().replace(/^Lab · /, '')}`);
+        return;
+      case 'play-from': playCollection(lab.result, value, labName()); return;
+      case 'save': {
+        if (!lab.result.length) return;
+        const playlist = { id: newId(), name: labName(), emoji: '🧠', color: PLAYLIST_COLORS[lab.result.length % PLAYLIST_COLORS.length],
+          trackIds: lab.result.map((t) => t.id), createdAt: Date.now() };
+        library.local.push(playlist);
+        saveLocalPlaylists();
+        showToast(`Guardada en tus playlists: «${playlist.name}».`);
+        openPlaylist(`local:${playlist.id}`);
+        return;
+      }
+      case 'rec-play': {
+        const entry = labArtists().get(value);
+        if (!entry) return;
+        const tracks = shuffleArray(entry.tracks.filter(isPlayable));
+        if (tracks.length) playCollection(tracks, tracks[0].id, `Lab · Si te gusta ${artistName(lab.likeArtist)}: ${entry.name}`);
+        return;
+      }
+      default: return;
+    }
+    saveLab();
+    renderLab();
+  }
+
+  const artistName = (key) => labArtists().get(key)?.name || '';
+
   /* ---------- Vistas: Biblioteca, Playlists y Favoritas ---------- */
   function sortTracks(list) {
     const sorted = list.slice();
@@ -1703,14 +2060,17 @@
       library: ['Toda tu música', 'Biblioteca'],
       playlists: searching ? ['Buscando en la biblioteca', 'Resultados'] : ['Oficiales, compartidas y tuyas', 'Playlists'],
       favorites: ['Tus corazones', 'Favoritas'],
-      stats: [monthInfo(state.statsOffset).label, 'Tus estadísticas']
+      stats: [monthInfo(state.statsOffset).label, 'Tus estadísticas'],
+      lab: ['Mezclas a tu medida', 'Lab']
     };
     const [eyebrow, title] = titles[state.view];
     const text = makeEl('div', 'view-text');
     text.append(makeEl('p', 'view-eyebrow', eyebrow), makeEl('h2', 'view-title', title));
 
     const actions = makeEl('div', 'view-actions');
-    if (state.view === 'stats') {
+    if (state.view === 'lab') {
+      // Lab no lleva acciones en la cabecera: todo está en su panel
+    } else if (state.view === 'stats') {
       const prevMonth = makeButton('icon-btn', 'stats-prev', 'Mes anterior', 'back');
       const nextMonth = makeButton('icon-btn stats-next', 'stats-next', 'Mes siguiente', 'back');
       nextMonth.disabled = state.statsOffset >= 0;
@@ -2043,10 +2403,12 @@
     const q = normalize(state.query);
     const searching = Boolean(q);
     renderViewHead();
-    const showStats = state.view === 'stats';
+    const showLab = state.view === 'lab';
+    const showStats = state.view === 'stats' || showLab;
     const showGrid = state.view === 'playlists' && !searching;
     els.playlistGrid.hidden = !showGrid;
-    els.statsPanel.hidden = !showStats;
+    els.statsPanel.hidden = state.view !== 'stats';
+    els.labPanel.hidden = !showLab;
     els.trackList.hidden = showGrid || showStats;
     if (state.view !== 'playlist') setViewTint('');
     renderRecentRow();
@@ -2054,6 +2416,13 @@
     renderSearchPlaylists(showStats || state.view === 'playlist' ? '' : q);
     els.searchPlaylists.classList.toggle('is-list', settings.plView === 'list');
     updateCounts();
+
+    if (showLab) {
+      renderLab();
+      els.trackList.replaceChildren();
+      els.listInfo.textContent = '';
+      return;
+    }
 
     if (showStats) {
       renderStats();
@@ -3829,11 +4198,36 @@
     let searchFrame = null;
     els.searchInput.addEventListener('input', () => {
       state.query = els.searchInput.value;
+      // En Stats y Lab no hay lista que filtrar: la búsqueda se hace en la Biblioteca
+      if (state.query.trim() && (state.view === 'stats' || state.view === 'lab')) {
+        setView('library');
+        return;
+      }
       if (searchFrame) cancelAnimationFrame(searchFrame);
       searchFrame = requestAnimationFrame(() => {
         searchFrame = null;
         renderList();
       });
+    });
+
+    // Lab
+    els.labPanel.addEventListener('click', (event) => {
+      const target = event.target.closest('[data-lab-action]');
+      if (target && !target.disabled) handleLabAction(target);
+    });
+    els.labPanel.addEventListener('input', (event) => {
+      if (event.target.dataset.labInput !== 'artist') return;
+      lab.artistQuery = event.target.value;
+      const caret = event.target.selectionStart;
+      renderLab();
+      const input = els.labPanel.querySelector('[data-lab-input="artist"]');
+      input?.focus({ preventScroll: true });
+      input?.setSelectionRange(caret, caret);
+    });
+    els.labPanel.addEventListener('change', (event) => {
+      if (event.target.dataset.labInput !== 'like') return;
+      lab.likeArtist = event.target.value;
+      renderLab();
     });
 
     // Pestañas Biblioteca / Playlists / Favoritas
@@ -3928,6 +4322,7 @@
       }
       if (target === 'library' && state.view !== 'library') setView('library');
       if (target === 'playlists' && state.view !== 'playlists') setView('playlists');
+      if (target === 'lab' && state.view !== 'lab') setView('lab');
       // El foco va primero (iOS solo abre el teclado dentro del toque)
       if (target === 'search') els.searchInput.focus({ preventScroll: true });
       els.library.scrollIntoView({ block: 'start', behavior: settings.motion ? 'smooth' : 'auto' });
@@ -4319,7 +4714,8 @@
     const searching = document.activeElement === els.searchInput;
     const active = searching ? 'search'
       : nav.nowVisible ? 'now'
-      : state.view === 'playlists' || state.view === 'playlist' ? 'playlists' : 'library';
+      : state.view === 'playlists' || state.view === 'playlist' ? 'playlists'
+      : state.view === 'lab' ? 'lab' : 'library';
     els.bottomNav.querySelectorAll('.nav-btn').forEach((button) => {
       const on = button.dataset.nav === active;
       button.classList.toggle('is-active', on);

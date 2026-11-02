@@ -202,6 +202,7 @@
     <symbol id="i-queue" viewBox="0 0 24 24"><path d="M3 6h12v2H3V6zm0 4h12v2H3v-2zm0 4h8v2H3v-2zm14-4v6.27A2.5 2.5 0 1 0 18.5 19V12H22v-2h-5z"/></symbol>
     <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12.3 2a9.7 9.7 0 1 0 9.7 11.6A7.7 7.7 0 0 1 12.3 2z"/></symbol>
     <symbol id="i-play-next" viewBox="0 0 24 24"><path d="M3 10h11v2H3v-2zm0-4h11v2H3V6zm0 8h7v2H3v-2zm13-1v8l6-4-6-4z"/></symbol>
+    <symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 2h6v2h-1v5.2l5.6 9.4A2.2 2.2 0 0 1 17.7 22H6.3a2.2 2.2 0 0 1-1.9-3.4L10 9.2V4H9V2zm3 8.2L9.2 15h5.6L12 10.2zM8 17l-1.7 3h11.4L16 17H8z"/></symbol>
     <symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 3a9 9 0 0 0 0 18c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></symbol>
   </svg>
 
@@ -293,6 +294,9 @@
               Favoritas <span id="favCount" class="count">0</span>
             </button>
             <button class="tab" type="button" role="tab" data-view="stats" aria-selected="false">Stats</button>
+            <button class="tab tab-lab" type="button" role="tab" data-view="lab" aria-selected="false">
+              <svg class="icon" aria-hidden="true"><use href="#i-flask"></use></svg> Lab
+            </button>
           </div>
         </div>
 
@@ -304,6 +308,7 @@
         <div id="searchPlaylists" class="search-playlists" hidden></div>
         <div id="playlistGrid" class="pl-wrap" hidden></div>
         <div id="statsPanel" class="stats" hidden></div>
+        <div id="labPanel" class="lab" hidden></div>
         <ul id="trackList" class="track-list"></ul>
         </div>
         <input id="importInput" type="file" accept="application/json,.json" hidden>
@@ -379,6 +384,9 @@
         </button>
         <button class="nav-btn" type="button" data-nav="playlists">
           <svg class="icon" aria-hidden="true"><use href="#i-grid"></use></svg><span>Playlists</span>
+        </button>
+        <button class="nav-btn" type="button" data-nav="lab">
+          <svg class="icon" aria-hidden="true"><use href="#i-flask"></use></svg><span>Lab</span>
         </button>
       </nav>
     </footer>
