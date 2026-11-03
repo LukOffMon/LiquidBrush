@@ -79,7 +79,7 @@ Liquid funciona como Spotify, pero con tu colección de MP3: todo se calcula en 
 - **Radio**: empieza por un artista (o por una canción, desde el ＋) y se renueva sola con artistas parecidos, sin fin.
 - **Buscar**: al tocar el buscador salen tus **búsquedas recientes** (con Borrar) y los estilos para explorar; los resultados muestran también artistas.
 - **A continuación**: botón **Editar** para reordenar arrastrando del asa, y abajo Aleatorio, Repetir y Temporizador.
-- **Portadas**: todas son imágenes. Las playlists usan `covers/cover-NN.jpg` (Escuchadas hace poco y Tus más escuchadas, `cover-27` y `cover-28`). Cada canción lleva uno de los 18 iconos de [`covers/songs/`](covers/songs/), repartidos al azar y por igual (unas 152 canciones por icono). `tools/build_catalog.py` guarda el reparto en `catalog.json`: cada canción conserva su icono y las nuevas reciben el menos usado. Para sumar iconos, añade `song-19.jpg` (600 px) y `song-19-sm.jpg` (320 px): al regenerar, algunas canciones pasan a los nuevos para que todos queden parejos. Los enlaces compartidos de canciones usan ese icono como miniatura.
+- **Portadas**: todas son imágenes. Las playlists usan `covers/cover-NN.jpg` (Escuchadas hace poco y Tus más escuchadas, `cover-27` y `cover-28`; Velo Sónico y Niebla Pesada, `cover-29` y `cover-30`, recortadas de los fondos 05 y 16). Cada canción lleva uno de los 18 iconos de [`covers/songs/`](covers/songs/), repartidos al azar y por igual (unas 164 canciones por icono). `tools/build_catalog.py` guarda el reparto en `catalog.json`: cada canción conserva su icono y las nuevas reciben el menos usado. Para sumar iconos, añade `song-19.jpg` (600 px) y `song-19-sm.jpg` (320 px): al regenerar, algunas canciones pasan a los nuevos para que todos queden parejos. Los enlaces compartidos de canciones usan ese icono como miniatura.
 
 ## Compartir
 
@@ -108,7 +108,7 @@ La primera vez que alguien abre la app sale un recorrido de 7 pasos que resalta 
 
 ## Catálogo de playlists de base
 
-[`catalog.json`](catalog.json) define las 15 playlists de base (Cuarto Pastel, Seda Nocturna, Ácido Lento, Lluvia Lenta, Neón Eterno, Brillo Disco, Perreo Nocturno, Dembow Añejo, Trap Lunar, Rima Cruda, Trueno Clásico, Humo Dorado, Vinilo Rosa, Seúl Brillante y Tokio Eléctrico), su descripción, su portada (imágenes de [`covers/`](covers/)) y el estilo de cada canción. Se genera con:
+[`catalog.json`](catalog.json) define las 28 playlists de base (Cuarto Pastel, Seda Nocturna, Ácido Lento, Riviera Francesa, Lluvia Lenta, Velo Sónico, Señal Rota, Ghost Case, Corazón Roto, Ola Fría, Neón Eterno, Brillo Disco, Perreo Nocturno, Barrio Sur, Calle Cromo, Dembow Añejo, Trap Lunar, Rima Cruda, Nube Púrpura, Trueno Clásico, Niebla Pesada, Ciudad Furia, Alma Latina, Verano Tropical, Humo Dorado, Vinilo Rosa, Seúl Brillante y Tokio Eléctrico), su descripción, su portada (imágenes de [`covers/`](covers/)) y el estilo de cada canción. Se genera con:
 
 ```bash
 python3 tools/build_catalog.py
