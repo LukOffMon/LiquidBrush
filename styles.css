@@ -4582,3 +4582,187 @@ textarea {
     --glass-alpha-soft: 85%;
   }
 }
+
+/* =========================================================
+   Liquid Glass 2: iconos de vidrio transparente y movimiento fluido
+   Cada botón de icono es una burbuja de vidrio: deja ver lo que hay detrás
+   (desenfocado), con un brillo arriba, un filo de luz y una sombra suave.
+   El glifo es semitransparente, como grabado en el vidrio. Todo responde
+   con un muelle suave al tocar. En modo ligero no hay desenfoque y con
+   «Animaciones» apagado o reducir movimiento no hay movimiento.
+   ========================================================= */
+:root {
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-fluid: cubic-bezier(0.22, 1, 0.36, 1);
+  --icon-glass: color-mix(in srgb, var(--text) 8%, transparent);
+  --icon-glass-hover: color-mix(in srgb, var(--text) 15%, transparent);
+  --icon-sheen: rgba(255, 255, 255, 0.32);
+  --icon-ink: color-mix(in srgb, var(--text) 80%, transparent);
+}
+
+[data-theme="minimal"] {
+  --icon-glass: rgba(255, 255, 255, 0.55);
+  --icon-glass-hover: rgba(255, 255, 255, 0.8);
+  --icon-sheen: rgba(255, 255, 255, 0.9);
+}
+
+:root:not(.lite) .icon-btn:not(.play-btn),
+:root:not(.lite) .nav-btn.is-active {
+  background-color: var(--icon-glass);
+  background-image:
+    radial-gradient(120% 85% at 30% 0%, var(--icon-sheen) 0%, transparent 52%),
+    linear-gradient(180deg, transparent 60%, color-mix(in srgb, var(--icon-sheen) 30%, transparent));
+  -webkit-backdrop-filter: blur(10px) saturate(170%);
+  backdrop-filter: blur(10px) saturate(170%);
+  box-shadow:
+    inset 0 1px 0.5px var(--glass-edge),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.12),
+    inset 0 0 0 1px var(--glass-edge-low),
+    0 4px 14px rgba(0, 0, 0, 0.14);
+  color: var(--icon-ink);
+}
+
+:root:not(.lite) .icon-btn .icon {
+  filter: drop-shadow(0 1px 0 color-mix(in srgb, var(--icon-sheen) 70%, transparent)) drop-shadow(0 1px 3px rgba(0, 0, 0, 0.22));
+}
+
+:root:not(.lite) .icon-btn:not(.play-btn):hover:not(:disabled) {
+  background-color: var(--icon-glass-hover);
+  color: var(--text);
+}
+
+/* Lo encendido (aleatorio, repetir, fijada, favorita…) es vidrio teñido */
+:root:not(.lite) .mode-btn.is-active,
+:root:not(.lite) .pin-btn.is-active,
+:root:not(.lite) .dj-btn[aria-pressed="true"],
+:root:not(.lite) .sleep-btn[aria-pressed="true"],
+:root:not(.lite) .nav-btn.is-active,
+:root:not(.lite) .fav-btn-lg.is-active {
+  background-color: color-mix(in srgb, var(--accent) 22%, transparent);
+  color: var(--accent);
+}
+
+/* En las filas de canciones el vidrio aparece al pasar o tocar (miles de filas: sin desenfoque) */
+:root:not(.lite) .track .icon-btn:not(.play-btn) {
+  background-color: transparent;
+  background-image: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+:root:not(.lite) .track:hover .icon-btn:not(.play-btn),
+:root:not(.lite) .track:focus-within .icon-btn:not(.play-btn) {
+  background-color: var(--icon-glass);
+  box-shadow: inset 0 1px 0.5px var(--glass-edge), inset 0 0 0 1px var(--glass-edge-low);
+}
+
+/* Play: una gota de color con brillo de vidrio */
+:root:not(.lite) .play-btn,
+:root:not(.lite) .play-btn:hover:not(:disabled) {
+  background-color: color-mix(in srgb, var(--accent) 86%, transparent);
+  background-image:
+    radial-gradient(110% 80% at 30% 8%, rgba(255, 255, 255, 0.6) 0%, transparent 48%),
+    radial-gradient(90% 70% at 70% 110%, color-mix(in srgb, var(--accent-2) 70%, transparent) 0%, transparent 70%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  backdrop-filter: blur(12px) saturate(180%);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.7),
+    inset 0 -3px 8px rgba(0, 0, 0, 0.2),
+    0 8px 24px color-mix(in srgb, var(--accent) 38%, transparent);
+}
+
+/* Movimiento: todo cede y rebota como un líquido */
+:root:not(.no-motion) .icon-btn,
+:root:not(.no-motion) .nav-btn,
+:root:not(.no-motion) .btn,
+:root:not(.no-motion) .chip,
+:root:not(.no-motion) .tab,
+:root:not(.no-motion) .wall-btn {
+  transition:
+    transform 0.55s var(--spring),
+    background-color 0.3s var(--ease-fluid),
+    color 0.3s var(--ease-fluid),
+    box-shadow 0.35s var(--ease-fluid);
+}
+
+:root:not(.no-motion) .icon-btn:hover:not(:disabled) { transform: translateY(-1px) scale(1.07); }
+:root:not(.no-motion) .play-btn:hover:not(:disabled) { transform: scale(1.08); }
+
+:root:not(.no-motion) .icon-btn:active:not(:disabled),
+:root:not(.no-motion) .nav-btn:active,
+:root:not(.no-motion) .btn:active:not(:disabled),
+:root:not(.no-motion) .chip:active,
+:root:not(.no-motion) .tab:active,
+:root:not(.no-motion) .wall-btn:active {
+  transform: scale(0.88);
+  transition-duration: 0.12s;
+}
+
+:root:not(.no-motion) .pl-card {
+  transition: transform 0.6s var(--spring), background-color 0.3s var(--ease-fluid), box-shadow 0.4s var(--ease-fluid);
+}
+
+:root:not(.no-motion) .pl-card:hover { transform: translateY(-4px) scale(1.015); }
+:root:not(.no-motion) .pl-card:active { transform: scale(0.96); transition-duration: 0.15s; }
+
+:root:not(.no-motion) .track {
+  transition: background-color 0.3s var(--ease-fluid), box-shadow 0.3s var(--ease-fluid), transform 0.45s var(--spring);
+}
+
+:root:not(.no-motion) .track:active { transform: scale(0.985); }
+
+/* Las filas entran en cascada al cambiar de vista */
+:root:not(.no-motion) .library-view.rows-in .track {
+  animation: row-in 0.55s var(--ease-fluid) both;
+  animation-delay: calc(var(--i, 14) * 24ms);
+}
+
+@keyframes row-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+/* La carátula se funde al cambiar de canción */
+:root:not(.no-motion) .cover.is-swapping { animation: cover-swap 0.7s var(--ease-fluid); }
+
+@keyframes cover-swap {
+  from { opacity: 0.2; transform: scale(0.9); filter: blur(10px) saturate(1.6); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+
+/* Las hojas (diálogos) suben como una gota */
+:root:not(.no-motion) .sheet[open] { animation: sheet-rise 0.55s var(--ease-fluid) both; }
+:root:not(.no-motion) .sheet[open]::backdrop { animation: sheet-veil 0.4s ease both; }
+
+@keyframes sheet-rise {
+  from { opacity: 0; transform: translateY(28px) scale(0.95); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes sheet-veil {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+:root:not(.no-motion) .toast { transition: transform 0.55s var(--spring), opacity 0.3s var(--ease-fluid); }
+
+@media (prefers-reduced-motion: no-preference) {
+  :root:not(.no-motion) { scroll-behavior: smooth; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .library-view.rows-in .track,
+  .cover.is-swapping,
+  .sheet[open],
+  .sheet[open]::backdrop {
+    animation: none !important;
+  }
+}
+
+/* Cambio de tema: los colores se funden (navegadores con View Transitions) */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.45s;
+  animation-timing-function: var(--ease-fluid);
+}

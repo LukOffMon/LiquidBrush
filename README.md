@@ -70,6 +70,13 @@ Al abrir la app vuelve a poner la última canción que sonaba, en el segundo exa
 - **Playlists**: las de Liquid Bullet (las del catálogo o, sin catálogo, una por cada `album`), **Mis playlists** y las automáticas *Escuchadas hace poco* y *Tus más escuchadas*.
 - **Mis playlists** se crean en la app (nombre, icono y color) con el botón ＋ de cada canción. Se guardan **solo en ese navegador** (localStorage): si se borra la caché o los datos del sitio, se pierden. Se puede descargar o importar una copia de seguridad en JSON.
 
+## Compartir
+
+- Botón **Compartir** (flecha hacia arriba) en el panel Sonando, en cada playlist y en el ＋ de cada canción. En el móvil abre el menú de compartir del sistema (WhatsApp, Instagram, Mensajes…); en el ordenador copia el enlace.
+- Cada canción y cada playlist de Liquid Bullet tiene su página en [`s/`](s/) con la portada en las etiquetas Open Graph, así **el enlace siempre sale con miniatura**. Las canciones usan la portada de su playlist. Quien lo abre entra directo a la app con esa canción lista o esa playlist abierta.
+- Las playlists propias viajan dentro del enlace (`s/mix.html#…`, hasta 150 canciones) y se guardan solas en «Mis playlists» de quien lo abre; su miniatura es el logo.
+- `tools/build_catalog.py` regenera las páginas de `s/` cada vez que se ejecuta. Si el sitio cambia de dirección, actualiza `SITE_URL` en ese script.
+
 ## Lab
 
 Pestaña **Lab** (en el móvil, botón de la barra inferior):

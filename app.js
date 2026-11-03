@@ -229,6 +229,8 @@
     trackList: $('trackList'),
     library: document.querySelector('.library'),
     npAddBtn: $('npAddBtn'),
+    npShareBtn: $('npShareBtn'),
+    addShare: $('addShare'),
     plDialog: $('plDialog'),
     plDialogTitle: $('plDialogTitle'),
     plName: $('plName'),
@@ -557,7 +559,7 @@
     return `song:${title}~${slug(mainArtist(track))}`.slice(0, 120);
   }
 
-  async function applyTrackData(data) {
+  async function applyTrackData(data, final = false) {
     const previousId = state.currentTrack?.id;
     state.tracks = data.filter((t) => t && typeof t.src === 'string' && t.src.trim()).map(buildTrack);
     state.trackMap = new Map(state.tracks.map((t) => [t.id, t]));
@@ -589,6 +591,7 @@
     } else {
       els.npContext.textContent = 'Biblioteca vacía';
     }
+    openIncomingLink(Boolean(final));
   }
 
   // Abre al instante con la biblioteca de la última visita y la actualiza en segundo plano
@@ -615,8 +618,8 @@
       if (!Array.isArray(data)) throw new Error('La lista de canciones debe ser un array');
       const rows = data.map(({ source, ...rest }) => (source ? { ...rest, sourceName: source.name } : rest));
       const fresh = JSON.stringify({ rows, catalog: library.catalog });
-      if (fresh === cachedRaw) return;
-      await applyTrackData(rows);
+      if (fresh === cachedRaw) { openIncomingLink(true); return; }
+      await applyTrackData(rows, true);
       try { localStorage.setItem(KEYS.libraryCache, fresh); } catch { /* sin espacio: se descargará la próxima vez */ }
     } catch (error) {
       console.error('[LiquidBullet] Error al cargar las canciones:', error);
@@ -2144,6 +2147,7 @@
     const pin = makeButton(`icon-btn pin-btn${pinned ? ' is-active' : ''}`, 'pin-playlist', pinned ? 'Dejar de fijar' : 'Fijar arriba en Playlists', 'pin');
     pin.setAttribute('aria-pressed', String(pinned));
     actions.append(pin);
+    if (tracks.length) actions.append(makeButton('icon-btn', 'share-playlist', 'Compartir playlist', 'share'));
     if (pl.kind === 'local') {
       actions.append(
         makeButton('icon-btn', 'edit-playlist', 'Cambiar nombre, icono o color', 'edit'),
@@ -2298,6 +2302,133 @@
     state.queueIndex = Math.max(0, state.queue.indexOf(startId));
     if (state.shuffle) applyShuffle();
     loadTrack(start, true, dj.enabled ? 1.5 : 0);
+  }
+
+  /* ---------- Compartir canciones y playlists ----------
+     Cada canción y cada playlist de base tiene una página en s/ (la genera tools/build_catalog.py)
+     con su portada en las etiquetas Open Graph: así WhatsApp, Instagram o iMessage muestran la
+     miniatura. Esa página manda a la app con ?t=… o ?p=…. Las playlists propias viajan dentro del
+     enlace (s/mix.html#n=…&t=…) porque solo existen en tu navegador. */
+  const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const SHARE_MIX_LIMIT = 150;
+  const shareSlug = (id) => String(id).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  const appBase = () => new URL('./', location.href.split(/[?#]/)[0]).href;
+
+  async function shareLink({ title, text, url }) {
+    haptic(10);
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, text, url });
+        return;
+      } catch (error) {
+        if (error?.name === 'AbortError') return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      showToast('Enlace copiado: pégalo donde quieras.');
+    } catch {
+      window.prompt('Copia este enlace para compartir:', url);
+    }
+  }
+
+  function shareTrack(id) {
+    const track = getTrack(id);
+    if (!track) return;
+    const who = track.knownArtist ? ` de ${track.knownArtist}` : '';
+    shareLink({
+      title: `${track.title}${track.knownArtist ? ` · ${track.knownArtist}` : ''}`,
+      text: `Escucha «${track.title}»${who} en Liquid Bullet`,
+      url: `${appBase()}s/t-${shareSlug(track.id)}.html`
+    });
+  }
+
+  function sharePlaylist(pl) {
+    if (!pl) return;
+    if (pl.kind === 'system' && pl.id) {
+      shareLink({ title: pl.name, text: `Escucha la playlist «${pl.name}» en Liquid Bullet`, url: `${appBase()}s/p-${encodeURIComponent(pl.id)}.html` });
+      return;
+    }
+    const ids = playlistTracksOf(pl).map((t) => t.id);
+    if (!ids.length) {
+      showToast('Esta playlist está vacía: añade canciones antes de compartirla.');
+      return;
+    }
+    if (ids.length > SHARE_MIX_LIMIT) showToast(`Se comparten las primeras ${SHARE_MIX_LIMIT} canciones.`);
+    const hash = new URLSearchParams({ n: pl.name, t: ids.slice(0, SHARE_MIX_LIMIT).join(',') });
+    shareLink({ title: pl.name, text: `Te paso mi playlist «${pl.name}» de Liquid Bullet`, url: `${appBase()}s/mix.html#${hash}` });
+  }
+
+  // Enlace con el que se abrió la app (?t=canción, ?p=playlist o ?mix=1#n=…&t=…)
+  let incomingLink = (() => {
+    try {
+      const query = new URLSearchParams(location.search);
+      const hash = new URLSearchParams(location.hash.slice(1));
+      if (query.get('t')) return { track: query.get('t') };
+      if (query.get('p')) return { playlist: query.get('p') };
+      if (query.has('mix') && hash.get('t')) {
+        return { mix: (hash.get('n') || 'Playlist compartida').slice(0, 60), ids: hash.get('t').split(',').filter(Boolean) };
+      }
+    } catch { /* enlace mal formado */ }
+    return null;
+  })();
+
+  function clearIncomingLink() {
+    incomingLink = null;
+    try { history.replaceState(null, '', location.pathname); } catch { /* sin history */ }
+  }
+
+  // Se llama cada vez que llegan canciones; si aún no existe lo enlazado, espera a la lista fresca
+  function openIncomingLink(final) {
+    const link = incomingLink;
+    if (!link || !state.tracks.length) return;
+    if (link.track) {
+      const track = getTrack(link.track);
+      if (!track) {
+        if (final) { clearIncomingLink(); showToast('Esa canción ya no está en Liquid Bullet.'); }
+        return;
+      }
+      const home = systemPlaylists().find((p) => p.trackIds.includes(track.id));
+      const list = home ? playlistTracksOf(home) : [track];
+      state.baseQueue = list.map((t) => t.id);
+      state.queueContext = home ? home.name : 'Canción compartida';
+      state.queue = state.baseQueue.slice();
+      state.queueIndex = Math.max(0, state.queue.indexOf(track.id));
+      loadTrack(track, false);
+      clearIncomingLink();
+      showToast(`Te compartieron «${track.title}». Pulsa ▶ para escucharla.`);
+      return;
+    }
+    if (link.playlist) {
+      const pl = getPlaylist(`sys:${link.playlist}`);
+      if (!pl) {
+        if (final) { clearIncomingLink(); showToast('Esa playlist ya no está en Liquid Bullet.'); }
+        return;
+      }
+      clearIncomingLink();
+      openPlaylist(pl.key);
+      showToast(`Te compartieron «${pl.name}».`);
+      return;
+    }
+    const ids = link.ids.filter((id) => getTrack(id));
+    if (!ids.length && !final) return;
+    clearIncomingLink();
+    if (!ids.length) {
+      showToast('Las canciones de esa playlist ya no están en Liquid Bullet.');
+      return;
+    }
+    const same = library.local.find((p) => p.name === link.mix && p.trackIds.join(',') === ids.join(','));
+    const playlist = same || {
+      id: newId(), name: link.mix, emoji: '🎁',
+      color: PLAYLIST_COLORS[Math.floor(Math.random() * PLAYLIST_COLORS.length)],
+      trackIds: ids, createdAt: Date.now()
+    };
+    if (!same) {
+      library.local.push(playlist);
+      saveLocalPlaylists();
+    }
+    openPlaylist(`local:${playlist.id}`);
+    showToast(same ? `Ya tenías «${playlist.name}».` : `«${playlist.name}» se guardó en tus playlists.`);
   }
 
   /* ---------- Filtros rápidos (píldoras) ---------- */
@@ -2548,7 +2679,12 @@
     view.classList.remove('anim-forward', 'anim-back', 'anim-fade');
     void view.offsetWidth; // reinicia la animación
     view.classList.add(`anim-${direction}`);
+    // Las primeras filas entran en cascada; luego se quita para que repintar no las anime otra vez
+    view.classList.add('rows-in');
+    clearTimeout(rowsInTimer);
+    rowsInTimer = setTimeout(() => view.classList.remove('rows-in'), 900);
   }
+  let rowsInTimer = 0;
 
   function playTracks(list, shuffle = false) {
     const playable = list.filter(isPlayable);
@@ -2572,6 +2708,7 @@
     const li = document.createElement('li');
     li.className = 'track';
     li.dataset.id = track.id;
+    if (index < 14) li.style.setProperty('--i', index);
     if (state.currentTrack?.id === track.id) li.classList.add('is-current');
     if (isDownloaded(track)) li.classList.add('is-downloaded');
 
@@ -2948,6 +3085,11 @@
     prepareDeck(track, autoplay, fade);
     els.audio.src = track.src;
 
+    if (settings.motion && els.cover.src !== track.cover) {
+      els.cover.classList.remove('is-swapping');
+      void els.cover.offsetWidth; // reinicia la animación
+      els.cover.classList.add('is-swapping');
+    }
     els.cover.src = track.cover;
     els.cover.alt = `Carátula de ${track.album || track.title}`;
     els.miniCover.src = track.cover;
@@ -2959,6 +3101,7 @@
     els.miniArtist.textContent = track.knownArtist || track.genre || track.artist;
     els.npFavBtn.disabled = false;
     els.npAddBtn.disabled = false;
+    els.npShareBtn.disabled = false;
     updateFavButton(els.npFavBtn, state.favorites.has(track.id));
     document.title = `${track.title} · ${track.artist} — Liquid Bullet`;
 
@@ -4066,6 +4209,7 @@
       switch (action) {
         case 'open-playlist': openPlaylist(target.dataset.key); break;
         case 'pin-playlist': if (pl) togglePin(pl.key); break;
+        case 'share-playlist': sharePlaylist(pl); break;
         case 'toggle-plview': setPlaylistView(settings.plView === 'list' ? 'grid' : 'list'); break;
         case 'filter':
           state.filter = target.dataset.value;
@@ -4155,6 +4299,13 @@
     });
     els.npAddBtn.addEventListener('click', () => {
       if (state.currentTrack) openAddDialog(state.currentTrack.id);
+    });
+    els.npShareBtn.addEventListener('click', () => {
+      if (state.currentTrack) shareTrack(state.currentTrack.id);
+    });
+    els.addShare.addEventListener('click', () => {
+      els.addDialog.close();
+      shareTrack(addTarget);
     });
     els.addPlayNext.addEventListener('click', () => {
       els.addDialog.close();
@@ -4268,7 +4419,11 @@
     });
 
     // Tema
-    els.themeSelect.addEventListener('change', () => applyTheme(els.themeSelect.value));
+    els.themeSelect.addEventListener('change', () => {
+      const change = () => applyTheme(els.themeSelect.value);
+      if (settings.motion && document.startViewTransition && !reducedMotion()) document.startViewTransition(change);
+      else change();
+    });
 
     // Carátula de respaldo si la imagen falla
     [els.cover, els.miniCover].forEach((img) => {
@@ -4964,7 +5119,8 @@
     const cores = navigator.hardwareConcurrency || 8;
     const memory = navigator.deviceMemory || 8;
     const saveData = navigator.connection?.saveData === true;
-    if (cores <= 4 || memory <= 2 || saveData) document.documentElement.classList.add('lite');
+    // iPhone y iPad informan pocos núcleos pero mueven el vidrio sin problema
+    if ((cores <= 4 && !IS_IOS) || memory <= 2 || saveData) document.documentElement.classList.add('lite');
   }
 
   function init() {

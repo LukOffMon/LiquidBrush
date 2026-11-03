@@ -12,7 +12,9 @@ Si aparece un artista nuevo que no está en ninguna playlist, la canción va a D
 script lo avisa para que se añada donde corresponda.
 """
 import json
+import html
 import random
+import urllib.parse
 import re
 import unicodedata
 from pathlib import Path
@@ -222,6 +224,91 @@ def playlist_of(track):
     return None
 
 
+def song_key(t):
+    # Títulos en japonés u otros alfabetos: se comparan tal cual (norm los dejaría vacíos)
+    title = norm(re.sub(r'\(.*?\)|\[.*?\]', '', t['title'])) or t['title'].strip().lower()
+    return title, f"{title}~{norm(str(t['artist']).split(',')[0])}"
+
+
+# ---------- Enlaces para compartir ----------
+# Cada canción y cada playlist tiene una página mínima en s/ con su portada en las etiquetas
+# Open Graph: WhatsApp, Instagram, Telegram o iMessage leen esas etiquetas (no ejecutan JS) y
+# muestran la miniatura. Quien abre el enlace va directo a la app.
+SITE_URL = 'https://lukoffmon.github.io/LiquidBrush/'
+SHARE_DIR = ROOT / 's'
+FALLBACK_IMAGE = 'icon-512.png'
+
+
+def share_slug(track_id):
+    return re.sub(r'[^a-z0-9]+', '-', track_id.lower()).strip('-')
+
+
+def share_page(title, description, image, target, kind='music.song'):
+    e = lambda v: html.escape(str(v), quote=True)
+    url = SITE_URL + image
+    size = '512' if image == FALLBACK_IMAGE else '600'
+    return f'''<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{e(title)} — Liquid Bullet</title>
+<meta name="description" content="{e(description)}">
+<meta property="og:site_name" content="Liquid Bullet">
+<meta property="og:type" content="{kind}">
+<meta property="og:title" content="{e(title)}">
+<meta property="og:description" content="{e(description)}">
+<meta property="og:image" content="{e(url)}">
+<meta property="og:image:width" content="{size}">
+<meta property="og:image:height" content="{size}">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="{e(title)}">
+<meta name="twitter:description" content="{e(description)}">
+<meta name="twitter:image" content="{e(url)}">
+<meta name="theme-color" content="#100d1c">
+<link rel="icon" href="../logo.svg" type="image/svg+xml">
+<style>body{{margin:0;min-height:100vh;display:grid;place-items:center;background:#100d1c;color:#f1eefc;font:16px system-ui,sans-serif;text-align:center}}img{{width:180px;height:180px;border-radius:22px;object-fit:cover}}a{{color:#7ef9ff}}</style>
+<script>location.replace('../' + {json.dumps(target)} + location.hash);</script>
+</head>
+<body>
+<main><img src="../{e(image)}" alt=""><h1>{e(title)}</h1><p><a href="../{e(target)}">Abrir en Liquid Bullet</a></p></main>
+</body>
+</html>
+'''
+
+
+def write_share_pages(tracks, playlists):
+    SHARE_DIR.mkdir(exist_ok=True)
+    cover_of = {p['id']: (p['cover']['src'] if p['cover']['type'] == 'image' else FALLBACK_IMAGE) for p in playlists}
+    by_track = {tid: p for p in playlists for tid in p['trackIds']}
+    # Las copias que no están en ninguna playlist toman la de la copia que se quedó
+    by_song = {song_key(t)[1]: by_track[t['id']] for t in tracks if t['id'] in by_track}
+    pages = {}
+    for p in playlists:
+        pages[f"p-{p['id']}.html"] = share_page(
+            p['name'], f"Playlist · {len(p['trackIds'])} canciones · {p['description']}",
+            cover_of[p['id']], f"?p={urllib.parse.quote(p['id'])}", 'music.playlist')
+    for t in tracks:
+        pl = by_track.get(t['id']) or by_song.get(song_key(t)[1])
+        artist = t['artist'] or 'Liquid Bullet'
+        description = f"{artist} · {pl['name']}" if pl else artist
+        name = f"t-{share_slug(t['id'])}.html"
+        if name in pages:
+            raise SystemExit(f'Enlace repetido: {name}')
+        pages[name] = share_page(f"{t['title']} · {artist}" if t['artist'] else t['title'], description,
+                                 cover_of[pl['id']] if pl else FALLBACK_IMAGE, f"?t={urllib.parse.quote(t['id'])}")
+    # Mezclas de "Mis playlists": la lista va en el enlace (#…), la miniatura es el logo
+    pages['mix.html'] = share_page('Una playlist para ti', 'Ábrela en Liquid Bullet: música que se derrite.', FALLBACK_IMAGE, '?mix=1', 'music.playlist')
+    for old in SHARE_DIR.glob('*.html'):
+        if old.name not in pages:
+            old.unlink()
+    for name, body in pages.items():
+        path = SHARE_DIR / name
+        if not path.exists() or path.read_text(encoding='utf-8') != body:
+            path.write_text(body, encoding='utf-8')
+    return len(pages)
+
+
 def main():
     tracks = load_tracks()
 
@@ -229,8 +316,7 @@ def main():
     seen, unique = set(), []
     for t in tracks:
         # Títulos en japonés u otros alfabetos: se comparan tal cual (norm los dejaría vacíos)
-        title = norm(re.sub(r'\(.*?\)|\[.*?\]', '', t['title'])) or t['title'].strip().lower()
-        key = f"{title}~{norm(str(t['artist']).split(',')[0])}"
+        title, key = song_key(t)
         if not title or key in seen or re.search(EXCLUDE_TITLES, norm(t['title'])):
             continue
         seen.add(key)
@@ -275,6 +361,8 @@ def main():
     aliases = json.loads(aliases_file.read_text(encoding='utf-8')) if aliases_file.exists() else {}
     catalog = {'version': 1, 'genres': genres, 'playlists': out, 'aliases': aliases}
     (ROOT / 'catalog.json').write_text(json.dumps(catalog, ensure_ascii=False, indent=1), encoding='utf-8')
+    shared = write_share_pages(tracks, out)
+    print(f'{shared} páginas para compartir en s/')
     covered = sum(len(p['trackIds']) for p in out)
     print(f'{len(tracks)} canciones, {len(unique)} únicas, {covered} en {len(out)} playlists')
     for p in out:
