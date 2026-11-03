@@ -39,9 +39,13 @@ FIXED_COVERS = {
     'riviera-francesa': 16,
     'verano-tropical': 17,
     'ciudad-furia': 18,
-    'nube-purpura': 19
+    'nube-purpura': 19,
+    'tekk-fantasma': 20
 }
 
+# Playlists que antes llevaban diseño generado y ahora tienen imagen: siguen ocupando su turno
+# para que las demás no cambien de diseño al regenerar el catálogo.
+ART_SLOT_KEPT = {'tekk-fantasma'}
 ART_STYLES = ['orbits', 'stripes', 'waves', 'sun', 'rings', 'grid', 'bars', 'blobs', 'checker', 'dots', 'zigzag', 'eclipse']
 EXCLUDE_TITLES = r'reaccion|subscribe to the channel'
 
@@ -92,7 +96,7 @@ PLAYLISTS = [
         'reidenshi', 'Glaede', 'Umi Not Human', 'salvia palth', 'Sir Chloe', 'Two Feet', 'Vance Joy', 'Black Country, New Road', 'Black Country']),
     ('senal-rota', 'Señal Rota', 'Hyperpop, digicore y emo de internet: Jane Remover, underscores, kmoe, celai, guitarbf y punchy.', [
         'Jane Remover', 'kmoe', 'juno', 'underscores', 'That Kid', 'Frost Children', 'AKRIILA', 'celai', 'guitarbf', 'punchy', 'wizardjit', 'aubri!', 'kiheir', 'schizocat', 'morgue vault', 'Piggybank112', 'ankle', 'Anxiety', 'Junshi', '67', '⎍⧮⫽⩘⧅⦔⨬⧇⩕⥉⦾⫰⧪⦑⧛⨳']),
-    ('tekk-fantasma', 'Tekk Fantasma', 'Hardtekk, jumpstyle y slowed de madrugada: STØMPWRLD, ythotkk, SAIBOTAJE, Snow Strippers, DJ ZUP RAlii y akkiemi.', [
+    ('tekk-fantasma', 'Ghost Case', 'Hardtekk, jumpstyle y slowed de madrugada: STØMPWRLD, ythotkk, SAIBOTAJE, Snow Strippers, DJ ZUP RAlii y akkiemi.', [
         'STØMPWRLD', 'ythotkk', 'SAIBOTAJE', 'DudePlaya', 'quincke', 'dxnkwer', 'DJ ZUP RAlii', 'angelhard', 'dopamine.', 'waypoint on noclip', 'ZXVABEAT', 'shck', 'ASKL hon', 'HALATNOST', 'cvzxeov', 'Blaulicht 112', 'STAKILLAZ', 'LXXVEME', 'akkiemi', 'xn88ax', 'YXMI', 'rukzi', 'eiby', 'DISGRACEMODE', 'Slixshøt', 'Der Aztekke', 'grindgwap', 'EL$E', 'DJ UNIVXRSEL', 'kerosyn', 'latex fruit', 'Tanin Jazz', 'Aiden Music', 'Maretu', 'Akula', 'HEXXO', 'Didi Early Rave', 'Dutch Disorder', 'skalpas', 'Vampyx', 'ZWE1HVNDXR', 'meowscles', 'dj 1lusha', 'Ivan Giannovani', 'dj trippie flameboy', 'play it twice', 'Dj Svevsx', 'Marc Acardipane', 'ilyhiryu', 'vyrval', 'ovg!', 'Daniela Alvira', 'vivi baby', 'Remika', 'Stxlkin', 'luvwillow', 'decaying', 'relapse', 'Stady', 'chrmbchrmb', 'Console Allstars', 'rusino', 'Isaac Reign', 'Miss Papaya', 'Fixupboy', 'Deezo', 'Batro', 'Tokyo Ghetto Pussy', 'Janina', 'luu', 'leafonia', 'rukiawaa', 'Snow Strippers', 'Goreshit', 'Resonant']),
     ('corazon-roto', 'Corazón Roto', 'Emo y scenecore de internet: pupsies, Punkinloveee, h4rtbrkr, Boy Fantasy, Beach Bunny en bajón y Cuntsniffer.', [
         'pupsies', 'Punkinloveee', 'Boy Fantasy', 'Aidan Swank', 'pichuu', 'bloodsekai', 'odihu', 'blair', 'h4teboy', 'morgue', 'korpsebunny', 'backw666s', 'Rebzyyx', 'lexycat', 'dolldamage', 'thai body dump', 'Broken Toy Airplanes', 'disoc8', 'flywoah', 'iamsodead', 'duskydemise', 'duskydemise archive', 'voidvoice717', 'kofun', 'Lida', 's0rrow', 's0nder', 'mthu', 'h4rtbrkr', 'Cuntsniffer', 'Parting Gift', 'Clarion', 'twentythree', 'i wanna be a jack-o-lantern', 'Mistvale', 'zombiwebz', 'crayon', 'shambles', 'retardead', 'coldwntr', 'Belowground', 'spawncamped', 'Anhero', 'Lil Watermark', 'redize', 'kaysnoto', 'Crustsox', 'Loser64', 'Fried By Fluoride', 'overtonight', 'wifiskeleton', 'laydownrot', 'LyteSpeed', 'Mars Argo', '1stress', 'tnfmb', 'proderics', 'Stxlkin']),
@@ -251,6 +255,8 @@ def main():
             continue
         if pid in FIXED_COVERS:
             cover = {'type': 'image', 'src': f'covers/cover-{FIXED_COVERS[pid]:02d}.jpg'}
+            if pid in ART_SLOT_KEPT:
+                art_i += 1
         elif i in image_slots:
             cover = {'type': 'image', 'src': f'covers/cover-{images.pop():02d}.jpg'}
         else:
