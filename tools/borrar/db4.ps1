@@ -1,0 +1,70 @@
+﻿# Borra las canciones repetidas del 4.º bucket (la otra copia sigue en Liquid).
+# Uso: npx wrangler login (con la cuenta de este bucket) y luego:
+#   powershell -ExecutionPolicy Bypass -File .\db4.ps1 -Bucket NOMBRE_DEL_BUCKET
+param([Parameter(Mandatory=$true)][string]$Bucket)
+$archivos = @(
+  '101-200/180 - Puzzle - Loose Cannon.mp3',
+  '101-200/200 - Girls Rituals - HRT.mp3',
+  '201-300/258 - Vacations - Home.mp3',
+  '201-300/259 - The Rare Occasions - Origami.mp3',
+  '201-300/260 - Her''s - Harvey.mp3',
+  '201-300/262 - Eyedress - Jealous.mp3',
+  '201-300/263 - Current Joys - Blondie.mp3',
+  '201-300/264 - untitled - Restless.mp3',
+  '201-300/265 - The Long Faces - Jane!.mp3',
+  '201-300/268 - Arctic Monkeys - 505.mp3',
+  '201-300/269 - Vacations - Relax.mp3',
+  '201-300/272 - Clairo - Amoeba.mp3',
+  '201-300/273 - INOHA - Seventh Heaven.mp3',
+  '201-300/275 - Strawberry Guy - Mrs Magic.mp3',
+  '201-300/277 - Steve Lacy - Bad Habit.mp3',
+  '201-300/279 - Arctic Monkeys - No. 1 Party Anthem.mp3',
+  '201-300/280 - Vacations - Telephones.mp3',
+  '201-300/282 - late night drive home - Stress Relief.mp3',
+  '201-300/283 - The Marias - No One Noticed.mp3',
+  '201-300/284 - Ax and the Hatchetmen - Hotel Room.mp3',
+  '201-300/285 - Current Joys - Kids.mp3',
+  '201-300/289 - TV Girl - Blue Hair.mp3',
+  '201-300/292 - Vacations - Young.mp3',
+  '201-300/297 - Current Joys - Symphonia IX.mp3',
+  '201-300/300 - TV Girl - Loving Machine.mp3',
+  '301-400/305 - Joy Again - Looking Out for You.mp3',
+  '301-400/389 - Intelligency - Outlaw.mp3',
+  '301-400/390 - Mattyeux, Princess Chelsea, Videoclub - Sometimes.mp3',
+  '301-400/392 - Aests - FIGHT!.mp3',
+  '301-400/393 - Cancion.mp3',
+  '301-400/396 - Garcon Maigre, - popstar.mp3',
+  '301-400/397 - Dj Kazantip - When You Finally.mp3',
+  '301-400/398 - Soft Blade - Yugoslavskiy Groove.mp3',
+  '301-400/399 - angel vox.mp3',
+  '401-500/401 - Cancion.mp3',
+  '401-500/404 - Intelligency - Into the Summer.mp3',
+  '401-500/406 - Cancion.mp3',
+  '401-500/408 - Pompeya - 90.mp3',
+  '401-500/410 - Intelligency.mp3',
+  '401-500/411 - My.mp3',
+  '401-500/420 - Intelligency.mp3',
+  '401-500/421 - Sexy Sushi, Rebeka Warrior, Mitch Silver - Sex Appeal.mp3',
+  '401-500/427 - Eldzhey.mp3',
+  '401-500/430 - Intelligency - Technojazz.mp3',
+  '401-500/434 - bez - kah.mp3',
+  '401-500/440 - Odisseo - Los Imanes.mp3',
+  '401-500/444 - Bandalos Chinos - Demasiado.mp3',
+  '401-500/451 - Odisseo - Ingenuos.mp3',
+  '401-500/452 - Disco Bahia - Necedad.mp3',
+  '401-500/455 - CLUBZ - Palmeras.mp3',
+  '401-500/459 - Bandalos Chinos - Callame.mp3',
+  '401-500/463 - Disco Bahia, Coco Santos, Noah Pino Palo - Bahia.mp3',
+  '401-500/464 - Bandalos Chinos - Vamonos De Viaje.mp3',
+  '401-500/466 - CLUBZ - Popscuro.mp3',
+  '401-500/469 - Bandalos Chinos - Sin Senal.mp3',
+  '501-528/508 - Girls Rituals - HRT.mp3',
+  '501-528/515 - Broken Toy Airplanes - Lucky Number 3.mp3'
+)
+$i = 0
+foreach ($a in $archivos) {
+  $i++
+  Write-Host "[$i/$($archivos.Count)] $a"
+  npx wrangler r2 object delete "$Bucket/$a" --remote
+}
+Write-Host 'Listo.'
