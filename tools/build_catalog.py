@@ -277,7 +277,39 @@ def share_page(title, description, image, target, kind='music.song'):
 '''
 
 
-def write_share_pages(tracks, playlists):
+# ---------- Portadas de canciones ----------
+# Cada canción lleva uno de los iconos de covers/songs/ (song-NN.jpg). El reparto es aleatorio pero
+# equilibrado (cada icono se usa casi las mismas veces) y estable: una canción conserva su icono al
+# regenerar, y las nuevas reciben el icono menos usado.
+SONG_COVER_DIR = ROOT / 'covers' / 'songs'
+
+
+def assign_song_covers(tracks, previous_files, previous_map):
+    files = [p.name for p in sorted(SONG_COVER_DIR.glob('song-[0-9][0-9].jpg'))]
+    if not files:
+        return [], {}
+    ids = {t['id'] for t in tracks}
+    kept = {}
+    for tid, index in previous_map.items():
+        name = previous_files[index] if isinstance(index, int) and 0 <= index < len(previous_files) else None
+        if tid in ids and name in files:
+            kept[tid] = name
+    counts = {name: 0 for name in files}
+    for name in kept.values():
+        counts[name] += 1
+    rng = random.Random(20261103)
+    pending = sorted(ids - kept.keys())
+    rng.shuffle(pending)
+    for tid in pending:
+        low = min(counts.values())
+        name = rng.choice([n for n in files if counts[n] == low])
+        kept[tid] = name
+        counts[name] += 1
+    index = {name: i for i, name in enumerate(files)}
+    return [f'covers/songs/{n}' for n in files], {tid: index[kept[tid]] for tid in sorted(kept)}
+
+
+def write_share_pages(tracks, playlists, song_cover_of=None):
     SHARE_DIR.mkdir(exist_ok=True)
     cover_of = {p['id']: (p['cover']['src'] if p['cover']['type'] == 'image' else FALLBACK_IMAGE) for p in playlists}
     by_track = {tid: p for p in playlists for tid in p['trackIds']}
@@ -295,8 +327,9 @@ def write_share_pages(tracks, playlists):
         name = f"t-{share_slug(t['id'])}.html"
         if name in pages:
             raise SystemExit(f'Enlace repetido: {name}')
+        image = (song_cover_of or {}).get(t['id']) or (cover_of[pl['id']] if pl else FALLBACK_IMAGE)
         pages[name] = share_page(f"{t['title']} · {artist}" if t['artist'] else t['title'], description,
-                                 cover_of[pl['id']] if pl else FALLBACK_IMAGE, f"?t={urllib.parse.quote(t['id'])}")
+                                 image, f"?t={urllib.parse.quote(t['id'])}")
     # Mezclas de "Mis playlists": la lista va en el enlace (#…), la miniatura es el logo
     pages['mix.html'] = share_page('Una playlist para ti', 'Ábrela en Liquid Bullet: música que se derrite.', FALLBACK_IMAGE, '?mix=1', 'music.playlist')
     for old in SHARE_DIR.glob('*.html'):
@@ -359,9 +392,19 @@ def main():
     # Copias borradas del bucket por ser idénticas a otra: la app redirige favoritas y playlists propias
     aliases_file = ROOT / 'tools' / 'aliases.json'
     aliases = json.loads(aliases_file.read_text(encoding='utf-8')) if aliases_file.exists() else {}
-    catalog = {'version': 1, 'genres': genres, 'playlists': out, 'aliases': aliases}
+    previous = {}
+    if (ROOT / 'catalog.json').exists():
+        previous = json.loads((ROOT / 'catalog.json').read_text(encoding='utf-8'))
+    song_files, song_covers = assign_song_covers(tracks, previous.get('songCoverFiles', []), previous.get('songCovers', {}))
+    catalog = {'version': 1, 'genres': genres, 'playlists': out, 'aliases': aliases,
+               'songCoverFiles': song_files, 'songCovers': song_covers}
     (ROOT / 'catalog.json').write_text(json.dumps(catalog, ensure_ascii=False, indent=1), encoding='utf-8')
-    shared = write_share_pages(tracks, out)
+    shared = write_share_pages(tracks, out, {tid: song_files[i] for tid, i in song_covers.items()})
+    uses = {}
+    for i in song_covers.values():
+        uses[i] = uses.get(i, 0) + 1
+    if uses:
+        print(f'Portadas de canciones: {len(song_files)} iconos, entre {min(uses.values())} y {max(uses.values())} canciones cada uno')
     print(f'{shared} páginas para compartir en s/')
     covered = sum(len(p['trackIds']) for p in out)
     print(f'{len(tracks)} canciones, {len(unique)} únicas, {covered} en {len(out)} playlists')

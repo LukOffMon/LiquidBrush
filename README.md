@@ -79,7 +79,7 @@ Liquid funciona como Spotify, pero con tu colección de MP3: todo se calcula en 
 - **Radio**: empieza por un artista (o por una canción, desde el ＋) y se renueva sola con artistas parecidos, sin fin.
 - **Buscar**: al tocar el buscador salen tus **búsquedas recientes** (con Borrar) y los estilos para explorar; los resultados muestran también artistas.
 - **A continuación**: botón **Editar** para reordenar arrastrando del asa, y abajo Aleatorio, Repetir y Temporizador.
-- **Portadas**: todas son fotos. Cada canción usa la foto de su playlist; Escuchadas hace poco y Tus más escuchadas tienen la suya (`covers/cover-27` y `cover-28`).
+- **Portadas**: todas son imágenes. Las playlists usan `covers/cover-NN.jpg` (Escuchadas hace poco y Tus más escuchadas, `cover-27` y `cover-28`). Cada canción lleva uno de los 16 iconos de [`covers/songs/`](covers/songs/), repartidos al azar y por igual (unas 170 canciones por icono). `tools/build_catalog.py` guarda el reparto en `catalog.json`: cada canción conserva su icono y las nuevas reciben el menos usado. Para sumar iconos, añade `song-17.jpg` (600 px) y `song-17-sm.jpg` (320 px). Los enlaces compartidos de canciones usan ese icono como miniatura.
 
 ## Compartir
 

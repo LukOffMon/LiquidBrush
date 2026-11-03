@@ -591,14 +591,19 @@
       t.genre = library.catalog?.genres?.[t.id] || '';
       t.songKey = songKey(t);
     });
-    // Cada canción toma la foto de su playlist (las copias repetidas, la de la copia que quedó)
+    // Respaldo: la foto de su playlist (las copias repetidas, la de la copia que quedó)
     const photoOf = new Map();
     systemPlaylists().forEach((pl) => {
       if (pl.cover?.type === 'image') pl.trackIds.forEach((id) => photoOf.set(id, pl.cover.src));
     });
     const photoBySong = new Map();
     state.tracks.forEach((t) => { if (photoOf.has(t.id)) photoBySong.set(t.songKey, photoOf.get(t.id)); });
-    state.tracks.forEach((t) => { t.photo = photoOf.get(t.id) || photoBySong.get(t.songKey) || ''; });
+    // Portada propia de cada canción: uno de los iconos de covers/songs/ (lo reparte build_catalog.py)
+    const songFiles = library.catalog?.songCoverFiles || [];
+    const songCovers = library.catalog?.songCovers || {};
+    state.tracks.forEach((t) => {
+      t.photo = songFiles[songCovers[t.id]] || photoOf.get(t.id) || photoBySong.get(t.songKey) || '';
+    });
     labIndex = null;
     // La Biblioteca muestra una sola copia de cada canción (algunas están en varias fuentes)
     const seenSongs = new Set();
