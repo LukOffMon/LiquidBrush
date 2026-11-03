@@ -640,6 +640,7 @@ body.is-playing .cover-wrap {
   margin: 16px 4px 8px;
   font-size: 0.8rem;
   color: var(--text-muted);
+  overflow-wrap: anywhere;
 }
 
 .track-list {
@@ -1044,6 +1045,8 @@ body.is-playing .cover-wrap {
 }
 
 .lab-chip {
+  display: inline-flex;
+  align-items: baseline;
   gap: 6px;
 }
 
