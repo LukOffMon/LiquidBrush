@@ -70,9 +70,20 @@ Al abrir la app vuelve a poner la última canción que sonaba, en el segundo exa
 - **Playlists**: las de Liquid Bullet (las del catálogo o, sin catálogo, una por cada `album`), **Mis playlists** y las automáticas *Escuchadas hace poco* y *Tus más escuchadas*.
 - **Mis playlists** se crean en la app (nombre, icono y color) con el botón ＋ de cada canción. Se guardan **solo en ese navegador** (localStorage): si se borra la caché o los datos del sitio, se pierden. Se puede descargar o importar una copia de seguridad en JSON.
 
+## Inicio, Artistas y radio
+
+Liquid funciona como Spotify, pero con tu colección de MP3: todo se calcula en el navegador con tus canciones, lo que escuchas y tus favoritas.
+
+- **Inicio** (la app abre aquí): saludo según la hora, accesos rápidos (fijadas, tus playlists y tus estilos más escuchados), **Tus mixes del día** (uno por estilo favorito, mitad conocidas y mitad por descubrir; cambian cada día), **Hecho para ti** (Descubre semanal con canciones que aún no has oído, De nuevo y En repetición), artistas que sigues, **Radios** y **Explora tus estilos**.
+- **Artistas**: todos los artistas de la colección, primero los que sigues. Cada uno tiene su página con sus canciones, en qué playlists aparece, artistas parecidos, **Seguir** y **Radio**. Tocar el artista en Sonando abre su página; debajo de la letra está **Acerca del artista**.
+- **Radio**: empieza por un artista (o por una canción, desde el ＋) y se renueva sola con artistas parecidos, sin fin.
+- **Buscar**: al tocar el buscador salen tus **búsquedas recientes** (con Borrar) y los estilos para explorar; los resultados muestran también artistas.
+- **A continuación**: botón **Editar** para reordenar arrastrando del asa, y abajo Aleatorio, Repetir y Temporizador.
+- **Portadas**: todas son fotos. Cada canción usa la foto de su playlist; Escuchadas hace poco y Tus más escuchadas tienen la suya (`covers/cover-27` y `cover-28`).
+
 ## Compartir
 
-- Botón **Compartir** (flecha hacia arriba) en el panel Sonando, en cada playlist y en el ＋ de cada canción. En el móvil abre el menú de compartir del sistema (WhatsApp, Instagram, Mensajes…); en el ordenador copia el enlace.
+- Botón **Compartir** (flecha hacia arriba) en el panel Sonando, en cada playlist y en el ＋ de cada canción. Abre una **tarjeta con la portada** (tres fondos a elegir) para compartir como imagen en Historias o Estados, o guardarla, y los botones **Compartir enlace** y **Copiar enlace**.
 - Cada canción y cada playlist de Liquid Bullet tiene su página en [`s/`](s/) con la portada en las etiquetas Open Graph, así **el enlace siempre sale con miniatura**. Las canciones usan la portada de su playlist. Quien lo abre entra directo a la app con esa canción lista o esa playlist abierta.
 - Las playlists propias viajan dentro del enlace (`s/mix.html#…`, hasta 150 canciones) y se guardan solas en «Mis playlists» de quien lo abre; su miniatura es el logo.
 - `tools/build_catalog.py` regenera las páginas de `s/` cada vez que se ejecuta. Si el sitio cambia de dirección, actualiza `SITE_URL` en ese script.

@@ -34,7 +34,7 @@
   <link rel="dns-prefetch" href="https://pub-0854e4225565462db16fa787cf2ab81c.r2.dev">
   <link rel="dns-prefetch" href="https://lrclib.net">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Permanent+Marker&family=Rubik+Wet+Paint&family=Sedgwick+Ave&family=Syne:wght@700;800&family=Tinos:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=18">
+  <link rel="stylesheet" href="styles.css?v=19">
   <script>
     /* Aplica el tema, la fuente y el tamaño de letra guardados antes de pintar (sin parpadeos) */
     (function () {
@@ -214,6 +214,9 @@
     <symbol id="i-play-next" viewBox="0 0 24 24"><path d="M3 10h11v2H3v-2zm0-4h11v2H3V6zm0 8h7v2H3v-2zm13-1v8l6-4-6-4z"/></symbol>
     <symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 2h6v2h-1v5.2l5.6 9.4A2.2 2.2 0 0 1 17.7 22H6.3a2.2 2.2 0 0 1-1.9-3.4L10 9.2V4H9V2zm3 8.2L9.2 15h5.6L12 10.2zM8 17l-1.7 3h11.4L16 17H8z"/></symbol>
     <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 2.6l4.7 4.7-1.4 1.4L13 6.4V15h-2V6.4L8.7 8.7 7.3 7.3 12 2.6zM5 10h3v2H6v8h12v-8h-2v-2h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V11a1 1 0 0 1 1-1z"/></symbol>
+    <symbol id="i-radio" viewBox="0 0 24 24"><path d="M12 10.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM7.76 7.76l1.41 1.41a4 4 0 0 0 0 5.66l-1.41 1.41a6 6 0 0 1 0-8.48zm8.48 0a6 6 0 0 1 0 8.48l-1.41-1.41a4 4 0 0 0 0-5.66l1.41-1.41zM4.93 4.93l1.41 1.41a8 8 0 0 0 0 11.32l-1.41 1.41a10 10 0 0 1 0-14.14zm14.14 0a10 10 0 0 1 0 14.14l-1.41-1.41a8 8 0 0 0 0-11.32l1.41-1.41z"/></symbol>
+    <symbol id="i-person" viewBox="0 0 24 24"><path d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9zm0 2c-4.4 0-8 2.2-8 5v2h16v-2c0-2.8-3.6-5-8-5z"/></symbol>
+    <symbol id="i-drag" viewBox="0 0 24 24"><path d="M4 8h16v2H4V8zm0 6h16v2H4v-2z"/></symbol>
     <symbol id="i-mail" viewBox="0 0 24 24"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"/></symbol>
     <symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 3a9 9 0 0 0 0 18c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></symbol>
   </svg>
@@ -289,6 +292,9 @@
           </div>
         </details>
 
+        <!-- Acerca del artista que suena -->
+        <div id="npAbout" class="np-about" hidden></div>
+
         <!-- Atajo de contacto: ideas, mensajes o reportar errores -->
         <a class="contact-link" href="mailto:officiallukamon@gmail.com?subject=Liquid%20Bullet%3A%20ideas%2C%20contacto%20o%20errores">
           <svg class="icon" aria-hidden="true"><use href="#i-mail"></use></svg>
@@ -305,15 +311,18 @@
           <div class="search">
             <svg class="icon" aria-hidden="true"><use href="#i-search"></use></svg>
             <label for="searchInput" class="sr-only">Buscar canciones</label>
-            <input id="searchInput" type="search" placeholder="Buscar canción, artista o estilo" autocomplete="off" spellcheck="false">
+            <input id="searchInput" type="search" placeholder="¿Qué quieres escuchar?" autocomplete="off" spellcheck="false">
           </div>
+          <div id="searchPanel" class="search-panel" hidden></div>
           <div class="tabs" role="tablist" aria-label="Secciones">
-            <button class="tab is-active" type="button" role="tab" data-view="library" aria-selected="true">
+            <button class="tab is-active" type="button" role="tab" data-view="home" aria-selected="true">Inicio</button>
+            <button class="tab" type="button" role="tab" data-view="library" aria-selected="false">
               Biblioteca <span id="libCount" class="count">0</span>
             </button>
             <button class="tab" type="button" role="tab" data-view="playlists" aria-selected="false">
               Playlists <span id="plCount" class="count">0</span>
             </button>
+            <button class="tab" type="button" role="tab" data-view="artists" aria-selected="false">Artistas</button>
             <button class="tab" type="button" role="tab" data-view="favorites" aria-selected="false">
               Favoritas <span id="favCount" class="count">0</span>
             </button>
@@ -330,6 +339,7 @@
         <div id="filterChips" class="chips" role="toolbar" aria-label="Filtros" hidden></div>
         <p id="listInfo" class="list-info" aria-live="polite"></p>
         <div id="searchPlaylists" class="search-playlists" hidden></div>
+        <div id="homePanel" class="home-panel" hidden></div>
         <div id="playlistGrid" class="pl-wrap" hidden></div>
         <div id="statsPanel" class="stats" hidden></div>
         <div id="labPanel" class="lab" hidden></div>
@@ -397,8 +407,8 @@
 
       <!-- Navegación inferior (móvil) -->
       <nav id="bottomNav" class="bottom-nav" aria-label="Navegación">
-        <button class="nav-btn" type="button" data-nav="now">
-          <svg class="icon" aria-hidden="true"><use href="#i-home"></use></svg><span>Sonando</span>
+        <button class="nav-btn" type="button" data-nav="home">
+          <svg class="icon" aria-hidden="true"><use href="#i-home"></use></svg><span>Inicio</span>
         </button>
         <button class="nav-btn" type="button" data-nav="search">
           <svg class="icon" aria-hidden="true"><use href="#i-search"></use></svg><span>Buscar</span>
@@ -452,6 +462,12 @@
         <button id="addQueueEnd" class="btn" type="button">
           <svg class="icon" aria-hidden="true"><use href="#i-queue"></use></svg> Al final de la cola
         </button>
+        <button id="addArtist" class="btn" type="button">
+          <svg class="icon" aria-hidden="true"><use href="#i-person"></use></svg> Ir al artista
+        </button>
+        <button id="addRadio" class="btn" type="button">
+          <svg class="icon" aria-hidden="true"><use href="#i-radio"></use></svg> Iniciar radio
+        </button>
         <button id="addShare" class="btn" type="button">
           <svg class="icon" aria-hidden="true"><use href="#i-share"></use></svg> Compartir canción
         </button>
@@ -467,9 +483,34 @@
   <!-- Cola de reproducción -->
   <dialog id="queueDialog" class="sheet" aria-labelledby="queueTitle">
     <div class="sheet-body">
-      <h2 id="queueTitle" class="sheet-title">A continuación</h2>
+      <div class="queue-head">
+        <h2 id="queueTitle" class="sheet-title">A continuación</h2>
+        <button id="queueEdit" class="btn btn-ghost" type="button" aria-pressed="false">Editar</button>
+      </div>
       <p id="queueInfo" class="sheet-text"></p>
       <ol id="queueList" class="queue-list"></ol>
+      <div id="queueFoot" class="queue-foot">
+        <button class="queue-foot-btn" type="button" data-q="shuffle"><svg class="icon" aria-hidden="true"><use href="#i-shuffle"></use></svg><span>Aleatorio</span></button>
+        <button class="queue-foot-btn" type="button" data-q="repeat"><svg class="icon" aria-hidden="true"><use href="#i-repeat"></use></svg><span>Repetir</span></button>
+        <button class="queue-foot-btn" type="button" data-q="sleep"><svg class="icon" aria-hidden="true"><use href="#i-moon"></use></svg><span>Temporizador</span></button>
+      </div>
+      <div class="sheet-actions">
+        <button class="btn" type="button" data-close>Cerrar</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Compartir: tarjeta con la portada para Historias o Estados, y el enlace -->
+  <dialog id="shareDialog" class="sheet share-sheet" aria-labelledby="shareTitle">
+    <div class="sheet-body">
+      <h2 id="shareTitle" class="sheet-title">Compartir</h2>
+      <canvas id="shareCanvas" class="share-canvas" width="720" height="1280" role="img" aria-label="Vista previa de la tarjeta para compartir"></canvas>
+      <div id="shareColors" class="share-colors" aria-label="Color de fondo"></div>
+      <div class="share-actions">
+        <button id="shareImage" class="btn btn-primary" type="button">Compartir imagen</button>
+        <button id="shareLinkBtn" class="btn" type="button">Compartir enlace</button>
+        <button id="shareCopy" class="btn" type="button">Copiar enlace</button>
+      </div>
       <div class="sheet-actions">
         <button class="btn" type="button" data-close>Cerrar</button>
       </div>
@@ -637,6 +678,6 @@
   <!-- Reproductores para el ecualizador (necesitan CORS en el servidor del audio) -->
   <audio id="audio3" preload="metadata" crossorigin="anonymous"></audio>
   <audio id="audio4" preload="auto" crossorigin="anonymous"></audio>
-  <script src="app.js?v=20" defer></script>
+  <script src="app.js?v=21" defer></script>
 </body>
 </html>
