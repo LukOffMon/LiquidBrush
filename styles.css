@@ -4398,3 +4398,135 @@ textarea {
   height: 20px;
   vertical-align: -3px;
 }
+
+/* =========================================================
+   Liquid Glass: toda la interfaz como vidrio líquido
+   Paneles y controles translúcidos que desenfocan lo que hay detrás,
+   con un filo de luz arriba, brillo especular y sombra suave. Va al final
+   para quedar por encima de cada tema; el color lo pone cada tema
+   (--surface, --text…). En modo ligero no hay desenfoque.
+   ========================================================= */
+:root {
+  --glass-tint: var(--surface);
+  --glass-alpha: 48%;
+  --glass-alpha-soft: 34%;
+  --glass-blur: 26px;
+  --glass-blur-soft: 14px;
+  --glass-sat: 175%;
+  --glass-edge: rgba(255, 255, 255, 0.24);
+  --glass-edge-low: rgba(255, 255, 255, 0.06);
+  --glass-sheen: rgba(255, 255, 255, 0.12);
+  --glass-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="minimal"] {
+  --glass-alpha: 62%;
+  --glass-alpha-soft: 50%;
+  --glass-edge: rgba(255, 255, 255, 0.85);
+  --glass-edge-low: rgba(0, 0, 0, 0.06);
+  --glass-sheen: rgba(255, 255, 255, 0.55);
+  --glass-shadow: 0 18px 50px rgba(30, 30, 40, 0.14);
+}
+
+[data-theme="ebano"] {
+  --glass-alpha: 58%;
+  --glass-alpha-soft: 44%;
+  --glass-edge: rgba(236, 231, 221, 0.16);
+  --glass-sheen: rgba(236, 231, 221, 0.06);
+}
+
+/* Paneles grandes */
+:root:not(.lite) .topbar,
+:root:not(.lite) .now-playing,
+:root:not(.lite) .library,
+:root:not(.lite) .player,
+:root:not(.lite) .sheet,
+:root:not(.lite) .tour {
+  background-color: color-mix(in srgb, var(--glass-tint) var(--glass-alpha), transparent);
+  background-image:
+    linear-gradient(180deg, var(--glass-sheen) 0%, transparent 38%),
+    radial-gradient(120% 60% at 0% 0%, var(--glass-sheen) 0%, transparent 55%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  border-color: var(--glass-edge-low);
+  box-shadow:
+    inset 0 1px 0 var(--glass-edge),
+    inset 0 -1px 0 var(--glass-edge-low),
+    inset 1px 0 0 color-mix(in srgb, var(--glass-edge) 40%, transparent),
+    var(--glass-shadow);
+}
+
+:root:not(.lite) .topbar {
+  box-shadow: inset 0 -1px 0 var(--glass-edge-low), 0 8px 30px rgba(0, 0, 0, 0.18);
+}
+
+:root:not(.lite) .player {
+  box-shadow: inset 0 1px 0 var(--glass-edge), 0 -10px 40px rgba(0, 0, 0, 0.25);
+}
+
+/* Controles y tarjetas: vidrio más fino */
+:root:not(.lite) .tabs,
+:root:not(.lite) .search input,
+:root:not(.lite) .btn:not(.btn-primary):not(.btn-ghost),
+:root:not(.lite) .chip:not(.is-active),
+:root:not(.lite) .pl-card,
+:root:not(.lite) .stat-tile,
+:root:not(.lite) .lab-section,
+:root:not(.lite) .lab-rec,
+:root:not(.lite) .lab-search,
+:root:not(.lite) .lab-select,
+:root:not(.lite) .setting-select,
+:root:not(.lite) .np-tools,
+:root:not(.lite) .lyrics {
+  background-color: color-mix(in srgb, var(--glass-tint) var(--glass-alpha-soft), transparent);
+  background-image: linear-gradient(180deg, var(--glass-sheen) 0%, transparent 60%);
+  -webkit-backdrop-filter: blur(var(--glass-blur-soft)) saturate(160%);
+  backdrop-filter: blur(var(--glass-blur-soft)) saturate(160%);
+  border-color: var(--glass-edge-low);
+  box-shadow: inset 0 1px 0 var(--glass-edge), 0 6px 18px rgba(0, 0, 0, 0.16);
+}
+
+/* Lo activo y lo principal parece una gota más densa y brillante */
+:root:not(.lite) .tab.is-active,
+:root:not(.lite) .chip.is-active,
+:root:not(.lite) .btn-primary,
+:root:not(.lite) .play-btn {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -2px 6px rgba(0, 0, 0, 0.18),
+    0 6px 20px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+/* Al pasar por encima, el vidrio se aclara un poco */
+:root:not(.lite) .pl-card:hover,
+:root:not(.lite) .btn:not(.btn-primary):not(.btn-ghost):hover,
+:root:not(.lite) .lab-rec:hover {
+  background-color: color-mix(in srgb, var(--glass-tint) calc(var(--glass-alpha-soft) + 14%), transparent);
+}
+
+:root:not(.lite) .track:hover,
+:root:not(.lite) .track:focus-within {
+  background: color-mix(in srgb, var(--text) 7%, transparent);
+  box-shadow: inset 0 1px 0 var(--glass-edge-low);
+}
+
+:root:not(.lite) .toast {
+  background: color-mix(in srgb, var(--text) 82%, transparent);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), var(--shadow);
+}
+
+:root:not(.lite) .sheet::backdrop {
+  background: rgba(0, 0, 0, 0.25);
+  -webkit-backdrop-filter: blur(8px) saturate(140%);
+  backdrop-filter: blur(8px) saturate(140%);
+}
+
+/* Navegadores sin backdrop-filter: vidrio más opaco para que se lea bien */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root {
+    --glass-alpha: 90%;
+    --glass-alpha-soft: 85%;
+  }
+}
