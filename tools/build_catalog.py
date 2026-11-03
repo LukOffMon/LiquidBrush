@@ -40,7 +40,13 @@ FIXED_COVERS = {
     'verano-tropical': 17,
     'ciudad-furia': 18,
     'nube-purpura': 19,
-    'tekk-fantasma': 20
+    'tekk-fantasma': 20,
+    'senal-rota': 21,
+    'corazon-roto': 22,
+    'ola-fria': 23,
+    'barrio-sur': 24,
+    'calle-cromo': 25,
+    'alma-latina': 26
 }
 
 # Playlists que antes llevaban diseño generado y ahora tienen imagen: siguen ocupando su turno

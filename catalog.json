@@ -3585,9 +3585,8 @@
    "name": "Señal Rota",
    "description": "Hyperpop, digicore y emo de internet: Jane Remover, underscores, kmoe, celai, guitarbf y punchy.",
    "cover": {
-    "type": "art",
-    "style": "orbits",
-    "color": "#ff7ad9"
+    "type": "image",
+    "src": "covers/cover-21.jpg"
    },
    "trackIds": [
     "db4:001-100-042-juno-angel-mp3-5ccec4",
@@ -3768,9 +3767,8 @@
    "name": "Corazón Roto",
    "description": "Emo y scenecore de internet: pupsies, Punkinloveee, h4rtbrkr, Boy Fantasy, Beach Bunny en bajón y Cuntsniffer.",
    "cover": {
-    "type": "art",
-    "style": "waves",
-    "color": "#ffe27a"
+    "type": "image",
+    "src": "covers/cover-22.jpg"
    },
    "trackIds": [
     "db4:001-100-082-pupsies-misery-mp3-4c9828",
@@ -3947,9 +3945,8 @@
    "name": "Ola Fría",
    "description": "Post-punk ruso, coldwave y doomer: Kino, Intelligency, Crystal Castles, Soft Blade, NEMIGA y SEREBRO.",
    "cover": {
-    "type": "art",
-    "style": "sun",
-    "color": "#7a5cff"
+    "type": "image",
+    "src": "covers/cover-23.jpg"
    },
    "trackIds": [
     "db4:001-100-056-edwuard-bez-tebya-mp3-0595be",
@@ -4459,9 +4456,8 @@
    "name": "Barrio Sur",
    "description": "Trap romántico y cumbia rkt de Argentina: One Flyt, JCKC, tomas metrikf, Sosa 66s y T4CHO.",
    "cover": {
-    "type": "art",
-    "style": "rings",
-    "color": "#ff5f6d"
+    "type": "image",
+    "src": "covers/cover-24.jpg"
    },
    "trackIds": [
     "pepper:501-600-548-one-flyt-vasti-yan-kemujer-mp3-54fd7e",
@@ -4540,9 +4536,8 @@
    "name": "Calle Cromo",
    "description": "La nueva escuela española: Stereo Madness, Guxo, Lu Jr, LEÏTI, Enry-K, Ralphie Choo y superreservao.",
    "cover": {
-    "type": "art",
-    "style": "grid",
-    "color": "#3ddc97"
+    "type": "image",
+    "src": "covers/cover-25.jpg"
    },
    "trackIds": [
     "pepper:301-400-301-enry-k-8-dioptrias-mp3-ca76e6",
@@ -5188,9 +5183,8 @@
    "name": "Alma Latina",
    "description": "Indie y alternativo latino: Mon Laferte, Zoé, Natalia Lafourcade, Little Jesus, Chicano Batman y Buscabulla.",
    "cover": {
-    "type": "art",
-    "style": "bars",
-    "color": "#ff9f43"
+    "type": "image",
+    "src": "covers/cover-26.jpg"
    },
    "trackIds": [
     "db4:401-500-441-el-zar-la-declaracion-mp3-69e562",
