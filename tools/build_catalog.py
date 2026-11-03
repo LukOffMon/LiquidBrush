@@ -280,7 +280,8 @@ def share_page(title, description, image, target, kind='music.song'):
 # ---------- Portadas de canciones ----------
 # Cada canción lleva uno de los iconos de covers/songs/ (song-NN.jpg). El reparto es aleatorio pero
 # equilibrado (cada icono se usa casi las mismas veces) y estable: una canción conserva su icono al
-# regenerar, y las nuevas reciben el icono menos usado.
+# regenerar, las nuevas reciben el icono menos usado y, si se suman iconos, algunas canciones
+# pasan a los nuevos para que todos queden parejos.
 SONG_COVER_DIR = ROOT / 'covers' / 'songs'
 
 
@@ -291,7 +292,7 @@ def assign_song_covers(tracks, previous_files, previous_map):
     ids = {t['id'] for t in tracks}
     kept = {}
     for tid, index in previous_map.items():
-        name = previous_files[index] if isinstance(index, int) and 0 <= index < len(previous_files) else None
+        name = Path(previous_files[index]).name if isinstance(index, int) and 0 <= index < len(previous_files) else None
         if tid in ids and name in files:
             kept[tid] = name
     counts = {name: 0 for name in files}
@@ -305,6 +306,14 @@ def assign_song_covers(tracks, previous_files, previous_map):
         name = rng.choice([n for n in files if counts[n] == low])
         kept[tid] = name
         counts[name] += 1
+    # Iconos nuevos: pasan canciones al azar desde los más usados hasta quedar parejos
+    while max(counts.values()) - min(counts.values()) > 1:
+        most = max(files, key=lambda n: (counts[n], n))
+        least = min(files, key=lambda n: (counts[n], n))
+        tid = rng.choice(sorted(t for t, n in kept.items() if n == most))
+        kept[tid] = least
+        counts[most] -= 1
+        counts[least] += 1
     index = {name: i for i, name in enumerate(files)}
     return [f'covers/songs/{n}' for n in files], {tid: index[kept[tid]] for tid in sorted(kept)}
 
