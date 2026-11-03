@@ -147,6 +147,38 @@
   color-scheme: dark;
 }
 
+[data-theme="high"] {
+  --bg: #12041f;
+  --bg-2: #1f0733;
+  --surface: #1a0830;
+  --surface-2: #2a0d48;
+  --surface-hover: #3b1263;
+  --text: #fff6ff;
+  --text-muted: #d8b4ff;
+  --accent: #39ff9f;
+  --accent-2: #ff3ec9;
+  --on-accent: #12041f;
+  --heart: #ff3ec9;
+  --border: rgba(255, 170, 255, 0.28);
+  --shadow: 0 20px 60px rgba(120, 0, 160, 0.45);
+  --glow: 0 0 24px rgba(57, 255, 159, 0.5);
+  --text-glow: 0 0 14px rgba(255, 62, 201, 0.6);
+  --player-bg: #14052a;
+  --dyn-strength: 40%;
+  --brand-font: 'Rubik Wet Paint', 'Syne', sans-serif;
+  --title-font: 'Syne', 'Inter', sans-serif;
+  --trip: linear-gradient(90deg, #ff3ec9, #ffb800, #39ff9f, #00e5ff, #8a5cff, #ff3ec9);
+  --viz-a: #ff3ec9;
+  --viz-b: #39ff9f;
+  --viz-c: #00e5ff;
+  --viz-reflect: 1;
+  --glass-alpha: 34%;
+  --glass-alpha-soft: 26%;
+  --glass-edge: rgba(255, 200, 255, 0.35);
+  --glass-sheen: rgba(255, 180, 255, 0.14);
+  color-scheme: dark;
+}
+
 /* ---------- Fuente de la interfaz ---------- */
 /* La interfaz usa una letra callejera; canciones, artistas y letras siguen con Inter */
 :root {
@@ -3162,6 +3194,148 @@ body.is-playing .cover-wrap {
   background: color-mix(in srgb, var(--surface) 90%, transparent);
 }
 
+/* ---------- Tema High: como ver todo bajo alucinógenos ----------
+   Colores que cambian de tono sin parar, fondo que ondula y se derrite, títulos
+   arcoíris con visión doble y paneles que respiran. Todo es lento: nada parpadea
+   rápido (fotosensibilidad) y se detiene con «Animaciones» apagado o en modo ligero */
+[data-theme="high"] .bg-glow {
+  background:
+    radial-gradient(45% 40% at 20% 20%, #ff3ec9 0%, transparent 70%),
+    radial-gradient(40% 45% at 80% 30%, #00e5ff 0%, transparent 70%),
+    radial-gradient(50% 40% at 50% 85%, #39ff9f 0%, transparent 70%),
+    radial-gradient(35% 35% at 85% 85%, #ffb800 0%, transparent 70%),
+    conic-gradient(from 0deg at 50% 50%, #3b0a6b, #12041f, #5a0f6e, #12041f, #3b0a6b);
+  filter: url(#high-warp) hue-rotate(0deg) saturate(1.4);
+  animation: high-hue 22s linear infinite, high-drift 30s ease-in-out infinite alternate;
+  inset: -8%;
+}
+
+[data-theme="high"] .wallpaper {
+  filter: url(#high-warp) saturate(1.7) contrast(1.1);
+  animation: high-hue 26s linear infinite;
+}
+
+@keyframes high-hue {
+  from { filter: url(#high-warp) hue-rotate(0deg) saturate(1.5); }
+  to { filter: url(#high-warp) hue-rotate(360deg) saturate(1.5); }
+}
+
+@keyframes high-drift {
+  from { transform: scale(1.05) rotate(-2deg); }
+  to { transform: scale(1.15) rotate(3deg); }
+}
+
+/* Títulos arcoíris que fluyen, con un leve desdoble de color */
+[data-theme="high"] .brand-name,
+[data-theme="high"] .brand-name span,
+[data-theme="high"] .view-title,
+[data-theme="high"] .pl-hero-name,
+[data-theme="high"] .np-title,
+[data-theme="high"] .np-eyebrow,
+[data-theme="high"] .tour-title,
+[data-theme="high"] .lab-section-title {
+  background: var(--trip);
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: none;
+  filter: drop-shadow(2px 0 0 rgba(255, 0, 140, 0.55)) drop-shadow(-2px 0 0 rgba(0, 229, 255, 0.55));
+  animation: high-flow 7s linear infinite;
+}
+
+@keyframes high-flow {
+  from { background-position: 0% 50%; }
+  to { background-position: 300% 50%; }
+}
+
+/* Los paneles respiran y se mecen apenas */
+[data-theme="high"] .now-playing {
+  animation: high-breathe 9s ease-in-out infinite;
+}
+
+[data-theme="high"] .library {
+  animation: high-breathe 11s ease-in-out infinite reverse;
+}
+
+@keyframes high-breathe {
+  0%, 100% { transform: scale(1) rotate(0deg); border-radius: 22px; }
+  33% { transform: scale(1.006) rotate(0.25deg); border-radius: 28px 18px 30px 20px; }
+  66% { transform: scale(0.996) rotate(-0.2deg); border-radius: 18px 30px 20px 28px; }
+}
+
+/* Carátula con caleidoscopio girando y colores que viajan */
+[data-theme="high"] .cover-wrap {
+  padding: 6px;
+  background: conic-gradient(from var(--spin), #ff3ec9, #ffb800, #39ff9f, #00e5ff, #8a5cff, #ff3ec9);
+  animation: spin-angle 6s linear infinite;
+  box-shadow: 0 0 40px rgba(255, 62, 201, 0.5), 0 0 80px rgba(0, 229, 255, 0.3);
+}
+
+[data-theme="high"] .cover {
+  border-radius: 14px;
+  animation: high-cover 18s linear infinite;
+}
+
+@keyframes high-cover {
+  from { filter: hue-rotate(0deg) saturate(1.4); }
+  to { filter: hue-rotate(360deg) saturate(1.4); }
+}
+
+[data-theme="high"] .tab.is-active,
+[data-theme="high"] .chip.is-active,
+[data-theme="high"] .btn-primary,
+[data-theme="high"] .play-btn,
+[data-theme="high"] .play-btn:hover:not(:disabled) {
+  background: var(--trip);
+  background-size: 300% 100%;
+  color: var(--on-accent);
+  animation: high-flow 6s linear infinite;
+}
+
+[data-theme="high"] .track.is-current {
+  background: linear-gradient(90deg, rgba(255, 62, 201, 0.25), rgba(57, 255, 159, 0.15) 50%, rgba(0, 229, 255, 0.12));
+}
+
+[data-theme="high"] .track.is-current .track-title {
+  color: var(--accent);
+  text-shadow: 1px 0 rgba(255, 0, 140, 0.7), -1px 0 rgba(0, 229, 255, 0.7);
+}
+
+[data-theme="high"] .track-cover,
+[data-theme="high"] .mini-cover,
+[data-theme="high"] .pl-cover {
+  animation: high-cover 24s linear infinite;
+}
+
+[data-theme="high"] .range::-webkit-slider-runnable-track {
+  background: linear-gradient(to right, #ff3ec9 0%, #ffb800 calc(var(--fill) * 0.35), #39ff9f calc(var(--fill) * 0.7), #00e5ff var(--fill), var(--surface-hover) var(--fill));
+}
+
+[data-theme="high"] .topbar {
+  box-shadow: 0 1px 0 rgba(255, 62, 201, 0.5), 0 2px 0 rgba(0, 229, 255, 0.35);
+}
+
+/* Quieto (sin perder los colores) cuando se piden menos animaciones */
+.no-motion[data-theme="high"] *,
+.no-motion[data-theme="high"] .bg-glow,
+.lite[data-theme="high"] *,
+.lite[data-theme="high"] .bg-glow {
+  animation: none !important;
+}
+
+.lite[data-theme="high"] .bg-glow,
+.lite[data-theme="high"] .wallpaper {
+  filter: saturate(1.4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="high"] *,
+  [data-theme="high"] .bg-glow {
+    animation: none !important;
+  }
+}
+
 /* ---------- Animaciones de la escena ---------- */
 @keyframes float-y {
   from { translate: 0 -10px; }
@@ -4397,6 +4571,58 @@ textarea {
   width: 20px;
   height: 20px;
   vertical-align: -3px;
+}
+
+/* ---------- Atajo de contacto (abajo del panel Sonando) ---------- */
+.contact-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  color: var(--text);
+  text-decoration: none;
+  transition: background-color 0.2s, transform 0.12s;
+}
+
+.contact-link:hover {
+  background: var(--surface-hover);
+}
+
+.contact-link:active {
+  transform: scale(0.98);
+}
+
+.contact-link .icon {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  color: var(--accent);
+}
+
+.contact-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.contact-title {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.contact-mail {
+  font-family: var(--song-font);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+:root:not(.lite) .contact-link {
+  background-color: color-mix(in srgb, var(--glass-tint) var(--glass-alpha-soft), transparent);
+  background-image: linear-gradient(180deg, var(--glass-sheen) 0%, transparent 60%);
+  box-shadow: inset 0 1px 0 var(--glass-edge);
 }
 
 /* =========================================================

@@ -79,7 +79,8 @@
     chrome: '#100d1c',
     minimal: '#f4f3f0',
     yem: '#0b0907',
-    ebano: '#050506'
+    ebano: '#050506',
+    high: '#1a0633'
   };
 
   const REPEAT_MODES = ['off', 'all', 'one'];
@@ -4751,7 +4752,7 @@
         text: () => 'Toca ♥ para guardar una canción en Favoritas. En Stats ves tus minutos, horas, estilos y artistas del mes.',
         target: () => (isPhone() ? '#npFavBtn' : '.tab[data-view="favorites"]') },
       { icon: 'settings', title: 'Hazla tuya',
-        text: () => 'En Ajustes eliges tema (Surrealista, Minimalista, Yem o Ébano), letra, fondo de pantalla y ecualizador. Desde ahí también puedes volver a ver este tutorial.',
+        text: () => 'En Ajustes eliges tema, letra, fondo de pantalla y ecualizador, y puedes volver a ver este tutorial. ¿Ideas o algún error? Escribe a officiallukamon@gmail.com (está abajo, en el panel Sonando).',
         target: () => '#settingsBtn' }
     ];
     let step = 0;
