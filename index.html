@@ -34,7 +34,7 @@
   <link rel="dns-prefetch" href="https://pub-0854e4225565462db16fa787cf2ab81c.r2.dev">
   <link rel="dns-prefetch" href="https://lrclib.net">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Permanent+Marker&family=Rubik+Wet+Paint&family=Sedgwick+Ave&family=Syne:wght@700;800&family=Tinos:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=19">
+  <link rel="stylesheet" href="styles.css?v=20">
   <script>
     /* Aplica el tema, la fuente y el tamaño de letra guardados antes de pintar (sin parpadeos) */
     (function () {
@@ -311,7 +311,7 @@
           <div class="search">
             <svg class="icon" aria-hidden="true"><use href="#i-search"></use></svg>
             <label for="searchInput" class="sr-only">Buscar canciones</label>
-            <input id="searchInput" type="search" placeholder="¿Qué quieres escuchar?" autocomplete="off" spellcheck="false">
+            <input id="searchInput" type="search" placeholder="¿Qué quieres escuchar?" autocomplete="off" spellcheck="false" maxlength="120" enterkeyhint="search">
           </div>
           <div id="searchPanel" class="search-panel" hidden></div>
           <div class="tabs" role="tablist" aria-label="Secciones">
@@ -444,7 +444,7 @@
       </fieldset>
       <p class="sheet-note">Se guarda solo en este navegador. Para que no se pierda, descarga una copia de seguridad desde Playlists.</p>
       <div class="sheet-actions">
-        <button class="btn" type="submit" value="cancel" formnovalidate>Cancelar</button>
+        <button class="btn" type="button" value="cancel" data-dialog-cancel>Cancelar</button>
         <button class="btn btn-primary" type="submit" value="ok">Guardar</button>
       </div>
     </form>
@@ -678,6 +678,6 @@
   <!-- Reproductores para el ecualizador (necesitan CORS en el servidor del audio) -->
   <audio id="audio3" preload="metadata" crossorigin="anonymous"></audio>
   <audio id="audio4" preload="auto" crossorigin="anonymous"></audio>
-  <script src="app.js?v=22" defer></script>
+  <script src="app.js?v=23" defer></script>
 </body>
 </html>

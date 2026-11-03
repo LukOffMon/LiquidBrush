@@ -54,6 +54,7 @@
     shuffle: 'liquidbrush:shuffle',
     repeat: 'liquidbrush:repeat',
     lyricsPrefix: 'liquidbrush:lyrics:',
+    lyricsIndex: 'liquidbrush:lyrics-index',
     playlists: 'liquidbrush:playlists',
     recent: 'liquidbrush:recent',
     plays: 'liquidbrush:plays',
@@ -299,13 +300,78 @@
       }
     },
     set(key, value) {
-      try {
-        localStorage.setItem(key, JSON.stringify(value));
-        return true;
-      } catch {
-        /* localStorage no disponible (modo privado, cuota llena…) */
-        return false;
+      let raw;
+      try { raw = JSON.stringify(value); } catch { return false; }
+      let quotaFull = false;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          localStorage.setItem(key, raw);
+          return true;
+        } catch (error) {
+          // Cuota llena: se libera lo que se puede volver a descargar (letras y copia de la
+          // biblioteca) y se reintenta, para que favoritas y playlists nunca se pierdan en silencio
+          quotaFull = isQuotaError(error);
+          if (!quotaFull || !freeStorage(key, attempt)) break;
+        }
       }
+      /* localStorage no disponible (modo privado) o sin espacio ni nada que liberar */
+      if (quotaFull && !storageWarned && key !== KEYS.libraryCache && !key.startsWith(KEYS.lyricsPrefix)) {
+        storageWarned = true;
+        setTimeout(() => showToast('No queda espacio para guardar en este navegador. Libera espacio o exporta tus playlists.'), 0);
+      }
+      return false;
+    }
+  };
+  let storageWarned = false;
+
+  function isQuotaError(error) {
+    return error && (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED' || error.code === 22);
+  }
+
+  // Intento 0: borra la mitad más antigua de las letras. Intento 1: todas las letras y la copia de la biblioteca.
+  function freeStorage(protectedKey, attempt) {
+    const index = lyricsIndex.read();
+    const all = attempt === 0 ? index.slice(0, Math.ceil(index.length / 2)) : index;
+    let freed = false;
+    all.forEach((id) => {
+      try { localStorage.removeItem(KEYS.lyricsPrefix + id); freed = true; } catch { /* nada */ }
+    });
+    lyricsIndex.write(index.filter((id) => !all.includes(id)));
+    if (attempt > 0 && protectedKey !== KEYS.libraryCache) {
+      try {
+        if (localStorage.getItem(KEYS.libraryCache) !== null) { localStorage.removeItem(KEYS.libraryCache); freed = true; }
+      } catch { /* nada */ }
+    }
+    return freed;
+  }
+
+  // Letras guardadas: como mucho LYRICS_KEEP, se borran primero las que más tiempo llevan sin usarse
+  const LYRICS_KEEP = 300;
+  const lyricsIndex = {
+    read() {
+      try {
+        const list = JSON.parse(localStorage.getItem(KEYS.lyricsIndex));
+        if (Array.isArray(list)) return list;
+      } catch { /* dañado: se reconstruye */ }
+      // Primera vez (o índice dañado): se reconstruye con las letras que ya hay guardadas
+      const list = [];
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith(KEYS.lyricsPrefix)) list.push(key.slice(KEYS.lyricsPrefix.length));
+        }
+      } catch { /* sin localStorage */ }
+      return list;
+    },
+    write(list) {
+      try { localStorage.setItem(KEYS.lyricsIndex, JSON.stringify(list)); } catch { /* sin espacio */ }
+    },
+    touch(id) {
+      const list = this.read().filter((x) => x !== id);
+      list.push(id);
+      const drop = list.length > LYRICS_KEEP ? list.splice(0, list.length - LYRICS_KEEP) : [];
+      drop.forEach((old) => { try { localStorage.removeItem(KEYS.lyricsPrefix + old); } catch { /* nada */ } });
+      this.write(list);
     }
   };
 
@@ -657,7 +723,12 @@
       const fresh = JSON.stringify({ rows, catalog: library.catalog });
       if (fresh === cachedRaw) { openIncomingLink(true); return; }
       await applyTrackData(rows, true);
-      try { localStorage.setItem(KEYS.libraryCache, fresh); } catch { /* sin espacio: se descargará la próxima vez */ }
+      // Sin espacio se liberan letras antiguas; si aun así no cabe, se descargará la próxima vez
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try { localStorage.setItem(KEYS.libraryCache, fresh); break; } catch (error) {
+          if (!isQuotaError(error) || !freeStorage(KEYS.libraryCache, 0)) break;
+        }
+      }
     } catch (error) {
       console.error('[LiquidBullet] Error al cargar las canciones:', error);
       if (shown) return;
@@ -711,6 +782,7 @@
     const saved = tracks.filter(isDownloaded).length;
     const job = offline.jobs.get(key);
     const meta = header.querySelector('.playlist-meta');
+    if (!meta) return;
     let status = '';
     if (job) status = ` · Descargando ${job.done}/${job.total}…`;
     else if (saved && saved === tracks.length) status = ' · Disponible sin conexión';
@@ -731,7 +803,8 @@
   }
 
   function updateDownloadUI() {
-    els.viewHead.querySelectorAll('.pl-hero').forEach(updatePlaylistHeader);
+    // Solo las cabeceras de playlist (la de un artista también es .pl-hero, pero sin descargas)
+    els.viewHead.querySelectorAll('.pl-hero[data-key]').forEach(updatePlaylistHeader);
     els.trackList.querySelectorAll('.track').forEach((li) => {
       const track = getTrack(li.dataset.id);
       if (track) li.classList.toggle('is-downloaded', isDownloaded(track));
@@ -2442,7 +2515,7 @@
 
   function clearIncomingLink() {
     incomingLink = null;
-    try { history.replaceState(null, '', location.pathname); } catch { /* sin history */ }
+    try { history.replaceState(history.state, '', location.pathname); } catch { /* sin history */ }
   }
 
   // Se llama cada vez que llegan canciones; si aún no existe lo enlazado, espera a la lista fresca
@@ -3433,7 +3506,7 @@
     }
   }
 
-  function setView(view, { playlist = null } = {}) {
+  function setView(view, { playlist = null, fromHistory = false } = {}) {
     const previous = state.view;
     const previousPlaylist = state.openPlaylist;
     const previousArtist = state.lastArtist;
@@ -3448,6 +3521,7 @@
       const detail = view === 'playlist' || view === 'artist';
       const backToList = (previous === 'playlist' && view === 'playlists') || (previous === 'artist' && view === 'artists');
       animateView(detail ? 'forward' : backToList ? 'back' : 'fade');
+      if (!fromHistory) navHistory.push();
     }
     if (VIEWS.includes(view)) storage.set(KEYS.view, view);
     const tabView = view === 'playlist' ? 'playlists' : view === 'artist' ? 'artists' : view;
@@ -3458,6 +3532,91 @@
     });
     renderList();
     updateNav();
+  }
+
+  /* ---------- Historial: Atrás/Adelante del navegador (y del móvil) recorren las vistas ---------- */
+  // La URL no cambia (los enlaces ?t= / ?p= siguen funcionando); cada vista es una entrada del
+  // historial y cada ventana abierta otra más, así «Atrás» cierra la ventana en vez de salir de la app.
+  const navHistory = (() => {
+    let ready = false;
+    let skipPops = 0;
+    let dialogEntry = false;
+    const snapshot = () => ({ lb: 1, view: state.view, playlist: state.openPlaylist, artist: state.openArtist || null });
+    const openDialogs = () => [...document.querySelectorAll('dialog[open]')];
+
+    const same = (a, b) => a && b && a.view === b.view && a.playlist === b.playlist && (a.view !== 'artist' || a.artist === b.artist);
+
+    function push() {
+      if (!ready) return;
+      try {
+        const next = snapshot();
+        if (dialogEntry) { history.replaceState({ ...next, dialog: true }, ''); return; }
+        if (same(history.state, next)) return;
+        history.pushState(next, '');
+      } catch { /* sin history */ }
+    }
+
+    function replace() {
+      if (!ready) return;
+      try { history.replaceState({ ...snapshot(), dialog: dialogEntry || undefined }, ''); } catch { /* sin history */ }
+    }
+
+    function onPop(event) {
+      if (skipPops > 0) { skipPops--; return; }
+      if (dialogEntry || openDialogs().length) {
+        // «Atrás» con una ventana abierta: solo se cierra la ventana
+        dialogEntry = false;
+        openDialogs().forEach((dialog) => dialog.close());
+        return;
+      }
+      const target = event.state;
+      if (!target || !target.lb || !VIEWS.concat(['playlist', 'artist']).includes(target.view)) return;
+      if (target.view === 'playlist' && !getPlaylist(target.playlist)) return;
+      if (target.view === 'artist') {
+        if (!getArtist(target.artist)) return;
+        state.openArtist = target.artist;
+      }
+      if (state.query) { state.query = ''; els.searchInput.value = ''; }
+      setView(target.view, { playlist: target.playlist, fromHistory: true });
+    }
+
+    function watchDialogs() {
+      const observer = new MutationObserver((records) => {
+        records.forEach(({ target }) => {
+          if (target.open) {
+            if (!dialogEntry) {
+              dialogEntry = true;
+              try { history.pushState({ ...snapshot(), dialog: true }, ''); } catch { dialogEntry = false; }
+            }
+            return;
+          }
+          // Cerrada con su botón o con Esc: se quita su entrada (salvo que se abra otra ventana enseguida)
+          setTimeout(() => {
+            if (!dialogEntry || openDialogs().length) return;
+            dialogEntry = false;
+            if (history.state?.dialog) { skipPops++; history.back(); }
+          }, 0);
+        });
+      });
+      document.querySelectorAll('dialog').forEach((dialog) => observer.observe(dialog, { attributes: true, attributeFilter: ['open'] }));
+    }
+
+    function init() {
+      ready = true;
+      replace();
+      window.addEventListener('popstate', onPop);
+      watchDialogs();
+    }
+
+    return { push, replace, init };
+  })();
+
+  function clearSearch() {
+    if (!state.query && !els.searchInput.value) return;
+    state.query = '';
+    els.searchInput.value = '';
+    renderSearchPanel();
+    renderList();
   }
 
   function openPlaylist(key) {
@@ -3891,7 +4050,20 @@
       const time = state.pendingSeek ?? els.audio.currentTime ?? 0;
       storage.set(KEYS.resume, { id: track.id, time: Math.round(time * 10) / 10, at: now });
     },
+    // La cola puede tener miles de canciones (cientos de KB): se escribe una sola vez cuando
+    // el navegador está libre, no en cada cambio de canción
+    queueTimer: 0,
     saveQueue() {
+      if (this.queueTimer) return;
+      const write = () => { this.queueTimer = 0; this.flushQueue(); };
+      this.queueTimer = window.requestIdleCallback ? requestIdleCallback(write, { timeout: 2000 }) : setTimeout(write, 500);
+      this.queueIdle = Boolean(window.requestIdleCallback);
+    },
+    flushQueue() {
+      if (this.queueTimer) {
+        if (this.queueIdle) cancelIdleCallback(this.queueTimer); else clearTimeout(this.queueTimer);
+        this.queueTimer = 0;
+      }
       storage.set(KEYS.resumeQueue, { queue: state.queue, base: state.baseQueue, context: state.queueContext });
     },
     // Al abrir la app vuelve a poner la última canción en su segundo y con su cola; false si no hay nada
@@ -3961,9 +4133,15 @@
 
     updateProgressUI(0, parseDuration(track.duration));
     // Al abrir la app (sin reproducir) la letra se busca un poco después para no frenar el arranque
+    // Al saltar canciones seguidas solo se pide la letra de la que se queda (evita el 429 de LRCLIB)
     clearTimeout(lyricsDelay);
-    if (autoplay) showLyricsFor(track);
-    else {
+    if (autoplay) {
+      if (track.lyrics || lyricsCache.has(track.id)) showLyricsFor(track);
+      else {
+        renderLyrics('', 'Buscando la letra…');
+        lyricsDelay = setTimeout(() => { if (state.currentTrack === track) showLyricsFor(track); }, 700);
+      }
+    } else {
       renderLyrics('', 'Pulsa ▶ para escuchar; la letra aparecerá aquí.');
       lyricsDelay = setTimeout(() => { if (state.currentTrack === track) showLyricsFor(track); }, 3000);
     }
@@ -4228,7 +4406,9 @@
   const lyricsCache = new Map();
 
   async function lyricsRequest(path, retries = 1) {
-    const response = await fetch(`${LYRICS_API}${path}`);
+    // Sin respuesta en 10 s se da por fallida (la conexión móvil a veces se queda colgada)
+    const signal = typeof AbortSignal !== 'undefined' && AbortSignal.timeout ? AbortSignal.timeout(10000) : undefined;
+    const response = await fetch(`${LYRICS_API}${path}`, { signal });
     if (response.status === 404) return null;
     if (response.status === 503 && retries > 0) {
       await new Promise((resolve) => setTimeout(resolve, 1500));
@@ -4249,6 +4429,7 @@
     const stored = storage.get(KEYS.lyricsPrefix + track.id, null);
     if (typeof stored === 'string') {
       lyricsCache.set(track.id, stored);
+      lyricsIndex.touch(track.id);
       return stored;
     }
 
@@ -4279,7 +4460,7 @@
       return null;
     }
     lyricsCache.set(track.id, text);
-    storage.set(KEYS.lyricsPrefix + track.id, text);
+    if (storage.set(KEYS.lyricsPrefix + track.id, text)) lyricsIndex.touch(track.id);
     return text;
   }
 
@@ -4998,6 +5179,7 @@
         interruption.hiddenAt = Date.now();
         flushListening();
         resume.save(true);
+        if (resume.queueTimer) resume.flushQueue();
         return;
       }
       interruption.resume();
@@ -5005,6 +5187,14 @@
     window.addEventListener('pagehide', () => {
       flushListening();
       resume.save(true);
+      resume.flushQueue();
+    });
+
+    // «Cancelar» no es de tipo submit: así Enter en un campo guarda (el primer submit era Cancelar
+    // y la playlist recién escrita se descartaba)
+    document.addEventListener('click', (event) => {
+      const cancel = event.target.closest('[data-dialog-cancel]');
+      if (cancel) cancel.closest('dialog')?.close('cancel');
     });
 
     // Transiciones DJ
@@ -5347,7 +5537,9 @@
     // Pestañas Biblioteca / Playlists / Favoritas
     els.tabsBar.addEventListener('click', (event) => {
       const tab = event.target.closest('.tab');
-      if (tab) setView(tab.dataset.view);
+      if (!tab) return;
+      clearSearch();
+      setView(tab.dataset.view);
     });
 
     // Botón "Letra" del reproductor: abre el panel y lo lleva a la vista
@@ -5434,6 +5626,8 @@
       const button = event.target.closest('.nav-btn');
       if (!button) return;
       const target = button.dataset.nav;
+      // Cambiar de sección deja atrás la búsqueda (antes el texto seguía escrito en Inicio y Lab sin filtrar nada)
+      if (target !== 'search') clearSearch();
       if (target === 'home' && state.view !== 'home') setView('home');
       if (target === 'library' && state.view !== 'library') setView('library');
       if (target === 'playlists' && state.view !== 'playlists') setView('playlists');
@@ -6111,6 +6305,7 @@
     updateVolumeUI();
     updateProgressUI(0, 0);
     bindEvents();
+    navHistory.init();
     setupMediaSessionHandlers();
     setupAudioSession();
     setupSurrealEyes();
