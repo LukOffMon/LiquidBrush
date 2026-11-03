@@ -79,8 +79,7 @@
     chrome: '#100d1c',
     minimal: '#f4f3f0',
     yem: '#0b0907',
-    ebano: '#050506',
-    high: '#1a0633'
+    ebano: '#050506'
   };
 
   const REPEAT_MODES = ['off', 'all', 'one'];

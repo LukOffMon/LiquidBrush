@@ -11,7 +11,8 @@
   <meta name="apple-mobile-web-app-title" content="Liquid Bullet">
   <meta name="format-detection" content="telephone=no">
   <title>Liquid Bullet</title>
-  <link rel="icon" href="favicon.png" type="image/png">
+  <link rel="icon" href="logo.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.png" type="image/png" sizes="64x64">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -24,7 +25,7 @@
   <link rel="dns-prefetch" href="https://pub-0854e4225565462db16fa787cf2ab81c.r2.dev">
   <link rel="dns-prefetch" href="https://lrclib.net">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Permanent+Marker&family=Rubik+Wet+Paint&family=Sedgwick+Ave&family=Syne:wght@700;800&family=Tinos:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=16">
+  <link rel="stylesheet" href="styles.css?v=17">
   <script>
     /* Aplica el tema, la fuente y el tamaño de letra guardados antes de pintar (sin parpadeos) */
     (function () {
@@ -33,7 +34,7 @@
       root.setAttribute('data-text', 'system');
       try {
         var saved = JSON.parse(localStorage.getItem('liquidbrush:theme'));
-        if (['chrome', 'minimal', 'yem', 'ebano', 'high'].indexOf(saved) !== -1) root.setAttribute('data-theme', saved);
+        if (['chrome', 'minimal', 'yem', 'ebano'].indexOf(saved) !== -1) root.setAttribute('data-theme', saved);
         var settings = JSON.parse(localStorage.getItem('liquidbrush:settings')) || {};
         if (['street', 'graffiti', 'classic'].indexOf(settings.font) !== -1) root.setAttribute('data-font', settings.font);
         if (['system', 'small', 'normal', 'large', 'xl'].indexOf(settings.textSize) !== -1) root.setAttribute('data-text', settings.textSize);
@@ -77,13 +78,6 @@
         <stop offset=".85" stop-color="#ff8fd8"/>
         <stop offset="1" stop-color="#2b1d4a"/>
       </radialGradient>
-      <!-- Tema High: el fondo ondula como si se derritiera -->
-      <filter id="high-warp" x="-10%" y="-10%" width="120%" height="120%">
-        <feTurbulence type="fractalNoise" baseFrequency="0.006 0.012" numOctaves="2" seed="7" result="noise">
-          <animate attributeName="baseFrequency" dur="24s" values="0.006 0.012;0.011 0.006;0.006 0.012" repeatCount="indefinite"/>
-        </feTurbulence>
-        <feDisplacementMap in="SourceGraphic" in2="noise" scale="60" xChannelSelector="R" yChannelSelector="G"/>
-      </filter>
       <clipPath id="eye-clip"><path d="M4 35 Q60 -14 116 35 Q60 84 4 35 Z"/></clipPath>
     </defs>
   </svg>
@@ -218,7 +212,7 @@
     <!-- Barra superior -->
     <header class="topbar">
       <a class="brand" href="./" aria-label="Liquid Bullet, inicio">
-        <img class="brand-logo" src="icon-192.png" alt="" width="36" height="36">
+        <img class="brand-logo" src="logo.svg" alt="" width="36" height="36">
         <span class="brand-name">Liquid<span>Bullet</span></span>
       </a>
       <div class="topbar-actions">
@@ -506,7 +500,6 @@
             <option value="minimal">Minimalista</option>
             <option value="yem">Yem</option>
             <option value="ebano">Ébano</option>
-            <option value="high">High</option>
           </select>
         </label>
         <label class="setting">
@@ -628,6 +621,6 @@
   <!-- Reproductores para el ecualizador (necesitan CORS en el servidor del audio) -->
   <audio id="audio3" preload="metadata" crossorigin="anonymous"></audio>
   <audio id="audio4" preload="auto" crossorigin="anonymous"></audio>
-  <script src="app.js?v=18" defer></script>
+  <script src="app.js?v=19" defer></script>
 </body>
 </html>
