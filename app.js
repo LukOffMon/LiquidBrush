@@ -2507,6 +2507,8 @@
       const hash = new URLSearchParams(location.hash.slice(1));
       if (query.get('t')) return { track: query.get('t') };
       if (query.get('p')) return { playlist: query.get('p') };
+      // Accesos directos de la app instalada (manifest): ?view=search, favorites, library, lab…
+      if (query.get('view')) return { view: query.get('view') };
       if (query.has('mix') && hash.get('t')) {
         return { mix: (hash.get('n') || 'Playlist compartida').slice(0, 60), ids: hash.get('t').split(',').filter(Boolean) };
       }
@@ -2523,6 +2525,16 @@
   function openIncomingLink(final) {
     const link = incomingLink;
     if (!link || !state.tracks.length) return;
+    if (link.view) {
+      clearIncomingLink();
+      if (link.view === 'search') {
+        setView('library');
+        els.searchInput.focus({ preventScroll: true });
+      } else if (VIEWS.includes(link.view)) {
+        setView(link.view);
+      }
+      return;
+    }
     if (link.track) {
       const track = getTrack(link.track);
       if (!track) {

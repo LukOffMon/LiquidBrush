@@ -242,7 +242,7 @@ def song_key(t):
 # muestran la miniatura. Quien abre el enlace va directo a la app.
 SITE_URL = 'https://lukoffmon.github.io/LiquidBrush/'
 SHARE_DIR = ROOT / 's'
-FALLBACK_IMAGE = 'icon-512.png'
+FALLBACK_IMAGE = 'og-image.jpg'  # 1200×630: sale grande en WhatsApp, X, etc.
 
 
 def share_slug(track_id):
@@ -252,12 +252,15 @@ def share_slug(track_id):
 def share_page(title, description, image, target, kind='music.song'):
     e = lambda v: html.escape(str(v), quote=True)
     url = SITE_URL + image
-    size = '512' if image == FALLBACK_IMAGE else '600'
+    wide = image == FALLBACK_IMAGE
+    width, height = ('1200', '630') if wide else ('600', '600')
+    card = 'summary_large_image' if wide else 'summary'
     return f'''<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
 <title>{e(title)} — Liquid Bullet</title>
 <meta name="description" content="{e(description)}">
 <meta property="og:site_name" content="Liquid Bullet">
@@ -265,9 +268,9 @@ def share_page(title, description, image, target, kind='music.song'):
 <meta property="og:title" content="{e(title)}">
 <meta property="og:description" content="{e(description)}">
 <meta property="og:image" content="{e(url)}">
-<meta property="og:image:width" content="{size}">
-<meta property="og:image:height" content="{size}">
-<meta name="twitter:card" content="summary">
+<meta property="og:image:width" content="{width}">
+<meta property="og:image:height" content="{height}">
+<meta name="twitter:card" content="{card}">
 <meta name="twitter:title" content="{e(title)}">
 <meta name="twitter:description" content="{e(description)}">
 <meta name="twitter:image" content="{e(url)}">

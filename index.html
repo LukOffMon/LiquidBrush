@@ -2,6 +2,7 @@
 <html lang="es" data-theme="chrome">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-xwjbDSmRLrVYA3ZVqceTBg9ZzRHkjKZbyb/t+Jmo96k='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https:; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="description" content="Liquid Bullet — música que se derrite: tu reproductor web personal, surrealista y cromado.">
   <meta name="theme-color" content="#100d1c">
@@ -16,10 +17,21 @@
   <meta property="og:title" content="Liquid Bullet">
   <meta property="og:description" content="Música que se derrite: tu reproductor web personal, surrealista y cromado.">
   <meta property="og:url" content="https://lukoffmon.github.io/LiquidBrush/">
-  <meta property="og:image" content="https://lukoffmon.github.io/LiquidBrush/icon-512.png">
-  <meta property="og:image:width" content="512">
-  <meta property="og:image:height" content="512">
-  <meta name="twitter:card" content="summary">
+  <meta property="og:image" content="https://lukoffmon.github.io/LiquidBrush/og-image.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Liquid Bullet: música que se derrite">
+  <meta property="og:locale" content="es_ES">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Liquid Bullet">
+  <meta name="twitter:description" content="Música que se derrite: tu reproductor web personal, surrealista y cromado.">
+  <meta name="twitter:image" content="https://lukoffmon.github.io/LiquidBrush/og-image.jpg">
+  <link rel="canonical" href="https://lukoffmon.github.io/LiquidBrush/">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="color-scheme" content="dark light">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"WebApplication","name":"Liquid Bullet","alternateName":"Liquid","url":"https://lukoffmon.github.io/LiquidBrush/","description":"Reproductor web personal de música, surrealista y cromado: playlists, letras sincronizadas, mixes diarios, radio y modo sin conexión.","applicationCategory":"MultimediaApplication","operatingSystem":"Web, Android, iOS","inLanguage":"es","image":"https://lukoffmon.github.io/LiquidBrush/og-image.jpg","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}
+  </script>
   <link rel="icon" href="logo.svg" type="image/svg+xml">
   <link rel="icon" href="favicon.png" type="image/png" sizes="64x64">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -641,6 +653,11 @@
           <svg class="icon" aria-hidden="true"><use href="#i-mail"></use></svg> Escribir a officiallukamon@gmail.com
         </a>
         <p class="sheet-note">Ideas, mensajes o errores que encuentres: escribe a ese correo.</p>
+        <details class="privacy-note">
+          <summary>Privacidad: qué se guarda y dónde</summary>
+          <p class="sheet-note">Tus favoritas, playlists, historial, Stats, búsquedas y ajustes se guardan <strong>solo en este navegador</strong> (no hay cuentas ni servidor propio). Si borras los datos del sitio, se pierden: haz copias desde Playlists → ⬇.</p>
+          <p class="sheet-note">La app solo se conecta a los servidores de la música (Cloudflare R2), a LRCLIB para buscar letras (envía título, artista y duración) y a Google Fonts para las letras tipográficas. No hay publicidad ni analítica.</p>
+        </details>
       </section>
 
       <section class="settings-group" aria-labelledby="setSoundTitle">

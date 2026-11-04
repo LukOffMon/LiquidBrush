@@ -5629,3 +5629,15 @@ textarea {
     display: none;
   }
 }
+
+/* Ajustes → Ayuda: nota de privacidad plegable */
+.privacy-note summary {
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.9rem;
+  padding: 6px 0;
+}
+
+.privacy-note[open] summary {
+  margin-bottom: 4px;
+}
