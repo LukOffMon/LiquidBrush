@@ -250,6 +250,7 @@
     player: document.querySelector('.player'),
     speedSelect: $('speedSelect'),
     announcer: $('announcer'),
+    castBtn: $('castBtn'),
     errorReport: $('errorReport'),
     addDislike: $('addDislike'),
     addTitle: $('addTitle'),
@@ -1389,7 +1390,7 @@
   function copyToLocal(pl) {
     const playlist = {
       id: newId(),
-      name: `${pl.name} (mía)`.slice(0, 60),
+      name: `${pl.name} (${pl.kind === 'local' ? 'copia' : 'mía'})`.slice(0, 60),
       emoji: pl.emoji || '💿',
       color: pl.color || PLAYLIST_COLORS[Math.floor(Math.random() * PLAYLIST_COLORS.length)],
       trackIds: playlistTracksOf(pl).map((t) => t.id),
@@ -2697,6 +2698,7 @@
     if (pl.kind === 'local') {
       actions.append(
         makeButton('icon-btn', 'edit-playlist', 'Cambiar nombre, icono o color', 'edit'),
+        makeButton('icon-btn', 'copy-playlist', 'Duplicar esta playlist', 'playlist-add'),
         makeButton('icon-btn', 'delete-playlist', 'Eliminar de este dispositivo', 'delete')
       );
     } else {
@@ -2884,14 +2886,17 @@
     const track = getTrack(id);
     if (!track) return;
     const who = track.knownArtist ? ` de ${track.knownArtist}` : '';
+    // Si es la que suena y vas por la mitad, el enlace empieza en ese segundo (#at=)
+    const now = state.currentTrack?.id === id ? Math.floor(els.audio.currentTime || 0) : 0;
+    const at = now >= 15 && now < getDuration() - 15 ? now : 0;
     openShareSheet({
       kind: 'Canción',
       title: track.title,
       subtitle: track.knownArtist || track.genre || 'Liquid Bullet',
       image: track.cover,
       linkTitle: `${track.title}${track.knownArtist ? ` · ${track.knownArtist}` : ''}`,
-      text: `Escucha «${track.title}»${who} en Liquid Bullet`,
-      url: `${appBase()}s/t-${shareSlug(track.id)}.html`
+      text: `Escucha «${track.title}»${who} en Liquid Bullet${at ? ` (desde el ${formatTime(at)})` : ''}`,
+      url: `${appBase()}s/t-${shareSlug(track.id)}.html${at ? `#at=${at}` : ''}`
     });
   }
 
@@ -2923,7 +2928,7 @@
     try {
       const query = new URLSearchParams(location.search);
       const hash = new URLSearchParams(location.hash.slice(1));
-      if (query.get('t')) return { track: query.get('t') };
+      if (query.get('t')) return { track: query.get('t'), at: Math.max(0, Number(hash.get('at')) || 0) };
       if (query.get('p')) return { playlist: query.get('p') };
       // Accesos directos de la app instalada (manifest): ?view=search, favorites, library, lab…
       if (query.get('view')) return { view: query.get('view') };
@@ -2981,8 +2986,9 @@
       state.queue = state.baseQueue.slice();
       state.queueIndex = Math.max(0, state.queue.indexOf(track.id));
       loadTrack(track, false);
+      if (link.at) state.pendingSeek = link.at;
       clearIncomingLink();
-      showToast(`Te compartieron «${track.title}». Pulsa ▶ para escucharla.`);
+      showToast(`Te compartieron «${track.title}»${link.at ? ` desde el ${formatTime(link.at)}` : ''}. Pulsa ▶ para escucharla.`);
       return;
     }
     if (link.playlist) {
@@ -6766,6 +6772,29 @@
         event.preventDefault();
         cancel();
         openAddDialog(item.dataset.id);
+      });
+    })();
+
+    // Enviar el audio a otro dispositivo: Chromecast (Remote Playback) o AirPlay (Safari)
+    (() => {
+      const button = els.castBtn;
+      const audio = () => els.audio;
+      const canCast = 'remote' in HTMLMediaElement.prototype;
+      const canAirPlay = typeof window.WebKitPlaybackTargetAvailabilityEvent !== 'undefined';
+      if (!canCast && !canAirPlay) return;
+      button.hidden = false;
+      button.addEventListener('click', async () => {
+        const deck = audio();
+        if (canAirPlay && typeof deck.webkitShowPlaybackTargetPicker === 'function') {
+          deck.webkitShowPlaybackTargetPicker();
+          return;
+        }
+        try {
+          await deck.remote.prompt();
+        } catch (error) {
+          if (error?.name === 'NotFoundError') showToast('No hay dispositivos para enviar el audio en esta red.');
+          else if (error?.name !== 'NotAllowedError' && error?.name !== 'AbortError') showToast('Este navegador no puede enviar el audio a otro dispositivo.');
+        }
       });
     })();
 

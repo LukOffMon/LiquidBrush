@@ -6050,3 +6050,22 @@ textarea {
     height: 52px;
   }
 }
+
+.icon-btn[hidden] {
+  display: none;
+}
+
+/* Escritorio: las filas de Inicio llenan el ancho en vez de dejar medio panel vacío */
+@media (min-width: 1100px) {
+  .home-row:not(.is-artists) {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    overflow: visible;
+    scroll-snap-type: none;
+  }
+
+  .home-row:not(.is-artists) > * {
+    width: auto;
+    min-width: 0;
+  }
+}
