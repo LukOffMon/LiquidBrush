@@ -180,3 +180,57 @@ python3 -m http.server 8000
 | Q | Cola «A continuación» |
 | T | Temporizador de apagado |
 | / | Buscar |
+| Mayús + ← / → | Canción anterior / siguiente |
+| Mayús + ↑ / ↓ | Subir / bajar volumen |
+| 0 … 9 | Saltar al 0 %, 10 % … 90 % de la canción |
+| Mayús + , / Mayús + . | Más lenta / más rápida |
+| Esc | Cerrar Sonando (móvil) |
+
+En las pestañas: ← / →, Inicio y Fin. La rueda del ratón sobre el volumen lo sube o baja.
+
+## En el teléfono
+
+Liquid está pensada primero para el móvil:
+
+- **Sonando a pantalla completa**: toca el mini-reproductor o deslízalo hacia arriba. Se cierra con ⌄, deslizando hacia abajo o con «Atrás». En horizontal se ve en dos columnas.
+- **Mini-reproductor de una fila** (portada, título, ▶ y ⏭) con la barra de progreso como una línea fina.
+- **Gestos**: desliza la portada a los lados para cambiar de canción; mantén pulsada una canción para abrir su menú ＋.
+- **Índice A–Z** a la derecha de la Biblioteca cuando se ordena por título o artista.
+- Avisos con **Deshacer** al quitar canciones o borrar playlists (pasan 30 días en la **Papelera**).
+
+## Más funciones
+
+- **Búsqueda** por varias palabras, sin acentos, con erratas («gorilaz feel») y dentro de las letras ya guardadas.
+- **Inicio → Hecho para ti**: Novedades (lo que llegó desde tu última visita; también como número en el icono de la app instalada), Tu <día de la semana>, Hace un año y Sin estrenar.
+- **No me gusta** (en el ＋ de una canción): deja de salir en mixes, radios y Descubre.
+- **Añadir todas**: el botón ＋ junto a ▶ añade lo que estás viendo (búsqueda, filtro, artista) a una playlist.
+- **Guardar la cola** como playlist (botón Guardar en «A continuación»).
+- **Exportar .m3u** de cualquier playlist e **importar** .m3u o texto con líneas «Artista - Título».
+- **Letras**: ajustar el desfase (±0,5 s, se recuerda por canción), Traducir y buscar en la web si no hay.
+- **Sonido**: velocidad 0,75×–1,5× sin cambiar el tono y fundido corto al pausar.
+- **Descargas y espacio** (Ajustes): espacio usado, borrar todo y «Descargar favoritas» automáticamente.
+- **Accesos directos** de la app instalada (Buscar, Favoritas, Biblioteca, Lab) y **compartir hacia Liquid** desde otras apps.
+- **Privacidad e informe de errores** en Ajustes → Ayuda (los errores se guardan solo en el navegador y se envían si tú quieres).
+
+## Antes de publicar
+
+Sin compilar nada: el sitio se publica tal cual. Hay herramientas para no romperlo:
+
+```bash
+python3 tools/bump_version.py   # sube ?v= de app.js/styles.css, VERSION de sw.js y el hash de la CSP
+python3 tools/check_site.py     # listas, catálogo, CSP, versiones y archivos del service worker
+python3 tools/find_duplicates.py  # canciones repetidas y artistas escritos de varias formas
+```
+
+- `index.html` lleva una **Content-Security-Policy** con el hash del script en línea. Si lo editas, corre `python3 tools/bump_version.py --csp` o el navegador lo bloqueará.
+- Los scripts de `tools/` solo usan Python 3 estándar (no hay que instalar nada).
+
+Con Node instalado (`npm install` una vez):
+
+```bash
+npm run check   # sintaxis + tools/check_site.py
+npm run lint    # ESLint
+npm test        # tests en el navegador (móvil y escritorio) con Playwright
+```
+
+GitHub Actions corre todo esto en cada push a `main` y en cada pull request (`.github/workflows/ci.yml`).

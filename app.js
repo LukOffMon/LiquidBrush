@@ -79,7 +79,8 @@
     added: 'liquidbrush:added',
     disliked: 'liquidbrush:disliked',
     trash: 'liquidbrush:trash',
-    lyricsOffsets: 'liquidbrush:lyrics-offsets'
+    lyricsOffsets: 'liquidbrush:lyrics-offsets',
+    errors: 'liquidbrush:errors'
   };
 
   const LYRICS_API = 'https://lrclib.net/api';
@@ -249,6 +250,7 @@
     player: document.querySelector('.player'),
     speedSelect: $('speedSelect'),
     announcer: $('announcer'),
+    errorReport: $('errorReport'),
     addDislike: $('addDislike'),
     addTitle: $('addTitle'),
     alphaRail: $('alphaRail'),
@@ -1374,7 +1376,8 @@
     const list = trashList();
     const entry = list.find((p) => p.id === id);
     if (!entry) return;
-    const { deletedAt, ...playlist } = entry;
+    const playlist = { ...entry };
+    delete playlist.deletedAt;
     if (findLocal(playlist.id)) playlist.id = newId();
     library.local.push(playlist);
     saveLocalPlaylists();
@@ -7276,8 +7279,43 @@
     });
   }
 
+  // Registro de errores: los últimos 15 se guardan aquí (nada se envía solo)
+  const errorLog = {
+    list() { return storage.get(KEYS.errors, []) || []; },
+    add(message, source = '') {
+      const list = this.list();
+      const text = String(message || 'Error').slice(0, 300);
+      if (list[0]?.m === text) return;
+      list.unshift({ t: new Date().toISOString(), m: text, s: String(source).slice(0, 160), v: document.querySelector('script[src^="app.js"]')?.getAttribute('src') || '' });
+      storage.set(KEYS.errors, list.slice(0, 15));
+    },
+    init() {
+      window.addEventListener('error', (event) => {
+        if (event.target && event.target !== window) return; // imágenes o audios que no cargan: no son fallos de la app
+        this.add(event.message, `${event.filename || ''}:${event.lineno || ''}`);
+      });
+      window.addEventListener('unhandledrejection', (event) => this.add(event.reason?.message || event.reason, 'promesa'));
+    },
+    renderButton() {
+      const list = this.list();
+      els.errorReport.hidden = !list.length;
+      if (!list.length) return;
+      const body = [
+        'Hola, la app me dio estos errores:',
+        '',
+        ...list.map((e) => `${e.t} · ${e.m} (${e.s}) ${e.v}`),
+        '',
+        `Navegador: ${navigator.userAgent}`,
+        `Pantalla: ${window.innerWidth}×${window.innerHeight} · tema ${document.documentElement.dataset.theme}`
+      ].join('\n');
+      els.errorReport.href = `mailto:officiallukamon@gmail.com?subject=${encodeURIComponent('Liquid Bullet: informe de errores')}&body=${encodeURIComponent(body.slice(0, 1800))}`;
+      els.errorReport.querySelector('span').textContent = `Enviar informe de errores (${list.length})`;
+    }
+  };
+
   function openSettings() {
     renderStorageInfo();
+    errorLog.renderButton();
     els.fontSelect.value = settings.font;
     els.textSizeSelect.value = settings.textSize;
     els.plViewSelect.value = settings.plView;
@@ -7356,6 +7394,7 @@
   }
 
   function init() {
+    errorLog.init();
     detectLiteMode();
     applyLook();
     els.eqPreset.replaceChildren(...Object.entries(EQ_PRESETS).map(([value, preset]) => new Option(preset.name, value)));
