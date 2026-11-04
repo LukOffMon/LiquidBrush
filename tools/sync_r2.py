@@ -7,7 +7,7 @@ de API de R2 (solo lectura basta). Las claves se leen de variables de entorno, n
     R2_PEPPER_ACCESS_KEY_ID / R2_PEPPER_SECRET_ACCESS_KEY   -> liquidpepper4db
     R2_SALT_ACCESS_KEY_ID   / R2_SALT_SECRET_ACCESS_KEY     -> liquidsaltdb5
     R2_BRUSH3_ACCESS_KEY_ID / R2_BRUSH3_SECRET_ACCESS_KEY   -> liquidbrush3db3
-    R2_DB4_ACCESS_KEY_ID    / R2_DB4_SECRET_ACCESS_KEY      -> 4.º bucket (más R2_DB4_ACCOUNT y R2_DB4_BUCKET)
+    R2_DB4_ACCESS_KEY_ID    / R2_DB4_SECRET_ACCESS_KEY      -> liquidbulletdb66 (más R2_DB4_ACCOUNT)
 
 Uso:
     python3 tools/sync_r2.py            # todos los buckets que tengan clave
@@ -53,8 +53,8 @@ BUCKETS = {
         'public': 'https://pub-342aee3eb054410cb02224940f684884.r2.dev',
     },
     'db4': {
-        # Su cuenta y su nombre aún no están en el repositorio: se leen del entorno
-        'bucket': os.environ.get('R2_DB4_BUCKET', ''),
+        # Su cuenta aún no está en el repositorio: se lee del entorno
+        'bucket': os.environ.get('R2_DB4_BUCKET', 'liquidbulletdb66'),
         'account': os.environ.get('R2_DB4_ACCOUNT', ''),
         'public': 'https://pub-0854e4225565462db16fa787cf2ab81c.r2.dev',
     },
@@ -171,6 +171,10 @@ def duration_of(public, key, size):
 def parse_name(key):
     folder, _, file = key.rpartition('/')
     stem = re.sub(r'\.[^.]+$', '', file)
+    # "VitC 001-100/VitC 001 - Artista - Título.mp3": el archivo repite el prefijo de su carpeta
+    prefix = re.match(r'^(\D+?)\s+\d', folder.split('/')[0])
+    if prefix and stem.startswith(prefix.group(1) + ' '):
+        stem = stem[len(prefix.group(1)):].strip()
     stem = re.sub(r'^\d+\s*[-.]\s*', '', stem).strip()
     parts = [p.strip() for p in stem.split(' - ')]
     artist, title = (parts[0], ' - '.join(parts[1:])) if len(parts) > 1 else ('', stem)
