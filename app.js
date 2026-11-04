@@ -248,6 +248,11 @@
     playerTrack: document.querySelector('.player-track'),
     player: document.querySelector('.player'),
     speedSelect: $('speedSelect'),
+    addDislike: $('addDislike'),
+    addTitle: $('addTitle'),
+    alphaRail: $('alphaRail'),
+    trashDialog: $('trashDialog'),
+    trashList: $('trashList'),
     offlinePill: $('offlinePill'),
     storageInfo: $('storageInfo'),
     clearDownloads: $('clearDownloads'),
@@ -510,7 +515,9 @@
       speed: [0.75, 1, 1.1, 1.25, 1.5].includes(saved.speed) ? saved.speed : 1,
       softPause: saved.softPause !== false,
       // Descargar sola cada canción que marques con ♥ (solo con Wi-Fi o sin ahorro de datos)
-      autoFav: saved.autoFav === true
+      autoFav: saved.autoFav === true,
+      lastBackup: Number(saved.lastBackup) || 0,
+      backupNagAt: Number(saved.backupNagAt) || 0
     };
   })();
   const saveSettings = () => storage.set(KEYS.settings, settings);
@@ -706,7 +713,10 @@
     const seenSongs = new Set();
     state.libraryTracks = state.tracks.filter((t) => !seenSongs.has(t.songKey) && seenSongs.add(t.songKey));
     await refreshDownloads();
-    if (final) trackArrivals();
+    if (final) {
+      trackArrivals();
+      maybeRemindBackup();
+    }
     if (eqActive()) probeCors().then(updateEqNote);
 
     // Si la playlist que estaba abierta ya no existe, se vuelve a Playlists
@@ -727,6 +737,17 @@
       els.npContext.textContent = 'Biblioteca vacía';
     }
     openIncomingLink(Boolean(final));
+  }
+
+  // Recordatorio suave: con playlists propias y sin copia en 30 días (como mucho una vez por semana)
+  function maybeRemindBackup() {
+    const day = 86400000;
+    const now = Date.now();
+    if (!library.local.length) return;
+    if (now - settings.lastBackup < 30 * day || now - settings.backupNagAt < 7 * day) return;
+    settings.backupNagAt = now;
+    saveSettings();
+    setTimeout(() => showToast('Tus playlists viven solo en este navegador. ¿Guardas una copia?', { label: 'Descargar', run: exportPlaylists }), 6000);
   }
 
   /* ---------- Novedades: canciones que llegaron desde tu última visita ---------- */
@@ -1102,7 +1123,8 @@
     recent: 'Escuchadas hace poco',
     plays: 'Más escuchadas',
     long: 'Más largas primero',
-    short: 'Más cortas primero'
+    short: 'Más cortas primero',
+    added: 'Añadidas recientemente'
   };
   const VIEWS = ['home', 'library', 'playlists', 'artists', 'favorites', 'stats', 'lab'];
 
@@ -1312,13 +1334,50 @@
     renderList();
   }
 
+  // Las playlists borradas pasan 30 días en la papelera (Playlists → Papelera)
+  const TRASH_DAYS = 30;
+  function trashList() {
+    const limit = Date.now() - TRASH_DAYS * 86400000;
+    const list = (storage.get(KEYS.trash, []) || []).filter((p) => p && p.deletedAt > limit);
+    return list;
+  }
+
   function deleteLocalPlaylist(id) {
     const playlist = findLocal(id);
-    if (!playlist || !confirm(`¿Eliminar «${playlist.name}» de este dispositivo?`)) return;
+    if (!playlist || !confirm(`¿Eliminar «${playlist.name}»? Podrás recuperarla durante ${TRASH_DAYS} días desde la Papelera.`)) return;
     library.local = library.local.filter((p) => p.id !== id);
     saveLocalPlaylists();
+    storage.set(KEYS.trash, [{ ...playlist, deletedAt: Date.now() }, ...trashList()].slice(0, 30));
     setView('playlists');
-    showToast(`«${playlist.name}» eliminada.`);
+    showToast(`«${playlist.name}» eliminada.`, { label: 'Deshacer', run: () => restoreFromTrash(playlist.id) });
+  }
+
+  function openTrash() {
+    const list = trashList();
+    const rows = list.map((p) => {
+      const li = document.createElement('li');
+      const days = Math.max(0, TRASH_DAYS - Math.floor((Date.now() - p.deletedAt) / 86400000));
+      const button = makeButton('btn trash-restore', 'restore', `Recuperar ${p.name}`, '', `${p.emoji || '💿'} ${p.name}`);
+      button.dataset.id = p.id;
+      li.append(button, makeEl('span', 'sheet-note', `${songsLabel(p.trackIds.length)} · se borra del todo en ${days} día${days === 1 ? '' : 's'}`));
+      return li;
+    });
+    if (!rows.length) rows.push(makeEl('li', 'sheet-note', 'La papelera está vacía.'));
+    els.trashList.replaceChildren(...rows);
+    els.trashDialog.showModal();
+  }
+
+  function restoreFromTrash(id) {
+    const list = trashList();
+    const entry = list.find((p) => p.id === id);
+    if (!entry) return;
+    const { deletedAt, ...playlist } = entry;
+    if (findLocal(playlist.id)) playlist.id = newId();
+    library.local.push(playlist);
+    saveLocalPlaylists();
+    storage.set(KEYS.trash, list.filter((p) => p.id !== id));
+    renderList();
+    showToast(`«${playlist.name}» recuperada.`);
   }
 
   function copyToLocal(pl) {
@@ -1369,7 +1428,34 @@
   }
 
   let addTarget = null;
+  let addBulk = null;
+
+  // «Añadir todas»: lo que estás viendo (búsqueda, filtro, artista…) a una playlist propia
+  function openBulkAddDialog(ids) {
+    const unique = [...new Set(ids)].filter((id) => getTrack(id));
+    if (!unique.length) return;
+    openAddDialog(unique[0]);
+    addTarget = null;
+    addBulk = unique;
+    els.addTitle.textContent = 'Añadir todas a una playlist';
+    els.addTrackName.textContent = `${songsLabel(unique.length)} de la lista que estás viendo`;
+    els.addPlayNext.parentElement.hidden = true;
+    els.addList.querySelectorAll('.add-item').forEach((button) => {
+      const pl = findLocal(button.dataset.id);
+      const missing = unique.filter((id) => !pl.trackIds.includes(id)).length;
+      button.disabled = !missing;
+      button.querySelector('.add-meta').textContent = missing ? `+${missing}` : 'Ya están todas';
+    });
+  }
+
   function openAddDialog(trackId) {
+    addBulk = null;
+    if (els.addTitle) els.addTitle.textContent = 'Añadir a playlist';
+    els.addPlayNext.parentElement.hidden = false;
+    if (els.addDislike) {
+      const label = els.addDislike.querySelector('span');
+      if (label) label.textContent = isDisliked(trackId) ? 'Volver a recomendarla' : 'No me gusta (no recomendar)';
+    }
     const track = getTrack(trackId);
     if (!track) return;
     addTarget = trackId;
@@ -1422,10 +1508,63 @@
     link.click();
     link.remove();
     setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    settings.lastBackup = Date.now();
+    saveSettings();
     showToast('Copia de seguridad descargada.');
   }
 
+  // Una playlist como .m3u (con las URLs de los MP3): se abre en VLC y otros reproductores
+  function exportM3U(pl) {
+    const tracks = playlistTracksOf(pl);
+    if (!tracks.length) return;
+    const lines = ['#EXTM3U', `#PLAYLIST:${pl.name}`];
+    tracks.forEach((t) => {
+      lines.push(`#EXTINF:${Math.round(parseDuration(t.duration)) || -1},${t.artist} - ${t.title}`);
+      lines.push(new URL(t.src, location.href).href);
+    });
+    const blob = new Blob([lines.join('\n') + '\n'], { type: 'audio/x-mpegurl' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `${pl.name.replace(/[\\/:*?"<>|]+/g, '').trim() || 'playlist'}.m3u`;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    showToast(`«${pl.name}» descargada como .m3u.`);
+  }
+
+  // Importar una lista de texto o .m3u: cada línea «Artista - Título» se busca en tu biblioteca
+  function importTextPlaylist(name, text) {
+    const lines = text.split(/\r?\n/)
+      .map((line) => line.replace(/^#EXTINF:[^,]*,/, '').trim())
+      .filter((line) => line && !line.startsWith('#') && !/^https?:\/\//.test(line));
+    const ids = [];
+    let missing = 0;
+    lines.forEach((line) => {
+      const found = searchTracks(state.libraryTracks, line.replace(/\s+[-–—]\s+/g, ' ').replace(/\.(mp3|m4a|flac)$/i, ''))[0];
+      if (found && !ids.includes(found.id)) ids.push(found.id);
+      else if (!found) missing++;
+    });
+    if (!ids.length) {
+      showToast('No encontré ninguna de esas canciones en tu biblioteca.');
+      return;
+    }
+    const playlist = {
+      id: newId(), name: name.slice(0, 60) || 'Importada', emoji: '📥',
+      color: PLAYLIST_COLORS[Math.floor(Math.random() * PLAYLIST_COLORS.length)],
+      trackIds: ids, createdAt: Date.now()
+    };
+    library.local.push(playlist);
+    saveLocalPlaylists();
+    openPlaylist(`local:${playlist.id}`);
+    showToast(`«${playlist.name}»: ${songsLabel(ids.length)} encontradas${missing ? `, ${missing} no están en Liquid` : ''}.`);
+  }
+
   async function importPlaylists(file) {
+    if (!/\.json$/i.test(file.name) && file.type !== 'application/json') {
+      importTextPlaylist(file.name.replace(/\.[^.]+$/, ''), await file.text());
+      return;
+    }
     try {
       const data = JSON.parse(await file.text());
       if (!data || !Array.isArray(data.playlists)) throw new Error('Formato no válido');
@@ -2283,6 +2422,8 @@
       case 'plays': return sorted.sort((a, b) => playsOf(b.id) - playsOf(a.id) || byTitle(a, b));
       case 'long': return sorted.sort((a, b) => parseDuration(b.duration) - parseDuration(a.duration));
       case 'short': return sorted.sort((a, b) => parseDuration(a.duration) - parseDuration(b.duration));
+      // Las que llegaron este mes primero (las más nuevas arriba); el resto en su orden
+      case 'added': return sorted.sort((a, b) => (arrivals.added[b.id] || 0) - (arrivals.added[a.id] || 0));
       default: return sorted;
     }
   }
@@ -2294,11 +2435,68 @@
     return sortTracks(state.libraryTracks);
   }
 
-  function getVisibleTracks() {
-    const q = normalize(state.query);
-    const list = applyFilters(baseTracks());
+  /* ---------- Búsqueda: varias palabras, sin acentos, tolerante a erratas y en las letras ---------- */
+  const haystackOf = (track) => {
+    if (track.hay === undefined) track.hay = normalize([track.title, track.artist, track.album, track.genre].join(' '));
+    return track.hay;
+  };
+
+  // Distancia de edición con un tope (corta en cuanto lo supera)
+  function editDistance(a, b, max) {
+    if (Math.abs(a.length - b.length) > max) return max + 1;
+    let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+    for (let i = 1; i <= a.length; i++) {
+      const row = [i];
+      let best = i;
+      for (let j = 1; j <= b.length; j++) {
+        row[j] = Math.min(prev[j] + 1, row[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+        best = Math.min(best, row[j]);
+      }
+      if (best > max) return max + 1;
+      prev = row;
+    }
+    return prev[b.length];
+  }
+
+  const wordsOf = (track) => {
+    if (!track.words) track.words = [...new Set(haystackOf(track).split(/[^\p{L}\p{N}]+/u).filter(Boolean))];
+    return track.words;
+  };
+
+  function fuzzyToken(token, track) {
+    const max = token.length >= 7 ? 2 : token.length >= 4 ? 1 : 0;
+    if (!max) return false;
+    return wordsOf(track).some((word) => editDistance(token, word.slice(0, token.length + max), max) <= max);
+  }
+
+  // Letras ya guardadas en este navegador (no se piden letras nuevas para buscar)
+  function lyricsMatch(track, q) {
+    const text = lyricsCache.get(track.id);
+    if (typeof text !== 'string' || !text) return false;
+    if (track.lyricsHay === undefined) track.lyricsHay = normalize(text.replace(/\[\d{1,2}:\d{2}(?:\.\d+)?\]/g, ' '));
+    return track.lyricsHay.includes(q);
+  }
+
+  function searchTracks(list, query) {
+    const q = normalize(query);
     if (!q) return list;
-    return list.filter((track) => [track.title, track.artist, track.album, track.genre].some((field) => normalize(field).includes(q)));
+    const tokens = q.split(/\s+/).filter(Boolean);
+    const exact = list.filter((track) => tokens.every((token) => haystackOf(track).includes(token)));
+    const exactIds = new Set(exact.map((t) => t.id));
+    // Frases de la letra (4+ letras): se suman al final
+    const byLyrics = q.length >= 4 ? list.filter((t) => !exactIds.has(t.id) && lyricsMatch(t, q)) : [];
+    if (exact.length || byLyrics.length) {
+      byLyrics.forEach((t) => { t.matchedLyrics = true; });
+      return [...exact, ...byLyrics];
+    }
+    // Sin resultados: se prueba con erratas («beyonse» → Beyoncé)
+    return list.filter((track) => tokens.every((token) => haystackOf(track).includes(token) || fuzzyToken(token, track)));
+  }
+
+  function getVisibleTracks() {
+    const list = applyFilters(baseTracks());
+    if (!normalize(state.query)) return list;
+    return searchTracks(list, state.query);
   }
 
   function makeButton(className, action, label, icon, text = '') {
@@ -2308,7 +2506,7 @@
     button.dataset.action = action;
     button.setAttribute('aria-label', label);
     button.title = label;
-    button.innerHTML = `<svg class="icon" aria-hidden="true"><use href="#i-${icon}"></use></svg>`;
+    if (icon) button.innerHTML = `<svg class="icon" aria-hidden="true"><use href="#i-${icon}"></use></svg>`;
     if (text) {
       const span = document.createElement('span');
       span.textContent = text;
@@ -2430,10 +2628,13 @@
         makeButton('icon-btn', 'import', 'Importar una copia de seguridad', 'upload'),
         makeButton('icon-btn', 'export', 'Descargar una copia de seguridad de tus playlists', 'download')
       );
+      const trashed = trashList().length;
+      if (trashed) actions.append(makeButton('btn btn-ghost btn-small', 'open-trash', 'Recuperar playlists borradas', 'delete', `Papelera (${trashed})`));
     } else {
       actions.append(
         makeButton('icon-btn play-btn view-play', 'play-view', 'Reproducir todo', 'play'),
-        makeButton('icon-btn', 'shuffle-view', 'Reproducir en aleatorio', 'shuffle')
+        makeButton('icon-btn', 'shuffle-view', 'Reproducir en aleatorio', 'shuffle'),
+        makeButton('icon-btn', 'add-all', 'Añadir todas estas canciones a una playlist', 'playlist-add')
       );
       if (state.view === 'library') {
         const label = makeEl('label', 'sort');
@@ -2482,6 +2683,7 @@
     pin.setAttribute('aria-pressed', String(pinned));
     actions.append(pin);
     if (tracks.length) actions.append(makeButton('icon-btn', 'share-playlist', 'Compartir playlist', 'share'));
+    if (tracks.length) actions.append(makeButton('btn btn-ghost btn-small', 'export-m3u', 'Descargar como .m3u (VLC y otros reproductores)', '', '.m3u'));
     if (pl.kind === 'local') {
       actions.append(
         makeButton('icon-btn', 'edit-playlist', 'Cambiar nombre, icono o color', 'edit'),
@@ -2886,8 +3088,8 @@
       : seededShuffle(playlists, `mixes-${todayKey()}`);
     return ranked.slice(0, 4).map((pl, i) => {
       const tracks = playlistTracksOf(pl);
-      const known = tracks.filter((t) => playsOf(t.id) || state.favorites.has(t.id));
-      const fresh = tracks.filter((t) => !playsOf(t.id) && !state.favorites.has(t.id));
+      const known = tracks.filter((t) => (playsOf(t.id) || state.favorites.has(t.id)) && !isDisliked(t.id));
+      const fresh = tracks.filter((t) => !playsOf(t.id) && !state.favorites.has(t.id) && !isDisliked(t.id));
       const pick = [
         ...seededShuffle(known, `k${i}${todayKey()}`).slice(0, HOME_MIX_SIZE / 2),
         ...seededShuffle(fresh, `f${i}${todayKey()}`)
@@ -2901,7 +3103,7 @@
     const scores = genreScores();
     const rand = seededRandom(`descubre-${weekKey()}`);
     const ranked = state.libraryTracks
-      .filter((t) => !playsOf(t.id) && !state.favorites.has(t.id))
+      .filter((t) => !playsOf(t.id) && !state.favorites.has(t.id) && !isDisliked(t.id))
       .map((t) => [t, rand() * (1 + Math.min(scores.get(t.genre) || 0, 40) / 8)])
       .sort((a, b) => b[1] - a[1])
       .map(([t]) => t);
@@ -2956,7 +3158,7 @@
     const pick = (allowRepeats) => {
       const used = new Set();
       return pool
-        .filter(([t]) => (allowRepeats || !skip.has(t.id)) && isPlayable(t))
+        .filter(([t]) => (allowRepeats || !skip.has(t.id)) && isPlayable(t) && !isDisliked(t.id))
         .map(([t, weight]) => [t, weight * (0.4 + Math.random()) * (playsOf(t.id) ? 0.85 : 1.1)])
         .sort((a, b) => b[1] - a[1])
         .map(([t]) => t)
@@ -3678,6 +3880,7 @@
     const q = normalize(state.query);
     const searching = Boolean(q);
     renderViewHead();
+    els.alphaRail.hidden = true;
     const showHome = state.view === 'home' || state.view === 'artists';
     const showLab = state.view === 'lab';
     const showStats = state.view === 'stats' || showLab || showHome;
@@ -3744,6 +3947,7 @@
     }
     els.trackList.replaceChildren(fragment);
     if (visible.length) appendListChunk(LIST_FIRST_CHUNK);
+    renderAlphaRail(visible);
 
     const total = visible.length;
     const seconds = visible.reduce((sum, t) => sum + parseDuration(t.duration), 0);
@@ -3751,6 +3955,53 @@
       ? `${total} resultado${total === 1 ? '' : 's'} para «${state.query.trim()}»`
       : state.view === 'playlist' || state.view === 'artist' ? '' : `${songsLabel(total)} · ${formatTotal(seconds)}`;
     updateDownloadUI();
+  }
+
+  /* ---------- Índice A–Z de la Biblioteca (orden por título o artista) ---------- */
+  const firstLetter = (text) => {
+    const char = normalize(String(text || '').replace(/^[^\p{L}\p{N}]+/u, '')).charAt(0).toUpperCase();
+    return /[A-Z]/.test(char) ? char : char === 'Ñ' ? 'N' : '#';
+  };
+  const letterOfTrack = (track) => firstLetter(state.sort === 'artist' ? track.knownArtist || track.artist : track.title);
+
+  function renderAlphaRail(visible) {
+    const show = state.view === 'library' && ['title', 'artist'].includes(state.sort) && !normalize(state.query) && visible.length > 60;
+    els.alphaRail.hidden = !show;
+    if (!show) return;
+    const letters = [];
+    visible.forEach((track) => {
+      const letter = letterOfTrack(track);
+      if (!letters.includes(letter)) letters.push(letter);
+    });
+    els.alphaRail.style.setProperty('--letters', letters.length);
+    els.alphaRail.replaceChildren(...letters.map((letter) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'alpha-letter';
+      button.dataset.letter = letter;
+      button.textContent = letter;
+      button.setAttribute('aria-label', `Ir a la ${letter}`);
+      return button;
+    }));
+  }
+
+  function jumpToLetter(letter) {
+    const index = list.items.findIndex((track) => letterOfTrack(track) === letter);
+    if (index < 0) return;
+    if (index >= list.rendered) appendListChunk(index - list.rendered + LIST_CHUNK);
+    const item = els.trackList.children[index];
+    if (!item) return;
+    // Las filas fuera de pantalla tienen un alto estimado (content-visibility): se corrige
+    // el salto un par de veces mientras se pintan las de alrededor
+    const align = (tries) => {
+      const offset = (document.querySelector('.topbar')?.offsetHeight || 0) + 12;
+      const delta = item.getBoundingClientRect().top - offset;
+      if (Math.abs(delta) > 2) window.scrollTo({ top: window.scrollY + delta, behavior: 'instant' });
+      if (tries > 0) requestAnimationFrame(() => align(tries - 1));
+    };
+    align(4);
+    if (els.alphaRail.dataset.last !== letter) haptic(5);
+    els.alphaRail.dataset.last = letter;
   }
 
   const LIST_FIRST_CHUNK = 40;
@@ -4872,6 +5123,63 @@
   // Busca la letra en LRCLIB (gratis, sin clave). Devuelve '' si no existe y null si falló la conexión.
   const lyricsCache = new Map();
 
+  // Desfase por canción para las letras sincronizadas que van adelantadas o atrasadas
+  const lyricsOffsets = storage.get(KEYS.lyricsOffsets, {}) || {};
+  const lyricsOffset = () => lyricsOffsets[state.currentTrack?.id] || 0;
+  function shiftLyrics(delta) {
+    const id = state.currentTrack?.id;
+    if (!id) return;
+    const value = Math.round((lyricsOffset() + delta) * 10) / 10;
+    if (value) lyricsOffsets[id] = value;
+    else delete lyricsOffsets[id];
+    const keys = Object.keys(lyricsOffsets);
+    if (keys.length > 400) delete lyricsOffsets[keys[0]];
+    storage.set(KEYS.lyricsOffsets, lyricsOffsets);
+    updateLyricsTools();
+    syncLyrics(els.audio.currentTime, true);
+  }
+
+  // Barra bajo la letra: desfase (sincronizadas), traducir y buscar en la web
+  function updateLyricsTools() {
+    const track = state.currentTrack;
+    let bar = els.lyricsPanel.querySelector('.lyrics-tools');
+    if (!bar) {
+      bar = makeEl('div', 'lyrics-tools');
+      els.lyricsPanel.append(bar);
+    }
+    if (!track) { bar.replaceChildren(); return; }
+    const parts = [];
+    const query = encodeURIComponent(`${splitTitle(track.title).main} ${track.knownArtist || track.artist} letra`);
+    if (state.lyrics?.synced) {
+      const offset = lyricsOffset();
+      const label = offset ? `${offset > 0 ? '+' : ''}${String(offset).replace('.', ',')} s` : 'A tiempo';
+      const minus = makeButton('btn btn-ghost lyrics-shift', 'lyrics-shift', 'Letra antes (−0,5 s)', '', '−0,5 s');
+      minus.dataset.delta = '-0.5';
+      const plus = makeButton('btn btn-ghost lyrics-shift', 'lyrics-shift', 'Letra después (+0,5 s)', '', '+0,5 s');
+      plus.dataset.delta = '0.5';
+      parts.push(minus, makeEl('span', 'lyrics-offset', label), plus);
+    }
+    if (state.lyrics?.text && !/Instrumental/.test(state.lyrics.text)) {
+      const text = state.lyrics.synced ? state.lyrics.lines.map((l) => l.text).join('\n') : state.lyrics.text;
+      const link = document.createElement('a');
+      link.className = 'btn btn-ghost';
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.href = `https://translate.google.com/?sl=auto&tl=es&op=translate&text=${encodeURIComponent(text.slice(0, 4500))}`;
+      link.textContent = 'Traducir';
+      parts.push(link);
+    } else if (!state.lyrics) {
+      const link = document.createElement('a');
+      link.className = 'btn btn-ghost';
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.href = `https://www.google.com/search?q=${query}`;
+      link.textContent = 'Buscar la letra en la web';
+      parts.push(link);
+    }
+    bar.replaceChildren(...parts);
+  }
+
   async function lyricsRequest(path, retries = 1) {
     // Sin respuesta en 10 s se da por fallida (la conexión móvil a veces se queda colgada)
     const signal = typeof AbortSignal !== 'undefined' && AbortSignal.timeout ? AbortSignal.timeout(10000) : undefined;
@@ -4949,6 +5257,8 @@
   function renderLyrics(text, emptyMessage = 'Letra no disponible para esta canción.') {
     state.lyrics = parseLyrics(text);
     state.activeLyric = -1;
+    if (typeof text === 'string' && text && state.currentTrack) delete state.currentTrack.lyricsHay;
+    queueMicrotask(updateLyricsTools);
     els.lyricsBody.replaceChildren();
     els.lyricsBody.scrollTop = 0;
     els.lyricsBadge.hidden = !state.lyrics?.synced;
@@ -4986,7 +5296,7 @@
     const lines = state.lyrics.lines;
     let index = -1;
     for (let i = 0; i < lines.length; i++) {
-      if (lines[i].time <= time + 0.2) index = i;
+      if (lines[i].time <= time + 0.2 + lyricsOffset()) index = i;
       else break;
     }
     if (index === state.activeLyric && !force) return;
@@ -5820,6 +6130,9 @@
           createPlaylist().then((created) => { if (created) openPlaylist(`local:${created.id}`); });
           break;
         case 'export': exportPlaylists(); break;
+        case 'export-m3u': if (pl) exportM3U(pl); break;
+        case 'add-all': openBulkAddDialog(getVisibleTracks().map((t) => t.id)); break;
+        case 'open-trash': openTrash(); break;
         case 'import': els.importInput.click(); break;
         case 'edit-playlist': if (pl) editLocalPlaylist(pl.id); break;
         case 'delete-playlist': if (pl) deleteLocalPlaylist(pl.id); break;
@@ -5852,12 +6165,21 @@
     els.addList.addEventListener('click', (event) => {
       const button = event.target.closest('.add-item');
       if (!button) return;
-      addToLocal(button.dataset.id, addTarget);
+      if (addBulk) {
+        const pl = findLocal(button.dataset.id);
+        const missing = addBulk.filter((id) => !pl.trackIds.includes(id));
+        pl.trackIds.push(...missing);
+        saveLocalPlaylists();
+        showToast(`${songsLabel(missing.length)} añadidas a «${pl.name}».`);
+        if (state.openPlaylist === `local:${pl.id}`) renderList();
+      } else {
+        addToLocal(button.dataset.id, addTarget);
+      }
       els.addDialog.close();
     });
     els.addNew.addEventListener('click', async () => {
       els.addDialog.close();
-      const created = await createPlaylist(addTarget ? [addTarget] : []);
+      const created = await createPlaylist(addBulk || (addTarget ? [addTarget] : []));
       if (created) {
         showToast(`Playlist creada: «${created.name}».`);
         if (state.view === 'playlists') renderList();
@@ -5884,6 +6206,19 @@
     els.addArtist.addEventListener('click', () => {
       els.addDialog.close();
       openArtist(artistKeyOf(getTrack(addTarget)));
+    });
+    els.trashDialog.addEventListener('click', (event) => {
+      const restore = event.target.closest('[data-action="restore"]');
+      if (restore) {
+        els.trashDialog.close();
+        restoreFromTrash(restore.dataset.id);
+        return;
+      }
+      if (event.target === els.trashDialog || event.target.closest('[data-close]')) els.trashDialog.close();
+    });
+    els.addDislike.addEventListener('click', () => {
+      els.addDialog.close();
+      toggleDislike(addTarget);
     });
     els.addRadio.addEventListener('click', () => {
       els.addDialog.close();
@@ -6006,13 +6341,19 @@
       if (event.target === dialog || event.target.closest('[data-close]')) dialog.close();
     }));
 
+    // Desfase de la letra
+    els.lyricsPanel.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-action="lyrics-shift"]');
+      if (button) shiftLyrics(Number(button.dataset.delta));
+    });
+
     // Letras sincronizadas: clic en una línea para saltar a ese momento
     els.lyricsBody.addEventListener('click', (event) => {
       const line = event.target.closest('.lyric-line');
       if (!line || !state.lyrics?.synced) return;
       const entry = state.lyrics.lines[Number(line.dataset.index)];
       if (entry) {
-        seekTo(entry.time);
+        seekTo(Math.max(0, entry.time - lyricsOffset()));
         if (els.audio.paused) play();
       }
     });
@@ -6030,11 +6371,12 @@
         setView('library');
         return;
       }
-      if (searchFrame) cancelAnimationFrame(searchFrame);
-      searchFrame = requestAnimationFrame(() => {
+      // Con miles de canciones se espera a que pares de escribir (90 ms)
+      clearTimeout(searchFrame);
+      searchFrame = setTimeout(() => {
         searchFrame = null;
-        renderList();
-      });
+        requestAnimationFrame(renderList);
+      }, state.tracks.length > 800 ? 90 : 0);
     });
 
     // Lab
@@ -6258,6 +6600,24 @@
     els.softPauseToggle.addEventListener('change', () => {
       settings.softPause = els.softPauseToggle.checked;
       saveSettings();
+    });
+
+    // Índice A–Z: tocar o arrastrar el dedo por las letras
+    const railPick = (event) => {
+      const el = document.elementFromPoint(event.clientX, event.clientY)?.closest('.alpha-letter');
+      if (el) jumpToLetter(el.dataset.letter);
+    };
+    els.alphaRail.addEventListener('pointerdown', (event) => {
+      event.preventDefault();
+      els.alphaRail.setPointerCapture?.(event.pointerId);
+      els.alphaRail.classList.add('is-active');
+      railPick(event);
+    });
+    els.alphaRail.addEventListener('pointermove', (event) => { if (els.alphaRail.classList.contains('is-active')) railPick(event); });
+    ['pointerup', 'pointercancel'].forEach((type) => els.alphaRail.addEventListener(type, () => els.alphaRail.classList.remove('is-active')));
+    els.alphaRail.addEventListener('click', (event) => {
+      const el = event.target.closest('.alpha-letter');
+      if (el && event.detail === 0) jumpToLetter(el.dataset.letter);
     });
 
     // Descargas
@@ -6958,6 +7318,8 @@
     bindEvents();
     navHistory.init();
     npSheet.init();
+    // El índice A–Z va fijo a la pantalla: fuera de .library (su backdrop-filter lo encerraría)
+    document.body.append(els.alphaRail);
     applySpeed();
     els.speedSelect.value = String(settings.speed);
     els.softPauseToggle.checked = settings.softPause;

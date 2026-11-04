@@ -5747,3 +5747,106 @@ textarea {
   text-align: center;
   overflow-wrap: anywhere;
 }
+
+/* ---------- Herramientas de la letra: desfase, traducir, buscar ---------- */
+.lyrics-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 4px 12px 12px;
+  font-family: var(--song-font);
+}
+
+.lyrics-tools:empty {
+  display: none;
+}
+
+.lyrics-tools .btn {
+  min-height: 34px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+}
+
+.lyrics-offset {
+  min-width: 64px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Papelera y botones pequeños de texto ---------- */
+.btn-small {
+  min-height: 34px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+}
+
+.trash-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.trash-list li {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+/* ---------- Índice A–Z (Biblioteca por título o artista) ---------- */
+.alpha-rail {
+  position: fixed;
+  right: max(2px, env(safe-area-inset-right));
+  top: 50%;
+  z-index: 16;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: min(calc(100dvh - var(--player-h, 150px) - 150px), calc(var(--letters, 27) * 20px + 12px));
+  padding: 6px 2px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+  transform: translateY(calc(-50% - var(--player-h, 150px) / 2 + 40px));
+  touch-action: none;
+  user-select: none;
+  overflow: hidden;
+}
+
+.alpha-rail[hidden] {
+  display: none;
+}
+
+.alpha-letter {
+  flex: 1 1 0;
+  min-height: 0;
+  max-height: 22px;
+  width: 22px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-family: var(--song-font);
+  font-size: 0.66rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.alpha-rail.is-active {
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+}
+
+@media (min-width: 861px) {
+  .alpha-rail {
+    right: 10px;
+    transform: translateY(-50%);
+  }
+}

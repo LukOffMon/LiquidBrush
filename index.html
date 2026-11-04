@@ -365,8 +365,9 @@
         <div id="statsPanel" class="stats" hidden></div>
         <div id="labPanel" class="lab" hidden></div>
         <ul id="trackList" class="track-list"></ul>
+        <nav id="alphaRail" class="alpha-rail" aria-label="Índice alfabético" hidden></nav>
         </div>
-        <input id="importInput" type="file" accept="application/json,.json" hidden>
+        <input id="importInput" type="file" accept="application/json,.json,.m3u,.m3u8,.txt,text/plain,audio/x-mpegurl" hidden>
       </section>
     </main>
 
@@ -492,6 +493,9 @@
         <button id="addShare" class="btn" type="button">
           <svg class="icon" aria-hidden="true"><use href="#i-share"></use></svg> Compartir canción
         </button>
+        <button id="addDislike" class="btn" type="button">
+          <svg class="icon" aria-hidden="true"><use href="#i-thumb-down"></use></svg> <span>No me gusta (no recomendar)</span>
+        </button>
       </div>
       <ul id="addList" class="add-list"></ul>
       <div class="sheet-actions">
@@ -516,6 +520,18 @@
         <button class="queue-foot-btn" type="button" data-q="sleep"><svg class="icon" aria-hidden="true"><use href="#i-moon"></use></svg><span>Temporizador</span></button>
         <button class="queue-foot-btn" type="button" data-q="save"><svg class="icon" aria-hidden="true"><use href="#i-playlist-add"></use></svg><span>Guardar</span></button>
       </div>
+      <div class="sheet-actions">
+        <button class="btn" type="button" data-close>Cerrar</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Papelera: playlists propias borradas (30 días) -->
+  <dialog id="trashDialog" class="sheet" aria-labelledby="trashTitle">
+    <div class="sheet-body">
+      <h2 id="trashTitle" class="sheet-title">Papelera</h2>
+      <p class="sheet-text">Toca una playlist para recuperarla.</p>
+      <ul id="trashList" class="trash-list"></ul>
       <div class="sheet-actions">
         <button class="btn" type="button" data-close>Cerrar</button>
       </div>
