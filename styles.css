@@ -5850,3 +5850,203 @@ textarea {
     transform: translateY(-50%);
   }
 }
+
+/* =========================================================
+   Accesibilidad y pulido
+   ========================================================= */
+
+/* «Saltar al contenido»: aparece solo al llegar con el teclado */
+.skip-link {
+  position: fixed;
+  top: calc(8px + env(safe-area-inset-top));
+  left: 50%;
+  z-index: 100;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-family: var(--song-font);
+  font-weight: 800;
+  text-decoration: none;
+  transform: translate(-50%, -200%);
+  transition: transform 0.2s;
+}
+
+.skip-link:focus {
+  transform: translate(-50%, 0);
+}
+
+/* Pestañas que no caben (móvil): un degradado indica que hay más a la derecha */
+@media (max-width: 860px) {
+  .tabs {
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+    mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+    scroll-padding-inline: 16px;
+  }
+
+  .tabs.is-end {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}
+
+/* Áreas táctiles de al menos 44 px en pantallas táctiles */
+@media (pointer: coarse) {
+  .icon-btn:not(.play-btn) {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+/* Más contraste si el sistema lo pide: sin vidrio ni transparencias */
+@media (prefers-contrast: more) {
+  :root {
+    --text-muted: var(--text);
+    --border: color-mix(in srgb, var(--text) 55%, transparent);
+  }
+
+  .now-playing,
+  .library,
+  .player,
+  .sheet,
+  .topbar {
+    background-color: var(--bg) !important;
+    background-image: none !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  .wallpaper,
+  .surreal {
+    display: none !important;
+  }
+}
+
+/* Colores forzados (Windows, alto contraste) */
+@media (forced-colors: active) {
+  .play-btn,
+  .tab.is-active,
+  .btn-primary,
+  .toast-action {
+    forced-color-adjust: none;
+    background: Highlight;
+    color: HighlightText;
+  }
+
+  .range {
+    forced-color-adjust: auto;
+  }
+
+  :focus-visible {
+    outline: 3px solid Highlight;
+  }
+}
+
+/* Estados vacíos con botón */
+.list-empty .list-empty-cta {
+  display: flex;
+  margin: 14px auto 0;
+}
+
+/* Esqueleto mientras carga la biblioteca por primera vez */
+.track-skeleton {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 8px;
+  list-style: none;
+}
+
+.sk-cover,
+.sk-lines {
+  border-radius: 10px;
+  background: linear-gradient(90deg, var(--surface-2) 0%, var(--surface-hover) 50%, var(--surface-2) 100%) 0 0 / 200% 100%;
+  animation: sk-shimmer 1.3s ease-in-out infinite;
+}
+
+.sk-cover {
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+}
+
+.sk-lines {
+  flex: 1;
+  height: 32px;
+  max-width: 260px;
+}
+
+@keyframes sk-shimmer {
+  to { background-position: -200% 0; }
+}
+
+.no-motion .sk-cover,
+.no-motion .sk-lines {
+  animation: none;
+}
+
+/* Escritorio: el buscador no se estira de lado a lado y muestra su atajo */
+@media (min-width: 861px) {
+  .library-head .search {
+    max-width: 640px;
+  }
+
+  .search::after {
+    content: '/';
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    min-width: 22px;
+    padding: 1px 6px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-muted);
+    font: 700 0.75rem/1.4 var(--song-font);
+    text-align: center;
+    pointer-events: none;
+  }
+
+  .search:focus-within::after {
+    display: none;
+  }
+}
+
+/* Teléfono apaisado: Sonando en dos columnas (portada | información) */
+@media (max-width: 960px) and (max-height: 500px) and (orientation: landscape) {
+  .app .layout .now-playing.now-playing {
+    display: grid;
+    grid-template-columns: minmax(160px, 38%) minmax(0, 1fr);
+    align-content: start;
+    column-gap: 24px;
+    padding-top: calc(16px + env(safe-area-inset-top));
+  }
+
+  .now-playing .cover-wrap {
+    grid-row: span 3;
+    width: min(100%, calc(100dvh - var(--player-h, 120px) - 40px));
+    min-width: 0;
+    max-width: 260px;
+    position: sticky;
+    top: 0;
+  }
+
+  .now-playing > :not(.cover-wrap):not(.np-close):not(.np-grab) {
+    grid-column: 2;
+  }
+
+  .np-close {
+    z-index: 2;
+  }
+
+  body.np-open .player {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "center volume";
+    padding-top: 8px;
+  }
+
+  body.np-open .play-btn {
+    width: 52px;
+    height: 52px;
+  }
+}

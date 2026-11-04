@@ -2,7 +2,7 @@
 <html lang="es" data-theme="chrome">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-xwjbDSmRLrVYA3ZVqceTBg9ZzRHkjKZbyb/t+Jmo96k='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https:; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-Ocw3mDWwseA5SjQTBBTc7Kyz+qhu42SvGGYW4U4SVtQ='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https:; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="description" content="Liquid Bullet — música que se derrite: tu reproductor web personal, surrealista y cromado.">
   <meta name="theme-color" content="#100d1c">
@@ -45,7 +45,6 @@
   <link rel="dns-prefetch" href="https://pub-342aee3eb054410cb02224940f684884.r2.dev">
   <link rel="dns-prefetch" href="https://pub-0854e4225565462db16fa787cf2ab81c.r2.dev">
   <link rel="dns-prefetch" href="https://lrclib.net">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Permanent+Marker&family=Rubik+Wet+Paint&family=Sedgwick+Ave&family=Syne:wght@700;800&family=Tinos:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css?v=21">
   <script>
     /* Aplica el tema, la fuente y el tamaño de letra guardados antes de pintar (sin parpadeos) */
@@ -62,6 +61,33 @@
         if (settings.motion === false) root.classList.add('no-motion');
         if (!settings.wall || settings.wall.mode !== 'off') root.classList.add('has-wall');
       } catch (e) { /* sin acceso a localStorage */ }
+      /* Solo se descargan las letras tipográficas del tema y la fuente elegidos (antes, las seis siempre) */
+      var FONT_URL = {
+        inter: 'Inter:wght@400;600;700;800',
+        marker: 'Permanent+Marker',
+        sedgwick: 'Sedgwick+Ave',
+        rubik: 'Rubik+Wet+Paint',
+        syne: 'Syne:wght@700;800',
+        tinos: 'Tinos:ital,wght@0,400;0,700;1,400'
+      };
+      window.lbLoadFonts = function (theme, font) {
+        var need = ['inter'];
+        if (theme === 'ebano') need.push('tinos');
+        else {
+          if (theme === 'chrome' || theme === 'yem') need.push('rubik', 'syne');
+          if (font === 'street') need.push('marker');
+          if (font === 'graffiti') need.push('sedgwick', 'marker');
+        }
+        need.forEach(function (key) {
+          if (document.getElementById('font-' + key)) return;
+          var link = document.createElement('link');
+          link.id = 'font-' + key;
+          link.rel = 'stylesheet';
+          link.href = 'https://fonts.googleapis.com/css2?family=' + FONT_URL[key] + '&display=swap';
+          document.head.appendChild(link);
+        });
+      };
+      window.lbLoadFonts(root.getAttribute('data-theme'), root.getAttribute('data-font'));
     })();
   </script>
 </head>
@@ -235,6 +261,8 @@
     <symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 3a9 9 0 0 0 0 18c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></symbol>
   </svg>
 
+  <a class="skip-link" href="#searchInput">Saltar al contenido</a>
+  <p id="announcer" class="sr-only" aria-live="polite" aria-atomic="true"></p>
   <div class="app">
     <!-- Barra superior -->
     <header class="topbar">
@@ -336,26 +364,26 @@
           </div>
           <div id="searchPanel" class="search-panel" hidden></div>
           <div class="tabs" role="tablist" aria-label="Secciones">
-            <button class="tab is-active" type="button" role="tab" data-view="home" aria-selected="true">Inicio</button>
-            <button class="tab" type="button" role="tab" data-view="library" aria-selected="false">
+            <button class="tab is-active" type="button" role="tab" aria-controls="libraryView" data-view="home" aria-selected="true">Inicio</button>
+            <button class="tab" type="button" role="tab" aria-controls="libraryView" data-view="library" aria-selected="false">
               Biblioteca <span id="libCount" class="count">0</span>
             </button>
-            <button class="tab" type="button" role="tab" data-view="playlists" aria-selected="false">
+            <button class="tab" type="button" role="tab" aria-controls="libraryView" data-view="playlists" aria-selected="false">
               Playlists <span id="plCount" class="count">0</span>
             </button>
-            <button class="tab" type="button" role="tab" data-view="artists" aria-selected="false">Artistas</button>
-            <button class="tab" type="button" role="tab" data-view="favorites" aria-selected="false">
+            <button class="tab" type="button" role="tab" aria-controls="libraryView" data-view="artists" aria-selected="false">Artistas</button>
+            <button class="tab" type="button" role="tab" aria-controls="libraryView" data-view="favorites" aria-selected="false">
               Favoritas <span id="favCount" class="count">0</span>
             </button>
-            <button class="tab" type="button" role="tab" data-view="stats" aria-selected="false">Stats</button>
-            <button class="tab tab-lab" type="button" role="tab" data-view="lab" aria-selected="false">
+            <button class="tab" type="button" role="tab" aria-controls="libraryView" data-view="stats" aria-selected="false">Stats</button>
+            <button class="tab tab-lab" type="button" role="tab" aria-controls="libraryView" data-view="lab" aria-selected="false">
               <svg class="icon" aria-hidden="true"><use href="#i-flask"></use></svg> Lab
             </button>
           </div>
         </div>
 
         <section id="recentRow" class="recent-row" aria-label="Escuchadas hace poco" hidden></section>
-        <div id="libraryView" class="library-view">
+        <div id="libraryView" class="library-view" role="tabpanel" aria-label="Contenido de la sección">
         <div id="viewHead" class="view-head"></div>
         <div id="filterChips" class="chips" role="toolbar" aria-label="Filtros" hidden></div>
         <p id="listInfo" class="list-info" aria-live="polite"></p>

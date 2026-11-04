@@ -248,6 +248,7 @@
     playerTrack: document.querySelector('.player-track'),
     player: document.querySelector('.player'),
     speedSelect: $('speedSelect'),
+    announcer: $('announcer'),
     addDislike: $('addDislike'),
     addTitle: $('addTitle'),
     alphaRail: $('alphaRail'),
@@ -472,6 +473,7 @@
     img.width = 22;
     img.height = 22;
     img.loading = 'lazy';
+    img.decoding = 'async';
     img.setAttribute('aria-hidden', 'true');
     return img;
   }
@@ -525,6 +527,7 @@
   function applyLook() {
     const root = document.documentElement;
     root.dataset.font = settings.font;
+    window.lbLoadFonts?.(root.dataset.theme, settings.font);
     root.dataset.text = settings.textSize;
     root.classList.toggle('no-motion', !settings.motion);
   }
@@ -2302,6 +2305,7 @@
         img.width = 40;
         img.height = 40;
         img.loading = 'lazy';
+        img.decoding = 'async';
         const text = makeEl('span', 'lab-track-text');
         text.append(makeEl('span', 'lab-track-title', track.title), makeEl('span', 'lab-track-artist', `${track.artist}${track.genre ? ` · ${track.genre}` : ''}`));
         btn.append(img, text, makeEl('span', 'lab-track-time', track.duration || ''));
@@ -2335,6 +2339,7 @@
       img.width = 56;
       img.height = 56;
       img.loading = 'lazy';
+      img.decoding = 'async';
       const top = [...a.genres.entries()].sort((x, y) => y[1] - x[1])[0]?.[0] || '';
       const text = makeEl('span', 'lab-rec-text');
       text.append(makeEl('span', 'lab-rec-name', a.name), makeEl('span', 'lab-rec-meta', `${songsLabel(a.tracks.length)}${top ? ` · ${top}` : ''}`));
@@ -2545,6 +2550,7 @@
       img.width = size;
       img.height = size;
       img.loading = 'lazy';
+      img.decoding = 'async';
       return img;
     }
     // Sin portada propia: mosaico con las portadas de sus canciones (y su icono en una esquina)
@@ -2560,6 +2566,7 @@
         img.width = cell;
         img.height = cell;
         img.loading = 'lazy';
+        img.decoding = 'async';
         img.addEventListener('error', () => { img.src = PLACEHOLDER_COVER; }, { once: true });
         mosaic.append(img);
       });
@@ -2813,6 +2820,7 @@
       img.width = 112;
       img.height = 112;
       img.loading = 'lazy';
+      img.decoding = 'async';
       img.addEventListener('error', () => { img.src = PLACEHOLDER_COVER; }, { once: true });
       card.append(img, makeEl('span', 'recent-title', track.title), makeEl('span', 'recent-artist', track.knownArtist || track.genre || track.artist));
       scroller.append(card);
@@ -3244,6 +3252,7 @@
     img.width = size;
     img.height = size;
     img.loading = 'lazy';
+    img.decoding = 'async';
     img.addEventListener('error', () => { img.src = PLACEHOLDER_COVER; }, { once: true });
     return img;
   }
@@ -3940,8 +3949,18 @@
       if (!state.tracks.length) li.textContent = 'La biblioteca está vacía por ahora.';
       else if (searching) li.textContent = 'No se encontraron canciones.';
       else if (state.filter !== 'all' || state.genre) li.textContent = 'Ninguna canción coincide con este filtro.';
-      else if (state.view === 'favorites') li.textContent = 'Aún no tienes favoritas. Pulsa el ♥ de una canción para guardarla aquí.';
-      else if (pl?.kind === 'local') li.textContent = 'Playlist vacía. Pulsa el ＋ de cualquier canción en la Biblioteca para añadirla aquí.';
+      else if (state.view === 'favorites') {
+        li.textContent = 'Aún no tienes favoritas. Pulsa el ♥ de una canción para guardarla aquí.';
+        const go = makeButton('btn btn-primary list-empty-cta', 'go-view', 'Ir a la Biblioteca', 'library', 'Explorar la Biblioteca');
+        go.dataset.value = 'library';
+        li.append(go);
+      }
+      else if (pl?.kind === 'local') {
+        li.textContent = 'Playlist vacía. Pulsa el ＋ de cualquier canción en la Biblioteca (o mantenla pulsada) para añadirla aquí.';
+        const go = makeButton('btn btn-primary list-empty-cta', 'go-view', 'Ir a la Biblioteca', 'library', 'Buscar canciones');
+        go.dataset.value = 'library';
+        li.append(go);
+      }
       else li.textContent = 'Todavía no hay canciones aquí.';
       fragment.appendChild(li);
     }
@@ -4060,6 +4079,14 @@
       const active = tab.dataset.view === tabView;
       tab.classList.toggle('is-active', active);
       tab.setAttribute('aria-selected', String(active));
+      // Pestañas accesibles: solo la activa entra con Tab; las demás con las flechas
+      tab.tabIndex = active ? 0 : -1;
+      if (active) {
+        // En el móvil las pestañas se desplazan: la activa siempre a la vista
+        const bar = els.tabsBar;
+        const left = tab.offsetLeft - (bar.clientWidth - tab.offsetWidth) / 2;
+        if (bar.scrollWidth > bar.clientWidth) bar.scrollTo({ left: Math.max(0, left), behavior: settings.motion ? 'smooth' : 'auto' });
+      }
     });
     renderList();
     updateNav();
@@ -4342,6 +4369,7 @@
     img.src = track.thumb;
     img.alt = '';
     img.loading = 'lazy';
+    img.decoding = 'async';
     img.width = 46;
     img.height = 46;
     img.addEventListener('error', () => { img.src = PLACEHOLDER_COVER; }, { once: true });
@@ -4550,6 +4578,7 @@
     img.width = 40;
     img.height = 40;
     img.loading = 'lazy';
+    img.decoding = 'async';
     const text = document.createElement('span');
     text.className = 'queue-text';
     const title = document.createElement('span');
@@ -4834,6 +4863,8 @@
     updateFavButton(els.npFavBtn, state.favorites.has(track.id));
     updateAbout(track);
     document.title = `${track.title} · ${track.artist} — Liquid Bullet`;
+    // Lectores de pantalla: se anuncia la canción nueva (solo si empieza a sonar)
+    if (autoplay && els.announcer) els.announcer.textContent = `Sonando: ${track.title}, de ${track.knownArtist || track.artist}`;
 
     updateProgressUI(0, parseDuration(track.duration));
     // Al abrir la app (sin reproducir) la letra se busca un poco después para no frenar el arranque
@@ -5763,6 +5794,7 @@
   function applyTheme(theme) {
     const safeTheme = Object.prototype.hasOwnProperty.call(THEMES, theme) ? theme : 'chrome';
     document.documentElement.dataset.theme = safeTheme;
+    window.lbLoadFonts?.(safeTheme, settings.font);
     els.themeSelect.value = safeTheme;
     if (els.metaTheme) els.metaTheme.setAttribute('content', THEMES[safeTheme]);
     storage.set(KEYS.theme, safeTheme);
@@ -6406,6 +6438,27 @@
       clearSearch();
       setView(tab.dataset.view);
     });
+    // Quita el degradado del borde cuando ya se ve la última pestaña
+    const tabsEnd = () => els.tabsBar.classList.toggle('is-end', els.tabsBar.scrollLeft + els.tabsBar.clientWidth >= els.tabsBar.scrollWidth - 4);
+    els.tabsBar.addEventListener('scroll', tabsEnd, { passive: true });
+    window.addEventListener('resize', tabsEnd);
+    requestAnimationFrame(tabsEnd);
+    els.tabsBar.addEventListener('keydown', (event) => {
+      const tabs = [...els.tabsBar.querySelectorAll('.tab')].filter((t) => t.offsetParent !== null);
+      const index = tabs.indexOf(document.activeElement);
+      if (index < 0) return;
+      let target = null;
+      if (event.key === 'ArrowRight') target = tabs[(index + 1) % tabs.length];
+      if (event.key === 'ArrowLeft') target = tabs[(index - 1 + tabs.length) % tabs.length];
+      if (event.key === 'Home') target = tabs[0];
+      if (event.key === 'End') target = tabs[tabs.length - 1];
+      if (!target) return;
+      event.preventDefault();
+      event.stopPropagation();
+      clearSearch();
+      setView(target.dataset.view);
+      target.focus();
+    });
 
     // Botón "Letra" del reproductor: abre el panel y lo lleva a la vista
     els.lyricsBtn.addEventListener('click', () => {
@@ -6735,6 +6788,7 @@
       }
       // Espacio sobre un botón ya lo activa el navegador
       if (event.code === 'Space' && target.closest('button, summary, a')) return;
+      if (target.closest('[role="tablist"], .alpha-rail')) return;
 
       switch (event.code) {
         case 'Space': event.preventDefault(); togglePlay(); break;
@@ -6895,6 +6949,7 @@
         img.width = 90;
         img.height = 120;
         img.loading = 'lazy';
+        img.decoding = 'async';
         button.append(img);
         return button;
       }));
@@ -7318,6 +7373,15 @@
     bindEvents();
     navHistory.init();
     npSheet.init();
+    // Mientras llega la biblioteca (primera visita), filas de esqueleto en vez de un hueco
+    if (!storage.get(KEYS.libraryCache, null)) {
+      els.trackList.replaceChildren(...Array.from({ length: 8 }, () => {
+        const li = makeEl('li', 'track-skeleton');
+        li.setAttribute('aria-hidden', 'true');
+        li.append(makeEl('span', 'sk-cover'), makeEl('span', 'sk-lines'));
+        return li;
+      }));
+    }
     // El índice A–Z va fijo a la pantalla: fuera de .library (su backdrop-filter lo encerraría)
     document.body.append(els.alphaRail);
     applySpeed();
