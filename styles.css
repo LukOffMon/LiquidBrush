@@ -5703,3 +5703,47 @@ textarea {
     margin: -10px 0;
   }
 }
+
+/* ---------- Aviso «Sin conexión» en la barra superior ---------- */
+.offline-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, #ffb347 22%, var(--surface-2));
+  border: 1px solid color-mix(in srgb, #ffb347 55%, transparent);
+  color: var(--text);
+  font-family: var(--song-font);
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.offline-pill[hidden] {
+  display: none;
+}
+
+.offline-pill .icon {
+  width: 16px;
+  height: 16px;
+}
+
+@media (max-width: 420px) {
+  .topbar-actions .offline-pill {
+    padding: 6px 8px;
+    font-size: 0;
+    gap: 0;
+  }
+}
+
+.btn[hidden] {
+  display: none;
+}
+
+/* Botones de Ajustes con texto largo (el correo): pueden partirse en dos líneas */
+.settings-group .btn {
+  white-space: normal;
+  text-align: center;
+  overflow-wrap: anywhere;
+}

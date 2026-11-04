@@ -200,6 +200,8 @@
     <symbol id="i-edit" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></symbol>
     <symbol id="i-delete" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></symbol>
     <symbol id="i-close" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></symbol>
+    <symbol id="i-cloud-off" viewBox="0 0 24 24"><path d="M19.35 10.04A7.49 7.49 0 0 0 12 4c-1.48 0-2.85.43-4.01 1.17l1.46 1.46A5.47 5.47 0 0 1 12 6a5.5 5.5 0 0 1 5.5 5.5v.5H19a3 3 0 0 1 1.22 5.74l1.45 1.45A5 5 0 0 0 19.35 10.04zM3 5.27l2.75 2.74C2.56 8.15 0 10.77 0 14a6 6 0 0 0 6 6h11.73l2 2L21 20.73 4.27 4 3 5.27zM7.73 10l8 8H6a4 4 0 0 1 0-8h1.73z"/></symbol>
+    <symbol id="i-thumb-down" viewBox="0 0 24 24"><path d="M15 3H6c-.83 0-1.54.5-1.84 1.22l-3.02 7.05A2 2 0 0 0 1 12v2a2 2 0 0 0 2 2h6.31l-.95 4.57-.03.32c0 .41.17.79.44 1.06L9.83 23l6.59-6.59c.36-.36.58-.86.58-1.41V5a2 2 0 0 0-2-2zm4 0v12h4V3h-4z"/></symbol>
     <symbol id="i-chevron" viewBox="0 0 24 24"><path d="M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></symbol>
     <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.14v13.72a1 1 0 0 0 1.52.85l10.79-6.86a1 1 0 0 0 0-1.7L9.52 4.29A1 1 0 0 0 8 5.14z"/></symbol>
     <symbol id="i-pause" viewBox="0 0 24 24"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></symbol>
@@ -241,6 +243,9 @@
         <span class="brand-name">Liquid<span>Bullet</span></span>
       </a>
       <div class="topbar-actions">
+      <span id="offlinePill" class="offline-pill" role="status" hidden>
+        <svg class="icon" aria-hidden="true"><use href="#i-cloud-off"></use></svg> Sin conexión
+      </span>
       <button id="wallBtn" class="wall-btn" type="button" aria-label="Cambiar el fondo de pantalla" title="Otro fondo">
         <img id="wallBtnImg" src="wallpapers/icons/01.jpg" alt="" width="36" height="36">
       </button>
@@ -645,6 +650,20 @@
           <input id="wallAlive" type="checkbox" role="switch">
           <span class="switch-track" aria-hidden="true"></span>
         </label>
+      </section>
+
+      <section class="settings-group" aria-labelledby="setDownTitle">
+        <h3 id="setDownTitle" class="settings-group-title">Descargas y espacio</h3>
+        <p id="storageInfo" class="sheet-note">Calculando…</p>
+        <label class="setting switch">
+          <span class="setting-text">
+            <span class="setting-name">Descargar favoritas</span>
+            <span class="setting-hint">Cada canción que marques con ♥ se guarda para escucharla sin conexión (no con ahorro de datos).</span>
+          </span>
+          <input id="autoFavToggle" type="checkbox" role="switch">
+          <span class="switch-track" aria-hidden="true"></span>
+        </label>
+        <button id="clearDownloads" class="btn" type="button" hidden>Borrar todas las descargas</button>
       </section>
 
       <section class="settings-group" aria-labelledby="setHelpTitle">

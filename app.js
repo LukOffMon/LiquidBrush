@@ -73,7 +73,13 @@
     searches: 'liquidbrush:searches',
     // Las claves conservan el prefijo "liquidbrush:" del nombre anterior para no perder lo guardado
     resume: 'liquidbrush:resume',
-    resumeQueue: 'liquidbrush:resume-queue'
+    resumeQueue: 'liquidbrush:resume-queue',
+    // Huellas de las canciones ya vistas y fecha en que llegaron las nuevas (Novedades)
+    known: 'liquidbrush:known',
+    added: 'liquidbrush:added',
+    disliked: 'liquidbrush:disliked',
+    trash: 'liquidbrush:trash',
+    lyricsOffsets: 'liquidbrush:lyrics-offsets'
   };
 
   const LYRICS_API = 'https://lrclib.net/api';
@@ -242,6 +248,10 @@
     playerTrack: document.querySelector('.player-track'),
     player: document.querySelector('.player'),
     speedSelect: $('speedSelect'),
+    offlinePill: $('offlinePill'),
+    storageInfo: $('storageInfo'),
+    clearDownloads: $('clearDownloads'),
+    autoFavToggle: $('autoFavToggle'),
     softPauseToggle: $('softPauseToggle'),
     addArtist: $('addArtist'),
     addRadio: $('addRadio'),
@@ -498,7 +508,9 @@
       eq: { preset: typeof saved.eq?.preset === 'string' ? saved.eq.preset : 'flat', gains },
       // Velocidad de reproducción (0.75×–1.5×) y fundido corto al pausar/reanudar
       speed: [0.75, 1, 1.1, 1.25, 1.5].includes(saved.speed) ? saved.speed : 1,
-      softPause: saved.softPause !== false
+      softPause: saved.softPause !== false,
+      // Descargar sola cada canción que marques con ♥ (solo con Wi-Fi o sin ahorro de datos)
+      autoFav: saved.autoFav === true
     };
   })();
   const saveSettings = () => storage.set(KEYS.settings, settings);
@@ -694,6 +706,7 @@
     const seenSongs = new Set();
     state.libraryTracks = state.tracks.filter((t) => !seenSongs.has(t.songKey) && seenSongs.add(t.songKey));
     await refreshDownloads();
+    if (final) trackArrivals();
     if (eqActive()) probeCors().then(updateEqNote);
 
     // Si la playlist que estaba abierta ya no existe, se vuelve a Playlists
@@ -714,6 +727,57 @@
       els.npContext.textContent = 'Biblioteca vacía';
     }
     openIncomingLink(Boolean(final));
+  }
+
+  /* ---------- Novedades: canciones que llegaron desde tu última visita ---------- */
+  // Se guarda una huella corta de cada canción conocida (~7 caracteres) y, de las nuevas, el día en que llegaron.
+  const NEW_DAYS = 30;
+  const arrivals = { added: {}, freshCount: 0 };
+  const fingerprint = (id) => hashString(id).toString(36).slice(0, 6);
+
+  function trackArrivals() {
+    if (!state.tracks.length) return;
+    const stored = storage.get(KEYS.known, null);
+    arrivals.added = storage.get(KEYS.added, {}) || {};
+    const ids = state.libraryTracks.map((t) => t.id);
+    const prints = ids.map(fingerprint);
+    if (typeof stored !== 'string') {
+      // Primera visita: todo es «conocido», nada sale como nuevo
+      storage.set(KEYS.known, prints.join(','));
+      return;
+    }
+    const known = new Set(stored.split(','));
+    const now = Date.now();
+    let fresh = 0;
+    ids.forEach((id, i) => {
+      if (!known.has(prints[i]) && !arrivals.added[id]) {
+        arrivals.added[id] = now;
+        fresh++;
+      }
+    });
+    // Solo se guardan las llegadas del último mes y las que siguen existiendo
+    const limit = now - NEW_DAYS * 86400000;
+    Object.keys(arrivals.added).forEach((id) => {
+      if (arrivals.added[id] < limit || !getTrack(id)) delete arrivals.added[id];
+    });
+    arrivals.freshCount = fresh;
+    storage.set(KEYS.added, arrivals.added);
+    storage.set(KEYS.known, prints.join(','));
+    updateAppBadge();
+  }
+
+  function newArrivals() {
+    return Object.entries(arrivals.added)
+      .sort((a, b) => b[1] - a[1])
+      .map(([id]) => getTrack(id))
+      .filter(Boolean);
+  }
+
+  // Número en el icono de la app instalada: canciones nuevas aún sin escuchar
+  function updateAppBadge() {
+    if (typeof navigator.setAppBadge !== 'function') return;
+    const unheard = newArrivals().filter((t) => !library.plays[t.id]).length;
+    (unheard ? navigator.setAppBadge(unheard) : navigator.clearAppBadge()).catch(() => {});
   }
 
   // Abre al instante con la biblioteca de la última visita y la actualiza en segundo plano
@@ -861,6 +925,57 @@
     });
   }
 
+  // Descarga una sola canción (♥ con «Descargar favoritas» activado)
+  async function downloadTrack(track) {
+    if (!offline.supported || !track || isDownloaded(track) || !navigator.onLine) return false;
+    const connection = navigator.connection;
+    if (connection?.saveData || ['slow-2g', '2g'].includes(connection?.effectiveType)) return false;
+    try {
+      navigator.storage?.persist?.().catch(() => {});
+      const response = await fetchForOffline(track);
+      await (await caches.open(AUDIO_CACHE)).put(cacheKey(track.src), response);
+      offline.downloaded.add(cacheKey(track.src));
+      updateDownloadUI();
+      return true;
+    } catch (error) {
+      console.warn(`[LiquidBullet] No se pudo descargar «${track.title}».`, error);
+      return false;
+    }
+  }
+
+  // Ajustes → Descargas: espacio usado y borrar todo
+  async function renderStorageInfo() {
+    if (!els.storageInfo) return;
+    if (!offline.supported) {
+      els.storageInfo.textContent = 'Este navegador no permite descargar canciones.';
+      els.clearDownloads.hidden = true;
+      return;
+    }
+    await refreshDownloads();
+    const count = offline.downloaded.size;
+    let text = count ? `${songsLabel(count)} descargada${count === 1 ? '' : 's'}` : 'No tienes canciones descargadas';
+    try {
+      const estimate = await navigator.storage?.estimate?.();
+      if (estimate?.usage) {
+        text += ` · la app ocupa ${formatBytes(estimate.usage)}`;
+        if (estimate.quota) text += ` de ${formatBytes(estimate.quota)} disponibles`;
+      }
+      const persisted = await navigator.storage?.persisted?.();
+      if (persisted) text += ' · protegidas contra el borrado automático';
+    } catch { /* sin estimación */ }
+    els.storageInfo.textContent = `${text}.`;
+    els.clearDownloads.hidden = !count;
+  }
+
+  async function clearAllDownloads() {
+    if (!confirm('¿Borrar todas las canciones descargadas? Tendrás que volver a descargarlas para escucharlas sin conexión.')) return;
+    await caches.delete(AUDIO_CACHE);
+    await refreshDownloads();
+    updateDownloadUI();
+    renderStorageInfo();
+    showToast('Descargas borradas.');
+  }
+
   async function toggleDownload(key) {
     const running = offline.jobs.get(key);
     if (running) {
@@ -931,6 +1046,7 @@
   function updateOnlineStatus(notify = false) {
     const isOffline = !navigator.onLine;
     document.body.classList.toggle('is-offline', isOffline);
+    els.offlinePill.hidden = !isOffline;
     if (notify) showToast(isOffline ? 'Sin conexión: solo suenan las canciones descargadas.' : 'Conexión recuperada.');
   }
 
@@ -2598,6 +2714,13 @@
       if (query.get('p')) return { playlist: query.get('p') };
       // Accesos directos de la app instalada (manifest): ?view=search, favorites, library, lab…
       if (query.get('view')) return { view: query.get('view') };
+      // Compartir hacia la app instalada (share_target del manifest): un enlace de Liquid o texto para buscar
+      const shared = [query.get('url'), query.get('text'), query.get('title')].filter(Boolean).join(' ').trim();
+      if (shared) {
+        const inner = shared.match(/[?&]([tp])=([^&\s#]+)/);
+        if (inner) return inner[1] === 't' ? { track: decodeURIComponent(inner[2]) } : { playlist: decodeURIComponent(inner[2]) };
+        return { search: shared.replace(/https?:\/\/\S+/g, '').trim().slice(0, 120) };
+      }
       if (query.has('mix') && hash.get('t')) {
         return { mix: (hash.get('n') || 'Playlist compartida').slice(0, 60), ids: hash.get('t').split(',').filter(Boolean) };
       }
@@ -2614,6 +2737,14 @@
   function openIncomingLink(final) {
     const link = incomingLink;
     if (!link || !state.tracks.length) return;
+    if (link.search !== undefined) {
+      clearIncomingLink();
+      if (!link.search) return;
+      setView('library');
+      els.searchInput.value = link.search;
+      els.searchInput.dispatchEvent(new Event('input'));
+      return;
+    }
     if (link.view) {
       clearIncomingLink();
       if (link.view === 'search') {
@@ -3017,6 +3148,14 @@
     if (recent.length) specialRow.append(collectionCard('recent', 'De nuevo', 'Escuchadas hace poco', coverSrcOf(autoPlaylists()[0].cover, false), recent));
     const topTracks = playlistTracksOf(top);
     if (topTracks.length) specialRow.append(collectionCard('top', 'En repetición', 'Tus más escuchadas', coverSrcOf(top.cover, false), topTracks));
+    const fresh = newArrivals();
+    if (fresh.length) specialRow.prepend(collectionCard('fresh', 'Novedades', 'Añadidas este mes', fresh[0].cover, fresh.slice(0, 100)));
+    const weekday = weekdayMix();
+    if (weekday.tracks.length >= 5) specialRow.append(collectionCard('weekday', weekday.label, `Lo que sueles oír los ${weekday.plural}`, weekday.tracks[0].cover, weekday.tracks));
+    const yearAgo = yearAgoTracks();
+    if (yearAgo.length >= 3) specialRow.append(collectionCard('year-ago', 'Hace un año', 'Lo que sonaba por estas fechas', yearAgo[0].cover, yearAgo));
+    const unheard = neverHeard();
+    if (unheard.length) specialRow.append(collectionCard('unheard', 'Sin estrenar', 'Nunca las has escuchado', unheard[0].cover, unheard));
     if (specialRow.children.length) {
       special.append(specialRow);
       parts.push(special);
@@ -3058,6 +3197,45 @@
     parts.push(styles);
 
     els.homePanel.replaceChildren(...parts);
+  }
+
+  // Lo que más escuchas el mismo día de la semana (últimas 8 semanas)
+  function weekdayMix() {
+    const today = new Date();
+    const names = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+    const plurals = ['domingos', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábados'];
+    const seconds = new Map();
+    for (let week = 1; week <= 8; week++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - week * 7);
+      const entry = listen.log[dayKey(date)];
+      if (!entry) continue;
+      Object.entries(entry.s).forEach(([id, sec]) => seconds.set(id, (seconds.get(id) || 0) + sec));
+    }
+    const tracks = [...seconds.entries()].sort((a, b) => b[1] - a[1])
+      .map(([id]) => getTrack(id)).filter((t) => t && !isDisliked(t.id)).slice(0, HOME_MIX_SIZE);
+    const name = names[today.getDay()];
+    return { label: `Tu ${name}`, plural: plurals[today.getDay()], tracks };
+  }
+
+  // Lo que escuchabas hace un año (± 4 días)
+  function yearAgoTracks() {
+    const seconds = new Map();
+    for (let offset = -4; offset <= 4; offset++) {
+      const date = new Date();
+      date.setFullYear(date.getFullYear() - 1);
+      date.setDate(date.getDate() + offset);
+      const entry = listen.log[dayKey(date)];
+      if (!entry) continue;
+      Object.entries(entry.s).forEach(([id, sec]) => seconds.set(id, (seconds.get(id) || 0) + sec));
+    }
+    return [...seconds.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => getTrack(id)).filter(Boolean).slice(0, HOME_MIX_SIZE);
+  }
+
+  // Canciones que nunca has escuchado, distintas cada día
+  function neverHeard() {
+    const pool = state.libraryTracks.filter((t) => !library.plays[t.id] && !isDisliked(t.id));
+    return spreadArtists(seededShuffle(pool, `unheard-${dayKey()}`)).slice(0, HOME_MIX_SIZE);
   }
 
   function exploreGrid() {
@@ -3965,6 +4143,25 @@
     });
   }
 
+  /* ---------- «No me gusta»: fuera de mixes, radios y Descubre ---------- */
+  const disliked = new Set(storage.get(KEYS.disliked, []) || []);
+  const isDisliked = (id) => disliked.has(id);
+
+  function toggleDislike(id) {
+    const track = getTrack(id);
+    if (!track) return;
+    const adding = !disliked.has(id);
+    if (adding) disliked.add(id);
+    else disliked.delete(id);
+    storage.set(KEYS.disliked, [...disliked]);
+    haptic(10);
+    if (adding && state.favorites.has(id)) toggleFavorite(id);
+    showToast(adding
+      ? `No volverá a salir en tus mixes ni radios: «${track.title}».`
+      : `«${track.title}» vuelve a tus mixes.`, adding ? { label: 'Deshacer', run: () => toggleDislike(id) } : null);
+    if (state.view === 'home') renderList();
+  }
+
   /* ---------- Favoritos ---------- */
   function updateFavButton(button, isFav) {
     button.classList.toggle('is-active', isFav);
@@ -3999,6 +4196,7 @@
     if (state.currentTrack?.id === id) updateFavButton(els.npFavBtn, added);
 
     showToast(added ? `♥ Añadida a favoritas: ${track.title}` : `Quitada de favoritas: ${track.title}`);
+    if (added && settings.autoFav) downloadTrack(track);
   }
 
   /* ---------- Cola de reproducción ---------- */
@@ -6062,6 +6260,26 @@
       saveSettings();
     });
 
+    // Descargas
+    els.clearDownloads.addEventListener('click', clearAllDownloads);
+    els.autoFavToggle.addEventListener('change', () => {
+      settings.autoFav = els.autoFavToggle.checked;
+      saveSettings();
+      if (settings.autoFav) {
+        const missing = [...state.favorites].map(getTrack).filter((t) => t && !isDownloaded(t));
+        if (missing.length && navigator.onLine) {
+          showToast(`Descargando ${songsLabel(missing.length)} de tus favoritas…`);
+          (async () => {
+            for (const track of missing) {
+              if (!settings.autoFav) break;
+              await downloadTrack(track);
+            }
+            renderStorageInfo();
+          })();
+        }
+      }
+    });
+
     // Rueda del ratón sobre el volumen o el altavoz
     [els.volume, els.muteBtn].forEach((el) => el.addEventListener('wheel', (event) => {
       event.preventDefault();
@@ -6644,6 +6862,7 @@
   }
 
   function openSettings() {
+    renderStorageInfo();
     els.fontSelect.value = settings.font;
     els.textSizeSelect.value = settings.textSize;
     els.plViewSelect.value = settings.plView;
@@ -6742,6 +6961,7 @@
     applySpeed();
     els.speedSelect.value = String(settings.speed);
     els.softPauseToggle.checked = settings.softPause;
+    els.autoFavToggle.checked = settings.autoFav;
     setupMediaSessionHandlers();
     setupAudioSession();
     setupSurrealEyes();

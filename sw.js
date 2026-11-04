@@ -70,13 +70,27 @@ async function networkFirst(request, cacheName, bypassHttpCache = false) {
   }
 }
 
+// La caché de portadas, fondos y fuentes no crece sin fin: se quitan las más antiguas
+const DATA_CACHE_LIMIT = 600;
+let trimming = null;
+function trimCache(cache) {
+  if (trimming) return trimming;
+  trimming = cache.keys()
+    .then((keys) => Promise.all(keys.slice(0, Math.max(0, keys.length - DATA_CACHE_LIMIT)).map((key) => cache.delete(key))))
+    .catch(() => {})
+    .finally(() => { trimming = null; });
+  return trimming;
+}
+
 // Copia guardada al instante y se actualiza en segundo plano
 async function staleWhileRevalidate(request, cacheName) {
   const cache = await caches.open(cacheName);
   const cached = await cache.match(request);
   const refresh = fetch(request)
     .then((response) => {
-      if (response.ok || response.type === 'opaque') cache.put(request, response.clone());
+      if (response.ok || response.type === 'opaque') {
+        cache.put(request, response.clone()).then(() => { if (!cached) trimCache(cache); });
+      }
       return response;
     })
     .catch(() => cached);
