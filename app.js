@@ -240,6 +240,7 @@
     homePanel: $('homePanel'),
     searchPanel: $('searchPanel'),
     playerTrack: document.querySelector('.player-track'),
+    player: document.querySelector('.player'),
     addArtist: $('addArtist'),
     addRadio: $('addRadio'),
     shareDialog: $('shareDialog'),
@@ -3541,6 +3542,7 @@
     let ready = false;
     let skipPops = 0;
     let dialogEntry = false;
+    let sheetEntry = false;
     const snapshot = () => ({ lb: 1, view: state.view, playlist: state.openPlaylist, artist: state.openArtist || null });
     const openDialogs = () => [...document.querySelectorAll('dialog[open]')];
 
@@ -3550,7 +3552,7 @@
       if (!ready) return;
       try {
         const next = snapshot();
-        if (dialogEntry) { history.replaceState({ ...next, dialog: true }, ''); return; }
+        if (dialogEntry || sheetEntry) { history.replaceState({ ...next, dialog: dialogEntry || undefined, sheet: sheetEntry || undefined }, ''); return; }
         if (same(history.state, next)) return;
         history.pushState(next, '');
       } catch { /* sin history */ }
@@ -3567,6 +3569,12 @@
         // «Atrás» con una ventana abierta: solo se cierra la ventana
         dialogEntry = false;
         openDialogs().forEach((dialog) => dialog.close());
+        return;
+      }
+      if (sheetEntry) {
+        // «Atrás» con Sonando abierto (móvil): se cierra la hoja
+        sheetEntry = false;
+        npSheet.close({ fromHistory: true });
         return;
       }
       const target = event.state;
@@ -3608,7 +3616,122 @@
       watchDialogs();
     }
 
-    return { push, replace, init };
+    // Sonando a pantalla completa (móvil) también es una entrada: «Atrás» la cierra
+    function sheetOpened() {
+      if (!ready || sheetEntry) return;
+      sheetEntry = true;
+      try { history.pushState({ ...snapshot(), sheet: true }, ''); } catch { sheetEntry = false; }
+    }
+
+    function sheetClosed() {
+      if (!sheetEntry) return;
+      sheetEntry = false;
+      if (history.state?.sheet) { skipPops++; history.back(); }
+    }
+
+    return { push, replace, init, sheetOpened, sheetClosed };
+  })();
+
+  function showNowPlaying() {
+    if (window.matchMedia('(max-width: 860px)').matches) npSheet.open();
+    else els.nowPlaying.scrollIntoView({ block: 'start', behavior: settings.motion ? 'smooth' : 'auto' });
+  }
+
+  /* ---------- Sonando a pantalla completa (móvil) ---------- */
+  const npSheet = (() => {
+    const phone = window.matchMedia('(max-width: 860px)');
+    const isOpen = () => document.body.classList.contains('np-open');
+
+    function open() {
+      if (!phone.matches || isOpen()) return;
+      els.nowPlaying.scrollTop = 0;
+      document.body.classList.add('np-open');
+      els.nowPlaying.removeAttribute('aria-hidden');
+      els.nowPlaying.removeAttribute('inert');
+      navHistory.sheetOpened();
+      haptic(8);
+    }
+
+    function close({ fromHistory = false } = {}) {
+      if (!isOpen()) return;
+      document.body.classList.remove('np-open');
+      document.body.style.removeProperty('--np-drag');
+      syncHidden();
+      if (!fromHistory) navHistory.sheetClosed();
+    }
+
+    // En el teléfono, con la hoja cerrada, su contenido no se lee ni recibe foco
+    function syncHidden() {
+      const hidden = phone.matches && !isOpen();
+      els.nowPlaying.toggleAttribute('inert', hidden);
+      if (hidden) els.nowPlaying.setAttribute('aria-hidden', 'true');
+      else els.nowPlaying.removeAttribute('aria-hidden');
+    }
+
+    // Deslizar hacia abajo desde arriba de la hoja la cierra
+    function bindDrag() {
+      let startY = null;
+      let dy = 0;
+      els.nowPlaying.addEventListener('touchstart', (event) => {
+        if (!isOpen() || els.nowPlaying.scrollTop > 0 || event.touches.length !== 1) { startY = null; return; }
+        if (event.target.closest('input, select, .lyrics-body')) { startY = null; return; }
+        startY = event.touches[0].clientY;
+        dy = 0;
+      }, { passive: true });
+      els.nowPlaying.addEventListener('touchmove', (event) => {
+        if (startY === null) return;
+        dy = event.touches[0].clientY - startY;
+        if (dy <= 0 || els.nowPlaying.scrollTop > 0) {
+          dy = 0;
+          document.body.classList.remove('np-dragging');
+          document.body.style.removeProperty('--np-drag');
+          return;
+        }
+        document.body.classList.add('np-dragging');
+        document.body.style.setProperty('--np-drag', `${Math.round(dy * 0.85)}px`);
+      }, { passive: true });
+      const end = () => {
+        if (startY === null) return;
+        startY = null;
+        document.body.classList.remove('np-dragging');
+        if (dy > 110) close();
+        else document.body.style.removeProperty('--np-drag');
+        dy = 0;
+      };
+      els.nowPlaying.addEventListener('touchend', end);
+      els.nowPlaying.addEventListener('touchcancel', end);
+
+      // Deslizar hacia arriba sobre el mini-reproductor la abre
+      let miniY = null;
+      els.player.addEventListener('touchstart', (event) => {
+        miniY = isOpen() || event.target.closest('input') ? null : event.touches[0].clientY;
+      }, { passive: true });
+      els.player.addEventListener('touchend', (event) => {
+        if (miniY === null) return;
+        const moved = event.changedTouches[0].clientY - miniY;
+        miniY = null;
+        if (moved < -40) open();
+      });
+    }
+
+    function init() {
+      $('npClose').addEventListener('click', () => close());
+      bindDrag();
+      syncHidden();
+      phone.addEventListener('change', () => {
+        if (!phone.matches) close();
+        syncHidden();
+      });
+      // El alto real del reproductor deja sitio justo a la lista y a la hoja
+      if ('ResizeObserver' in window) {
+        new ResizeObserver(([entry]) => {
+          const height = Math.round(entry.borderBoxSize?.[0]?.blockSize || entry.target.offsetHeight);
+          document.documentElement.style.setProperty('--player-h', `${height}px`);
+        }).observe(els.player);
+      }
+    }
+
+    return { open, close, isOpen, init };
   })();
 
   function clearSearch() {
@@ -5406,10 +5529,10 @@
     els.shareDialog.addEventListener('click', (event) => {
       if (event.target === els.shareDialog || event.target.closest('[data-close]')) els.shareDialog.close();
     });
-    // Tocar la canción del reproductor lleva a Sonando
+    // Tocar la canción del reproductor lleva a Sonando (en el móvil, la abre a pantalla completa)
     els.playerTrack.addEventListener('click', (event) => {
       if (event.target.closest('button, a, input')) return;
-      els.nowPlaying.scrollIntoView({ block: 'start', behavior: settings.motion ? 'smooth' : 'auto' });
+      showNowPlaying();
     });
     els.npShareBtn.addEventListener('click', () => {
       if (state.currentTrack) shareTrack(state.currentTrack.id);
@@ -5544,6 +5667,7 @@
 
     // Botón "Letra" del reproductor: abre el panel y lo lleva a la vista
     els.lyricsBtn.addEventListener('click', () => {
+      npSheet.open();
       els.lyricsPanel.open = true;
       els.lyricsPanel.scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
@@ -5626,6 +5750,7 @@
       const button = event.target.closest('.nav-btn');
       if (!button) return;
       const target = button.dataset.nav;
+      npSheet.close();
       // Cambiar de sección deja atrás la búsqueda (antes el texto seguía escrito en Inicio y Lab sin filtrar nada)
       if (target !== 'search') clearSearch();
       if (target === 'home' && state.view !== 'home') setView('home');
@@ -6065,8 +6190,10 @@
         text: () => 'Transiciones DJ entre canciones, «A continuación» para ver y ordenar la cola, temporizador de apagado y letras sincronizadas. Cada playlist se puede descargar (⬇) para escucharla sin conexión.',
         target: () => (isPhone() ? '.player .controls' : '.player-volume') },
       { icon: 'heart', title: 'Favoritas y Stats',
-        text: () => 'Toca ♥ para guardar una canción en Favoritas. En Stats ves tus minutos, horas, estilos y artistas del mes.',
-        target: () => (isPhone() ? '#npFavBtn' : '.tab[data-view="favorites"]') },
+        text: () => (isPhone()
+          ? 'Toca la canción de abajo (o desliza hacia arriba) para abrir Sonando: ahí ♥ la guarda en Favoritas y ves la letra. En Stats ves tus minutos, estilos y artistas del mes.'
+          : 'Toca ♥ para guardar una canción en Favoritas. En Stats ves tus minutos, horas, estilos y artistas del mes.'),
+        target: () => (isPhone() ? '.player-track' : '.tab[data-view="favorites"]') },
       { icon: 'settings', title: 'Hazla tuya',
         text: () => 'En Ajustes eliges tema, letra, fondo de pantalla y ecualizador, y puedes volver a ver este tutorial. ¿Ideas o algún error? Escribe a officiallukamon@gmail.com (está abajo, en el panel Sonando).',
         target: () => '#settingsBtn' }
@@ -6306,6 +6433,7 @@
     updateProgressUI(0, 0);
     bindEvents();
     navHistory.init();
+    npSheet.init();
     setupMediaSessionHandlers();
     setupAudioSession();
     setupSurrealEyes();
