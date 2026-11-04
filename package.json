@@ -1,0 +1,19 @@
+{
+  "name": "liquid-bullet",
+  "private": true,
+  "description": "Liquid Bullet: reproductor web personal (HTML + CSS + JS, sin compilar).",
+  "type": "module",
+  "scripts": {
+    "start": "python3 -m http.server 8000",
+    "lint": "eslint .",
+    "check": "node --check app.js && node --check sw.js && python3 tools/check_site.py",
+    "test": "playwright test",
+    "bump": "python3 tools/bump_version.py"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@playwright/test": "1.63.0",
+    "eslint": "10.14.0",
+    "globals": "17.14.0"
+  }
+}

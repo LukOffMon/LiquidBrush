@@ -1,0 +1,7 @@
+# Liquid Bullet
+# Las páginas de s/ existen para que los enlaces compartidos salgan con miniatura;
+# llevan noindex (no se bloquean aquí para que WhatsApp, X, etc. puedan leer su portada).
+User-agent: *
+Allow: /
+
+Sitemap: https://lukoffmon.github.io/LiquidBrush/sitemap.xml
