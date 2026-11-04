@@ -264,7 +264,7 @@
 
         <div class="np-info">
           <div class="np-text">
-            <p id="npContext" class="np-eyebrow">Cargando biblioteca…</p>
+            <button id="npContext" class="np-eyebrow np-context" type="button" title="Ir a lo que suena">Cargando biblioteca…</button>
             <h1 id="npTitle" class="np-title">Liquid Bullet</h1>
             <p id="npArtist" class="np-artist">Música que se derrite en tus oídos.</p>
             <p id="npAlbum" class="np-album"></p>
@@ -509,6 +509,7 @@
         <button class="queue-foot-btn" type="button" data-q="shuffle"><svg class="icon" aria-hidden="true"><use href="#i-shuffle"></use></svg><span>Aleatorio</span></button>
         <button class="queue-foot-btn" type="button" data-q="repeat"><svg class="icon" aria-hidden="true"><use href="#i-repeat"></use></svg><span>Repetir</span></button>
         <button class="queue-foot-btn" type="button" data-q="sleep"><svg class="icon" aria-hidden="true"><use href="#i-moon"></use></svg><span>Temporizador</span></button>
+        <button class="queue-foot-btn" type="button" data-q="save"><svg class="icon" aria-hidden="true"><use href="#i-playlist-add"></use></svg><span>Guardar</span></button>
       </div>
       <div class="sheet-actions">
         <button class="btn" type="button" data-close>Cerrar</button>
@@ -662,6 +663,27 @@
 
       <section class="settings-group" aria-labelledby="setSoundTitle">
         <h3 id="setSoundTitle" class="settings-group-title">Sonido · Ecualizador</h3>
+        <label class="setting">
+          <span class="setting-text">
+            <span class="setting-name">Velocidad</span>
+            <span class="setting-hint">Sin cambiar el tono. Teclado: Mayús + , y Mayús + .</span>
+          </span>
+          <select id="speedSelect" class="setting-select">
+            <option value="0.75">0,75×</option>
+            <option value="1">Normal</option>
+            <option value="1.1">1,1×</option>
+            <option value="1.25">1,25×</option>
+            <option value="1.5">1,5×</option>
+          </select>
+        </label>
+        <label class="setting switch">
+          <span class="setting-text">
+            <span class="setting-name">Fundido al pausar</span>
+            <span class="setting-hint">El sonido baja y sube suave en vez de cortarse (no en iPhone).</span>
+          </span>
+          <input id="softPauseToggle" type="checkbox" role="switch">
+          <span class="switch-track" aria-hidden="true"></span>
+        </label>
         <label class="setting">
           <span class="setting-text"><span class="setting-name">Perfil</span></span>
           <select id="eqPreset" class="setting-select"></select>

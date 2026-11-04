@@ -5257,7 +5257,7 @@ textarea {
 
 .queue-foot {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 6px;
   padding-top: 10px;
   border-top: 1px solid var(--border);
@@ -5640,4 +5640,66 @@ textarea {
 
 .privacy-note[open] summary {
   margin-bottom: 4px;
+}
+
+/* ---------- Aviso con acción (Deshacer, Abrir) ---------- */
+.toast {
+  font-family: var(--song-font);
+  letter-spacing: 0;
+}
+
+.toast.has-action {
+  width: max-content;
+  max-width: min(92vw, 460px);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-right: 8px;
+  border-radius: 18px;
+  text-align: left;
+}
+
+.toast.has-action.is-visible {
+  pointer-events: auto;
+}
+
+.toast-action {
+  flex-shrink: 0;
+  padding: 7px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* «Reproduciendo desde…» es un enlace a la playlist o vista */
+.np-context {
+  display: block;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.np-context:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* La portada sigue al dedo al deslizar para cambiar de canción */
+.cover-wrap {
+  translate: var(--swipe, 0) 0;
+}
+
+/* Barra de progreso: más fácil de tocar en el móvil */
+@media (pointer: coarse) {
+  .progress-wrap {
+    padding: 10px 0;
+    margin: -10px 0;
+  }
 }

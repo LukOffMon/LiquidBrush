@@ -241,6 +241,8 @@
     searchPanel: $('searchPanel'),
     playerTrack: document.querySelector('.player-track'),
     player: document.querySelector('.player'),
+    speedSelect: $('speedSelect'),
+    softPauseToggle: $('softPauseToggle'),
     addArtist: $('addArtist'),
     addRadio: $('addRadio'),
     shareDialog: $('shareDialog'),
@@ -493,7 +495,10 @@
         fixed: isWallId(saved.wall?.fixed) ? saved.wall.fixed : WALLPAPERS[0].id,
         alive: saved.wall?.alive !== false
       },
-      eq: { preset: typeof saved.eq?.preset === 'string' ? saved.eq.preset : 'flat', gains }
+      eq: { preset: typeof saved.eq?.preset === 'string' ? saved.eq.preset : 'flat', gains },
+      // Velocidad de reproducción (0.75×–1.5×) y fundido corto al pausar/reanudar
+      speed: [0.75, 1, 1.1, 1.25, 1.5].includes(saved.speed) ? saved.speed : 1,
+      softPause: saved.softPause !== false
     };
   })();
   const saveSettings = () => storage.set(KEYS.settings, settings);
@@ -535,11 +540,24 @@
   }
 
   let toastTimer = null;
-  function showToast(message) {
-    els.toast.textContent = message;
+  // Aviso flotante; con «action» lleva un botón (p. ej. Deshacer) y dura un poco más
+  function showToast(message, action = null) {
+    els.toast.replaceChildren(document.createTextNode(message));
+    els.toast.classList.toggle('has-action', Boolean(action));
+    if (action) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'toast-action';
+      button.textContent = action.label;
+      button.addEventListener('click', () => {
+        els.toast.classList.remove('is-visible');
+        action.run();
+      }, { once: true });
+      els.toast.append(button);
+    }
     els.toast.classList.add('is-visible');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => els.toast.classList.remove('is-visible'), 3200);
+    toastTimer = setTimeout(() => els.toast.classList.remove('is-visible'), action ? 5500 : 3200);
   }
 
   /* ---------- Carga de datos ---------- */
@@ -1219,9 +1237,19 @@
   function removeFromLocal(id, trackId) {
     const playlist = findLocal(id);
     if (!playlist) return;
+    const before = playlist.trackIds.slice();
     playlist.trackIds = playlist.trackIds.filter((t) => t !== trackId);
     saveLocalPlaylists();
     renderList();
+    const title = getTrack(trackId)?.title || 'la canción';
+    showToast(`Quitaste «${title}» de ${playlist.name}.`, {
+      label: 'Deshacer',
+      run: () => {
+        playlist.trackIds = before;
+        saveLocalPlaylists();
+        renderList();
+      }
+    });
   }
 
   let addTarget = null;
@@ -1323,6 +1351,67 @@
   const decks = [...plainDecks, ...eqDecks];
   const dj = { enabled: false, fade: 6, transitioning: false, timer: null, outgoing: null };
   const deckGain = new Map(decks.map((deck) => [deck, 1]));
+
+  // Velocidad: se aplica a los cuatro reproductores (sin cambiar el tono)
+  function applySpeed() {
+    decks.forEach((deck) => {
+      deck.defaultPlaybackRate = settings.speed;
+      deck.playbackRate = settings.speed;
+      if ('preservesPitch' in deck) deck.preservesPitch = true;
+    });
+  }
+
+  const SPEEDS = [0.75, 1, 1.1, 1.25, 1.5];
+  function setSpeed(value) {
+    settings.speed = SPEEDS.includes(value) ? value : 1;
+    saveSettings();
+    applySpeed();
+    if (els.speedSelect) els.speedSelect.value = String(settings.speed);
+    updatePositionStateNow();
+  }
+  function stepSpeed(direction) {
+    const index = clamp(SPEEDS.indexOf(settings.speed) + direction, 0, SPEEDS.length - 1);
+    setSpeed(SPEEDS[index]);
+    showToast(`Velocidad: ${String(SPEEDS[index]).replace('.', ',')}×`);
+  }
+
+  // Fundido corto al pausar y al reanudar (no en iOS: ahí la web no puede cambiar el volumen)
+  const softFade = { timer: null };
+  function rampGain(deck, from, to, ms, done) {
+    clearInterval(softFade.timer);
+    const start = performance.now();
+    deckGain.set(deck, from);
+    applyVolume(deck);
+    softFade.timer = setInterval(() => {
+      const p = clamp((performance.now() - start) / ms, 0, 1);
+      deckGain.set(deck, from + (to - from) * p);
+      applyVolume(deck);
+      if (p >= 1) {
+        clearInterval(softFade.timer);
+        softFade.timer = null;
+        done?.();
+      }
+    }, 16);
+  }
+  const canSoftFade = () => settings.softPause && !IS_IOS && !dj.timer;
+
+  // Precarga la siguiente canción ~25 s antes para que empiece sin espera
+  const preloader = { audio: null, id: null };
+  function preloadNext() {
+    const nextId = state.queue[state.queueIndex + 1];
+    if (!nextId || nextId === preloader.id || !navigator.onLine) return;
+    const track = getTrack(nextId);
+    if (!track?.src || isDownloaded(track)) return;
+    if (navigator.connection?.saveData) return;
+    preloader.id = nextId;
+    if (!preloader.audio) {
+      preloader.audio = new Audio();
+      preloader.audio.muted = true;
+      preloader.audio.preload = 'auto';
+    }
+    preloader.audio.src = track.src;
+    preloader.audio.load();
+  }
 
   function applyVolume(deck) {
     // sleep.gain baja el volumen en el fundido final del temporizador
@@ -3935,6 +4024,7 @@
     state.radio = null;
     state.baseQueue = candidates.map((t) => t.id);
     state.queueContext = describeContext(start);
+    state.queueSource = { view: state.view, playlist: state.openPlaylist, artist: state.openArtist || null };
     state.queue = state.baseQueue.slice();
     state.queueIndex = Math.max(0, state.queue.indexOf(startId));
     if (state.shuffle) applyShuffle();
@@ -3943,8 +4033,14 @@
   function applyShuffle() {
     const current = state.queue[state.queueIndex];
     const rest = state.baseQueue.filter((id) => id !== current);
-    state.queue = current ? [current, ...shuffleArray(rest)] : shuffleArray(state.baseQueue);
+    state.queue = current ? [current, ...smartShuffle(rest)] : smartShuffle(state.baseQueue);
     state.queueIndex = 0;
+  }
+
+  // Aleatorio que evita el mismo artista dos veces seguidas (cuando se puede)
+  function smartShuffle(ids) {
+    const tracks = shuffleArray(ids).map(getTrack).filter(Boolean);
+    return spreadArtists(tracks).map((t) => t.id);
   }
 
   function unshuffle() {
@@ -4105,6 +4201,28 @@
     els.queueList.replaceChildren(...rows);
   }
 
+  // «Guardar cola»: lo que suena y lo que viene, como playlist propia
+  function saveQueueAsPlaylist() {
+    const ids = [...new Set(state.queue.slice(state.queueIndex))].filter((id) => getTrack(id));
+    if (!ids.length) {
+      showToast('La cola está vacía.');
+      return;
+    }
+    const date = new Date().toLocaleDateString('es', { day: 'numeric', month: 'short' });
+    const playlist = {
+      id: newId(), name: `Cola del ${date}`, emoji: '🎧',
+      color: PLAYLIST_COLORS[Math.floor(Math.random() * PLAYLIST_COLORS.length)],
+      trackIds: ids, createdAt: Date.now()
+    };
+    library.local.push(playlist);
+    saveLocalPlaylists();
+    els.queueDialog.close();
+    showToast(`Guardada como «${playlist.name}» (${songsLabel(ids.length)}).`, {
+      label: 'Abrir',
+      run: () => { npSheet.close(); openPlaylist(`local:${playlist.id}`); }
+    });
+  }
+
   function openQueue() {
     renderQueue();
     els.queueDialog.showModal();
@@ -4243,7 +4361,9 @@
     state.countedId = null;
 
     prepareDeck(track, autoplay, fade);
+    state.retried = false;
     els.audio.src = track.src;
+    applySpeed();
 
     if (settings.motion && els.cover.src !== track.cover) {
       els.cover.classList.remove('is-swapping');
@@ -4301,8 +4421,11 @@
     }
     if (eq.ctx && eq.ctx.state !== 'running') eq.ctx.resume().catch(() => {});
     const deck = els.audio;
+    const fadeIn = canSoftFade() && deck.paused && deck.currentTime > 0.5;
+    if (fadeIn) { deckGain.set(deck, 0); applyVolume(deck); }
     try {
       await deck.play();
+      if (fadeIn) rampGain(deck, 0, 1, 260);
     } catch (error) {
       // AbortError: se cambió de canción antes de empezar a sonar; no es un fallo real.
       if (error.name === 'AbortError') return;
@@ -4330,7 +4453,18 @@
     state.userPaused = true;
     state.wantsPlay = false;
     interruption.clear();
-    els.audio.pause();
+    const deck = els.audio;
+    if (canSoftFade() && !deck.paused) {
+      // El botón cambia al instante; el audio se apaga en 180 ms
+      setPlayingUI(false);
+      rampGain(deck, deckGain.get(deck) ?? 1, 0, 180, () => {
+        deck.pause();
+        deckGain.set(deck, 1);
+        applyVolume(deck);
+      });
+      return;
+    }
+    deck.pause();
   }
 
   function next(manual = true, fade = manual && dj.enabled ? 1.5 : 0) {
@@ -4346,7 +4480,7 @@
         if (state.shuffle && state.queue.length > 1) {
           // Nueva vuelta aleatoria evitando repetir la última canción al empezar
           const last = state.queue[state.queue.length - 1];
-          let shuffled = shuffleArray(state.baseQueue);
+          let shuffled = smartShuffle(state.baseQueue);
           if (shuffled[0] === last) shuffled = [...shuffled.slice(1), last];
           state.queue = shuffled;
         }
@@ -5206,11 +5340,36 @@
         // Las portadas generadas son SVG en línea: la pantalla de bloqueo muestra el logo
         artwork: track.hue !== null
           ? [{ src: 'icon-192.png', sizes: '192x192', type: 'image/png' }, { src: 'icon-512.png', sizes: '512x512', type: 'image/png' }]
-          : [{ src: new URL(track.cover, location.href).href, sizes: '600x600', type: 'image/jpeg' }]
+          : [
+            track.thumb && track.thumb !== track.cover ? { src: new URL(track.thumb, location.href).href, sizes: '320x320', type: 'image/jpeg' } : null,
+            { src: new URL(track.cover, location.href).href, sizes: '600x600', type: 'image/jpeg' }
+          ].filter(Boolean)
       });
     } catch {
       /* metadatos no soportados */
     }
+  }
+
+  // Barra de progreso en la pantalla de bloqueo / centro de control
+  let positionStamp = 0;
+  function updatePositionStateNow() {
+    positionStamp = 0;
+    updatePositionState();
+  }
+  function updatePositionState() {
+    if (!('mediaSession' in navigator) || typeof navigator.mediaSession.setPositionState !== 'function') return;
+    const now = performance.now();
+    if (now - positionStamp < 4000) return;
+    positionStamp = now;
+    const duration = getDuration();
+    if (!Number.isFinite(duration) || duration <= 0) return;
+    try {
+      navigator.mediaSession.setPositionState({
+        duration,
+        playbackRate: els.audio.playbackRate || 1,
+        position: clamp(els.audio.currentTime, 0, duration)
+      });
+    } catch { /* valores fuera de rango */ }
   }
 
   function setupMediaSessionHandlers() {
@@ -5273,6 +5432,9 @@
       const time = els.audio.currentTime;
       trackListening(time);
       checkDjTransition();
+      const left = getDuration() - time;
+      if (left > 0 && left < 25) preloadNext();
+      updatePositionState();
       resume.save();
       if (state.isSeeking) return;
       updateProgressUI(time, getDuration());
@@ -5295,6 +5457,20 @@
     on('error', () => {
       if (!els.audio.getAttribute('src')) return;
       if (recoverFromEqError()) return;
+      // Corte de red a mitad de canción: un reintento desde el mismo segundo
+      const code = els.audio.error?.code;
+      if (navigator.onLine && !state.retried && (code === 2 || code === 4) && state.currentTrack) {
+        state.retried = true;
+        const at = els.audio.currentTime || 0;
+        const wantsPlay = state.wantsPlay;
+        setTimeout(() => {
+          state.pendingSeek = at;
+          els.audio.src = state.currentTrack.src;
+          els.audio.load();
+          if (wantsPlay) play({ quiet: true });
+        }, 900);
+        return;
+      }
       const wasPlaying = document.body.classList.contains('is-playing');
       setPlayingUI(false);
       const title = state.currentTrack?.title ?? 'la canción';
@@ -5579,14 +5755,28 @@
         els.sleepBtn.click();
         return;
       }
+      if (button.dataset.q === 'save') {
+        saveQueueAsPlaylist();
+        return;
+      }
       renderQueue();
     });
     els.queueList.addEventListener('click', (event) => {
       const remove = event.target.closest('[data-remove]');
       if (remove) {
-        state.queue.splice(Number(remove.dataset.remove), 1);
+        const index = Number(remove.dataset.remove);
+        const [removedId] = state.queue.splice(index, 1);
         resume.saveQueue();
         renderQueue();
+        showToast(`Quitada de la cola: «${getTrack(removedId)?.title || 'canción'}».`, {
+          label: 'Deshacer',
+          run: () => {
+            state.queue.splice(Math.min(index, state.queue.length), 0, removedId);
+            if (index <= state.queueIndex) state.queueIndex++;
+            resume.saveQueue();
+            if (els.queueDialog.open) renderQueue();
+          }
+        });
         return;
       }
       const row = event.target.closest('.queue-play');
@@ -5865,6 +6055,97 @@
       if (event.animationName === 'tap-pop') event.target.classList.remove('is-pop');
     });
 
+    // Sonido: velocidad y fundido al pausar
+    els.speedSelect.addEventListener('change', () => setSpeed(Number(els.speedSelect.value)));
+    els.softPauseToggle.addEventListener('change', () => {
+      settings.softPause = els.softPauseToggle.checked;
+      saveSettings();
+    });
+
+    // Rueda del ratón sobre el volumen o el altavoz
+    [els.volume, els.muteBtn].forEach((el) => el.addEventListener('wheel', (event) => {
+      event.preventDefault();
+      setVolume(clamp(state.volume + (event.deltaY < 0 ? 0.05 : -0.05), 0, 1));
+    }, { passive: false }));
+
+    // Deslizar la portada de Sonando a los lados: siguiente / anterior
+    (() => {
+      const wrap = els.cover.closest('.cover-wrap');
+      let sx = null;
+      let sy = 0;
+      wrap.addEventListener('touchstart', (event) => {
+        if (event.touches.length !== 1) { sx = null; return; }
+        sx = event.touches[0].clientX;
+        sy = event.touches[0].clientY;
+      }, { passive: true });
+      wrap.addEventListener('touchmove', (event) => {
+        if (sx === null) return;
+        const dx = event.touches[0].clientX - sx;
+        if (Math.abs(dx) > Math.abs(event.touches[0].clientY - sy)) wrap.style.setProperty('--swipe', `${clamp(dx * 0.35, -60, 60)}px`);
+      }, { passive: true });
+      wrap.addEventListener('touchend', (event) => {
+        if (sx === null) return;
+        const dx = event.changedTouches[0].clientX - sx;
+        const dy = event.changedTouches[0].clientY - sy;
+        sx = null;
+        wrap.style.removeProperty('--swipe');
+        if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx) * 0.7 || !state.currentTrack) return;
+        haptic(10);
+        if (dx < 0) next(true);
+        else prev();
+      });
+    })();
+
+    // Mantener pulsada una canción (o clic derecho) abre su menú ＋
+    (() => {
+      let timer = null;
+      let start = null;
+      let fired = false;
+      const cancel = () => { clearTimeout(timer); timer = null; };
+      els.trackList.addEventListener('pointerdown', (event) => {
+        if (event.pointerType === 'mouse') return;
+        const item = event.target.closest('.track');
+        if (!item || event.target.closest('[data-action]:not([data-action="play"])')) return;
+        fired = false;
+        start = { x: event.clientX, y: event.clientY };
+        timer = setTimeout(() => {
+          timer = null;
+          fired = true;
+          haptic(18);
+          openAddDialog(item.dataset.id);
+        }, 520);
+      });
+      els.trackList.addEventListener('pointermove', (event) => {
+        if (timer && start && Math.hypot(event.clientX - start.x, event.clientY - start.y) > 10) cancel();
+      });
+      ['pointerup', 'pointercancel', 'pointerleave'].forEach((type) => els.trackList.addEventListener(type, cancel));
+      // Tras abrir el menú, el toque no reproduce la canción
+      els.trackList.addEventListener('click', (event) => {
+        if (!fired) return;
+        fired = false;
+        event.preventDefault();
+        event.stopPropagation();
+      }, true);
+      els.trackList.addEventListener('contextmenu', (event) => {
+        const item = event.target.closest('.track');
+        if (!item) return;
+        event.preventDefault();
+        cancel();
+        openAddDialog(item.dataset.id);
+      });
+    })();
+
+    // «Reproduciendo desde…» lleva a esa playlist, artista o vista
+    els.npContext.addEventListener('click', () => {
+      const source = state.queueSource;
+      if (!source) return;
+      npSheet.close();
+      if (source.view === 'playlist' && getPlaylist(source.playlist)) openPlaylist(source.playlist);
+      else if (source.view === 'artist' && source.artist && getArtist(source.artist)) openArtist(source.artist);
+      else if (VIEWS.includes(source.view)) setView(source.view);
+      els.library.scrollIntoView({ block: 'start', behavior: settings.motion ? 'smooth' : 'auto' });
+    });
+
     // Atajos de teclado
     document.addEventListener('keydown', (event) => {
       if (event.ctrlKey || event.metaKey || event.altKey) return;
@@ -5879,8 +6160,11 @@
 
       switch (event.code) {
         case 'Space': event.preventDefault(); togglePlay(); break;
-        case 'ArrowRight': event.preventDefault(); seekBy(5); break;
-        case 'ArrowLeft': event.preventDefault(); seekBy(-5); break;
+        case 'ArrowRight': event.preventDefault(); if (event.shiftKey) next(true); else seekBy(5); break;
+        case 'ArrowLeft': event.preventDefault(); if (event.shiftKey) prev(); else seekBy(-5); break;
+        // Mayús + ↑/↓: volumen (las flechas solas siguen desplazando la página)
+        case 'ArrowUp': if (event.shiftKey) { event.preventDefault(); setVolume(clamp(state.volume + 0.05, 0, 1)); } break;
+        case 'ArrowDown': if (event.shiftKey) { event.preventDefault(); setVolume(clamp(state.volume - 0.05, 0, 1)); } break;
         case 'KeyN': next(true); break;
         case 'KeyP': prev(); break;
         case 'KeyM': toggleMute(); break;
@@ -5891,7 +6175,16 @@
         case 'KeyQ': openQueue(); break;
         case 'KeyT': els.sleepBtn.click(); break;
         case 'Slash': event.preventDefault(); els.searchInput.focus(); break;
-        default: break;
+        case 'Escape': npSheet.close(); break;
+        case 'Comma': if (event.shiftKey) stepSpeed(-1); break;
+        case 'Period': if (event.shiftKey) stepSpeed(1); break;
+        default:
+          // 0–9 saltan al 0 %, 10 %… 90 % de la canción (como en YouTube)
+          if (/^Digit\d$/.test(event.code) && state.currentTrack) {
+            const duration = getDuration();
+            if (duration) seekTo((Number(event.code.slice(5)) / 10) * duration);
+          }
+          break;
       }
     });
   }
@@ -6446,6 +6739,9 @@
     bindEvents();
     navHistory.init();
     npSheet.init();
+    applySpeed();
+    els.speedSelect.value = String(settings.speed);
+    els.softPauseToggle.checked = settings.softPause;
     setupMediaSessionHandlers();
     setupAudioSession();
     setupSurrealEyes();
