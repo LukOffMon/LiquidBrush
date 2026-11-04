@@ -5928,8 +5928,10 @@
       pause: () => pauseByUser(),
       previoustrack: () => prev(),
       nexttrack: () => next(true),
-      seekbackward: (details) => seekBy(-(details.seekOffset || 10)),
-      seekforward: (details) => seekBy(details.seekOffset || 10),
+      // Sin «±10 s»: con esos dos, iPhone (y algunos Android) muestran adelantar/retrasar
+      // en la pantalla de bloqueo en lugar de ⏮ ⏭. Para moverse dentro de la canción queda la barra.
+      seekbackward: null,
+      seekforward: null,
       seekto: (details) => {
         if (Number.isFinite(details.seekTime)) seekTo(details.seekTime);
       }
