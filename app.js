@@ -183,7 +183,7 @@
     volume: 0.8,
     lyrics: null,
     activeLyric: -1,
-    // Qué colección suena (para que todos sus botones ▶/⏸ cambien a la vez)
+    // Qué colección suena (para que todos sus botones de reproducir/pausa cambien a la vez)
     playSource: ''
   };
 
@@ -519,12 +519,30 @@
       el.classList.add('has-art');
       el.replaceChildren(img);
     } else {
+      // Iconos SVG del sistema (antes emojis: los viejos se traducen al icono equivalente)
       el.classList.remove('has-art');
-      el.textContent = icon || '💿';
+      const nombre = iconoDePlaylist(icon);
+      el.innerHTML = `<svg class="icon pl-glyph" aria-hidden="true"><use href="#i-${nombre}"></use></svg>`;
     }
   }
 
-  /* ---------- Configuración (botón ⚙) ---------- */
+  // Emojis que se usaban antes como icono de playlist → icono del sistema (escritos como código: el archivo no lleva emojis)
+  const EMOJI_A_ICONO = {
+    '\u{1F4BF}': 'disc', '\u{1F3A7}': 'headphones', '\u{1F525}': 'flame', '\u{1F319}': 'moon', '\u{1FAE7}': 'bubbles', '\u{1FAA9}': 'disc', '\u{1F49C}': 'heart', '\u{1F5A4}': 'heart',
+    '\u{1F308}': 'spark', '\u{26A1}': 'bolt', '\u{1F352}': 'cherry', '\u{1F441}\u{FE0F}': 'eye', '\u{1F441}': 'eye', '\u{1F98B}': 'spark', '\u{1F30A}': 'wave', '\u{1F9E0}': 'flask', '\u{2728}': 'spark',
+    '\u{1F558}': 'clock', '\u{1F3C6}': 'trophy', '\u{1F4E5}': 'inbox', '\u{1F381}': 'gift'
+  };
+  const ICONOS_PLAYLIST = ['disc', 'headphones', 'flame', 'moon', 'bubbles', 'heart', 'spark', 'star', 'bolt', 'cherry', 'eye', 'wave',
+    'flask', 'note', 'radio', 'palette', 'mic', 'gem'];
+  function iconoDePlaylist(icon) {
+    const v = String(icon || '');
+    if (v.startsWith('ic:') && ICONOS_PLAYLIST.concat(['clock', 'trophy', 'inbox', 'gift']).includes(v.slice(3))) return v.slice(3);
+    return EMOJI_A_ICONO[v] || EMOJI_A_ICONO[v.replace(/\uFE0F/g, '')] || 'disc';
+  }
+  // Valor para guardar: icono del sistema o fondo (los emojis viejos se convierten)
+  const iconoGuardable = (icon) => (/^art:/.test(String(icon || '')) ? icon : `ic:${iconoDePlaylist(icon)}`);
+
+  /* ---------- Configuración (botón Ajustes) ---------- */
   const FONTS = ['street', 'graffiti', 'classic'];
   const TEXT_SIZES = ['system', 'small', 'normal', 'large', 'xl'];
   const settings = (() => {
@@ -547,7 +565,7 @@
       // Velocidad de reproducción (0.75×–1.5×) y fundido corto al pausar/reanudar
       speed: [0.75, 1, 1.1, 1.25, 1.5].includes(saved.speed) ? saved.speed : 1,
       softPause: saved.softPause !== false,
-      // Descargar sola cada canción que marques con ♥ (solo con Wi-Fi o sin ahorro de datos)
+      // Descargar sola cada canción que marques con el corazón (solo con Wi-Fi o sin ahorro de datos)
       autoFav: saved.autoFav === true,
       // Modo ultraligero: sin vidrio, sombras, animaciones, fondo, visualizador ni letras descargadas
       ultra: saved.ultra === true,
@@ -984,7 +1002,7 @@
     });
   }
 
-  // Descarga una sola canción (♥ con «Descargar favoritas» activado)
+  // Descarga una sola canción (corazón con «Descargar favoritas» activado)
   async function downloadTrack(track) {
     if (!offline.supported || !track || isDownloaded(track) || !navigator.onLine) return false;
     const connection = navigator.connection;
@@ -1098,7 +1116,7 @@
     if (job.noSpace) showToast('No queda espacio en el dispositivo para más descargas.');
     else if (job.cancelled) showToast(`Descarga de «${name}» detenida (${job.done}/${job.total}).`);
     else if (blockedByCors) showToast(`En iPhone/iPad, ${blockedByCors} canci${blockedByCors === 1 ? 'ón' : 'ones'} de Cloudflare no se pueden descargar hasta que el bucket tenga CORS activado.`);
-    else if (failed) showToast(`«${name}»: ${failed} canci${failed === 1 ? 'ón' : 'ones'} no se pudieron descargar. Pulsa ⬇ para reintentar.`);
+    else if (failed) showToast(`«${name}»: ${failed} canci${failed === 1 ? 'ón' : 'ones'} no se pudieron descargar. Toca Descargar para reintentar.`);
     else showToast(`«${name}» lista para escuchar sin conexión.`);
   }
 
@@ -1240,7 +1258,8 @@
   /* ---------- Playlists ---------- */
   // Oficiales: las del catálogo (o una por "album").
   // Mías: solo en este navegador (localStorage). Automáticas: recientes y más escuchadas.
-  const PLAYLIST_EMOJIS = ['💿', '🎧', '🔥', '🌙', '🫧', '🪩', '💜', '🖤', '🌈', '⚡', '🍒', '👁️', '🦋', '🌊', '🧠', '✨',
+  const PLAYLIST_EMOJIS = ['ic:disc', 'ic:headphones', 'ic:flame', 'ic:moon', 'ic:bubbles', 'ic:heart', 'ic:spark', 'ic:star', 'ic:bolt',
+    'ic:cherry', 'ic:eye', 'ic:wave', 'ic:flask', 'ic:note', 'ic:radio', 'ic:palette', 'ic:mic', 'ic:gem',
     ...WALLPAPERS.map((w) => `art:${w.id}`)];
   const PLAYLIST_COLORS = ['#8a93a6', '#ff7ad9', '#7ef9ff', '#ffe27a', '#7a5cff', '#ff5f6d', '#3ddc97', '#ff9f43'];
   const RECENT_LIMIT = 50;
@@ -1313,8 +1332,8 @@
       .slice(0, TOP_LIMIT)
       .map(([id]) => id);
     return [
-      { key: 'auto:recent', kind: 'auto', name: 'Escuchadas hace poco', emoji: '🕘', color: '#7ef9ff', cover: { type: 'image', src: 'covers/cover-27.jpg' }, trackIds: library.recent },
-      { key: 'auto:top', kind: 'auto', name: 'Tus más escuchadas', emoji: '🏆', color: '#ffe27a', cover: { type: 'image', src: 'covers/cover-28.jpg' }, trackIds: top }
+      { key: 'auto:recent', kind: 'auto', name: 'Escuchadas hace poco', emoji: 'ic:clock', color: '#7ef9ff', cover: { type: 'image', src: 'covers/cover-27.jpg' }, trackIds: library.recent },
+      { key: 'auto:top', kind: 'auto', name: 'Tus más escuchadas', emoji: 'ic:trophy', color: '#ffe27a', cover: { type: 'image', src: 'covers/cover-28.jpg' }, trackIds: top }
     ];
   }
 
@@ -1490,7 +1509,10 @@
     const rows = list.map((p) => {
       const li = document.createElement('li');
       const days = Math.max(0, TRASH_DAYS - Math.floor((Date.now() - p.deletedAt) / 86400000));
-      const button = makeButton('btn trash-restore', 'restore', `Recuperar ${p.name}`, '', `${p.emoji || '💿'} ${p.name}`);
+      const button = makeButton('btn trash-restore', 'restore', `Recuperar ${p.name}`, '', p.name);
+      const glifo = makeEl('span', 'trash-icon');
+      setPlaylistIcon(glifo, p.emoji);
+      button.prepend(glifo);
       button.dataset.id = p.id;
       li.append(button, makeEl('span', 'sheet-note', `${songsLabel(p.trackIds.length)} · se borra del todo en ${days} día${days === 1 ? '' : 's'}`));
       return li;
@@ -1518,7 +1540,7 @@
     const playlist = {
       id: newId(),
       name: `${pl.name} (${pl.kind === 'local' ? 'copia' : 'mía'})`.slice(0, 60),
-      emoji: pl.emoji || '💿',
+      emoji: iconoGuardable(pl.emoji),
       color: pl.color || PLAYLIST_COLORS[Math.floor(Math.random() * PLAYLIST_COLORS.length)],
       trackIds: playlistTracksOf(pl).map((t) => t.id),
       createdAt: Date.now()
@@ -1684,7 +1706,7 @@
       return;
     }
     const playlist = {
-      id: newId(), name: name.slice(0, 60) || 'Importada', emoji: '📥',
+      id: newId(), name: name.slice(0, 60) || 'Importada', emoji: 'ic:inbox',
       color: PLAYLIST_COLORS[Math.floor(Math.random() * PLAYLIST_COLORS.length)],
       trackIds: ids, createdAt: Date.now()
     };
@@ -1710,7 +1732,7 @@
         library.local.push({
           id: findLocal(p.id) ? newId() : String(p.id || newId()),
           name: p.name.slice(0, 60),
-          emoji: typeof p.emoji === 'string' ? p.emoji.slice(0, 16) : '💿',
+          emoji: iconoGuardable(typeof p.emoji === 'string' ? p.emoji.slice(0, 16) : ''),
           color: /^#[0-9a-f]{6}$/i.test(p.color) ? p.color : PLAYLIST_COLORS[0],
           trackIds: p.trackIds.map(String),
           createdAt: p.createdAt || Date.now()
@@ -2392,7 +2414,7 @@
         button.dataset.value = a.name;
         button.append(
           makeEl('span', 'trend-name', a.name),
-          makeEl('span', a.before ? 'trend-up' : 'trend-new', a.before ? `▲ +${Math.round(a.delta * 100)} pts` : 'Nuevo'),
+          makeEl('span', a.before ? 'trend-up' : 'trend-new', a.before ? `+${Math.round(a.delta * 100)} pts` : 'Nuevo'),
           makeEl('span', 'trend-time', minutesLabel(a.secs))
         );
         li.append(button);
@@ -2600,12 +2622,12 @@
 
   // Recetas de un toque
   const LAB_RECIPES = [
-    { id: 'best', icon: '🏆', name: 'Lo mejor de ti', hint: 'Tus favoritas y lo que más suena, sin lo de hoy' },
-    { id: 'deep', icon: '🧭', name: 'Descubrimiento profundo', hint: 'Solo canciones nuevas de artistas cercanos a los tuyos' },
-    { id: 'gems', icon: '💎', name: 'Joyas olvidadas', hint: 'Te encantaban y llevan semanas sin sonar' },
-    { id: 'daylist', icon: '🌗', name: 'Para este momento', hint: 'Lo que sueles poner a esta hora del día' },
-    { id: 'variety', icon: '🎨', name: 'Un artista por canción', hint: '60 canciones, ningún artista se repite' },
-    { id: 'surprise', icon: '🎲', name: 'Sal de tu burbuja', hint: 'Los estilos que menos escuchas' }
+    { id: 'best', icon: 'trophy', name: 'Lo mejor de ti', hint: 'Tus favoritas y lo que más suena, sin lo de hoy' },
+    { id: 'deep', icon: 'compass', name: 'Descubrimiento profundo', hint: 'Solo canciones nuevas de artistas cercanos a los tuyos' },
+    { id: 'gems', icon: 'gem', name: 'Joyas olvidadas', hint: 'Te encantaban y llevan semanas sin sonar' },
+    { id: 'daylist', icon: 'moon', name: 'Para este momento', hint: 'Lo que sueles poner a esta hora del día' },
+    { id: 'variety', icon: 'palette', name: 'Un artista por canción', hint: '60 canciones, ningún artista se repite' },
+    { id: 'surprise', icon: 'dice', name: 'Sal de tu burbuja', hint: 'Los estilos que menos escuchas' }
   ];
 
   function runRecipe(id) {
@@ -2790,7 +2812,9 @@
       card.type = 'button';
       card.dataset.labAction = 'recipe';
       card.dataset.value = recipe.id;
-      card.append(makeEl('span', 'lab-recipe-icon', recipe.icon), makeEl('span', 'lab-recipe-name', recipe.name), makeEl('span', 'lab-recipe-hint', recipe.hint));
+      const ico = makeEl('span', 'lab-recipe-icon');
+      ico.innerHTML = `<svg class="icon" aria-hidden="true"><use href="#i-${recipe.icon}"></use></svg>`;
+      card.append(ico, makeEl('span', 'lab-recipe-name', recipe.name), makeEl('span', 'lab-recipe-hint', recipe.hint));
       recipeGrid.append(card);
     });
     recipes.append(recipeGrid);
@@ -2814,7 +2838,7 @@
       .slice(0, q ? 30 : 20);
     const chosen = lab.artists.map((key) => artists.get(key)).filter(Boolean);
     const artistChips = makeEl('div', 'lab-chips');
-    chosen.forEach((a) => artistChips.append(labChip(`✓ ${a.name}`, 'artist', a.key, true)));
+    chosen.forEach((a) => artistChips.append(labChip(a.name, 'artist', a.key, true)));
     ranked.filter((a) => !lab.artists.includes(a.key)).forEach((a) => artistChips.append(labChip(a.name, 'artist', a.key, false, String(a.tracks.length))));
     if (!ranked.length && q) artistChips.append(makeEl('p', 'lab-hint', 'Ningún artista coincide.'));
     const songSearch = labSearchInput('song', lab.songQuery, 'Buscar canción semilla…', 'Buscar canción semilla');
@@ -2993,7 +3017,7 @@
         return;
       case 'save': {
         if (!lab.result.length) return;
-        const playlist = { id: newId(), name: labName(), emoji: '🧠', color: PLAYLIST_COLORS[lab.result.length % PLAYLIST_COLORS.length],
+        const playlist = { id: newId(), name: labName(), emoji: 'ic:flask', color: PLAYLIST_COLORS[lab.result.length % PLAYLIST_COLORS.length],
           trackIds: lab.result.map((t) => t.id), createdAt: Date.now() };
         library.local.push(playlist);
         saveLocalPlaylists();
@@ -3354,7 +3378,7 @@
     library.pins = pinned ? [key, ...library.pins] : library.pins.filter((k) => k !== key);
     storage.set(KEYS.pins, library.pins);
     haptic(pinned ? [12, 40, 12] : 10);
-    showToast(pinned ? `📌 Fijada arriba: «${pl.name}»` : `«${pl.name}» ya no está fijada.`);
+    showToast(pinned ? `Fijada arriba: «${pl.name}»` : `«${pl.name}» ya no está fijada.`);
     renderList();
   }
 
@@ -3640,7 +3664,7 @@
       loadTrack(track, false);
       if (link.at) state.pendingSeek = link.at;
       clearIncomingLink();
-      showToast(`Te compartieron «${track.title}»${link.at ? ` desde el ${formatTime(link.at)}` : ''}. Pulsa ▶ para escucharla.`);
+      showToast(`Te compartieron «${track.title}»${link.at ? ` desde el ${formatTime(link.at)}` : ''}. Toca reproducir para escucharla.`);
       return;
     }
     if (link.playlist) {
@@ -3663,7 +3687,7 @@
     }
     const same = library.local.find((p) => p.name === link.mix && p.trackIds.join(',') === ids.join(','));
     const playlist = same || {
-      id: newId(), name: link.mix, emoji: '🎁',
+      id: newId(), name: link.mix, emoji: 'ic:gift',
       color: PLAYLIST_COLORS[Math.floor(Math.random() * PLAYLIST_COLORS.length)],
       trackIds: ids, createdAt: Date.now()
     };
@@ -4701,10 +4725,10 @@
     const unpinned = (playlists) => shownPls(playlists).filter((pl) => !isPinned(pl.key));
     const pinned = shownPls(library.pins.map(getPlaylist).filter(Boolean));
     const parts = [];
-    if (pinned.length) parts.push(section('📌 Fijadas', '', pinned));
+    if (pinned.length) parts.push(section('Fijadas', '', pinned));
     parts.push(
       section('Playlists de Liquid Bullet', pinned.length ? '' : 'Mantén pulsada una playlist (o clic derecho) para fijarla arriba.', unpinned(systemPlaylists())),
-      section('Mis playlists', 'Se guardan solo en este navegador. Si borras la caché o los datos del sitio, se perderán: descarga una copia de seguridad (botón ⬇ de arriba).', unpinned(localPlaylists()), newCard)
+      section('Mis playlists', 'Se guardan solo en este navegador. Si borras la caché o los datos del sitio, se perderán: descarga una copia de seguridad (botón Descargar de arriba).', unpinned(localPlaylists()), newCard)
     );
     const autoLeft = unpinned(autos);
     if (autoLeft.length) parts.push(section('Para ti', '', autoLeft));
@@ -4792,7 +4816,7 @@
       else if (searching) li.textContent = 'No se encontraron canciones.';
       else if (state.filter !== 'all' || state.genre) li.textContent = 'Ninguna canción coincide con este filtro.';
       else if (state.view === 'favorites') {
-        li.textContent = 'Aún no tienes favoritas. Pulsa el ♥ de una canción para guardarla aquí.';
+        li.textContent = 'Aún no tienes favoritas. Toca el corazón de una canción para guardarla aquí.';
         const go = makeButton('btn btn-primary list-empty-cta', 'go-view', 'Ir a la Biblioteca', 'library', 'Explorar la Biblioteca');
         go.dataset.value = 'library';
         li.append(go);
@@ -5166,7 +5190,7 @@
   function playTracks(list, shuffle = false) {
     const playable = list.filter(isPlayable);
     if (!playable.length) {
-      showToast(navigator.onLine ? 'No hay canciones para reproducir.' : 'Sin conexión: descarga la playlist (⬇) para escucharla offline.');
+      showToast(navigator.onLine ? 'No hay canciones para reproducir.' : 'Sin conexión: descarga la playlist para escucharla offline.');
       return;
     }
     if (shuffle && !state.shuffle) toggleShuffle();
@@ -5316,7 +5340,7 @@
     }
     if (state.currentTrack?.id === id) updateFavButton(els.npFavBtn, added);
 
-    showToast(added ? `♥ Añadida a favoritas: ${track.title}` : `Quitada de favoritas: ${track.title}`);
+    showToast(added ? `Añadida a favoritas: ${track.title}` : `Quitada de favoritas: ${track.title}`);
     if (added && settings.autoFav) downloadTrack(track);
   }
 
@@ -5394,7 +5418,7 @@
     }
     const track = getTrack(id);
     if (track && !isPlayable(track)) {
-      showToast('Sin conexión: descarga la playlist (⬇) para escucharla offline.');
+      showToast('Sin conexión: descarga la playlist para escucharla offline.');
       return;
     }
     buildQueue(id);
@@ -5550,7 +5574,7 @@
     }
     const date = new Date().toLocaleDateString('es', { day: 'numeric', month: 'short' });
     const playlist = {
-      id: newId(), name: `Cola del ${date}`, emoji: '🎧',
+      id: newId(), name: `Cola del ${date}`, emoji: 'ic:headphones',
       color: PLAYLIST_COLORS[Math.floor(Math.random() * PLAYLIST_COLORS.length)],
       trackIds: ids, createdAt: Date.now()
     };
@@ -5607,7 +5631,7 @@
     sleep.gain = 1;
     decks.forEach(applyVolume);
     updateSleepUI();
-    showToast('Temporizador: música en pausa. Que descanses 🌙');
+    showToast('Temporizador: música en pausa. Que descanses.');
   }
 
   function updateSleepUI() {
@@ -5616,7 +5640,7 @@
     els.sleepBtn.classList.toggle('is-active', active);
     els.sleepBtn.setAttribute('aria-pressed', String(active));
     els.sleepBadge.hidden = !active;
-    els.sleepBadge.textContent = sleep.endOfTrack ? '♪' : `${minutesLeft}`;
+    els.sleepBadge.textContent = sleep.endOfTrack ? 'fin' : `${minutesLeft}`;
     const label = sleep.endOfTrack
       ? 'Temporizador: al terminar esta canción'
       : sleep.end ? `Temporizador: ${minutesLeft} min` : 'Temporizador de apagado';
@@ -5692,10 +5716,10 @@
       const autoplayAt = Number(storage.get(KEYS.resumeAutoplay, 0));
       if (autoplayAt && Date.now() - autoplayAt < 30000) {
         storage.set(KEYS.resumeAutoplay, 0);
-        showToast('Liquid Bullet se actualizó ✓');
+        showToast('Liquid Bullet se actualizó.');
         play({ quiet: true });
       } else if (time >= 1) {
-        showToast(`Continúa «${splitTitle(track.title).main}» en ${formatTime(time)}. Pulsa ▶`);
+        showToast(`Continúa «${splitTitle(track.title).main}» en ${formatTime(time)}. Toca reproducir.`);
       }
       return true;
     }
@@ -5749,7 +5773,7 @@
         lyricsDelay = setTimeout(() => { if (state.currentTrack === track) showLyricsFor(track); }, 700);
       }
     } else {
-      renderLyrics('', 'Pulsa ▶ para escuchar; la letra aparecerá aquí.');
+      renderLyrics('', 'Toca reproducir y la letra aparecerá aquí.');
       lyricsDelay = setTimeout(() => { if (state.currentTrack === track) showLyricsFor(track); }, 3000);
     }
     highlightCurrent();
@@ -5788,7 +5812,7 @@
       if (quiet) return;
       console.error('[LiquidBullet] No se pudo reproducir:', error);
       if (error.name === 'NotAllowedError') {
-        showToast('El navegador bloqueó la reproducción automática. Pulsa ▶ para escuchar.');
+        showToast('El navegador bloqueó la reproducción automática. Toca reproducir para escuchar.');
       } else {
         showToast('No se pudo reproducir la canción. Revisa la URL del audio.');
       }
@@ -5885,7 +5909,7 @@
   function handleEnded() {
     if (sleep.endOfTrack) {
       finishSleep();
-      // La siguiente queda preparada (sin sonar): al pulsar ▶ o al volver a abrir sigue por ahí
+      // La siguiente queda preparada (sin sonar): al pulsar reproducir o al volver a abrir sigue por ahí
       const nextId = state.queue[state.queueIndex + 1];
       if (nextId && getTrack(nextId)) {
         state.queueIndex += 1;
@@ -5930,9 +5954,9 @@
     syncPlayButtons();
   }
 
-  /* ---------- Todos los botones de ▶ cambian a la vez ----------
+  /* ---------- Todos los botones de reproducir cambian a la vez ----------
      Cada botón «Reproducir» de una colección (playlist, artista, mix, Lab…) lleva
-     data-play-source; si es lo que suena, muestra ⏸ mientras suena y ▶ en pausa. */
+     data-play-source; si es lo que suena, muestra pausa mientras suena y reproducir en pausa. */
   function viewSource() {
     if (state.query.trim()) return `search:${normalize(state.query)}`;
     if (state.view === 'playlist') return `pl:${state.openPlaylist}`;
@@ -6154,7 +6178,7 @@
 
   function pickLyrics(entry) {
     if (!entry) return '';
-    if (entry.instrumental) return '[00:00.00] ♪ Instrumental ♪';
+    if (entry.instrumental) return '[00:00.00] Instrumental';
     return entry.syncedLyrics || entry.plainLyrics || '';
   }
 
@@ -6243,7 +6267,7 @@
       const p = document.createElement('p');
       p.className = 'lyric-line';
       p.dataset.index = String(i);
-      p.textContent = line.text || '♪';
+      p.textContent = line.text || '· · ·';
       p.title = `Ir a ${formatTime(line.time)}`;
       fragment.appendChild(p);
     });
@@ -6770,7 +6794,7 @@
   // pausa la música sin pasar por la app. Esa pausa se recuerda y la música vuelve sola en cuanto hay una
   // señal de que se puede: iOS avisa del fin de la interrupción (audioSession), Android devuelve el audio
   // tras sonidos cortos (notificaciones) y, en cualquier caso, al volver a Liquid Bullet (aunque sea un
-  // instante) o con ▶ de la pantalla de bloqueo / notificación, sin abrir la app.
+  // instante) o con reproducir en la pantalla de bloqueo / notificación, sin abrir la app.
   // Lo que no se hace: reintentar en bucle desde segundo plano. En Android eso le quita el audio a la otra
   // app (TikTok se pausaría cada pocos segundos) y desactiva la reanudación propia del navegador.
   const interruption = {
@@ -6881,7 +6905,7 @@
       previoustrack: () => prev(),
       nexttrack: () => next(true),
       // Sin «±10 s»: con esos dos, iPhone (y algunos Android) muestran adelantar/retrasar
-      // en la pantalla de bloqueo en lugar de ⏮ ⏭. Para moverse dentro de la canción queda la barra.
+      // en la pantalla de bloqueo en lugar de anterior y siguiente. Para moverse dentro de la canción queda la barra.
       seekbackward: null,
       seekforward: null,
       seekto: (details) => {
@@ -7281,7 +7305,7 @@
       queueTrack(addTarget, true);
     });
 
-    // Cola "A continuación": tocar una canción salta a ella; ✕ la quita
+    // Cola "A continuación": tocar una canción salta a ella; la X la quita
     els.queueBtn.addEventListener('click', () => { queueEditing = false; openQueue(); });
     els.queueEdit.addEventListener('click', () => {
       queueEditing = !queueEditing;
@@ -8205,7 +8229,7 @@
     function render() {
       if (!els.installNote) return;
       if (isStandalone()) {
-        els.installNote.textContent = 'Ya la estás usando como app instalada. ✓';
+        els.installNote.textContent = 'Ya la estás usando como app instalada.';
         els.installBtn.hidden = true;
         els.installSteps.hidden = true;
         return;
@@ -8461,6 +8485,7 @@
       if ((codigo === 'espera_reenvio' || codigo === 'demasiados_intentos') && e.extra?.esperar) texto += ` (${formatTime(e.extra.esperar)})`;
       return texto;
     };
+    const ico = (n, clase = '') => `<svg class="icon ${clase}" aria-hidden="true"><use href="#i-${n}"></use></svg>`;
     const esc = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const ocultarCorreo = (c) => String(c).replace(/^(.)[^@]*(@.*)$/, '$1•••$2');
 
@@ -8475,14 +8500,12 @@
 
     /* ---------- Avatar (con iconos de la colección) ---------- */
     const COLORES = ['#ff7ad9', '#7ef9ff', '#ffe27a', '#7a5cff', '#3ddc97', '#ff9f43'];
-    const ICONOS = ['song-40', 'song-42', 'song-44', 'song-07', 'song-21', 'song-33'];
-    const FONDOS = ['03', '07', '11'];
+    // Avatares: inicial con color o un icono de fondo (los iconos de canción son solo para sus canciones)
+    const FONDOS = ['01', '03', '05', '07', '09', '11', '12', '14'];
     function avatarHtml(avatar, nombre, clase = '') {
       const inicial = esc((nombre || sesion?.perfil?.correo || '?').trim().charAt(0).toUpperCase() || '?');
       const a = String(avatar || '');
-      if (a.startsWith('icono:')) return `<span class="cuenta-avatar ${clase}"><img src="covers/songs/${esc(a.slice(6))}-sm.jpg" alt=""></span>`;
       if (a.startsWith('fondo:')) return `<span class="cuenta-avatar ${clase}"><img src="wallpapers/icons/${esc(a.slice(6))}-thumb.jpg" alt=""></span>`;
-      if (a.startsWith('emoji:')) return `<span class="cuenta-avatar is-emoji ${clase}">${esc(a.slice(6))}</span>`;
       const color = a.startsWith('inicial:') ? a.slice(8) : COLORES[0];
       return `<span class="cuenta-avatar is-inicial ${clase}" style="--av:${esc(color)}">${inicial}</span>`;
     }
@@ -8527,19 +8550,15 @@
     const errorBox = '<p class="cuenta-error" role="alert" aria-live="assertive" hidden></p>';
     const botonPrincipal = (texto, accion) => `<button type="submit" class="btn btn-primary cuenta-cta" data-cuenta="${accion}"><span class="cuenta-cta-text">${texto}</span><span class="cuenta-cta-barra" aria-hidden="true"></span></button>`;
 
+    // Collage de la bienvenida con los fondos de la app (las portadas de playlist son solo para playlists)
     function collage() {
-      const pls = (typeof shownPls === 'function' ? shownPls(systemPlaylists()) : systemPlaylists()).filter((p) => p.cover?.src);
-      let top = pls;
-      try {
-        const p = tasteProfile();
-        top = pls.slice().sort((a, b) => p.genreN(b.name) - p.genreN(a.name));
-      } catch { /* sin perfil aún */ }
-      return top.slice(0, 3).map((pl, i) => `<img class="cuenta-collage-${i}" src="${esc(pl.cover.src.replace(/\.jpg$/, '-sm.jpg'))}" alt="" width="120" height="120" loading="lazy">`).join('');
+      const ids = seededShuffle(FONDOS, `collage-${todayKey()}`).slice(0, 3);
+      return ids.map((id, i) => `<img class="cuenta-collage-${i}" src="wallpapers/icons/${id}.jpg" alt="" width="120" height="120" loading="lazy">`).join('');
     }
 
     const CONOCE = [
-      ['⭐', 'Nuestra nota', 'nota'], ['🧰', 'Todo lo que trae', 'que-trae'], ['🧠', 'Cómo aprende de ti', 'algoritmo'],
-      ['🎨', 'Sus cuatro temas', 'temas'], ['💿', 'Playlists de autor', 'playlists'], ['⚖️', 'Frente a otras apps', 'comparativa'], ['❓', 'Preguntas', 'preguntas']
+      ['star', 'Nuestra nota', 'nota'], ['toolbox', 'Todo lo que trae', 'que-trae'], ['flask', 'Cómo aprende de ti', 'algoritmo'],
+      ['palette', 'Sus cuatro temas', 'temas'], ['disc', 'Playlists de autor', 'playlists'], ['scale', 'Frente a otras apps', 'comparativa'], ['question', 'Preguntas', 'preguntas']
     ];
 
     const PANTALLAS = {
@@ -8548,9 +8567,9 @@
         <div class="cuenta-collage" aria-hidden="true">${collage()}</div>
         <h3 class="cuenta-titulo">Tu música, en todos tus dispositivos</h3>
         <ul class="cuenta-ventajas">
-          <li><span aria-hidden="true">☁️</span> Nunca pierdes favoritas ni playlists.</li>
-          <li><span aria-hidden="true">📱</span> Lo mismo en tu teléfono y en tu compu.</li>
-          <li><span aria-hidden="true">✨</span> Tus mixes siguen aprendiendo de ti.</li>
+          <li>${ico('cloud')} Nunca pierdes favoritas ni playlists.</li>
+          <li>${ico('phone')} Lo mismo en tu teléfono y en tu compu.</li>
+          <li>${ico('spark')} Tus mixes siguen aprendiendo de ti.</li>
         </ul>
         <div class="cuenta-acciones">
           <button type="button" class="btn btn-primary cuenta-cta" data-cuenta="ir" data-ir="alta">Crear cuenta</button>
@@ -8558,8 +8577,8 @@
           <button type="button" class="btn btn-ghost" data-cuenta="sin-cuenta">Seguir sin cuenta</button>
         </div>
         <p class="cuenta-conoce-titulo">¿Primera vez? Conoce Liquid</p>
-        <div class="cuenta-conoce">${CONOCE.map(([ico, t, ancla]) => `<a class="cuenta-conoce-card" href="${REVIEW_URL}#${ancla}" target="_blank" rel="noopener"><span aria-hidden="true">${ico}</span>${t}</a>`).join('')}</div>
-        <p class="cuenta-pie">🔒 Opcional y sin anuncios. Sin cuenta, todo se guarda solo en este navegador. Tus datos no se venden ni se comparten.</p>`,
+        <div class="cuenta-conoce">${CONOCE.map(([i, t, ancla]) => `<a class="cuenta-conoce-card" href="${REVIEW_URL}#${ancla}" target="_blank" rel="noopener">${ico(i)}${t}</a>`).join('')}</div>
+        <p class="cuenta-pie">${ico('lock')} Opcional y sin anuncios. Sin cuenta, todo se guarda solo en este navegador. Tus datos no se venden ni se comparten.</p>`,
 
       alta: (d) => {
         const paso = d.pasoAlta || 1;
@@ -8579,7 +8598,7 @@
             <input type="email" name="usuario" autocomplete="username" value="${esc(d.correo || '')}" hidden>
             <label class="cuenta-campo"><span>Contraseña</span>
               <span class="cuenta-clave"><input name="clave" type="password" autocomplete="new-password" required minlength="10" autofocus>
-              <button type="button" class="icon-btn" data-cuenta="ver-clave" aria-label="Mostrar contraseña">👁</button></span>
+              <button type="button" class="icon-btn" data-cuenta="ver-clave" aria-label="Mostrar contraseña">${ico('eye')}</button></span>
             </label>
             <div class="cuenta-medidor" aria-hidden="true"><span></span></div>
             <p class="cuenta-medidor-texto" aria-live="polite">Mínimo 10 caracteres, con letras y números</p>
@@ -8597,7 +8616,7 @@
             </label>
             <p class="cuenta-label">Elige tu avatar</p>
             <div class="cuenta-avatares" role="radiogroup" aria-label="Avatar">
-              ${[...COLORES.slice(0, 4).map((c) => `inicial:${c}`), ...ICONOS.map((i) => `icono:${i}`), ...FONDOS.map((f) => `fondo:${f}`)]
+              ${[...COLORES.map((c) => `inicial:${c}`), ...FONDOS.map((f) => `fondo:${f}`)]
                 .map((a) => `<button type="button" role="radio" aria-checked="${a === (d.avatar || 'inicial:#ff7ad9')}" class="cuenta-avatar-op" data-cuenta="avatar" data-avatar="${esc(a)}">${avatarHtml(a, d.nombre || d.correo)}</button>`).join('')}
             </div>
             <label class="cuenta-check"><input type="checkbox" name="privacidad" required> <span>Acepto que mis favoritas, playlists, escucha y ajustes se guarden en el almacenamiento privado de Liquid Bullet. Puedo descargarlos o borrarlos cuando quiera.</span></label>
@@ -8613,7 +8632,7 @@
       codigo: (d) => `
         ${cabecera('Revisa tu correo', d.motivo === 'recuperar' ? 'recuperar' : 'alta-3')}
         <p class="cuenta-texto">Te enviamos un código de 6 dígitos a <b>${esc(ocultarCorreo(d.correo))}</b>.</p>
-        <p class="cuenta-aviso">📬 <b>Puede tardar un minuto y llegar a Spam o Promociones</b>: búscalo como <i>Liquid Bullet</i> (${CORREO_REMITENTE}).</p>
+        <p class="cuenta-aviso">${ico('mail')} <b>Puede tardar un minuto y llegar a Spam o Promociones</b>: búscalo como <i>Liquid Bullet</i> (${CORREO_REMITENTE}).</p>
         <form class="cuenta-form" data-form="codigo" novalidate>
           <div class="cuenta-gotas" role="group" aria-label="Código de 6 dígitos">
             ${Array.from({ length: 6 }, (_, i) => `<input class="cuenta-gota" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Dígito ${i + 1}" ${i === 0 ? 'autocomplete="one-time-code" autofocus' : 'autocomplete="off"'}>`).join('')}
@@ -8638,7 +8657,7 @@
           </label>
           <label class="cuenta-campo"><span>Contraseña</span>
             <span class="cuenta-clave"><input name="clave" type="password" autocomplete="current-password" required>
-            <button type="button" class="icon-btn" data-cuenta="ver-clave" aria-label="Mostrar contraseña">👁</button></span>
+            <button type="button" class="icon-btn" data-cuenta="ver-clave" aria-label="Mostrar contraseña">${ico('eye')}</button></span>
           </label>
           <div class="cuenta-robot"></div>
           ${errorBox}
@@ -8667,7 +8686,7 @@
           <input type="email" name="usuario" autocomplete="username" value="${esc(ui.datos.correo || '')}" hidden>
           <label class="cuenta-campo"><span>Contraseña nueva</span>
             <span class="cuenta-clave"><input name="clave" type="password" autocomplete="new-password" required minlength="10" autofocus>
-            <button type="button" class="icon-btn" data-cuenta="ver-clave" aria-label="Mostrar contraseña">👁</button></span>
+            <button type="button" class="icon-btn" data-cuenta="ver-clave" aria-label="Mostrar contraseña">${ico('eye')}</button></span>
           </label>
           <div class="cuenta-medidor" aria-hidden="true"><span></span></div>
           <p class="cuenta-medidor-texto" aria-live="polite">Mínimo 10 caracteres, con letras y números</p>
@@ -8679,9 +8698,9 @@
         ${cabecera('Une tus datos', '')}
         <p class="cuenta-texto">En este dispositivo tienes:</p>
         <ul class="cuenta-resumen">
-          <li>❤️ <b>${d.resumen?.favoritas || 0}</b> favoritas</li>
-          <li>🎵 <b>${d.resumen?.playlists || 0}</b> playlists propias</li>
-          <li>📊 <b>${d.resumen?.dias || 0}</b> días de escucha</li>
+          <li>${ico('heart')} <b>${d.resumen?.favoritas || 0}</b> favoritas</li>
+          <li>${ico('note')} <b>${d.resumen?.playlists || 0}</b> playlists propias</li>
+          <li>${ico('chart')} <b>${d.resumen?.dias || 0}</b> días de escucha</li>
         </ul>
         <div class="cuenta-acciones">
           <button type="button" class="btn btn-primary cuenta-cta" data-cuenta="unir">Unir con mi cuenta (recomendado)</button>
@@ -8696,7 +8715,7 @@
         ${cabecera('¡Listo!', '')}
         <div class="cuenta-miembro">
           ${avatarHtml(sesion?.perfil?.avatar, sesion?.perfil?.nombre, 'is-grande')}
-          <h3 class="cuenta-titulo">Hola${sesion?.perfil?.nombre ? `, ${esc(sesion.perfil.nombre)}` : ''} 👋</h3>
+          <h3 class="cuenta-titulo">Hola${sesion?.perfil?.nombre ? `, ${esc(sesion.perfil.nombre)}` : ''}</h3>
           <p class="cuenta-texto">Tu música ya está a salvo y te sigue a cualquier dispositivo.</p>
         </div>
         ${dnaHtml()}
@@ -8714,7 +8733,7 @@
         ${cabecera('Tu cuenta', '')}
         <div class="cuenta-perfil">
           ${avatarHtml(p.avatar, p.nombre, 'is-grande')}
-          <div><h3 class="cuenta-titulo">${esc(p.nombre || 'Sin nombre')}</h3><p class="cuenta-correo">${esc(p.correo || '')} <span class="cuenta-ok">✓</span></p></div>
+          <div><h3 class="cuenta-titulo">${esc(p.nombre || 'Sin nombre')}</h3><p class="cuenta-correo">${esc(p.correo || '')} <span class="cuenta-ok">${ico('check')}</span></p></div>
         </div>
         <div class="cuenta-tarjeta">
           <div><b>${esc(desde)}</b><span>miembro desde</span></div>
@@ -8731,7 +8750,7 @@
           <form class="cuenta-form" data-form="perfil" novalidate>
             <label class="cuenta-campo"><span>Nombre</span><input name="nombre" type="text" maxlength="40" value="${esc(p.nombre || '')}"></label>
             <div class="cuenta-avatares is-mini" role="radiogroup" aria-label="Avatar">
-              ${[...COLORES.map((c) => `inicial:${c}`), ...ICONOS.map((i) => `icono:${i}`), ...FONDOS.map((f) => `fondo:${f}`)]
+              ${[...COLORES.map((c) => `inicial:${c}`), ...FONDOS.map((f) => `fondo:${f}`)]
                 .map((a) => `<button type="button" role="radio" aria-checked="${a === p.avatar}" class="cuenta-avatar-op" data-cuenta="avatar" data-avatar="${esc(a)}">${avatarHtml(a, p.nombre)}</button>`).join('')}
             </div>
             ${errorBox}
@@ -8770,7 +8789,7 @@
       if (sync.estado === 'error') return `No se pudo sincronizar${sync.error ? `: ${sync.error}` : ''}. Se reintentará solo.`;
       if (!sync.ultima) return 'Aún sin sincronizar.';
       const seg = Math.max(0, Math.round(Date.now() / 1000 - sync.ultima));
-      return `✓ Al día · hace ${seg < 60 ? 'unos segundos' : seg < 3600 ? `${Math.round(seg / 60)} min` : `${Math.round(seg / 3600)} h`}`;
+      return `Al día · hace ${seg < 60 ? 'unos segundos' : seg < 3600 ? `${Math.round(seg / 60)} min` : `${Math.round(seg / 3600)} h`}`;
     }
 
     /* ---------- Comportamiento de cada pantalla ---------- */
@@ -8900,7 +8919,7 @@
       if (!lista) return;
       try {
         const d = await api('/yo/dispositivos', { metodo: 'GET', auth: true });
-        lista.innerHTML = d.dispositivos.map((x) => `<li class="cuenta-disp"><span>${/iPhone|Android|iPad/.test(x.nombre) ? '📱' : '💻'} <b>${esc(x.nombre)}</b> · ${x.actual ? 'este dispositivo' : `hace ${tiempoDesde(x.vista)}`}</span>${x.actual ? '' : `<button type="button" class="btn btn-ghost" data-cuenta="cerrar-disp" data-id="${esc(x.id)}">Cerrar</button>`}</li>`).join('');
+        lista.innerHTML = d.dispositivos.map((x) => `<li class="cuenta-disp"><span>${ico(/iPhone|Android|iPad/.test(x.nombre) ? 'phone' : 'laptop')} <b>${esc(x.nombre)}</b> · ${x.actual ? 'este dispositivo' : `hace ${tiempoDesde(x.vista)}`}</span>${x.actual ? '' : `<button type="button" class="btn btn-ghost" data-cuenta="cerrar-disp" data-id="${esc(x.id)}">Cerrar</button>`}</li>`).join('');
       } catch (e) {
         lista.innerHTML = `<li class="cuenta-texto">${esc(mensaje(e))}</li>`;
       }
@@ -9055,6 +9074,7 @@
         case 'ver-clave': {
           const input = target.parentElement.querySelector('input');
           input.type = input.type === 'password' ? 'text' : 'password';
+          target.innerHTML = ico(input.type === 'password' ? 'eye' : 'eye-off');
           target.setAttribute('aria-label', input.type === 'password' ? 'Mostrar contraseña' : 'Ocultar contraseña');
           ui.body.querySelector('.cuenta-ojos')?.classList.toggle('is-cerrados', input.type === 'password' && document.activeElement === input);
           break;
@@ -9089,7 +9109,7 @@
           barra.hidden = false;
           texto.textContent = accion === 'unir' ? 'Subiendo tus playlists y favoritas…' : 'Trayendo lo de tu cuenta…';
           const ok = await sincronizar({ reemplazar: accion === 'reemplazar', silencioso: true });
-          texto.textContent = ok ? '✓ Todo guardado' : 'No se pudo sincronizar ahora; se reintentará solo.';
+          texto.textContent = ok ? 'Todo guardado' : 'No se pudo sincronizar ahora; se reintentará solo.';
           setTimeout(bienvenidaMiembro, 600);
           break;
         }
@@ -9266,7 +9286,7 @@
       const locales = new Map(library.local.map((p) => [p.id, p]));
       library.local = lista.filter((p) => !p.x).map((p) => {
         const previa = locales.get(p.i) || {};
-        const pl = { ...previa, id: p.i, name: p.n, emoji: p.e || previa.emoji || '💿', color: p.c || previa.color || '#8a93a6',
+        const pl = { ...previa, id: p.i, name: p.n, emoji: iconoGuardable(p.e || previa.emoji), color: p.c || previa.color || '#8a93a6',
           trackIds: (p.k || []).map(aLargo).filter(Boolean), createdAt: p.cr || previa.createdAt || Date.now() };
         metaPl[p.i] = { h: String(hashString(huellaPl(pl))), t: p.t || 0 };
         return pl;
@@ -9500,7 +9520,7 @@
           taste.profile = null;
           updateCounts();
           renderList();
-          if (!silencioso) showToast('✓ Sincronizado');
+          if (!silencioso) showToast('Sincronizado');
           return true;
         } catch (e) {
           sync.estado = 'error';
@@ -9610,12 +9630,12 @@
         text: () => 'Combina estilos y artistas y Lab te arma una mezcla a medida. En «Si te gusta…» eliges un artista y te recomienda a quién escuchar después.',
         target: () => (isPhone() ? '.nav-btn[data-nav="lab"]' : '.tab[data-view="lab"]') },
       { icon: 'queue', title: 'El reproductor',
-        text: () => 'Transiciones DJ entre canciones, «A continuación» para ver y ordenar la cola, temporizador de apagado y letras sincronizadas. Cada playlist se puede descargar (⬇) para escucharla sin conexión.',
+        text: () => 'Transiciones DJ entre canciones, «A continuación» para ver y ordenar la cola, temporizador de apagado y letras sincronizadas. Cada playlist se puede descargar para escucharla sin conexión.',
         target: () => (isPhone() ? '.player .controls' : '.player-volume') },
       { icon: 'heart', title: 'Favoritas y Stats',
         text: () => (isPhone()
-          ? 'Toca la canción de abajo (o desliza hacia arriba) para abrir Sonando: ahí ♥ la guarda en Favoritas y ves la letra. En Stats ves tus minutos, estilos y artistas del mes.'
-          : 'Toca ♥ para guardar una canción en Favoritas. En Stats ves tus minutos, horas, estilos y artistas del mes.'),
+          ? 'Toca la canción de abajo (o desliza hacia arriba) para abrir Sonando: ahí el corazón la guarda en Favoritas y ves la letra. En Stats ves tus minutos, estilos y artistas del mes.'
+          : 'Toca el corazón para guardar una canción en Favoritas. En Stats ves tus minutos, horas, estilos y artistas del mes.'),
         target: () => (isPhone() ? '.player-track' : '.tab[data-view="favorites"]') },
       { icon: 'settings', title: 'Hazla tuya',
         text: () => 'En Ajustes eliges tema, letra, fondo de pantalla y ecualizador, y puedes volver a ver este tutorial. ¿Ideas o algún error? Escribe a officiallukamon@gmail.com (está abajo, en el panel Sonando).',
@@ -9835,6 +9855,13 @@
     library.local = Array.isArray(savedPlaylists)
       ? savedPlaylists.filter((p) => p && p.id && typeof p.name === 'string' && Array.isArray(p.trackIds))
       : [];
+    // Antes los iconos eran emojis: se pasan una vez a los iconos del sistema
+    let migradas = false;
+    library.local.forEach((p) => {
+      const nuevo = iconoGuardable(p.emoji);
+      if (nuevo !== p.emoji) { p.emoji = nuevo; migradas = true; }
+    });
+    if (migradas) storage.set(KEYS.playlists, library.local);
     const savedRecent = storage.get(KEYS.recent, []);
     library.recent = Array.isArray(savedRecent) ? savedRecent.map(String) : [];
     const savedPlays = storage.get(KEYS.plays, {});

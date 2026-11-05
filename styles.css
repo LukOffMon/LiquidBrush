@@ -2137,7 +2137,7 @@ body.is-offline .track:not(.is-downloaded) {
     font-size: 1.3rem;
   }
 
-  /* En el móvil solo se ve ＋ o ✕; el corazón sigue en la canción actual */
+  /* En el móvil solo se ve añadir o quitar; el corazón sigue en la canción actual */
   .track-actions .fav-btn:not(.is-active) {
     display: none;
   }
@@ -6215,7 +6215,7 @@ textarea {
 .update-notes li { margin: 3px 0; }
 .update-notes .update-date { opacity: .6; font-size: .75rem; }
 
-/* ---------- Inicio: lo que suena se ve (▶/⏸ sincronizados) ---------- */
+/* ---------- Inicio: lo que suena se ve (reproducir/pausa sincronizados) ---------- */
 .home-card.is-current .home-card-play { opacity: 1; transform: none; }
 .home-card.is-current .home-card-art { box-shadow: var(--shadow), 0 0 0 2px var(--accent); }
 .view-play.is-on, .home-hero.is-on .home-hero-play { animation: lb-pulse 2.4s ease-in-out infinite; }
@@ -6372,7 +6372,7 @@ textarea {
 .ultra img { image-rendering: auto; }
 
 /* ---------- Fluidez: cada toque responde como algo físico ----------
-   Presión suave (no un «salto» de juguete), rebote al soltar, ▶/⏸ que se transforma
+   Presión suave (no un «salto» de juguete), rebote al soltar, reproducir/pausa que se transforma
    y secciones de Inicio que entran en cascada. Todo se apaga con «Menos movimiento». */
 :root:not(.no-motion) .icon-btn:active:not(:disabled),
 :root:not(.no-motion) .nav-btn:active,
@@ -6396,7 +6396,7 @@ textarea {
 :root:not(.no-motion) .artist-card:active,
 :root:not(.no-motion) .lab-rec:active { transform: scale(0.96); transition-duration: 0.14s; }
 
-/* ▶ ⇄ ⏸ con un pequeño «latido» */
+/* Reproducir y pausa se transforman con un pequeño «latido» */
 :root:not(.no-motion) .play-btn .icon,
 :root:not(.no-motion) [data-play-source] .icon { transition: transform 0.4s var(--spring); }
 :root:not(.no-motion) body.is-playing #playBtn .icon,
@@ -6509,7 +6509,7 @@ textarea {
 .cuenta-reglas { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; font-size: .76rem; }
 .cuenta-reglas li { padding: 3px 9px; border-radius: 99px; background: var(--surface-2); opacity: .75; }
 .cuenta-reglas li.is-ok { opacity: 1; background: color-mix(in srgb, #3ddc97 22%, transparent); }
-.cuenta-reglas li.is-ok::before { content: '✓ '; }
+.cuenta-reglas li.is-ok::before { content: ''; display: inline-block; width: 4px; height: 8px; margin: 0 6px 2px 0; border: solid currentColor; border-width: 0 2px 2px 0; transform: rotate(45deg); }
 
 /* Código en gotas de cromo */
 .cuenta-gotas { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
@@ -6586,3 +6586,14 @@ textarea {
 
 .ultra .cuenta-collage, .ultra .cuenta-ojos { display: none; }
 .ultra .cuenta-btn::after { animation: none; }
+
+/* Iconos del sistema en lugar de emojis */
+.pl-glyph { width: 60%; height: 60%; }
+.trash-icon { display: inline-grid; place-items: center; width: 22px; height: 22px; margin-right: 6px; vertical-align: middle; }
+.trash-icon .icon { width: 18px; height: 18px; }
+.lab-recipe-icon .icon { width: 26px; height: 26px; color: var(--accent); }
+.cuenta-ventajas li .icon, .cuenta-resumen li .icon, .cuenta-aviso .icon, .cuenta-pie .icon, .cuenta-disp .icon { width: 18px; height: 18px; flex: none; vertical-align: -3px; color: var(--accent); }
+.cuenta-resumen li { display: flex; align-items: center; gap: 8px; }
+.cuenta-conoce-card .icon { width: 22px; height: 22px; color: var(--accent); }
+.cuenta-ok .icon { width: 14px; height: 14px; vertical-align: -2px; }
+.cuenta-clave .icon-btn .icon { width: 20px; height: 20px; }
