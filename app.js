@@ -2480,7 +2480,7 @@
   // Todos los artistas acreditados de una canción («A, B feat. C» → A, B, C). «&» no separa:
   // es parte del nombre de dúos como «Polo & Pan» o «DOMi & JD BECK»
   // Nombres que llevan coma y no son dos artistas
-  const COMMA_NAMES = ['Tyler, The Creator', 'Earth, Wind & Fire', 'Crosby, Stills, Nash & Young', 'Crosby, Stills & Nash'];
+  const COMMA_NAMES = ['Tyler, The Creator', 'Earth, Wind & Fire', 'Crosby, Stills, Nash & Young', 'Crosby, Stills & Nash', 'Black Country, New Road'];
   function creditedArtists(track) {
     let text = String(track?.knownArtist || '');
     COMMA_NAMES.forEach((name, i) => { text = text.replace(new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), `⟦${i}⟧`); });
