@@ -58,18 +58,18 @@ Si `lyrics` está vacío, la app busca la letra automáticamente en [LRCLIB](htt
 
 ## Continuar donde lo dejaste
 
-Al abrir la app vuelve a poner la última canción que sonaba, en el segundo exacto y con su cola («Continúa donde lo dejaste»); basta pulsar ▶. Se guarda cada pocos segundos, al pausar y al cerrar o esconder la app. Como todo lo personal de la app, vive en el navegador de cada persona (localStorage): cada navegador y cada dispositivo recuerda lo suyo.
+Al abrir la app vuelve a poner la última canción que sonaba, en el segundo exacto y con su cola («Continúa donde lo dejaste»); basta pulsar reproducir. Se guarda cada pocos segundos, al pausar y al cerrar o esconder la app. Como todo lo personal de la app, vive en el navegador de cada persona (localStorage): cada navegador y cada dispositivo recuerda lo suyo.
 
 ## Cola «A continuación» y temporizador
 
-- **A continuación** (botón de lista en el reproductor o tecla Q): muestra lo que va a sonar, permite saltar a cualquier canción o quitarla. Desde el botón ＋ de cualquier canción: **Reproducir a continuación** o **Al final de la cola**, sin cortar lo que suena.
+- **A continuación** (botón de lista en el reproductor o tecla Q): muestra lo que va a sonar, permite saltar a cualquier canción o quitarla. Desde el botón + de cualquier canción: **Reproducir a continuación** o **Al final de la cola**, sin cortar lo que suena.
 - **Temporizador** (luna en el reproductor o tecla T): pausa la música a los 15, 30, 45, 60 o 90 minutos, o al terminar la canción actual. El volumen baja poco a poco en los últimos segundos.
 
 ## Biblioteca, playlists y favoritas
 
 - **Biblioteca**: todas las canciones, con orden configurable (playlists, título, artista, duración).
 - **Playlists**: las de Liquid Bullet (las del catálogo o, sin catálogo, una por cada `album`), **Mis playlists** y las automáticas *Escuchadas hace poco* y *Tus más escuchadas*.
-- **Mis playlists** se crean en la app (nombre, icono y color) con el botón ＋ de cada canción. Se guardan **solo en ese navegador** (localStorage): si se borra la caché o los datos del sitio, se pierden. Se puede descargar o importar una copia de seguridad en JSON.
+- **Mis playlists** se crean en la app (nombre, icono y color) con el botón + de cada canción. Se guardan **solo en ese navegador** (localStorage): si se borra la caché o los datos del sitio, se pierden. Se puede descargar o importar una copia de seguridad en JSON.
 
 ## Inicio, Artistas y radio
 
@@ -83,16 +83,16 @@ Liquid funciona como Spotify, pero con tu colección de MP3: todo se calcula en 
   - **Porque escuchaste…** (tus artistas de estos días y sus parecidos), **Hecho para ti** (Radar de novedades, Descubre semanal, En repetición, Joyas olvidadas, De nuevo, tu día de la semana, Hace un año, Sin estrenar), **Artistas por descubrir**, artistas que sigues, **Radios** y **Explora tus estilos** (primero los tuyos).
 - **El algoritmo de Liquid** (todo en el navegador): segundos reales escuchados por canción y día con vida media de 14 días, las canciones que saltas antes de 30 s (cuentan en contra; terminarla recupera puntos), cuándo sonó cada una por última vez (`liquidbrush:heard`), favoritas, artistas que sigues, colaboraciones, estilo compartido y los artistas que escuchas los mismos días.
 - **Aleatorio sin repeticiones**: orden aleatorio ponderado en el que lo que sonó hace poco (horas o días) va al final y lo que saltas sale menos; nunca el mismo artista en las últimas canciones ni más de dos seguidas del mismo estilo, y la misma canción repetida suena una sola vez.
-- **Botones ▶ sincronizados**: el de la playlist, el del artista, los mixes de Inicio y Lab muestran ⏸ mientras suenan y, al tocarlos de nuevo, pausan o reanudan (no vuelven a empezar).
+- **Botones de reproducir sincronizados**: el de la playlist, el del artista, los mixes de Inicio y Lab muestran pausa mientras suenan y, al tocarlos de nuevo, pausan o reanudan (no vuelven a empezar).
 - **Artistas**: todos los artistas de la colección, primero los que sigues. Cada uno tiene su página con sus canciones, en qué playlists aparece, artistas parecidos, **Seguir** y **Radio**. Tocar el artista en Sonando abre su página; debajo de la letra está **Acerca del artista**.
-- **Radio**: empieza por un artista (o por una canción, desde el ＋) y se renueva sola con artistas parecidos, sin fin.
+- **Radio**: empieza por un artista (o por una canción, desde el +) y se renueva sola con artistas parecidos, sin fin.
 - **Buscar**: al tocar el buscador salen tus **búsquedas recientes** (con Borrar) y los estilos para explorar; los resultados muestran también artistas.
 - **A continuación**: botón **Editar** para reordenar arrastrando del asa, y abajo Aleatorio, Repetir y Temporizador.
 - **Portadas**: todas son imágenes. Las playlists usan `covers/cover-NN.jpg` (Escuchadas hace poco y Tus más escuchadas, `cover-27` y `cover-28`; Velo Sónico y Niebla Pesada, `cover-29` y `cover-30`; Vampiro Digital, Chicle Tóxico, Verso Azul, Otoño Modal, Café Lento y Beat Nipón, `cover-31` a `cover-36`; Sol Sintético, Londres Rosa, Ola Tibia, Cereza Suave, Terciopelo Azul, Luna Swing e Infierno Rosa, `cover-37` a `cover-43`). Cada canción lleva uno de los 44 iconos de [`covers/songs/`](covers/songs/), repartidos al azar y por igual entre las canciones que se ven (89 o 90 por icono; las copias ocultas llevan el icono de su original). `tools/build_catalog.py` guarda el reparto en `catalog.json`: cada canción conserva su icono y las nuevas reciben el menos usado. Para sumar iconos, añade `song-45.jpg` (600 px) y `song-45-sm.jpg` (320 px): al regenerar, algunas canciones pasan a los nuevos para que todos queden parejos. Los enlaces compartidos de canciones usan ese icono como miniatura.
 
 ## Compartir
 
-- Botón **Compartir** (flecha hacia arriba) en el panel Sonando, en cada playlist y en el ＋ de cada canción. Abre una **tarjeta con la portada** (tres fondos a elegir) para compartir como imagen en Historias o Estados, o guardarla, y los botones **Compartir enlace** y **Copiar enlace**.
+- Botón **Compartir** (flecha hacia arriba) en el panel Sonando, en cada playlist y en el + de cada canción. Abre una **tarjeta con la portada** (tres fondos a elegir) para compartir como imagen en Historias o Estados, o guardarla, y los botones **Compartir enlace** y **Copiar enlace**.
 - Cada canción y cada playlist de Liquid Bullet tiene su página en [`s/`](s/) con la portada en las etiquetas Open Graph, así **el enlace siempre sale con miniatura**. Las canciones usan la portada de su playlist. Quien lo abre entra directo a la app con esa canción lista o esa playlist abierta.
 - Las playlists propias viajan dentro del enlace (`s/mix.html#…`, hasta 150 canciones) y se guardan solas en «Mis playlists» de quien lo abre; su miniatura es el logo.
 - `tools/build_catalog.py` regenera las páginas de `s/` cada vez que se ejecuta. Si el sitio cambia de dirección, actualiza `SITE_URL` en ese script.
@@ -104,7 +104,7 @@ Pestaña **Lab** (en el móvil, botón de la barra inferior):
 - **Recetas** de un toque: Lo mejor de ti, Descubrimiento profundo, Joyas olvidadas, Para este momento, Un artista por canción y Sal de tu burbuja.
 - **Mezcla estilos** (primero los tuyos) y **suma artistas y canciones semilla** (una canción trae su artista, sus parecidos y su estilo).
 - **Ajustes**: duración en canciones (20–100) o minutos (30 min, 1 h, 2 h), **Descubrimiento** de «solo conocidas» a «solo nuevas», máximo por artista y orden **mezclada** o **viaje de estilos**.
-- El resultado se edita (✕ en cada canción), se reproduce, va **a la cola** o se **guarda como playlist propia**.
+- El resultado se edita (botón Quitar en cada canción), se reproduce, va **a la cola** o se **guarda como playlist propia**.
 - **Si te gusta…**: artistas parecidos (colaboraciones, estilo y lo que escuchas los mismos días), con botón Radio.
 - **Tu ADN musical**: tus estilos en porcentaje, cuántos artistas escuchas, cuánto es nuevo para ti y tu momento del día.
 
@@ -136,7 +136,7 @@ El script lee toda la Biblioteca (`musica/*.json`), quita duplicados y pone cada
 Liquid Bullet es una PWA: se instala desde el navegador, sin tienda de apps. Instalada abre a pantalla completa con su icono, sin barra del navegador, arranca al instante (la app vive en el teléfono gracias a `sw.js`) y el sistema la trata como una app de música (controles en la pantalla de bloqueo, sigue sonando con la pantalla apagada).
 
 - **Android** (Chrome, Edge, Samsung Internet): **Ajustes → App en tu teléfono → Instalar Liquid Bullet**, o el menú ⋮ → *Instalar app*. A partir de la segunda visita la app lo sugiere una vez.
-- **iPhone/iPad**: Compartir (□↑) → *Añadir a pantalla de inicio*. Apple no deja mostrar un botón de instalar: la app enseña los pasos en Ajustes.
+- **iPhone/iPad**: Compartir (el cuadrado con la flecha hacia arriba) → *Añadir a pantalla de inicio*. Apple no deja mostrar un botón de instalar: la app enseña los pasos en Ajustes.
 - Las actualizaciones llegan solas al abrirla (no hay que reinstalar).
 
 ## Modo ultraligero
@@ -149,7 +149,7 @@ Abre una playlist y toca el **ojo tachado**: deja de verse en Playlists, Inicio 
 
 ## Cuando otra app corta la música
 
-Si TikTok, Instagram o una llamada le quitan el audio, la música se pausa y Liquid Bullet lo recuerda. Vuelve a sonar sola cuando hay una señal de que se puede: en iPhone cuando iOS avisa que terminó la interrupción, en Android cuando el navegador devuelve el audio (sonidos cortos), y en todos los casos al volver a Liquid Bullet un instante o al pulsar ▶ en la pantalla de bloqueo o la notificación, sin abrir la app. No reanuda si se desconectaron los auriculares, ni tras más de 3 horas.
+Si TikTok, Instagram o una llamada le quitan el audio, la música se pausa y Liquid Bullet lo recuerda. Vuelve a sonar sola cuando hay una señal de que se puede: en iPhone cuando iOS avisa que terminó la interrupción, en Android cuando el navegador devuelve el audio (sonidos cortos), y en todos los casos al volver a Liquid Bullet un instante o al pulsar reproducir en la pantalla de bloqueo o la notificación, sin abrir la app. No reanuda si se desconectaron los auriculares, ni tras más de 3 horas.
 
 Lo que **no** puede hacer ninguna web (ni Spotify): enterarse de que cerraste TikTok si nadie la avisa. Android e iOS no le dicen a la app interrumpida que la otra terminó; reintentar en bucle le quitaría el audio a TikTok cada pocos segundos.
 
@@ -178,10 +178,12 @@ Sin cuenta, la app funciona igual que siempre (todo en el navegador). Con cuenta
 
 [`docs/verificacion-nombres.md`](docs/verificacion-nombres.md): las 3.931 canciones comparadas con Deezer (título, artista y duración), lo corregido y lo que queda por revisar a mano.
 
+[`docs/verificacion-audio.md`](docs/verificacion-audio.md): el audio de cada MP3 comprobado (huella acústica contra el fragmento oficial, video de origen y audios repetidos) y las 288 canciones quitadas por sonar a otra canción.
+
 ## Modo offline
 
 - La app se puede **instalar** (ver arriba) y abre sin conexión gracias a `sw.js`, que guarda la app y la última lista de canciones.
-- Cada playlist tiene un botón **⬇ Descargar**: guarda sus MP3 en el dispositivo para escucharlos sin internet. Púlsalo de nuevo para detener la descarga; cuando la playlist está completa, sirve para quitar las descargas.
+- Cada playlist tiene un botón **Descargar**: guarda sus MP3 en el dispositivo para escucharlos sin internet. Púlsalo de nuevo para detener la descarga; cuando la playlist está completa, sirve para quitar las descargas.
 - Sin conexión, las canciones no descargadas se ven atenuadas y se saltan al pasar a la siguiente.
 - Si el servidor del audio no envía CORS (el bucket de R2 sin política CORS), en Android y escritorio se guarda una copia "opaca" que igual suena sin conexión. Safari (iPhone/iPad) no reproduce copias opacas: para descargar ahí las canciones de Cloudflare hay que añadir la política CORS del bucket.
 - La app abre al instante con la biblioteca de la última visita (guardada en el navegador) y la actualiza en segundo plano; las listas largas se pintan por partes.
@@ -249,9 +251,9 @@ En las pestañas: ← / →, Inicio y Fin. La rueda del ratón sobre el volumen 
 
 Liquid está pensada primero para el móvil:
 
-- **Sonando a pantalla completa**: toca el mini-reproductor o deslízalo hacia arriba. Se cierra con ⌄, deslizando hacia abajo o con «Atrás». En horizontal se ve en dos columnas.
-- **Mini-reproductor de una fila** (portada, título, ▶ y ⏭) con la barra de progreso como una línea fina.
-- **Gestos**: desliza la portada a los lados para cambiar de canción; mantén pulsada una canción para abrir su menú ＋.
+- **Sonando a pantalla completa**: toca el mini-reproductor o deslízalo hacia arriba. Se cierra con la flecha hacia abajo, deslizando hacia abajo o con «Atrás». En horizontal se ve en dos columnas.
+- **Mini-reproductor de una fila** (portada, título, reproducir y siguiente) con la barra de progreso como una línea fina.
+- **Gestos**: desliza la portada a los lados para cambiar de canción; mantén pulsada una canción para abrir su menú +.
 - **Índice A–Z** a la derecha de la Biblioteca cuando se ordena por título o artista.
 - Avisos con **Deshacer** al quitar canciones o borrar playlists (pasan 30 días en la **Papelera**).
 
@@ -259,8 +261,8 @@ Liquid está pensada primero para el móvil:
 
 - **Búsqueda** por varias palabras, sin acentos, con erratas («gorilaz feel») y dentro de las letras ya guardadas.
 - **Inicio → Hecho para ti**: Novedades (lo que llegó desde tu última visita; también como número en el icono de la app instalada), Tu <día de la semana>, Hace un año y Sin estrenar.
-- **No me gusta** (en el ＋ de una canción): deja de salir en mixes, radios y Descubre.
-- **Añadir todas**: el botón ＋ junto a ▶ añade lo que estás viendo (búsqueda, filtro, artista) a una playlist.
+- **No me gusta** (en el + de una canción): deja de salir en mixes, radios y Descubre.
+- **Añadir todas**: el botón de añadir junto a reproducir añade lo que estás viendo (búsqueda, filtro, artista) a una playlist.
 - **Guardar la cola** como playlist (botón Guardar en «A continuación»).
 - **Exportar .m3u** de cualquier playlist e **importar** .m3u o texto con líneas «Artista - Título».
 - **Letras**: ajustar el desfase (±0,5 s, se recuerda por canción), Traducir y buscar en la web si no hay.

@@ -115,9 +115,9 @@ def main():
     if errors:
         print('\nErrores:')
         for e in errors:
-            print(f'  ✗ {e}')
+            print(f'  ERROR: {e}')
         sys.exit(1)
-    print('✓ Todo en orden')
+    print('OK: todo en orden')
 
 
 if __name__ == '__main__':

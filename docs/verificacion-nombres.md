@@ -1,5 +1,7 @@
 # Verificación de nombres de canciones (noviembre 2026)
 
+> Después se revisó también **el audio** de cada archivo: ver [verificacion-audio.md](verificacion-audio.md) (288 canciones quitadas por sonar a otra canción).
+
 Se comprobaron **las 3.931 filas** de `musica/*.json` contra el catálogo público de Deezer
 (búsqueda por artista + título; si no aparecía, búsqueda libre y luego solo por título),
 comparando título, artista y duración. El script y la caché quedaron fuera del repositorio;
