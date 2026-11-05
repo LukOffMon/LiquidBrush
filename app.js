@@ -88,7 +88,13 @@
     lyricsOffsets: 'liquidbrush:lyrics-offsets',
     errors: 'liquidbrush:errors',
     install: 'liquidbrush:install',
-    hidden: 'liquidbrush:hidden-playlists'
+    hidden: 'liquidbrush:hidden-playlists',
+    // Motor de gustos: cuándo sonó cada canción por última vez, saltos y lo último que pusiste
+    heard: 'liquidbrush:heard',
+    skips: 'liquidbrush:skips',
+    contexts: 'liquidbrush:contexts',
+    // Tras «Actualizar» con música sonando: vuelve a sonar sola después de recargar
+    resumeAutoplay: 'liquidbrush:resume-autoplay'
   };
 
   const LYRICS_API = 'https://lrclib.net/api';
@@ -176,7 +182,9 @@
     // Volumen elegido; cada reproductor lo multiplica por su ganancia de mezcla (DJ)
     volume: 0.8,
     lyrics: null,
-    activeLyric: -1
+    activeLyric: -1,
+    // Qué colección suena (para que todos sus botones ▶/⏸ cambien a la vez)
+    playSource: ''
   };
 
   /* ---------- Referencias al DOM ---------- */
@@ -305,6 +313,11 @@
     shuffleBtn: $('shuffleBtn'),
     prevBtn: $('prevBtn'),
     playBtn: $('playBtn'),
+    updateBanner: $('updateBanner'),
+    updateNow: $('updateNow'),
+    updateLater: $('updateLater'),
+    updateDetails: $('updateDetails'),
+    updateNotes: $('updateNotes'),
     nextBtn: $('nextBtn'),
     repeatBtn: $('repeatBtn'),
     currentTime: $('currentTime'),
@@ -558,18 +571,10 @@
 
   // Vibración corta (Android); iOS no deja vibrar desde la web
   function haptic(pattern = 10) {
+    if (settings.ultra) return;
     if (settings.haptics && typeof navigator.vibrate === 'function') {
       try { navigator.vibrate(pattern); } catch { /* sin permiso */ }
     }
-  }
-
-  function shuffleArray(list) {
-    const copy = list.slice();
-    for (let i = copy.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [copy[i], copy[j]] = [copy[j], copy[i]];
-    }
-    return copy;
   }
 
   const getTrack = (id) => state.trackMap.get(id);
@@ -697,6 +702,12 @@
       storage.set(KEYS.recent, library.recent);
     }
     Object.entries(aliases).forEach(([from, to]) => {
+      [taste.heard, taste.skips].forEach((map) => {
+        if (map[from] === undefined) return;
+        map[to] = Math.max(Number(map[to]) || 0, Number(map[from]) || 0);
+        delete map[from];
+        taste.dirty = true;
+      });
       if (library.plays[from]) {
         library.plays[to] = (library.plays[to] || 0) + library.plays[from];
         delete library.plays[from];
@@ -1109,28 +1120,120 @@
     return -1;
   }
 
+  // Actualizaciones: cuando se publica una versión nueva, sale un aviso con «Actualizar».
+  // El service worker nuevo espera (no se activa solo) hasta que lo pides; entonces se guarda
+  // la canción y el segundo exacto, se recarga y sigue donde ibas.
+  const updater = { registration: null, waiting: null, reloading: false };
+
+  function showUpdateBanner(worker) {
+    updater.waiting = worker;
+    if (!els.updateBanner) return;
+    els.updateBanner.hidden = false;
+    requestAnimationFrame(() => els.updateBanner.classList.add('is-visible'));
+  }
+
+  function hideUpdateBanner() {
+    if (!els.updateBanner) return;
+    els.updateBanner.classList.remove('is-visible');
+    els.updateBanner.hidden = true;
+  }
+
+  function applyUpdate() {
+    const worker = updater.waiting || updater.registration?.waiting;
+    state.resumeAfterReload = !els.audio.paused;
+    resume.save(true);
+    resume.flushQueue();
+    flushListening();
+    if (state.resumeAfterReload) storage.set(KEYS.resumeAutoplay, Date.now());
+    if (els.updateNow) {
+      els.updateNow.disabled = true;
+      els.updateNow.textContent = 'Actualizando…';
+    }
+    if (!worker) {
+      // Sin worker en espera (p. ej. ya se activó en otra pestaña): basta con recargar
+      location.reload();
+      return;
+    }
+    worker.postMessage({ type: 'SKIP_WAITING' });
+    // Por si el navegador no avisa del cambio, se recarga igual a los 3 s
+    setTimeout(() => { if (!updater.reloading) location.reload(); }, 3000);
+  }
+
+  async function renderPatchNotes(target = els.updateNotes) {
+    target.textContent = 'Cargando novedades…';
+    try {
+      const response = await fetch(`novedades.json?t=${Date.now()}`, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+      const releases = (Array.isArray(data.releases) ? data.releases : []).slice(0, 3);
+      if (!releases.length) throw new Error('vacío');
+      const parts = releases.map((release) => {
+        const block = document.createElement('section');
+        const title = makeEl('h4', '', release.title || 'Novedades');
+        if (release.date) title.append(' ', makeEl('span', 'update-date', release.date));
+        const listEl = document.createElement('ul');
+        (release.items || []).forEach((item) => listEl.append(makeEl('li', '', item)));
+        block.append(title, listEl);
+        return block;
+      });
+      target.replaceChildren(...parts);
+    } catch {
+      target.textContent = navigator.onLine
+        ? 'No se pudo cargar el detalle ahora. Actualiza y míralo en Ajustes → Ayuda → Novedades.'
+        : 'Sin conexión: las novedades se ven al volver a tener internet.';
+    }
+  }
+
+  function watchRegistration(registration) {
+    updater.registration = registration;
+    if (registration.waiting && navigator.serviceWorker.controller) showUpdateBanner(registration.waiting);
+    registration.addEventListener('updatefound', () => {
+      const worker = registration.installing;
+      if (!worker) return;
+      worker.addEventListener('statechange', () => {
+        // «installed» con una versión ya activa = hay una nueva esperando
+        if (worker.state === 'installed' && navigator.serviceWorker.controller) showUpdateBanner(worker);
+      });
+    });
+    // Busca versiones nuevas al volver a la app y cada 30 minutos
+    const check = () => { registration.update().catch(() => {}); };
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') check(); });
+    setInterval(check, 30 * 60000);
+  }
+
   function registerServiceWorker() {
     if (!('serviceWorker' in navigator) || !location.protocol.startsWith('http')) return;
-    navigator.serviceWorker.register('sw.js').catch((error) => {
-      console.warn('[LiquidBullet] No se pudo activar el modo offline.', error);
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+      .then(watchRegistration)
+      .catch((error) => {
+        console.warn('[LiquidBullet] No se pudo activar el modo offline.', error);
+      });
+
+    els.updateNow?.addEventListener('click', applyUpdate);
+    // Ajustes → Ayuda → Novedades de esta versión
+    const whatsNew = document.getElementById('whatsNew');
+    whatsNew?.addEventListener('toggle', () => {
+      const body = document.getElementById('whatsNewBody');
+      if (whatsNew.open && body && !body.childElementCount) renderPatchNotes(body);
+    });
+    // «¿Qué trae?»: el detalle del parche (novedades.json), oculto hasta que lo pides
+    els.updateDetails?.addEventListener('click', async () => {
+      const open = els.updateNotes.hidden;
+      els.updateNotes.hidden = !open;
+      els.updateDetails.setAttribute('aria-expanded', String(open));
+      els.updateDetails.textContent = open ? 'Ocultar' : '¿Qué trae?';
+      if (open && !els.updateNotes.childElementCount) await renderPatchNotes();
+    });
+    els.updateLater?.addEventListener('click', () => {
+      hideUpdateBanner();
+      showToast('Se actualizará la próxima vez que abras Liquid Bullet.');
     });
 
-    // Al publicarse una versión nueva, se recarga una vez (sin cortar la canción que suena)
     const hadController = Boolean(navigator.serviceWorker.controller);
-    let refreshing = false;
-    const reload = () => {
-      if (refreshing) return;
-      refreshing = true;
-      location.reload();
-    };
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (!hadController) return;
-      if (els.audio.paused) reload();
-      else {
-        showToast('Hay una versión nueva de Liquid Bullet: se aplicará al pausar.');
-        // Solo con una pausa tuya: si otra app corta el audio, recargar perdería la canción
-        state.reloadOnPause = reload;
-      }
+      if (!hadController || updater.reloading) return;
+      updater.reloading = true;
+      location.reload();
     });
   }
 
@@ -1231,6 +1334,7 @@
     storage.set(KEYS.recent, library.recent);
     storage.set(KEYS.plays, library.plays);
     countPlayInLog(id);
+    taste.markHeard(id);
     if (state.view === 'library') renderRecentRow();
   }
 
@@ -1821,8 +1925,17 @@
       const entry = dayEntry();
       entry.s[listen.pendingId] = Math.round((entry.s[listen.pendingId] || 0) + listen.pending);
       entry.h[new Date().getHours()] = Math.round(entry.h[new Date().getHours()] + listen.pending);
+      // Qué estilos suenan en cada momento del día (para «Tu daylist» y lo que te va ahora)
+      const track = getTrack(listen.pendingId);
+      if (track?.genre) {
+        const seg = String(daySegment());
+        entry.g = entry.g || {};
+        entry.g[seg] = entry.g[seg] || {};
+        entry.g[seg][track.genre] = Math.round((entry.g[seg][track.genre] || 0) + listen.pending);
+      }
       listen.pending = 0;
       listen.dirty = true;
+      taste.profile = null;
     }
     if (listen.dirty) saveListening();
   }
@@ -1841,6 +1954,244 @@
     listen.dirty = false;
   }
 
+  /* ---------- Motor de gustos: lo que de verdad escuchas ----------
+     El «algoritmo» de Liquid. Todo se calcula aquí, con lo que guarda este navegador:
+     - segundos escuchados por canción y día (lo reciente pesa más: vida media de 14 días)
+     - cuándo sonó cada canción por última vez (para no repetirla en aleatorio, mixes ni radios)
+     - las que saltas al poco de empezar (cuentan en contra), favoritas y artistas que sigues
+     - qué estilos pones en cada momento del día y qué artistas escuchas los mismos días */
+  const DAY_MS = 86400000;
+  const SEGMENTS = [
+    { name: 'madrugada', label: 'de madrugada' },
+    { name: 'mañana', label: 'por la mañana' },
+    { name: 'tarde', label: 'por la tarde' },
+    { name: 'noche', label: 'por la noche' }
+  ];
+  function daySegment(hour = new Date().getHours()) {
+    if (hour < 6) return 0;
+    if (hour < 12) return 1;
+    if (hour < 19) return 2;
+    return 3;
+  }
+
+  const taste = {
+    heard: {},
+    skips: {},
+    contexts: [],
+    dirty: false,
+    profile: null,
+    load() {
+      const heard = storage.get(KEYS.heard, {});
+      const skips = storage.get(KEYS.skips, {});
+      const contexts = storage.get(KEYS.contexts, []);
+      this.heard = heard && typeof heard === 'object' ? heard : {};
+      this.skips = skips && typeof skips === 'object' ? skips : {};
+      this.contexts = Array.isArray(contexts) ? contexts.filter((c) => c && c.key && c.title).slice(0, 12) : [];
+    },
+    save() {
+      if (!this.dirty) return;
+      // Solo lo de los últimos 90 días (y como mucho 2500 canciones)
+      const limit = Date.now() - 90 * DAY_MS;
+      this.heard = Object.fromEntries(Object.entries(this.heard)
+        .filter(([, t]) => t > limit).sort((a, b) => b[1] - a[1]).slice(0, 2500));
+      storage.set(KEYS.heard, this.heard);
+      storage.set(KEYS.skips, this.skips);
+      this.dirty = false;
+    },
+    touch() {
+      this.dirty = true;
+      this.profile = null;
+      this.save();
+    },
+    markHeard(id) {
+      this.heard[id] = Date.now();
+      this.touch();
+    },
+    // Saltar una canción al poco de empezar cuenta en contra (y cuenta como oída: no vuelve enseguida)
+    markSkip(id) {
+      this.skips[id] = Math.min(9, (Number(this.skips[id]) || 0) + 1);
+      this.heard[id] = Date.now();
+      this.touch();
+    },
+    // Escucharla entera le quita un salto
+    markFinished(id) {
+      if (!this.skips[id]) return;
+      this.skips[id] -= 1;
+      if (this.skips[id] <= 0) delete this.skips[id];
+      this.touch();
+    },
+    hoursSince(id) {
+      const time = Number(this.heard[id]);
+      return time ? (Date.now() - time) / 3600000 : Infinity;
+    },
+    // Lo último que pusiste (playlists, artistas, radios): accesos rápidos de Inicio
+    rememberContext(entry) {
+      if (!entry?.key) return;
+      this.contexts = [{ ...entry, at: Date.now() }, ...this.contexts.filter((c) => c.key !== entry.key)].slice(0, 12);
+      storage.set(KEYS.contexts, this.contexts);
+    }
+  };
+
+  // Cuánto «castigar» una canción que sonó hace poco (1 = nada)
+  function recencyFactor(id) {
+    const hours = taste.hoursSince(id);
+    if (hours < 3) return 0.03;
+    if (hours < 24) return 0.15;
+    if (hours < 72) return 0.45;
+    if (hours < 168) return 0.75;
+    return 1;
+  }
+
+  // Orden aleatorio ponderado (Efraimidis–Spirakis): más peso, más probable que salga antes
+  function weightedOrder(items, weightOf, rand = Math.random) {
+    return items
+      .map((item) => [item, Math.pow(rand() || 1e-9, 1 / Math.max(weightOf(item), 1e-4))])
+      .sort((a, b) => b[1] - a[1])
+      .map(([item]) => item);
+  }
+
+  const dayAge = (key, now = Date.now()) => {
+    const [y, m, d] = key.split('-').map(Number);
+    return (now - new Date(y, m - 1, d).getTime()) / DAY_MS;
+  };
+
+  function normalizedMap(map) {
+    let max = 0;
+    map.forEach((value) => { if (value > max) max = value; });
+    return (key) => (max > 0 ? Math.max(-1, (map.get(key) || 0) / max) : 0);
+  }
+
+  function tasteProfile() {
+    const stamp = `${state.libraryTracks.length}|${state.favorites.size}|${library.follows.length}|${disliked.size}`;
+    if (taste.profile && taste.profile.stamp === stamp && Date.now() - taste.profile.at < 10 * 60000) return taste.profile;
+    const now = Date.now();
+    const tracks = new Map();
+    const recentTracks = new Map();
+    const lastAge = new Map();
+    const segGenres = [new Map(), new Map(), new Map(), new Map()];
+    const dayArtists = [];
+    const momentum = new Map();
+    let weekSeconds = 0;
+
+    Object.entries(listen.log).forEach(([key, entry]) => {
+      const age = dayAge(key, now);
+      if (!(age >= -1 && age <= 120)) return;
+      const decay = Math.pow(0.5, age / 14);
+      const artistsToday = new Map();
+      Object.entries(entry.s || {}).forEach(([id, sec]) => {
+        const track = getTrack(id);
+        if (!track) return;
+        const full = Math.min(sec / (parseDuration(track.duration) || 200), 4);
+        tracks.set(id, (tracks.get(id) || 0) + full * decay);
+        if (age <= 30) recentTracks.set(id, (recentTracks.get(id) || 0) + full);
+        if (!lastAge.has(id) || lastAge.get(id) > age) lastAge.set(id, age);
+        const artist = artistKeyOf(track);
+        if (artist) artistsToday.set(artist, (artistsToday.get(artist) || 0) + sec);
+        if (age <= 3 && artist) momentum.set(artist, (momentum.get(artist) || 0) + sec * (1 - age / 4));
+        if (age < 7) weekSeconds += sec;
+      });
+      Object.entries(entry.g || {}).forEach(([seg, map]) => {
+        Object.entries(map || {}).forEach(([genre, sec]) => {
+          segGenres[seg]?.set(genre, (segGenres[seg].get(genre) || 0) + sec * decay);
+        });
+      });
+      if (artistsToday.size > 1) {
+        dayArtists.push([...artistsToday.entries()].filter(([, sec]) => sec >= 60).sort((a, b) => b[1] - a[1]).slice(0, 20).map(([k]) => k));
+      }
+    });
+    // Lo de siempre (contador de reproducciones), favoritas y saltos
+    Object.entries(library.plays).forEach(([id, n]) => {
+      if (state.trackMap.has(id)) tracks.set(id, (tracks.get(id) || 0) + Math.log1p(Number(n) || 0) * 0.35);
+    });
+    state.favorites.forEach((id) => { if (state.trackMap.has(id)) tracks.set(id, (tracks.get(id) || 0) + 1.5); });
+    Object.entries(taste.skips).forEach(([id, n]) => {
+      if (state.trackMap.has(id)) tracks.set(id, (tracks.get(id) || 0) - Number(n) * 0.6);
+    });
+    disliked.forEach((id) => tracks.delete(id));
+
+    const genres = new Map();
+    const artists = new Map();
+    tracks.forEach((score, id) => {
+      const track = getTrack(id);
+      if (track.genre) genres.set(track.genre, (genres.get(track.genre) || 0) + score);
+      creditedArtists(track).forEach((name, i) => {
+        const key = normalize(name);
+        if (key) artists.set(key, (artists.get(key) || 0) + score * (i === 0 ? 1 : 0.5));
+      });
+    });
+    library.follows.forEach((key) => artists.set(key, (artists.get(key) || 0) + 4));
+
+    // Artistas que escuchas los mismos días: tu propio «a quien le gusta X también escucha Y»
+    const coListen = new Map();
+    dayArtists.forEach((keys) => keys.forEach((a) => keys.forEach((b) => {
+      if (a === b) return;
+      if (!coListen.has(a)) coListen.set(a, new Map());
+      coListen.get(a).set(b, (coListen.get(a).get(b) || 0) + 1);
+    })));
+
+    const topArtists = [...artists.entries()].filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]).map(([k]) => k);
+    const profile = {
+      stamp, at: now, tracks, recentTracks, lastAge, genres, artists, segGenres, coListen, topArtists,
+      momentum: [...momentum.entries()].sort((a, b) => b[1] - a[1]).map(([k]) => k),
+      topGenres: [...genres.entries()].filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]).map(([g]) => g),
+      weekSeconds,
+      hasHistory: [...tracks.values()].filter((v) => v > 0).length >= 5,
+      trackN: normalizedMap(tracks),
+      artistN: normalizedMap(artists),
+      genreN: normalizedMap(genres),
+      related: new Map(),
+      relatedN: () => 0
+    };
+    taste.profile = profile;
+    // Afinidad «heredada»: artistas parecidos a los que más escuchas
+    topArtists.slice(0, 15).forEach((key, rank) => {
+      const weight = profile.artistN(key) * (1 - rank * 0.05);
+      similarArtists(key, 10).forEach((entry, i) => {
+        profile.related.set(entry.key, (profile.related.get(entry.key) || 0) + weight * (1 - i * 0.07));
+      });
+    });
+    profile.relatedN = normalizedMap(profile.related);
+    return profile;
+  }
+
+  // Cuánto te va a gustar una canción (aprox. de -1 a 3)
+  function trackAffinity(track, p = tasteProfile()) {
+    if (!track || isDisliked(track.id)) return -9;
+    const artist = artistKeyOf(track);
+    return p.trackN(track.id) * 0.9 + p.artistN(artist) * 0.8 + p.relatedN(artist) * 0.45 +
+      p.genreN(track.genre) * 0.5 - (Number(taste.skips[track.id]) || 0) * 0.25;
+  }
+
+  // Reparte una lista: sin el mismo artista en las últimas canciones (según cuántos haya)
+  // y sin encadenar más de dos del mismo estilo cuando se puede
+  function spaceOut(tracks, lookahead = 40) {
+    const distinct = new Set(tracks.map(artistKeyOf)).size;
+    const gap = Math.min(5, Math.max(0, distinct - 1));
+    const pending = tracks.slice();
+    const out = [];
+    const lastArtists = [];
+    while (pending.length) {
+      const tail = out.slice(-2);
+      const genreRun = tail.length === 2 && tail[0].genre && tail[0].genre === tail[1].genre ? tail[0].genre : '';
+      let pick = -1;
+      let fallback = -1;
+      const limit = Math.min(pending.length, lookahead);
+      for (let i = 0; i < limit; i++) {
+        if (lastArtists.includes(artistKeyOf(pending[i]))) continue;
+        if (fallback < 0) fallback = i;
+        if (genreRun && pending[i].genre === genreRun) continue;
+        pick = i;
+        break;
+      }
+      if (pick < 0) pick = fallback < 0 ? 0 : fallback;
+      const [track] = pending.splice(pick, 1);
+      out.push(track);
+      lastArtists.push(artistKeyOf(track));
+      if (lastArtists.length > gap) lastArtists.shift();
+    }
+    return out;
+  }
+
   /* ---------- Stats: hábitos de escucha del mes ---------- */
   const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
   const WEEKDAYS = ['domingos', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábados'];
@@ -1854,9 +2205,12 @@
   }
 
   // Artista principal (sin "ft." ni colaboradores) para agrupar
-  const mainArtist = (track) => (track?.knownArtist || '')
-    .replace(/\s*\b(ft|feat|featuring)\b\.?.*$/i, '')
-    .split(/,| x | & | y /i)[0].trim();
+  const mainArtist = (track) => {
+    const text = track?.knownArtist || '';
+    const named = COMMA_NAMES.find((name) => text.toLowerCase().startsWith(name.toLowerCase()));
+    if (named) return named;
+    return text.replace(/\s*\b(ft|feat|featuring)\b\.?.*$/i, '').split(/,| x | & | y /i)[0].trim();
+  };
 
   function aggregate(keys) {
     const result = { seconds: 0, plays: 0, perDay: [], hours: new Array(24).fill(0), weekdays: new Array(7).fill(0),
@@ -2078,39 +2432,61 @@
     panel.replaceChildren(tiles, grid, makeEl('p', 'pl-note', 'Tus estadísticas se calculan y guardan solo en este dispositivo.'));
   }
 
-  /* ---------- Lab: mezclas a medida y recomendaciones ---------- */
-  // Eliges estilos y artistas y Lab arma una playlist equilibrada; «Si te gusta…» sugiere
-  // artistas parecidos (colaboraciones y mismo estilo). Las elecciones se recuerdan aquí.
+  /* ---------- Lab: mezclas a medida, recetas y tu ADN musical ----------
+     - Recetas: mezclas listas de un toque, hechas con lo que escuchas.
+     - A medida: estilos + artistas + canciones semilla, cuánto conocido y cuánto nuevo,
+       cuántas canciones (o minutos), máximo por artista y orden (mezclada o viaje de estilos).
+     - El resultado se edita (quitar canciones), se reproduce, va a la cola o se guarda.
+     - «Si te gusta…» y «Tu ADN musical». Las elecciones se recuerdan en este navegador. */
   const LAB_SIZES = [20, 40, 60, 100];
+  const LAB_MINUTES = [30, 60, 120];
+  const LAB_CAPS = [1, 2, 3, 0];
+  const LAB_MIX_LABELS = ['Solo conocidas', 'Sobre todo conocidas', 'Mitad y mitad', 'Sobre todo nuevas', 'Solo nuevas'];
   const lab = {
     genres: [],
     artists: [],
+    seeds: [],
     size: 40,
-    fresh: false,
+    minutes: 0,
+    mix: 2,
+    cap: 3,
+    order: 'mix',
     result: [],
+    resultName: '',
     artistQuery: '',
+    songQuery: '',
     likeArtist: '',
     ...(() => {
       const saved = storage.get(KEYS.lab, {}) || {};
       return {
         genres: Array.isArray(saved.genres) ? saved.genres : [],
         artists: Array.isArray(saved.artists) ? saved.artists : [],
+        seeds: Array.isArray(saved.seeds) ? saved.seeds.slice(0, 5) : [],
         size: LAB_SIZES.includes(saved.size) ? saved.size : 40,
-        fresh: saved.fresh === true
+        minutes: LAB_MINUTES.includes(saved.minutes) ? saved.minutes : 0,
+        // Antes era un interruptor «solo lo que no he escuchado»
+        mix: Number.isInteger(saved.mix) && saved.mix >= 0 && saved.mix <= 4 ? saved.mix : saved.fresh === true ? 4 : 2,
+        cap: LAB_CAPS.includes(saved.cap) ? saved.cap : 3,
+        order: saved.order === 'journey' ? 'journey' : 'mix'
       };
     })()
   };
 
   function saveLab() {
-    storage.set(KEYS.lab, { genres: lab.genres, artists: lab.artists, size: lab.size, fresh: lab.fresh });
+    storage.set(KEYS.lab, { genres: lab.genres, artists: lab.artists, seeds: lab.seeds, size: lab.size, minutes: lab.minutes,
+      mix: lab.mix, cap: lab.cap, order: lab.order });
   }
 
   // Todos los artistas acreditados de una canción («A, B feat. C» → A, B, C). «&» no separa:
   // es parte del nombre de dúos como «Polo & Pan» o «DOMi & JD BECK»
+  // Nombres que llevan coma y no son dos artistas
+  const COMMA_NAMES = ['Tyler, The Creator', 'Earth, Wind & Fire', 'Crosby, Stills, Nash & Young', 'Crosby, Stills & Nash'];
   function creditedArtists(track) {
-    return String(track?.knownArtist || '')
+    let text = String(track?.knownArtist || '');
+    COMMA_NAMES.forEach((name, i) => { text = text.replace(new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), `⟦${i}⟧`); });
+    return text
       .split(/\s*(?:,|\bfeat\.?|\bft\.?|\bfeaturing\b)\s*/i)
-      .map((name) => name.trim())
+      .map((name) => name.replace(/⟦(\d+)⟧/g, (m, i) => COMMA_NAMES[i]).trim())
       .filter((name) => name.length > 1);
   }
 
@@ -2143,47 +2519,134 @@
       .filter((g) => g.count > 0);
   }
 
-  // Reparte por turnos entre los grupos elegidos y evita el mismo artista dos veces seguidas
-  function buildLabMix() {
+  // Canción semilla: su artista, sus parecidos y su estilo
+  function seedPool(track) {
     const artists = labArtists();
-    const pools = [];
-    lab.genres.forEach((genre) => pools.push(state.libraryTracks.filter((t) => t.genre === genre)));
-    lab.artists.forEach((key) => {
-      const entry = artists.get(key);
-      if (entry) pools.push(entry.tracks.slice());
-    });
+    const key = artistKeyOf(track);
+    const family = [artists.get(key), ...similarArtists(key, 8)].filter(Boolean).flatMap((entry) => entry.tracks);
+    const sameStyle = family.filter((t) => t.genre === track.genre);
+    return sameStyle.length >= 15 ? sameStyle : [...family, ...state.libraryTracks.filter((t) => t.genre === track.genre)];
+  }
+
+  // Reparte por turnos entre los grupos elegidos, con la proporción conocidas/nuevas pedida
+  function buildLabMix(groups = null) {
+    const p = tasteProfile();
+    const artists = labArtists();
+    const pools = groups || [
+      ...lab.genres.map((genre) => state.libraryTracks.filter((t) => t.genre === genre)),
+      ...lab.artists.map((key) => artists.get(key)?.tracks || []),
+      ...lab.seeds.map(getTrack).filter(Boolean).map(seedPool)
+    ];
     if (!pools.length) return [];
-    const plays = library.plays || {};
-    const ready = pools.map((pool) => {
-      let list = pool.filter(isPlayable);
-      if (lab.fresh) {
-        const unheard = list.filter((t) => !plays[t.id]);
-        if (unheard.length >= Math.min(8, list.length)) list = unheard;
-      }
-      return shuffleArray(list);
+    const freshShare = lab.mix / 4;
+    const ready = pools.map((pool, i) => {
+      const list = pool.filter((t) => isPlayable(t) && !isDisliked(t.id));
+      const rand = seededRandom(`${Date.now()}-${i}`);
+      return {
+        known: weightedOrder(list.filter((t) => isFamiliar(t, p)), likeWeight(p, 1.2), rand),
+        fresh: weightedOrder(list.filter((t) => !isFamiliar(t, p)),
+          (t) => Math.max(0.05, 0.4 + p.relatedN(artistKeyOf(t)) + Math.max(0, p.genreN(t.genre)) * 0.5), rand)
+      };
     });
     const picked = [];
+    const groupOf = new Map();
     const seen = new Set();
+    const perArtist = new Map();
+    let seconds = 0;
+    const full = () => (lab.minutes ? seconds >= lab.minutes * 60 : picked.length >= lab.size);
+    const take = (track, group) => {
+      if (seen.has(track.songKey)) return false;
+      const artist = artistKeyOf(track);
+      if (lab.cap && (perArtist.get(artist) || 0) >= lab.cap) return false;
+      seen.add(track.songKey);
+      perArtist.set(artist, (perArtist.get(artist) || 0) + 1);
+      picked.push(track);
+      groupOf.set(track.id, group);
+      seconds += parseDuration(track.duration) || 200;
+      return true;
+    };
+    // Las canciones semilla van primero
+    lab.seeds.map(getTrack).filter((t) => t && isPlayable(t)).forEach((t) => take(t, pools.length - lab.seeds.length));
     let round = 0;
-    while (picked.length < lab.size && ready.some((pool) => pool.length)) {
-      const pool = ready[round % ready.length];
+    let stalled = 0;
+    // Reparto exacto: cada canción suma su parte de «nueva»; al llegar a 1, toca una nueva
+    let freshDebt = Math.random() * freshShare;
+    while (!full() && stalled < ready.length) {
+      const group = round % ready.length;
+      const pool = ready[group];
       round++;
-      while (pool.length) {
-        const track = pool.shift();
-        if (seen.has(track.songKey)) continue;
-        seen.add(track.songKey);
-        picked.push(track);
+      freshDebt += freshShare;
+      const wantFresh = freshDebt >= 1;
+      if (wantFresh) freshDebt -= 1;
+      const order = wantFresh ? [pool.fresh, pool.known] : [pool.known, pool.fresh];
+      // «Solo conocidas» / «Solo nuevas» no rellenan con la otra mitad
+      if (lab.mix === 0) order.pop();
+      if (lab.mix === 4) order.pop();
+      let added = false;
+      for (const list of order) {
+        while (list.length && !added) added = take(list.shift(), group);
+        if (added) break;
+      }
+      stalled = added ? 0 : stalled + 1;
+    }
+    if (lab.order === 'journey') {
+      // Viaje de estilos: un bloque por grupo, cada uno bien repartido por dentro
+      return [...new Set(picked.map((t) => groupOf.get(t.id)))]
+        .flatMap((group) => spaceOut(picked.filter((t) => groupOf.get(t.id) === group)));
+    }
+    const seeds = picked.slice(0, lab.seeds.length);
+    return [...seeds, ...spaceOut(seededShuffle(picked.slice(seeds.length), String(Date.now())))];
+  }
+
+  // Recetas de un toque
+  const LAB_RECIPES = [
+    { id: 'best', icon: '🏆', name: 'Lo mejor de ti', hint: 'Tus favoritas y lo que más suena, sin lo de hoy' },
+    { id: 'deep', icon: '🧭', name: 'Descubrimiento profundo', hint: 'Solo canciones nuevas de artistas cercanos a los tuyos' },
+    { id: 'gems', icon: '💎', name: 'Joyas olvidadas', hint: 'Te encantaban y llevan semanas sin sonar' },
+    { id: 'daylist', icon: '🌗', name: 'Para este momento', hint: 'Lo que sueles poner a esta hora del día' },
+    { id: 'variety', icon: '🎨', name: 'Un artista por canción', hint: '60 canciones, ningún artista se repite' },
+    { id: 'surprise', icon: '🎲', name: 'Sal de tu burbuja', hint: 'Los estilos que menos escuchas' }
+  ];
+
+  function runRecipe(id) {
+    const p = tasteProfile();
+    const visible = labGenres().map((g) => g.name);
+    const top = p.topGenres.filter((g) => visible.includes(g));
+    const fallback = seededShuffle(visible, todayKey());
+    const keep = { genres: lab.genres, artists: lab.artists, seeds: lab.seeds, mix: lab.mix, cap: lab.cap, size: lab.size, minutes: lab.minutes, order: lab.order };
+    let result = [];
+    const recipe = LAB_RECIPES.find((r) => r.id === id);
+    const withSettings = (changes, groups = null) => {
+      Object.assign(lab, { artists: [], seeds: [], minutes: 0, order: 'mix' }, changes);
+      let out = buildLabMix(groups);
+      // Sin historial aún no hay «conocidas»: se completa con canciones nuevas
+      if (out.length < 10 && lab.mix === 0) {
+        lab.mix = 2;
+        out = buildLabMix(groups);
+      }
+      Object.assign(lab, keep);
+      return out;
+    };
+    switch (id) {
+      case 'best': result = withSettings({ genres: (top.length ? top : fallback).slice(0, 4), mix: 0, cap: 2, size: 40 }); break;
+      case 'deep': result = withSettings({ genres: (top.length ? top : fallback).slice(0, 5), mix: 4, cap: 1, size: 40 }); break;
+      case 'gems': result = forgottenGems(p); break;
+      case 'daylist': result = daylist(p)?.tracks || []; break;
+      case 'variety': result = withSettings({ genres: (top.length ? top : fallback).slice(0, 6), mix: 2, cap: 1, size: 60 }); break;
+      case 'surprise': {
+        const least = visible.filter((g) => !top.slice(0, 6).includes(g));
+        result = withSettings({ genres: seededShuffle(least.length ? least : visible, String(Date.now())).slice(0, 3), mix: 4, cap: 2, size: 40 });
         break;
       }
+      default: break;
     }
-    // Separa canciones seguidas del mismo artista cuando se puede
-    for (let i = 1; i < picked.length; i++) {
-      if (mainArtist(picked[i]) && mainArtist(picked[i]) === mainArtist(picked[i - 1])) {
-        const swap = picked.findIndex((t, j) => j > i && mainArtist(t) !== mainArtist(picked[i - 1]));
-        if (swap > -1) [picked[i], picked[swap]] = [picked[swap], picked[i]];
-      }
+    lab.result = result;
+    lab.resultName = recipe ? recipe.name : '';
+    if (!result.length) {
+      showToast(id === 'gems' ? 'Aún no hay joyas olvidadas: escucha más y vuelve en unas semanas.' : 'No hay canciones para esta receta todavía.');
     }
-    return picked;
+    renderLab();
+    scrollToLabResult();
   }
 
   // «Si te gusta X»: colaboradores pesan más; luego artistas del mismo estilo con más canciones
@@ -2193,6 +2656,9 @@
     if (!base) return [];
     const scores = new Map();
     base.partners.forEach((count, other) => scores.set(other, (scores.get(other) || 0) + 6 + count * 2));
+    // Lo que tú escuchas los mismos días que a este artista también cuenta
+    const together = taste.profile?.coListen?.get(key);
+    together?.forEach((days, other) => scores.set(other, (scores.get(other) || 0) + Math.min(days, 6) * 0.9));
     const baseTotal = base.tracks.length;
     artists.forEach((entry, other) => {
       if (other === key) return;
@@ -2211,13 +2677,7 @@
 
   // Sugerencia de partida: el artista que más escuchas
   function topListenedArtist() {
-    const counts = new Map();
-    Object.entries(library.plays || {}).forEach(([id, plays]) => {
-      const track = getTrack(id);
-      const key = normalize(mainArtist(track));
-      if (key) counts.set(key, (counts.get(key) || 0) + plays);
-    });
-    return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || '';
+    return tasteProfile().topArtists.find((key) => labArtists().has(key)) || '';
   }
 
   function labChip(label, action, value, active, extra = '') {
@@ -2239,105 +2699,204 @@
     return section;
   }
 
+  function labButton(className, action, label, icon, text) {
+    const button = makeButton(className, `lab-${action}`, label, icon, text);
+    button.dataset.labAction = action;
+    button.removeAttribute('data-action');
+    return button;
+  }
+
+  function labSearchInput(kind, value, placeholder, label) {
+    const input = document.createElement('input');
+    input.type = 'search';
+    input.className = 'lab-search';
+    input.placeholder = placeholder;
+    input.value = value;
+    input.dataset.labInput = kind;
+    input.setAttribute('aria-label', label);
+    input.autocomplete = 'off';
+    return input;
+  }
+
+  function labTrackRow(track, action, extraButton = null) {
+    const li = makeEl('li', 'lab-track');
+    const btn = makeEl('button', 'lab-track-btn');
+    btn.type = 'button';
+    btn.dataset.labAction = action;
+    btn.dataset.value = track.id;
+    const text = makeEl('span', 'lab-track-text');
+    text.append(makeEl('span', 'lab-track-title', track.title), makeEl('span', 'lab-track-artist', `${track.artist}${track.genre ? ` · ${track.genre}` : ''}`));
+    btn.append(photoImg(track.thumb, 40), text, makeEl('span', 'lab-track-time', track.duration || ''));
+    li.append(btn);
+    if (extraButton) li.append(extraButton);
+    return li;
+  }
+
+  // Tu ADN musical: tus estilos, cuánto exploras y cuándo escuchas
+  function renderDna(p) {
+    const section = labSection('Tu ADN musical', 'Así escuchas según este navegador. Cambia con lo que pongas.');
+    if (!p.hasHistory) {
+      section.append(makeEl('p', 'lab-hint', 'Escucha unas cuantas canciones y aquí verás tus estilos, cuánto exploras y a qué hora escuchas.'));
+      return section;
+    }
+    const genres = [...p.genres.entries()].filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]).slice(0, 6);
+    const total = genres.reduce((sum, [, v]) => sum + v, 0) || 1;
+    const bars = makeEl('div', 'dna-bars');
+    genres.forEach(([genre, value]) => {
+      const row = makeEl('div', 'dna-row');
+      const bar = makeEl('span', 'dna-bar');
+      bar.style.setProperty('--w', `${Math.max(4, Math.round((value / total) * 100))}%`);
+      row.append(makeEl('span', 'dna-name', genre), bar, makeEl('span', 'dna-pct', `${Math.round((value / total) * 100)}%`));
+      bars.append(row);
+    });
+    const recentArtists = new Set([...p.recentTracks.keys()].map((id) => artistKeyOf(getTrack(id))).filter(Boolean));
+    const ids = [...p.recentTracks.keys()];
+    const fresh = ids.filter((id) => (playsOf(id) || 0) <= 2).length;
+    const segTotals = p.segGenres.map((map) => [...map.values()].reduce((a, b) => a + b, 0));
+    const bestSeg = segTotals.indexOf(Math.max(...segTotals));
+    const facts = makeEl('div', 'dna-facts');
+    const fact = (value, label) => {
+      const el = makeEl('div', 'dna-fact');
+      el.append(makeEl('strong', '', value), makeEl('span', '', label));
+      return el;
+    };
+    facts.append(
+      fact(String(recentArtists.size), 'artistas en 30 días'),
+      fact(`${ids.length ? Math.round((fresh / ids.length) * 100) : 0}%`, 'de lo que oyes es nuevo para ti'),
+      fact(segTotals[bestSeg] > 0 ? SEGMENTS[bestSeg].name : '—', 'tu momento del día')
+    );
+    section.append(facts, bars);
+    return section;
+  }
+
   function renderLab() {
     const panel = els.labPanel;
     if (!state.libraryTracks.length) {
       panel.replaceChildren(makeEl('p', 'list-empty', 'Lab necesita la biblioteca: espera a que carguen las canciones.'));
       return;
     }
+    const p = tasteProfile();
     const artists = labArtists();
     const genres = labGenres();
     lab.genres = lab.genres.filter((g) => genres.some((x) => x.name === g));
     lab.artists = lab.artists.filter((a) => artists.has(a));
+    lab.seeds = lab.seeds.filter((id) => state.trackMap.has(id));
 
-    // 1. Estilos
+    // Recetas
+    const recipes = labSection('Recetas', 'Un toque y listo: hechas con lo que escuchas.');
+    const recipeGrid = makeEl('div', 'lab-recipes');
+    LAB_RECIPES.forEach((recipe) => {
+      const card = makeEl('button', 'lab-recipe');
+      card.type = 'button';
+      card.dataset.labAction = 'recipe';
+      card.dataset.value = recipe.id;
+      card.append(makeEl('span', 'lab-recipe-icon', recipe.icon), makeEl('span', 'lab-recipe-name', recipe.name), makeEl('span', 'lab-recipe-hint', recipe.hint));
+      recipeGrid.append(card);
+    });
+    recipes.append(recipeGrid);
+
+    // 1. Estilos (primero los tuyos)
     const styles = labSection('1 · Mezcla estilos', 'Elige uno o varios: Lab los combina por turnos.');
     const styleChips = makeEl('div', 'lab-chips');
-    genres.forEach((g) => {
+    genres.slice().sort((a, b) => p.genreN(b.name) - p.genreN(a.name)).forEach((g) => {
       const chip = labChip(g.name, 'genre', g.name, lab.genres.includes(g.name), String(g.count));
       chip.title = g.description;
       styleChips.append(chip);
     });
     styles.append(styleChips);
 
-    // 2. Artistas
-    const people = labSection('2 · Suma artistas', 'Opcional. Busca y toca para añadirlos a la mezcla.');
-    const search = document.createElement('input');
-    search.type = 'search';
-    search.className = 'lab-search';
-    search.placeholder = 'Buscar artista…';
-    search.value = lab.artistQuery;
-    search.dataset.labInput = 'artist';
-    search.setAttribute('aria-label', 'Buscar artista para la mezcla');
+    // 2. Artistas y canciones semilla
+    const people = labSection('2 · Suma artistas y canciones', 'Opcional. Una canción semilla trae su artista, sus parecidos y su estilo.');
     const q = normalize(lab.artistQuery);
     const ranked = [...artists.values()]
       .filter((a) => !q || a.key.includes(q))
-      .sort((a, b) => b.tracks.length - a.tracks.length)
-      .slice(0, q ? 30 : 24);
+      .sort((a, b) => (q ? 0 : (p.artistN(b.key) - p.artistN(a.key)) * 50) + (b.tracks.length - a.tracks.length))
+      .slice(0, q ? 30 : 20);
     const chosen = lab.artists.map((key) => artists.get(key)).filter(Boolean);
     const artistChips = makeEl('div', 'lab-chips');
     chosen.forEach((a) => artistChips.append(labChip(`✓ ${a.name}`, 'artist', a.key, true)));
     ranked.filter((a) => !lab.artists.includes(a.key)).forEach((a) => artistChips.append(labChip(a.name, 'artist', a.key, false, String(a.tracks.length))));
     if (!ranked.length && q) artistChips.append(makeEl('p', 'lab-hint', 'Ningún artista coincide.'));
-    people.append(search, artistChips);
+    const songSearch = labSearchInput('song', lab.songQuery, 'Buscar canción semilla…', 'Buscar canción semilla');
+    const seedList = makeEl('ul', 'lab-result lab-seeds');
+    lab.seeds.map(getTrack).filter(Boolean).forEach((t) => {
+      seedList.append(labTrackRow(t, 'seed', labButton('icon-btn lab-track-remove', 'seed', `Quitar ${t.title}`, 'close')));
+      seedList.lastChild.lastChild.dataset.value = t.id;
+    });
+    if (lab.songQuery.trim().length >= 2) {
+      searchTracks(state.libraryTracks, lab.songQuery).filter((t) => !lab.seeds.includes(t.id)).slice(0, 6)
+        .forEach((t) => seedList.append(labTrackRow(t, 'seed')));
+    }
+    people.append(labSearchInput('artist', lab.artistQuery, 'Buscar artista…', 'Buscar artista para la mezcla'), artistChips, songSearch, seedList);
 
-    // 3. Opciones y botón
+    // 3. Ajustes y botón
     const options = labSection('3 · Ajusta y crea');
-    const row = makeEl('div', 'lab-options');
-    const sizeWrap = makeEl('div', 'lab-sizes');
-    sizeWrap.setAttribute('role', 'group');
-    sizeWrap.setAttribute('aria-label', 'Tamaño de la mezcla');
-    LAB_SIZES.forEach((n) => sizeWrap.append(labChip(`${n} canciones`, 'size', String(n), lab.size === n)));
-    const fresh = labChip('Solo lo que no he escuchado', 'fresh', '1', lab.fresh);
-    row.append(sizeWrap, fresh);
-    const create = makeButton('btn btn-primary lab-create', 'lab-create', 'Crear la mezcla', 'shuffle', lab.result.length ? 'Otra mezcla' : 'Crear mezcla');
-    create.dataset.labAction = 'create';
-    create.removeAttribute('data-action');
-    const selected = lab.genres.length + lab.artists.length;
+    const group = (label, chips) => {
+      const wrap = makeEl('div', 'lab-option');
+      const chipsEl = makeEl('div', 'lab-sizes');
+      chipsEl.setAttribute('role', 'group');
+      chipsEl.setAttribute('aria-label', label);
+      chipsEl.append(...chips);
+      wrap.append(makeEl('span', 'lab-option-label', label), chipsEl);
+      return wrap;
+    };
+    const lengthChips = [
+      ...LAB_SIZES.map((n) => labChip(`${n}`, 'size', String(n), !lab.minutes && lab.size === n)),
+      ...LAB_MINUTES.map((m) => labChip(m < 60 ? `${m} min` : `${m / 60} h`, 'minutes', String(m), lab.minutes === m))
+    ];
+    const mixWrap = makeEl('div', 'lab-option');
+    const range = document.createElement('input');
+    range.type = 'range';
+    range.min = '0';
+    range.max = '4';
+    range.step = '1';
+    range.value = String(lab.mix);
+    range.className = 'range lab-range';
+    range.dataset.labInput = 'mix';
+    range.setAttribute('aria-label', 'Conocidas o nuevas');
+    range.setAttribute('aria-valuetext', LAB_MIX_LABELS[lab.mix]);
+    const rangeRow = makeEl('div', 'lab-range-row');
+    rangeRow.append(makeEl('span', 'lab-range-end', 'Conocidas'), range, makeEl('span', 'lab-range-end', 'Nuevas'));
+    mixWrap.append(makeEl('span', 'lab-option-label', `Descubrimiento · ${LAB_MIX_LABELS[lab.mix]}`), rangeRow);
+    options.append(
+      group('Duración', lengthChips),
+      mixWrap,
+      group('Máximo por artista', LAB_CAPS.map((n) => labChip(n ? String(n) : 'Sin límite', 'cap', String(n), lab.cap === n))),
+      group('Orden', [labChip('Mezclada', 'order', 'mix', lab.order === 'mix'), labChip('Viaje de estilos', 'order', 'journey', lab.order === 'journey')])
+    );
+    const selected = lab.genres.length + lab.artists.length + lab.seeds.length;
+    const create = labButton('btn btn-primary lab-create', 'create', 'Crear la mezcla', 'shuffle', lab.result.length && !lab.resultName ? 'Otra mezcla' : 'Crear mezcla');
     create.disabled = !selected;
-    const summary = makeEl('p', 'lab-hint', selected
-      ? `Mezclando: ${[...lab.genres, ...chosen.map((a) => a.name)].join(' + ')}`
-      : 'Elige al menos un estilo o un artista.');
+    const names = [...lab.genres, ...chosen.map((a) => a.name), ...lab.seeds.map(getTrack).filter(Boolean).map((t) => `«${splitTitle(t.title).main}»`)];
+    const summary = makeEl('p', 'lab-hint', selected ? `Mezclando: ${names.join(' + ')}` : 'Elige al menos un estilo, un artista o una canción.');
     const clear = makeEl('button', 'btn btn-ghost lab-clear', 'Limpiar');
     clear.type = 'button';
     clear.dataset.labAction = 'clear';
     clear.hidden = !selected;
     const actions = makeEl('div', 'lab-create-row');
     actions.append(create, clear);
-    options.append(row, actions, summary);
+    options.append(actions, summary);
 
-    const blocks = [styles, people, options];
+    const blocks = [recipes, styles, people, options];
 
     // Resultado
     if (lab.result.length) {
-      const result = labSection('Tu mezcla', `${songsLabel(lab.result.length)} · ${formatTotal(lab.result.reduce((s, t) => s + parseDuration(t.duration), 0))}`);
+      const total = lab.result.reduce((s, t) => s + parseDuration(t.duration), 0);
+      const known = lab.result.filter((t) => isFamiliar(t, p)).length;
+      const result = labSection(lab.resultName ? `Receta · ${lab.resultName}` : 'Tu mezcla',
+        `${songsLabel(lab.result.length)} · ${formatTotal(total)} · ${known} conocidas, ${lab.result.length - known} nuevas`);
       const bar = makeEl('div', 'lab-result-actions');
-      const play = makeButton('btn btn-primary', 'lab-play', 'Reproducir la mezcla', 'play', 'Reproducir');
-      play.dataset.labAction = 'play';
-      play.removeAttribute('data-action');
-      const save = makeButton('btn', 'lab-save', 'Guardar como playlist', 'playlist-add', 'Guardar como playlist');
-      save.dataset.labAction = 'save';
-      save.removeAttribute('data-action');
-      bar.append(play, save);
+      const play = markPlayable(labButton('btn btn-primary', 'play', 'Reproducir la mezcla', 'play', 'Reproducir'), 'lab:result', 'la mezcla');
+      bar.append(
+        play,
+        labButton('btn', 'queue', 'Añadir la mezcla a la cola', 'queue', 'A la cola'),
+        labButton('btn', 'save', 'Guardar como playlist', 'playlist-add', 'Guardar')
+      );
       const listEl = makeEl('ol', 'lab-result');
       lab.result.forEach((track) => {
-        const li = makeEl('li', 'lab-track');
-        const btn = makeEl('button', 'lab-track-btn');
-        btn.type = 'button';
-        btn.dataset.labAction = 'play-from';
-        btn.dataset.value = track.id;
-        const img = document.createElement('img');
-        img.src = track.thumb;
-        img.alt = '';
-        img.width = 40;
-        img.height = 40;
-        img.loading = 'lazy';
-        img.decoding = 'async';
-        const text = makeEl('span', 'lab-track-text');
-        text.append(makeEl('span', 'lab-track-title', track.title), makeEl('span', 'lab-track-artist', `${track.artist}${track.genre ? ` · ${track.genre}` : ''}`));
-        btn.append(img, text, makeEl('span', 'lab-track-time', track.duration || ''));
-        li.append(btn);
-        listEl.append(li);
+        const remove = labButton('icon-btn lab-track-remove', 'remove', `Quitar ${track.title} de la mezcla`, 'close');
+        remove.dataset.value = track.id;
+        listEl.append(labTrackRow(track, 'play-from', remove));
       });
       result.append(bar, listEl);
       blocks.push(result);
@@ -2360,38 +2919,44 @@
       card.dataset.labAction = 'rec-play';
       card.dataset.value = a.key;
       card.title = `Escuchar ${a.name}`;
-      const img = document.createElement('img');
-      img.src = a.tracks[0].thumb;
-      img.alt = '';
-      img.width = 56;
-      img.height = 56;
-      img.loading = 'lazy';
-      img.decoding = 'async';
       const top = [...a.genres.entries()].sort((x, y) => y[1] - x[1])[0]?.[0] || '';
       const text = makeEl('span', 'lab-rec-text');
-      text.append(makeEl('span', 'lab-rec-name', a.name), makeEl('span', 'lab-rec-meta', `${songsLabel(a.tracks.length)}${top ? ` · ${top}` : ''}`));
-      card.append(img, text);
+      const heard = p.artistN(a.key) > 0;
+      text.append(makeEl('span', 'lab-rec-name', a.name), makeEl('span', 'lab-rec-meta', `${songsLabel(a.tracks.length)}${top ? ` · ${top}` : ''}${heard ? '' : ' · nuevo para ti'}`));
+      card.append(photoImg(a.tracks[0].thumb, 56), text);
       recs.append(card);
     });
     if (!recs.childElementCount) recs.append(makeEl('p', 'lab-hint', 'No encontramos artistas parecidos todavía.'));
-    like.append(select, recs);
-    blocks.push(like);
+    const radio = makeButton('btn lab-like-radio', 'radio-artist', 'Radio de este artista', 'shuffle', 'Radio');
+    radio.dataset.value = lab.likeArtist;
+    const likeRow = makeEl('div', 'lab-like-row');
+    likeRow.append(select, radio);
+    like.append(likeRow, recs);
+    blocks.push(like, renderDna(p));
 
     panel.replaceChildren(...blocks);
+    syncPlayButtons(panel);
+  }
+
+  function scrollToLabResult() {
+    els.labPanel.querySelector('.lab-result:not(.lab-seeds)')?.closest('.lab-section')?.scrollIntoView({ behavior: settings.motion ? 'smooth' : 'auto', block: 'start' });
   }
 
   function labCreate() {
     lab.result = buildLabMix();
-    if (!lab.result.length) showToast('No hay canciones para esa combinación (¿sin conexión?).');
+    lab.resultName = '';
+    if (!lab.result.length) showToast('No hay canciones para esa combinación (¿sin conexión o todo escuchado?).');
     renderLab();
-    els.labPanel.querySelector('.lab-result')?.closest('.lab-section')?.scrollIntoView({ behavior: settings.motion ? 'smooth' : 'auto', block: 'start' });
+    scrollToLabResult();
   }
 
   function labName() {
+    if (lab.resultName) return `Lab · ${lab.resultName}`;
     const artists = labArtists();
-    const parts = [...lab.genres, ...lab.artists.map((key) => artists.get(key)?.name).filter(Boolean)];
+    const parts = [...lab.genres, ...lab.artists.map((key) => artists.get(key)?.name).filter(Boolean),
+      ...lab.seeds.map(getTrack).filter(Boolean).map((t) => splitTitle(t.title).main)];
     const name = parts.length > 2 ? `${parts.slice(0, 2).join(' + ')} y más` : parts.join(' + ');
-    return `Lab · ${name}`.slice(0, 60);
+    return `Lab · ${name || 'Mezcla'}`.slice(0, 60);
   }
 
   function handleLabAction(target) {
@@ -2399,16 +2964,33 @@
     const value = target.dataset.value;
     const toggle = (list, item) => (list.includes(item) ? list.filter((x) => x !== item) : [...list, item]);
     switch (action) {
+      case 'recipe': runRecipe(value); haptic(12); return;
       case 'genre': lab.genres = toggle(lab.genres, value); break;
       case 'artist': lab.artists = toggle(lab.artists, value); break;
-      case 'size': lab.size = Number(value); break;
-      case 'fresh': lab.fresh = !lab.fresh; break;
-      case 'clear': lab.genres = []; lab.artists = []; lab.result = []; break;
+      case 'seed':
+        lab.seeds = toggle(lab.seeds, value).slice(-5);
+        if (lab.seeds.includes(value)) lab.songQuery = '';
+        break;
+      case 'size': lab.size = Number(value); lab.minutes = 0; break;
+      case 'minutes': lab.minutes = Number(value); break;
+      case 'cap': lab.cap = Number(value); break;
+      case 'order': lab.order = value === 'journey' ? 'journey' : 'mix'; break;
+      case 'clear': lab.genres = []; lab.artists = []; lab.seeds = []; lab.result = []; lab.resultName = ''; break;
       case 'create': saveLab(); labCreate(); haptic(12); return;
       case 'play':
-        if (lab.result.length) playCollection(lab.result, lab.result.find(isPlayable)?.id, `Lab · ${labName().replace(/^Lab · /, '')}`);
+        if (state.currentTrack && state.playSource === 'lab:result') togglePlay();
+        else if (lab.result.length) playCollection(lab.result, lab.result.find(isPlayable)?.id, labName(), 'lab:result');
         return;
-      case 'play-from': playCollection(lab.result, value, labName()); return;
+      case 'play-from': playCollection(lab.result, value, labName(), 'lab:result'); return;
+      case 'remove': lab.result = lab.result.filter((t) => t.id !== value); renderLab(); return;
+      case 'queue':
+        if (!state.currentTrack) {
+          playCollection(lab.result, lab.result.find(isPlayable)?.id, labName(), 'lab:result');
+          return;
+        }
+        lab.result.forEach((t) => queueTrack(t.id, true, true));
+        showToast(`${songsLabel(lab.result.length)} al final de la cola.`);
+        return;
       case 'save': {
         if (!lab.result.length) return;
         const playlist = { id: newId(), name: labName(), emoji: '🧠', color: PLAYLIST_COLORS[lab.result.length % PLAYLIST_COLORS.length],
@@ -2422,7 +3004,7 @@
       case 'rec-play': {
         const entry = labArtists().get(value);
         if (!entry) return;
-        const tracks = shuffleArray(entry.tracks.filter(isPlayable));
+        const tracks = spaceOut(weightedOrder(entry.tracks.filter(isPlayable), (t) => recencyFactor(t.id)));
         if (tracks.length) playCollection(tracks, tracks[0].id, `Lab · Si te gusta ${artistName(lab.likeArtist)}: ${entry.name}`);
         return;
       }
@@ -2666,7 +3248,7 @@
       if (trashed) actions.append(makeButton('btn btn-ghost btn-small', 'open-trash', 'Recuperar playlists borradas', 'delete', `Papelera (${trashed})`));
     } else {
       actions.append(
-        makeButton('icon-btn play-btn view-play', 'play-view', 'Reproducir todo', 'play'),
+        markPlayable(makeButton('icon-btn play-btn view-play', 'play-view', 'Reproducir todo', 'play'), viewSource(), 'todo'),
         makeButton('icon-btn', 'shuffle-view', 'Reproducir en aleatorio', 'shuffle'),
         makeButton('icon-btn', 'add-all', 'Añadir todas estas canciones a una playlist', 'playlist-add')
       );
@@ -2708,7 +3290,7 @@
 
     const actions = makeEl('div', 'pl-actions');
     actions.append(
-      makeButton('icon-btn play-btn view-play', 'play-view', `Reproducir ${pl.name}`, 'play'),
+      markPlayable(makeButton('icon-btn play-btn view-play', 'play-view', `Reproducir ${pl.name}`, 'play'), `pl:${pl.key}`, pl.name),
       makeButton('icon-btn', 'shuffle-view', 'Reproducir en aleatorio', 'shuffle')
     );
     if (offline.supported && tracks.length) actions.append(makeButton('icon-btn playlist-download', 'download-playlist', 'Descargar', 'download'));
@@ -2872,7 +3454,7 @@
 
   /* ---------- Escuchadas hace poco (fila de portadas) ---------- */
   function renderRecentRow() {
-    const show = state.view === 'library' && !normalize(state.query);
+    const show = state.view === 'library' && !normalize(state.query) && !settings.ultra;
     const tracks = show ? library.recent.map(getTrack).filter(Boolean).slice(0, 12) : [];
     els.recentRow.hidden = !tracks.length;
     if (!tracks.length) {
@@ -2907,7 +3489,7 @@
   }
 
   // Reproduce una colección concreta (p. ej. el historial) como cola, sin cambiar de vista
-  function playCollection(tracks, startId, context) {
+  function playCollection(tracks, startId, context, source = `col:${context}`) {
     const start = getTrack(startId);
     if (!start) return;
     if (!isPlayable(start)) {
@@ -2915,6 +3497,7 @@
       return;
     }
     state.radio = null;
+    state.playSource = source;
     state.baseQueue = tracks.map((t) => t.id);
     state.queueContext = context;
     state.queue = state.baseQueue.slice();
@@ -3139,17 +3722,8 @@
   const getArtist = (key) => labArtists().get(key) || null;
   const isFollowing = (key) => library.follows.includes(key);
 
-  // Evita el mismo artista dos veces seguidas cuando se puede
-  function spreadArtists(tracks) {
-    const pending = tracks.slice();
-    const out = [];
-    while (pending.length) {
-      const last = out.length ? artistKeyOf(out[out.length - 1]) : '';
-      const index = pending.findIndex((t) => artistKeyOf(t) !== last);
-      out.push(pending.splice(index < 0 ? 0 : index, 1)[0]);
-    }
-    return out;
-  }
+  // Evita el mismo artista muy seguido (y rachas largas de un estilo) cuando se puede
+  const spreadArtists = (tracks) => spaceOut(tracks);
 
   // Cuánto te gusta cada estilo: escuchas y favoritas
   function genreScores() {
@@ -3165,55 +3739,10 @@
     return scores;
   }
 
-  // Mix diario: uno por estilo favorito, mitad conocidas y mitad por descubrir; cambia cada día
-  function dailyMixes() {
-    const scores = genreScores();
-    const playlists = shownPls(systemPlaylists()).filter((pl) => pl.trackIds.length);
-    const ranked = scores.size
-      ? playlists.slice().sort((a, b) => (scores.get(b.name) || 0) - (scores.get(a.name) || 0))
-      : seededShuffle(playlists, `mixes-${todayKey()}`);
-    return ranked.slice(0, 4).map((pl, i) => {
-      const tracks = playlistTracksOf(pl);
-      const known = tracks.filter((t) => (playsOf(t.id) || state.favorites.has(t.id)) && !isDisliked(t.id));
-      const fresh = tracks.filter((t) => !playsOf(t.id) && !state.favorites.has(t.id) && !isDisliked(t.id));
-      const pick = [
-        ...seededShuffle(known, `k${i}${todayKey()}`).slice(0, HOME_MIX_SIZE / 2),
-        ...seededShuffle(fresh, `f${i}${todayKey()}`)
-      ].slice(0, HOME_MIX_SIZE);
-      return { key: `mix-${i + 1}`, name: `Mix diario ${i + 1}`, sub: pl.name, cover: pl.cover, tracks: spreadArtists(seededShuffle(pick, `m${i}${todayKey()}`)) };
-    });
-  }
-
-  // Descubre semanal: canciones que aún no has oído, con más peso a tus estilos
-  function weeklyDiscover() {
-    const scores = genreScores();
-    const rand = seededRandom(`descubre-${weekKey()}`);
-    const ranked = state.libraryTracks
-      .filter((t) => !playsOf(t.id) && !state.favorites.has(t.id) && !isDisliked(t.id))
-      .map((t) => [t, rand() * (1 + Math.min(scores.get(t.genre) || 0, 40) / 8)])
-      .sort((a, b) => b[1] - a[1])
-      .map(([t]) => t);
-    const perArtist = new Map();
-    const out = [];
-    for (const track of ranked) {
-      const key = artistKeyOf(track);
-      if ((perArtist.get(key) || 0) >= 2) continue;
-      perArtist.set(key, (perArtist.get(key) || 0) + 1);
-      out.push(track);
-      if (out.length === HOME_MIX_SIZE) break;
-    }
-    return spreadArtists(out);
-  }
-
   // Artistas que más escuchas (o, sin historial, una selección del día)
   function topArtists(limit) {
-    const counts = new Map();
-    Object.entries(library.plays).forEach(([id, plays]) => {
-      const key = artistKeyOf(getTrack(id));
-      if (key) counts.set(key, (counts.get(key) || 0) + Number(plays || 0));
-    });
     const artists = labArtists();
-    let keys = [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([key]) => key).filter((key) => artists.has(key));
+    let keys = tasteProfile().topArtists.filter((key) => artists.has(key));
     if (keys.length < limit) {
       const extra = seededShuffle([...artists.values()].filter((a) => a.tracks.length >= 4).map((a) => a.key), `artistas-${todayKey()}`);
       keys = [...new Set([...keys, ...extra])];
@@ -3241,14 +3770,15 @@
       ...similar.flatMap((artist, i) => artist.tracks.map((t) => [t, 2 - i * 0.12]))
     ];
     const skip = new Set(exclude);
+    const profile = tasteProfile();
+    // Peso = cercanía al artista semilla × lo que te gusta × lo poco que ha sonado últimamente
     const pick = (allowRepeats) => {
       const used = new Set();
-      return pool
-        .filter(([t]) => (allowRepeats || !skip.has(t.id)) && isPlayable(t) && !isDisliked(t.id))
-        .map(([t, weight]) => [t, weight * (0.4 + Math.random()) * (playsOf(t.id) ? 0.85 : 1.1)])
-        .sort((a, b) => b[1] - a[1])
+      const candidates = pool.filter(([t]) => (allowRepeats || !skip.has(t.id)) && isPlayable(t) && !isDisliked(t.id)
+        && !used.has(t.songKey) && used.add(t.songKey));
+      return weightedOrder(candidates, ([t, weight]) => weight * (1 + Math.max(-0.6, trackAffinity(t, profile)) * 0.5)
+        * (allowRepeats ? 1 : recencyFactor(t.id)))
         .map(([t]) => t)
-        .filter((t) => !used.has(t.id) && used.add(t.id))
         .slice(0, RADIO_BATCH);
     };
     let tracks = pick(false);
@@ -3274,7 +3804,8 @@
       return;
     }
     if (state.shuffle) toggleShuffle();
-    playCollection(tracks, tracks[0].id, `Radio · ${entry.name}`);
+    playCollection(tracks, tracks[0].id, `Radio · ${entry.name}`, `radio:${seedKey}`);
+    taste.rememberContext({ key: `radio:${seedKey}`, kind: 'radio', value: seedKey, title: `Radio de ${entry.name}`, image: entry.tracks[0]?.thumb || '' });
     state.radio = { seed: seedKey };
     showToast(`Radio de ${entry.name}: se va renovando sola con artistas parecidos.`);
   }
@@ -3343,6 +3874,7 @@
     card.type = 'button';
     card.dataset.action = 'home-play';
     card.dataset.value = key;
+    markPlayable(card, `home:${key}`, title);
     card.setAttribute('aria-label', `Reproducir ${title}`);
     const art = makeEl('span', 'home-card-art');
     art.append(photoImg(image, 160), makeEl('span', 'home-card-label', title));
@@ -3368,21 +3900,136 @@
     return card;
   }
 
-  function quickTiles() {
-    const tiles = [];
-    const seen = new Set();
-    const add = (pl) => {
-      if (!pl || seen.has(pl.key) || !pl.trackIds.length || isHiddenPl(pl.key)) return;
-      seen.add(pl.key);
-      tiles.push(pl);
-    };
-    library.pins.forEach((key) => add(getPlaylist(key)));
-    localPlaylists().forEach(add);
-    const scores = genreScores();
-    systemPlaylists().filter((pl) => scores.get(pl.name)).sort((a, b) => scores.get(b.name) - scores.get(a.name)).forEach(add);
-    add(autoPlaylists()[0]);
-    seededShuffle(systemPlaylists(), `rapido-${todayKey()}`).forEach(add);
-    return tiles.slice(0, state.favorites.size ? 7 : 8);
+  // Elige n canciones de una lista con un aleatorio repetible (mismo día = misma elección),
+  // favoreciendo lo que más te gusta y lo que no ha sonado hace poco; máximo `perArtist` por artista
+  function pickTracks(list, n, seed, weightOf, perArtist = 3) {
+    const rand = seededRandom(seed);
+    const used = new Set();
+    const count = new Map();
+    const out = [];
+    for (const track of weightedOrder(list, weightOf, rand)) {
+      if (out.length >= n) break;
+      if (used.has(track.songKey)) continue;
+      const artist = artistKeyOf(track);
+      if ((count.get(artist) || 0) >= perArtist) continue;
+      used.add(track.songKey);
+      count.set(artist, (count.get(artist) || 0) + 1);
+      out.push(track);
+    }
+    return out;
+  }
+
+  const likeWeight = (p, boost = 1) => (t) => Math.max(0.05, 1 + trackAffinity(t, p) * boost) * recencyFactor(t.id);
+  const isFamiliar = (t, p) => p.trackN(t.id) > 0.02 || state.favorites.has(t.id);
+  const usable = (t) => !isDisliked(t.id);
+
+  // Mix diario: como los de Spotify, cada uno nace de un artista que escuchas mucho
+  // (sin repetir «familia» de artistas): mitad lo que ya te gusta, mitad parecidos por descubrir
+  function dailyMixes(p = tasteProfile()) {
+    const day = todayKey();
+    if (!p.hasHistory) {
+      const playlists = seededShuffle(shownPls(systemPlaylists()).filter((pl) => pl.trackIds.length), `mixes-${day}`);
+      return playlists.slice(0, 4).map((pl, i) => ({
+        key: `mix-${i + 1}`, name: `Mix diario ${i + 1}`, sub: pl.name, cover: coverSrcOf(pl.cover, false),
+        tracks: spaceOut(pickTracks(playlistTracksOf(pl).filter(usable), HOME_MIX_SIZE, `m${i}${day}`, () => 1))
+      }));
+    }
+    const artists = labArtists();
+    const covered = new Set();
+    const mixes = [];
+    for (const seed of p.topArtists) {
+      if (mixes.length >= 6) break;
+      if (covered.has(seed) || !artists.has(seed)) continue;
+      const family = [artists.get(seed), ...similarArtists(seed, 8)];
+      family.forEach((entry) => covered.add(entry.key));
+      const pool = family.flatMap((entry) => entry.tracks).filter(usable);
+      if (pool.length < 12) continue;
+      const known = pickTracks(pool.filter((t) => isFamiliar(t, p)), HOME_MIX_SIZE / 2, `k${seed}${day}`, likeWeight(p));
+      const fresh = pickTracks(pool.filter((t) => !isFamiliar(t, p)), HOME_MIX_SIZE - known.length, `f${seed}${day}`, likeWeight(p, 0.6));
+      const tracks = spaceOut(seededShuffle([...known, ...fresh], `m${seed}${day}`));
+      const names = [...new Set(tracks.map((t) => mainArtist(t)))].slice(0, 3);
+      const genre = [...artists.get(seed).genres.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+      const pl = shownPls(systemPlaylists()).find((x) => x.name === genre);
+      mixes.push({ key: `mix-${mixes.length + 1}`, name: `Mix diario ${mixes.length + 1}`, sub: `${names.join(', ')} y más`,
+        cover: coverSrcOf(pl?.cover, false) || tracks[0]?.cover, tracks });
+    }
+    return mixes;
+  }
+
+  // Tu daylist: lo que sueles poner a esta hora (estilos del momento del día), cambia 4 veces al día
+  function daylist(p = tasteProfile()) {
+    const seg = daySegment();
+    const segMap = p.segGenres[seg];
+    const ranked = segMap.size
+      ? [...segMap.entries()].sort((a, b) => b[1] - a[1]).map(([g]) => g)
+      : p.topGenres;
+    const visible = new Set(shownPls(systemPlaylists()).map((pl) => pl.name));
+    const genres = (ranked.length ? ranked : seededShuffle([...visible], `daylist-${todayKey()}-${seg}`))
+      .filter((g) => visible.has(g)).slice(0, 3);
+    if (!genres.length) return null;
+    const pool = state.libraryTracks.filter((t) => genres.includes(t.genre) && usable(t));
+    const seed = `daylist-${todayKey()}-${seg}`;
+    const known = pickTracks(pool.filter((t) => isFamiliar(t, p)), 20, `${seed}k`, likeWeight(p), 2);
+    const fresh = pickTracks(pool.filter((t) => !isFamiliar(t, p)), 40 - known.length, `${seed}f`, likeWeight(p, 0.7), 2);
+    const tracks = spaceOut(seededShuffle([...known, ...fresh], seed));
+    const weekday = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'][new Date().getDay()];
+    const pl = shownPls(systemPlaylists()).find((x) => x.name === genres[0]);
+    return { key: 'daylist', name: `Tu ${weekday} ${SEGMENTS[seg].label}`, genres, cover: coverSrcOf(pl?.cover, false), tracks };
+  }
+
+  // Selección rápida (como en YouTube Music): 16 canciones para empezar ya; cada una arranca su radio
+  function quickPicks(p = tasteProfile()) {
+    const seed = `picks-${todayKey()}-${Math.floor(new Date().getHours() / 3)}`;
+    const pool = state.libraryTracks.filter((t) => usable(t) && t.id !== state.currentTrack?.id);
+    const liked = pickTracks(pool.filter((t) => isFamiliar(t, p)), 10, `${seed}a`, likeWeight(p, 1.4), 1);
+    const taken = new Set(liked.map((t) => t.id));
+    const discover = pickTracks(pool.filter((t) => !taken.has(t.id) && !isFamiliar(t, p)), 16 - liked.length, `${seed}b`,
+      (t) => Math.max(0.05, 0.4 + p.relatedN(artistKeyOf(t)) + p.genreN(t.genre) * 0.6), 1);
+    return seededShuffle([...liked, ...discover], seed);
+  }
+
+  // Descubre semanal: canciones que nunca has oído de artistas cercanos a los tuyos
+  function weeklyDiscover(p = tasteProfile()) {
+    const pool = state.libraryTracks.filter((t) => !playsOf(t.id) && !p.tracks.has(t.id) && usable(t));
+    return spaceOut(pickTracks(pool, HOME_MIX_SIZE, `descubre-${weekKey()}`,
+      (t) => 0.15 + p.relatedN(artistKeyOf(t)) * 1.5 + Math.max(0, p.genreN(t.genre)) + Math.max(0, p.artistN(artistKeyOf(t))) * 0.6, 2));
+  }
+
+  // En repetición: lo que más has escuchado en los últimos 30 días
+  function onRepeat(p = tasteProfile()) {
+    return [...p.recentTracks.entries()].sort((a, b) => b[1] - a[1])
+      .map(([id]) => getTrack(id)).filter((t) => t && usable(t)).slice(0, HOME_MIX_SIZE);
+  }
+
+  // Joyas olvidadas: te gustaban mucho y llevan semanas sin sonar
+  function forgottenGems(p = tasteProfile()) {
+    return state.libraryTracks
+      .filter((t) => usable(t) && (playsOf(t.id) >= 3 || state.favorites.has(t.id)) && taste.hoursSince(t.id) > 21 * 24
+        && !((p.lastAge.get(t.id) ?? Infinity) < 21))
+      .sort((a, b) => (playsOf(b.id) + (state.favorites.has(b.id) ? 3 : 0)) - (playsOf(a.id) + (state.favorites.has(a.id) ? 3 : 0)))
+      .slice(0, HOME_MIX_SIZE);
+  }
+
+  // Radar: lo recién añadido, ordenado por lo que te va a gustar
+  function newRadar(p = tasteProfile()) {
+    return newArrivals().filter(usable).sort((a, b) => trackAffinity(b, p) - trackAffinity(a, p)).slice(0, 50);
+  }
+
+  // Artistas parecidos a los tuyos que aún no has escuchado
+  function artistsToDiscover(p = tasteProfile()) {
+    const artists = labArtists();
+    return [...p.related.entries()].sort((a, b) => b[1] - a[1])
+      .map(([key]) => artists.get(key))
+      .filter((entry) => entry && !(p.artistN(entry.key) > 0) && !isFollowing(entry.key))
+      .slice(0, 12);
+  }
+
+  // «Porque escuchaste X»: lo que más suena estos días, con sus parecidos
+  function becauseYouListened(p = tasteProfile()) {
+    const artists = labArtists();
+    const seeds = (p.momentum.length ? p.momentum : p.topArtists).filter((key) => artists.has(key)).slice(0, 2);
+    return seeds.map((key) => ({ seed: artists.get(key), similar: similarArtists(key, 8).filter((e) => e.tracks.length >= 2) }))
+      .filter((row) => row.similar.length >= 3);
   }
 
   function greeting() {
@@ -3393,9 +4040,118 @@
     return 'Buenas noches';
   }
 
+  function homeHeader(p) {
+    // El saludo ya está en la cabecera: aquí, un resumen de tu semana (lleva a Stats)
+    const head = makeEl('div', 'home-hello');
+    if (p.weekSeconds < 60) return null;
+    {
+      const top = p.momentum[0] && getArtist(p.momentum[0]);
+      const go = makeEl('button', 'home-week');
+      go.type = 'button';
+      go.dataset.action = 'go-view';
+      go.dataset.value = 'stats';
+      go.textContent = `Esta semana: ${formatTotal(p.weekSeconds)}${top ? ` · sobre todo ${top.name}` : ''}`;
+      head.append(go);
+    }
+    return head;
+  }
+
+  // Accesos rápidos: lo último que pusiste (como Spotify), fijadas, tus playlists y tus estilos
+  function quickTiles() {
+    const tiles = [];
+    const seen = new Set();
+    const add = (pl) => {
+      if (!pl || seen.has(pl.key) || !pl.trackIds.length || isHiddenPl(pl.key)) return;
+      seen.add(pl.key);
+      tiles.push({ kind: 'playlist', pl });
+    };
+    library.pins.forEach((key) => add(getPlaylist(key)));
+    taste.contexts.forEach((ctx) => {
+      if (tiles.length >= 8) return;
+      if (ctx.kind === 'playlist') add(getPlaylist(ctx.value));
+      else if ((ctx.kind === 'artist' || ctx.kind === 'radio') && getArtist(ctx.value) && !seen.has(ctx.key)) {
+        seen.add(ctx.key);
+        tiles.push({ kind: ctx.kind, ctx });
+      }
+    });
+    localPlaylists().forEach(add);
+    const scores = genreScores();
+    systemPlaylists().filter((pl) => scores.get(pl.name)).sort((a, b) => scores.get(b.name) - scores.get(a.name)).forEach(add);
+    add(autoPlaylists()[0]);
+    seededShuffle(systemPlaylists(), `rapido-${todayKey()}`).forEach(add);
+    return tiles.slice(0, state.favorites.size ? 7 : 8);
+  }
+
+  function quickTile(tile) {
+    const button = makeEl('button', 'home-tile');
+    button.type = 'button';
+    if (tile.kind === 'playlist') {
+      button.dataset.action = 'open-playlist';
+      button.dataset.key = tile.pl.key;
+      button.append(playlistCover(tile.pl, 56), makeEl('span', 'home-tile-name', tile.pl.name));
+      return button;
+    }
+    const entry = getArtist(tile.ctx.value);
+    button.dataset.action = tile.kind === 'radio' ? 'radio-artist' : 'open-artist';
+    button.dataset.value = entry.key;
+    button.classList.add(tile.kind === 'radio' ? 'is-radio' : 'is-artist');
+    button.append(photoImg(entry.tracks[0]?.thumb, 56, 'home-tile-photo'), makeEl('span', 'home-tile-name', tile.ctx.title));
+    return button;
+  }
+
+  function quickPicksSection(picks) {
+    const section = homeSection('Selección rápida', 'Toca una y sigue con una radio a partir de ella.');
+    const grid = makeEl('div', 'qp-grid');
+    picks.forEach((track) => {
+      const item = makeEl('button', 'qp-item');
+      item.type = 'button';
+      item.dataset.action = 'home-pick';
+      item.dataset.value = track.id;
+      item.setAttribute('aria-label', `${track.title}, de ${track.artist}: empezar radio`);
+      const text = makeEl('span', 'qp-text');
+      text.append(makeEl('span', 'qp-title', splitTitle(track.title).main), makeEl('span', 'qp-artist', track.knownArtist || track.artist));
+      item.append(photoImg(track.thumb, 48, 'qp-cover'), text);
+      grid.append(item);
+    });
+    section.append(grid);
+    return section;
+  }
+
+  function heroCard(mix) {
+    const hero = makeEl('button', 'home-hero');
+    hero.type = 'button';
+    hero.dataset.action = 'home-play';
+    hero.dataset.value = mix.key;
+    home.collections.set(mix.key, { title: mix.name, tracks: mix.tracks });
+    markPlayable(hero, `home:${mix.key}`, mix.name);
+    const art = photoImg(mix.cover || mix.tracks[0]?.cover, 140, 'home-hero-art');
+    const text = makeEl('span', 'home-hero-text');
+    text.append(
+      makeEl('span', 'home-hero-eyebrow', 'Tu daylist · cambia con el día'),
+      makeEl('span', 'home-hero-title', mix.name),
+      makeEl('span', 'home-hero-sub', `${mix.genres.join(' · ')} · ${songsLabel(mix.tracks.length)}`)
+    );
+    const play = makeEl('span', 'home-hero-play');
+    play.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-play"></use></svg>';
+    hero.append(art, text, play);
+    return hero;
+  }
+
+  function cardRow(title, hint, cards, extraClass = '') {
+    const list = cards.filter(Boolean);
+    if (!list.length) return null;
+    const section = homeSection(title, hint);
+    const row = makeEl('div', `home-row ${extraClass}`.trim());
+    row.append(...list);
+    section.append(row);
+    return section;
+  }
+
   function renderHome() {
     home.collections.clear();
-    const parts = [];
+    const p = tasteProfile();
+    const lite = settings.ultra;
+    const parts = [homeHeader(p)];
 
     // Accesos rápidos
     const quick = makeEl('div', 'home-quick');
@@ -3407,65 +4163,64 @@
       fav.append(playlistCover({ kind: 'auto', trackIds: [...state.favorites], cover: null }, 56), makeEl('span', 'home-tile-name', 'Tus favoritas'));
       quick.append(fav);
     }
-    quickTiles().forEach((pl) => {
-      const tile = makeEl('button', 'home-tile');
-      tile.type = 'button';
-      tile.dataset.action = 'open-playlist';
-      tile.dataset.key = pl.key;
-      tile.append(playlistCover(pl, 56), makeEl('span', 'home-tile-name', pl.name));
-      quick.append(tile);
-    });
+    quickTiles().forEach((tile) => quick.append(quickTile(tile)));
     parts.push(quick);
 
+    // Tu daylist (lo que te va a esta hora)
+    const day = daylist(p);
+    if (day && day.tracks.length >= 8) parts.push(heroCard(day));
+
+    // Selección rápida
+    const picks = quickPicks(p);
+    if (picks.length >= 4) parts.push(quickPicksSection(picks));
+
     // Mixes del día
-    const mixes = dailyMixes();
-    if (mixes.length) {
-      const section = homeSection('Tus mixes del día', 'Mitad lo que ya te gusta, mitad por descubrir. Cambian cada día.');
-      const row = makeEl('div', 'home-row');
-      mixes.forEach((mix) => row.append(collectionCard(mix.key, mix.name, mix.sub, coverSrcOf(mix.cover, false), mix.tracks)));
-      section.append(row);
-      parts.push(section);
+    const mixes = dailyMixes(p);
+    parts.push(cardRow('Tus mixes del día', p.hasHistory
+      ? 'Uno por cada «familia» de artistas que escuchas: mitad conocidas, mitad parecidas por descubrir.'
+      : 'Escucha un poco y se adaptarán a ti. Cambian cada día.',
+    mixes.map((mix) => collectionCard(mix.key, mix.name, mix.sub, mix.cover, mix.tracks))));
+
+    // Porque escuchaste…
+    if (!lite) {
+      becauseYouListened(p).forEach((row) => {
+        parts.push(cardRow(`Porque escuchaste ${row.seed.name}`, '', row.similar.map((entry) => {
+          const tracks = spaceOut(pickTracks(entry.tracks.filter(usable), 25, `like-${entry.key}-${todayKey()}`, likeWeight(p), 25));
+          return tracks.length ? collectionCard(`like-${entry.key}`, entry.name, entry.name, tracks[0].cover, tracks) : null;
+        })));
+      });
     }
 
-    // Descubre semanal y recién escuchadas
-    const discover = weeklyDiscover();
+    // Hecho para ti
+    const made = [];
+    const add = (key, title, sub, list, image) => {
+      if (list.length >= 3) made.push(collectionCard(key, title, sub, image || list[0].cover, list));
+    };
+    const fresh = newRadar(p);
+    add('fresh', 'Radar de novedades', 'Lo nuevo, primero lo más tuyo', fresh);
+    add('discover', 'Descubre', 'Descubre semanal', weeklyDiscover(p));
+    add('top', 'En repetición', 'Tu último mes', onRepeat(p), coverSrcOf(autoPlaylists()[1].cover, false));
+    add('gems', 'Joyas olvidadas', 'Te encantaban y llevan semanas sin sonar', forgottenGems(p));
     const recent = library.recent.map(getTrack).filter(Boolean).slice(0, HOME_MIX_SIZE);
-    const top = autoPlaylists()[1];
-    const special = homeSection('Hecho para ti', 'Con lo que suena en tu colección.');
-    const specialRow = makeEl('div', 'home-row');
-    if (discover.length) specialRow.append(collectionCard('discover', 'Descubre', 'Descubre semanal', discover[0].cover, discover));
-    if (recent.length) specialRow.append(collectionCard('recent', 'De nuevo', 'Escuchadas hace poco', coverSrcOf(autoPlaylists()[0].cover, false), recent));
-    const topTracks = playlistTracksOf(top);
-    if (topTracks.length) specialRow.append(collectionCard('top', 'En repetición', 'Tus más escuchadas', coverSrcOf(top.cover, false), topTracks));
-    const fresh = newArrivals();
-    if (fresh.length) specialRow.prepend(collectionCard('fresh', 'Novedades', 'Añadidas este mes', fresh[0].cover, fresh.slice(0, 100)));
-    const weekday = weekdayMix();
-    if (weekday.tracks.length >= 5) specialRow.append(collectionCard('weekday', weekday.label, `Lo que sueles oír los ${weekday.plural}`, weekday.tracks[0].cover, weekday.tracks));
-    const yearAgo = yearAgoTracks();
-    if (yearAgo.length >= 3) specialRow.append(collectionCard('year-ago', 'Hace un año', 'Lo que sonaba por estas fechas', yearAgo[0].cover, yearAgo));
-    const unheard = neverHeard();
-    if (unheard.length) specialRow.append(collectionCard('unheard', 'Sin estrenar', 'Nunca las has escuchado', unheard[0].cover, unheard));
-    if (specialRow.children.length) {
-      special.append(specialRow);
-      parts.push(special);
+    add('recent', 'De nuevo', 'Escuchadas hace poco', recent, coverSrcOf(autoPlaylists()[0].cover, false));
+    if (!lite) {
+      const weekday = weekdayMix();
+      if (weekday.tracks.length >= 5) add('weekday', weekday.label, `Lo que sueles oír los ${weekday.plural}`, weekday.tracks);
+      add('year-ago', 'Hace un año', 'Lo que sonaba por estas fechas', yearAgoTracks());
     }
+    add('unheard', 'Sin estrenar', 'Nunca las has escuchado', neverHeard());
+    parts.push(cardRow('Hecho para ti', 'Con lo que de verdad escuchas: se actualiza solo.', made));
 
-    // Artistas que sigues
-    const followed = library.follows.map(getArtist).filter(Boolean);
-    if (followed.length) {
-      const section = homeSection('Artistas que sigues');
-      const row = makeEl('div', 'home-row is-artists');
-      followed.slice(0, 12).forEach((entry) => row.append(artistCard(entry)));
-      section.append(row);
-      parts.push(section);
-    }
+    if (!lite) {
+      // Artistas por descubrir
+      parts.push(cardRow('Artistas por descubrir', 'Parecidos a los que más escuchas y que aún no has puesto.',
+        artistsToDiscover(p).map((entry) => artistCard(entry)), 'is-artists'));
 
-    // Radios
-    const radios = topArtists(8);
-    if (radios.length) {
-      const section = homeSection('Radios', 'Empiezan por un artista y siguen con otros parecidos, sin fin.');
-      const row = makeEl('div', 'home-row is-artists');
-      radios.forEach((entry) => {
+      // Artistas que sigues
+      parts.push(cardRow('Artistas que sigues', '', library.follows.map(getArtist).filter(Boolean).slice(0, 12).map((entry) => artistCard(entry)), 'is-artists'));
+
+      // Radios
+      parts.push(cardRow('Radios', 'Empiezan por un artista y siguen con otros parecidos, sin fin.', topArtists(8).map((entry) => {
         const card = makeEl('button', 'artist-card is-radio');
         card.type = 'button';
         card.dataset.action = 'radio-artist';
@@ -3474,18 +4229,16 @@
         const photo = makeEl('span', 'artist-photo-wrap');
         photo.append(photoImg(entry.tracks[0]?.thumb, 96, 'artist-photo'), makeEl('span', 'radio-badge', 'RADIO'));
         card.append(photo, makeEl('span', 'artist-name', entry.name), makeEl('span', 'artist-meta', 'Y artistas parecidos'));
-        row.append(card);
-      });
-      section.append(row);
-      parts.push(section);
+        return card;
+      }), 'is-artists'));
     }
 
-    // Explorar estilos
+    // Explorar estilos (primero los tuyos)
     const styles = homeSection('Explora tus estilos');
-    styles.append(exploreGrid());
+    styles.append(exploreGrid(p));
     parts.push(styles);
 
-    els.homePanel.replaceChildren(...parts);
+    els.homePanel.replaceChildren(...parts.filter(Boolean));
   }
 
   // Lo que más escuchas el mismo día de la semana (últimas 8 semanas)
@@ -3527,9 +4280,11 @@
     return spreadArtists(seededShuffle(pool, `unheard-${dayKey()}`)).slice(0, HOME_MIX_SIZE);
   }
 
-  function exploreGrid() {
+  function exploreGrid(p = null) {
     const grid = makeEl('div', 'explore-grid');
-    shownPls(systemPlaylists()).filter((pl) => pl.trackIds.length).forEach((pl) => {
+    const list = shownPls(systemPlaylists()).filter((pl) => pl.trackIds.length);
+    if (p) list.sort((a, b) => p.genreN(b.name) - p.genreN(a.name));
+    list.forEach((pl) => {
       const tile = makeEl('button', 'explore-tile');
       tile.type = 'button';
       tile.dataset.action = 'open-playlist';
@@ -3580,7 +4335,7 @@
     const radio = makeButton('btn', 'radio-artist', `Radio de ${entry.name}`, 'radio', 'Radio');
     radio.dataset.value = entry.key;
     actions.append(
-      makeButton('icon-btn play-btn view-play', 'play-view', `Reproducir ${entry.name}`, 'play'),
+      markPlayable(makeButton('icon-btn play-btn view-play', 'play-view', `Reproducir ${entry.name}`, 'play'), `artist:${entry.key}`, entry.name),
       makeButton('icon-btn', 'shuffle-view', 'Reproducir en aleatorio', 'shuffle'),
       follow,
       radio
@@ -3968,6 +4723,11 @@
   }
 
   function renderList() {
+    renderListInner();
+    syncPlayButtons(els.library);
+  }
+
+  function renderListInner() {
     const q = normalize(state.query);
     const searching = Boolean(q);
     renderViewHead();
@@ -4584,6 +5344,8 @@
     state.baseQueue = candidates.map((t) => t.id);
     state.queueContext = describeContext(start);
     state.queueSource = { view: state.view, playlist: state.openPlaylist, artist: state.openArtist || null };
+    state.playSource = viewSource();
+    rememberViewContext();
     state.queue = state.baseQueue.slice();
     state.queueIndex = Math.max(0, state.queue.indexOf(startId));
     if (state.shuffle) applyShuffle();
@@ -4596,10 +5358,27 @@
     state.queueIndex = 0;
   }
 
-  // Aleatorio que evita el mismo artista dos veces seguidas (cuando se puede)
+  // Aleatorio de verdad variado (no un barajado plano):
+  // - lo que sonó hace poco (horas o días) tiende a ir al final, así no se repite lo mismo
+  // - las canciones que sueles saltar salen menos; las «No me gusta», casi nunca
+  // - la misma canción repetida (copias con otro id) suena una sola vez
+  // - nunca el mismo artista en las últimas canciones ni más de dos seguidas del mismo estilo
   function smartShuffle(ids) {
-    const tracks = shuffleArray(ids).map(getTrack).filter(Boolean);
-    return spreadArtists(tracks).map((t) => t.id);
+    const seenIds = new Set();
+    const seenSongs = new Set();
+    const tracks = ids.map(getTrack).filter((t) => {
+      if (!t || seenIds.has(t.id)) return false;
+      seenIds.add(t.id);
+      if (t.songKey && seenSongs.has(t.songKey)) return false;
+      if (t.songKey) seenSongs.add(t.songKey);
+      return true;
+    });
+    const ordered = weightedOrder(tracks, (t) => {
+      let weight = recencyFactor(t.id) / (1 + (Number(taste.skips[t.id]) || 0) * 0.5);
+      if (isDisliked(t.id)) weight *= 0.02;
+      return weight;
+    });
+    return spaceOut(ordered).map((t) => t.id);
   }
 
   function unshuffle() {
@@ -4624,7 +5403,7 @@
 
   /* ---------- Cola: "A continuación" ---------- */
   // Pone una canción justo después de la actual (o al final de la cola) sin cortar lo que suena
-  function queueTrack(id, atEnd = false) {
+  function queueTrack(id, atEnd = false, quiet = false) {
     const track = getTrack(id);
     if (!track) return;
     if (!state.currentTrack) {
@@ -4643,6 +5422,7 @@
     if (!state.baseQueue.includes(id)) state.baseQueue.push(id);
     resume.saveQueue();
     if (els.queueDialog.open) renderQueue();
+    if (quiet) return;
     const name = splitTitle(track.title).main;
     showToast(atEnd ? `Al final de la cola: ${name}` : `Sonará a continuación: ${name}`);
   }
@@ -4877,7 +5657,7 @@
         if (this.queueIdle) cancelIdleCallback(this.queueTimer); else clearTimeout(this.queueTimer);
         this.queueTimer = 0;
       }
-      storage.set(KEYS.resumeQueue, { queue: state.queue, base: state.baseQueue, context: state.queueContext });
+      storage.set(KEYS.resumeQueue, { queue: state.queue, base: state.baseQueue, context: state.queueContext, source: state.playSource || '' });
     },
     // Al abrir la app vuelve a poner la última canción en su segundo y con su cola; false si no hay nada
     restore() {
@@ -4893,6 +5673,7 @@
         state.queue = queue;
         state.queueIndex = queue.indexOf(track.id);
         state.queueContext = stored.context || describeContext(track);
+        state.playSource = typeof stored.source === 'string' ? stored.source : '';
       } else {
         buildQueue(track.id);
       }
@@ -4906,6 +5687,14 @@
         updateProgressUI(time, duration);
         this.save(true);
         els.npContext.textContent = 'Continúa donde lo dejaste';
+      }
+      // Recién actualizada la app y sonaba algo: se intenta seguir sin tocar nada
+      const autoplayAt = Number(storage.get(KEYS.resumeAutoplay, 0));
+      if (autoplayAt && Date.now() - autoplayAt < 30000) {
+        storage.set(KEYS.resumeAutoplay, 0);
+        showToast('Liquid Bullet se actualizó ✓');
+        play({ quiet: true });
+      } else if (time >= 1) {
         showToast(`Continúa «${splitTitle(track.title).main}» en ${formatTime(time)}. Pulsa ▶`);
       }
       return true;
@@ -4930,7 +5719,8 @@
       void els.cover.offsetWidth; // reinicia la animación
       els.cover.classList.add('is-swapping');
     }
-    els.cover.src = track.cover;
+    // Ultraligero: la portada pequeña (320 px) también en Sonando
+    els.cover.src = settings.ultra ? track.thumb || track.cover : track.cover;
     els.cover.alt = `Carátula de ${track.album || track.title}`;
     els.miniCover.src = track.thumb;
     els.npContext.textContent = state.queueContext;
@@ -4963,6 +5753,7 @@
       lyricsDelay = setTimeout(() => { if (state.currentTrack === track) showLyricsFor(track); }, 3000);
     }
     highlightCurrent();
+    syncPlayButtons();
     updateDynamicColor(track);
     if (autoplay) wall.onTrack();
     updateMediaSession(track);
@@ -5031,6 +5822,13 @@
 
   function next(manual = true, fade = manual && dj.enabled ? 1.5 : 0) {
     if (!state.queue.length) return;
+    // Saltar al poco de empezar enseña al algoritmo que esa canción no te va (ahora)
+    const current = state.currentTrack;
+    if (manual && current) {
+      const at = els.audio.currentTime || 0;
+      const length = getDuration() || parseDuration(current.duration);
+      if (at >= 1 && length > 60 && at < Math.min(30, length * 0.4)) taste.markSkip(current.id);
+    }
     let index = state.queueIndex + 1;
 
     // La radio nunca se acaba: se suman canciones parecidas antes de llegar al final
@@ -5095,6 +5893,7 @@
       }
       return;
     }
+    if (state.currentTrack) taste.markFinished(state.currentTrack.id);
     if (state.repeat === 'one') {
       els.audio.currentTime = 0;
       play();
@@ -5128,6 +5927,53 @@
       navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
     }
     if (isPlaying) visualizer.start();
+    syncPlayButtons();
+  }
+
+  /* ---------- Todos los botones de ▶ cambian a la vez ----------
+     Cada botón «Reproducir» de una colección (playlist, artista, mix, Lab…) lleva
+     data-play-source; si es lo que suena, muestra ⏸ mientras suena y ▶ en pausa. */
+  function viewSource() {
+    if (state.query.trim()) return `search:${normalize(state.query)}`;
+    if (state.view === 'playlist') return `pl:${state.openPlaylist}`;
+    if (state.view === 'artist') return `artist:${state.openArtist}`;
+    return `view:${state.view}`;
+  }
+
+  // Accesos rápidos de Inicio: lo último que pusiste (playlist o artista)
+  function rememberViewContext() {
+    if (state.query.trim()) return;
+    if (state.view === 'playlist') {
+      const pl = getPlaylist(state.openPlaylist);
+      if (pl) taste.rememberContext({ key: pl.key, kind: 'playlist', value: pl.key, title: pl.name });
+    } else if (state.view === 'artist') {
+      const entry = getArtist(state.openArtist);
+      if (entry) taste.rememberContext({ key: `artist:${entry.key}`, kind: 'artist', value: entry.key, title: entry.name, image: entry.tracks[0]?.thumb || '' });
+    }
+  }
+
+  function syncPlayButtons(root = document) {
+    const playing = document.body.classList.contains('is-playing');
+    root.querySelectorAll('[data-play-source]').forEach((button) => {
+      const current = button.dataset.playSource === state.playSource;
+      const on = current && playing;
+      button.classList.toggle('is-current', current);
+      button.classList.toggle('is-on', on);
+      setIcon(button, on ? 'pause' : 'play');
+      if (button.dataset.playLabel) button.setAttribute('aria-label', `${on ? 'Pausar' : 'Reproducir'} ${button.dataset.playLabel}`);
+      const text = button.querySelector('.btn-text');
+      if (text) text.textContent = on ? 'Pausar' : current ? 'Seguir' : 'Reproducir';
+    });
+    const currentId = state.currentTrack?.id;
+    root.querySelectorAll('.qp-item').forEach((item) => {
+      item.classList.toggle('is-current', item.dataset.value === currentId);
+    });
+  }
+
+  function markPlayable(button, source, label) {
+    button.dataset.playSource = source;
+    if (label) button.dataset.playLabel = label;
+    return button;
   }
 
   /* ---------- Modos: aleatorio y bucle ---------- */
@@ -6232,15 +7078,26 @@
         case 'follow-artist': toggleFollow(target.dataset.value); break;
         case 'more-artists': home.artistsShown += ARTISTS_PAGE; renderList(); break;
         case 'home-play': {
+          if (state.currentTrack && state.playSource === `home:${target.dataset.value}`) {
+            togglePlay();
+            break;
+          }
           const collection = home.collections.get(target.dataset.value);
           const start = collection?.tracks.find(isPlayable);
           if (start) {
             if (state.shuffle) toggleShuffle();
-            playCollection(collection.tracks, start.id, collection.title);
+            playCollection(collection.tracks, start.id, collection.title, `home:${target.dataset.value}`);
           } else showToast('Sin conexión: descarga canciones para escuchar este mix.');
           break;
         }
-        case 'toggle-plview': setPlaylistView(settings.plView === 'list' ? 'grid' : 'list'); break;
+        case 'home-pick': {
+          const track = getTrack(target.dataset.value);
+          if (!track) break;
+          if (state.currentTrack?.id === track.id) togglePlay();
+          else startRadio(artistKeyOf(track), track);
+          break;
+        }
+                case 'toggle-plview': setPlaylistView(settings.plView === 'list' ? 'grid' : 'list'); break;
         case 'filter':
           state.filter = target.dataset.value;
           if (state.filter === 'all') state.genre = '';
@@ -6273,7 +7130,10 @@
           }
           break;
         }
-        case 'play-view': playTracks(getVisibleTracks()); break;
+        case 'play-view':
+          if (state.currentTrack && state.playSource === viewSource()) togglePlay();
+          else playTracks(getVisibleTracks());
+          break;
         case 'shuffle-view': playTracks(getVisibleTracks(), true); break;
         case 'download-playlist': toggleDownload(state.openPlaylist); break;
         case 'new-playlist':
@@ -6535,11 +7395,21 @@
       if (target && !target.disabled) handleLabAction(target);
     });
     els.labPanel.addEventListener('input', (event) => {
-      if (event.target.dataset.labInput !== 'artist') return;
-      lab.artistQuery = event.target.value;
+      const kind = event.target.dataset.labInput;
+      if (kind === 'mix') {
+        lab.mix = clamp(Number(event.target.value) || 0, 0, 4);
+        event.target.setAttribute('aria-valuetext', LAB_MIX_LABELS[lab.mix]);
+        const label = event.target.closest('.lab-option')?.querySelector('.lab-option-label');
+        if (label) label.textContent = `Descubrimiento · ${LAB_MIX_LABELS[lab.mix]}`;
+        saveLab();
+        return;
+      }
+      if (kind !== 'artist' && kind !== 'song') return;
+      if (kind === 'artist') lab.artistQuery = event.target.value;
+      else lab.songQuery = event.target.value;
       const caret = event.target.selectionStart;
       renderLab();
-      const input = els.labPanel.querySelector('[data-lab-input="artist"]');
+      const input = els.labPanel.querySelector(`[data-lab-input="${kind}"]`);
       input?.focus({ preventScroll: true });
       input?.setSelectionRange(caret, caret);
     });
@@ -6625,9 +7495,13 @@
       applyLook();
       wall.applyMode();
       visualizer.start();
-      if (state.currentTrack) updateDynamicColor(state.currentTrack);
+      if (state.currentTrack) {
+        updateDynamicColor(state.currentTrack);
+        els.cover.src = settings.ultra ? state.currentTrack.thumb || state.currentTrack.cover : state.currentTrack.cover;
+      }
+      renderList();
       showToast(settings.ultra
-        ? 'Modo ultraligero activado: sin efectos, fondo ni animaciones.'
+        ? 'Modo ultraligero activado: sin efectos, fondo, animaciones ni miniaturas en las listas.'
         : 'Modo ultraligero desactivado: vuelven los efectos.');
     });
     els.hiddenList.addEventListener('click', (event) => {
@@ -7664,6 +8538,7 @@
     setDj(storage.get(KEYS.dj, false) === true, false);
     const savedListen = storage.get(KEYS.listen, {});
     listen.log = savedListen && typeof savedListen === 'object' ? savedListen : {};
+    taste.load();
 
     applyTheme(storage.get(KEYS.theme, 'chrome'));
   }

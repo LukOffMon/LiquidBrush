@@ -46,7 +46,7 @@
   <link rel="dns-prefetch" href="https://pub-0854e4225565462db16fa787cf2ab81c.r2.dev">
   <link rel="dns-prefetch" href="https://pub-864cd199a5e04cb0b5faf77320b1e47b.r2.dev">
   <link rel="dns-prefetch" href="https://lrclib.net">
-  <link rel="stylesheet" href="styles.css?v=28">
+  <link rel="stylesheet" href="styles.css?v=29">
   <script>
     /* Aplica el tema, la fuente y el tamaño de letra guardados antes de pintar (sin parpadeos) */
     (function () {
@@ -629,7 +629,7 @@
         <label class="setting switch">
           <span class="setting-text">
             <span class="setting-name">Modo ultraligero</span>
-            <span class="setting-hint">Lo más rápido posible: sin vidrio, sombras, animaciones, fondo, visualizador ni letras tipográficas descargadas. Ideal para teléfonos lentos o con poca batería. Tus ajustes de apariencia se guardan y vuelven al desactivarlo.</span>
+            <span class="setting-hint">Lo más rápido posible: sin vidrio, sombras, animaciones, fondo, visualizador, miniaturas en las listas (no se descargan), vibración ni letras tipográficas descargadas; Inicio más corto y portada pequeña. Ideal para teléfonos lentos o con poca batería. Tus ajustes de apariencia se guardan y vuelven al desactivarlo.</span>
           </span>
           <input id="ultraToggle" type="checkbox" role="switch">
           <span class="switch-track" aria-hidden="true"></span>
@@ -750,6 +750,10 @@
       <section class="settings-group" aria-labelledby="setHelpTitle">
         <h3 id="setHelpTitle" class="settings-group-title">Ayuda</h3>
         <button id="tourAgain" class="btn" type="button">Ver el tutorial otra vez</button>
+        <details id="whatsNew" class="privacy-note">
+          <summary>Novedades de esta versión</summary>
+          <div id="whatsNewBody" class="update-notes"></div>
+        </details>
         <a class="btn" href="mailto:officiallukamon@gmail.com?subject=Liquid%20Bullet%3A%20ideas%2C%20contacto%20o%20errores">
           <svg class="icon" aria-hidden="true"><use href="#i-mail"></use></svg> Escribir a officiallukamon@gmail.com
         </a>
@@ -818,12 +822,26 @@
   </dialog>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <!-- Aviso de versión nueva: el botón la aplica sin perder la canción -->
+  <div id="updateBanner" class="update-banner" role="alert" hidden>
+    <img class="update-logo" src="icon-192.png" alt="" width="40" height="40">
+    <div class="update-text">
+      <strong>Hay una versión nueva de Liquid Bullet</strong>
+      <span>Actualiza para tener las últimas mejoras. Sigues donde ibas.</span>
+    </div>
+    <div class="update-actions">
+      <button id="updateDetails" class="btn btn-ghost update-details-btn" type="button" aria-expanded="false" aria-controls="updateNotes">¿Qué trae?</button>
+      <button id="updateLater" class="btn btn-ghost" type="button">Luego</button>
+      <button id="updateNow" class="btn btn-primary" type="button">Actualizar</button>
+    </div>
+    <div id="updateNotes" class="update-notes" hidden></div>
+  </div>
 
   <audio id="audio" preload="metadata"></audio>
   <audio id="audio2" preload="auto"></audio>
   <!-- Reproductores para el ecualizador (necesitan CORS en el servidor del audio) -->
   <audio id="audio3" preload="metadata" crossorigin="anonymous"></audio>
   <audio id="audio4" preload="auto" crossorigin="anonymous"></audio>
-  <script src="app.js?v=31" defer></script>
+  <script src="app.js?v=32" defer></script>
 </body>
 </html>

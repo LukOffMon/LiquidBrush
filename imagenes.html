@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Biblioteca de imágenes · Liquid Bullet</title>
+  <meta name="description" content="Todas las imágenes de Liquid Bullet ordenadas por tipo: portadas de playlist, iconos de canción, fondos, iconos de la app y capturas, con dónde se usa cada una.">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#100d1c">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <style>
+    :root {
+      --bg: #0f0d18; --panel: #1a1726; --panel-2: #241f35; --text: #f4f2fb; --muted: #a9a3bd;
+      --line: rgba(255, 255, 255, .09); --accent: #9ee7ff; --accent-2: #ff7ad9; --on-accent: #0f0d18;
+      --radius: 18px; --spring: cubic-bezier(.34, 1.56, .64, 1); --ease: cubic-bezier(.22, 1, .36, 1);
+      color-scheme: dark;
+    }
+    @media (prefers-color-scheme: light) {
+      :root:not([data-theme="dark"]) {
+        --bg: #f5f4f1; --panel: #fff; --panel-2: #efede8; --text: #17151f; --muted: #66617a;
+        --line: rgba(0, 0, 0, .09); --accent: #4b3bd6; --accent-2: #d1288f; --on-accent: #fff; color-scheme: light;
+      }
+    }
+    :root[data-theme="light"] {
+      --bg: #f5f4f1; --panel: #fff; --panel-2: #efede8; --text: #17151f; --muted: #66617a;
+      --line: rgba(0, 0, 0, .09); --accent: #4b3bd6; --accent-2: #d1288f; --on-accent: #fff; color-scheme: light;
+    }
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0; background: var(--bg); color: var(--text);
+      font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+    a { color: var(--accent); }
+    .wrap { max-width: 1180px; margin: 0 auto; padding: 0 16px 64px; }
+    header.top {
+      position: sticky; top: 0; z-index: 5; backdrop-filter: blur(14px) saturate(160%); -webkit-backdrop-filter: blur(14px) saturate(160%);
+      background: color-mix(in srgb, var(--bg) 80%, transparent); border-bottom: 1px solid var(--line);
+    }
+    .top-inner { max-width: 1180px; margin: 0 auto; padding: 12px 16px; display: flex; align-items: center; gap: 12px; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; text-decoration: none; color: var(--text); }
+    .brand img { width: 32px; height: 32px; border-radius: 9px; }
+    .top-inner .spacer { flex: 1; }
+    .pill-link {
+      border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; text-decoration: none; color: var(--text);
+      font-size: .85rem; font-weight: 600; white-space: nowrap;
+    }
+    h1 { font-size: clamp(1.8rem, 5vw, 2.8rem); line-height: 1.05; margin: 28px 0 8px; letter-spacing: -.02em; }
+    .lede { color: var(--muted); max-width: 70ch; margin: 0 0 20px; }
+    .how {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; margin: 0 0 24px;
+    }
+    .how div { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; }
+    .how b { display: block; margin-bottom: 2px; }
+    .how span { color: var(--muted); font-size: .88rem; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
+    .tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; max-width: 100%; }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab {
+      flex: none; border: 1px solid var(--line); background: var(--panel); color: var(--text); border-radius: 999px;
+      padding: 7px 13px; font: inherit; font-size: .86rem; font-weight: 600; cursor: pointer;
+      transition: transform .45s var(--spring), background-color .2s;
+    }
+    .tab:active { transform: scale(.94); }
+    .tab[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+    .tab .n { opacity: .65; margin-left: 4px; font-variant-numeric: tabular-nums; }
+    .search {
+      flex: 1 1 220px; min-width: 0; border: 1px solid var(--line); background: var(--panel); color: var(--text);
+      border-radius: 999px; padding: 9px 14px; font: inherit;
+    }
+    .type-info {
+      display: none; gap: 14px; flex-wrap: wrap; align-items: baseline; background: var(--panel-2); border-radius: var(--radius);
+      padding: 12px 14px; margin-bottom: 14px; font-size: .88rem;
+    }
+    .type-info.is-on { display: flex; }
+    .type-info strong { font-size: 1rem; }
+    .type-info code { background: var(--panel); padding: 1px 6px; border-radius: 6px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+    .card {
+      background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden;
+      display: flex; flex-direction: column; transition: transform .5s var(--spring), box-shadow .3s var(--ease);
+    }
+    .card:hover { transform: translateY(-3px); box-shadow: 0 14px 30px rgba(0, 0, 0, .25); }
+    .thumb { border: 0; padding: 0; background: var(--panel-2); cursor: zoom-in; aspect-ratio: 1; display: block; width: 100%; }
+    .card[data-type="fondo"] .thumb, .card[data-type="captura"] .thumb { aspect-ratio: 3 / 4; }
+    .card[data-type="compartir"] .thumb { aspect-ratio: 1.9; }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .card[data-type="icono-app"] .thumb img { object-fit: contain; padding: 18px; }
+    .meta { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .label { font-weight: 700; font-size: .92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .badge {
+      align-self: flex-start; font-size: .68rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em;
+      padding: 2px 7px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent);
+    }
+    .usage { color: var(--muted); font-size: .8rem; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .usage.free { color: var(--accent-2); font-weight: 600; }
+    .file {
+      margin-top: 4px; border: 0; background: none; color: var(--muted); font: 12px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace;
+      padding: 0; text-align: left; cursor: copy; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .file:hover { color: var(--text); }
+    .empty { color: var(--muted); padding: 40px 0; text-align: center; }
+    dialog {
+      border: 0; padding: 0; background: transparent; max-width: min(92vw, 900px); max-height: 92vh; color: var(--text);
+    }
+    dialog::backdrop { background: rgba(5, 4, 10, .8); backdrop-filter: blur(4px); }
+    dialog img { max-width: 100%; max-height: 78vh; display: block; margin: 0 auto; border-radius: 14px; }
+    dialog p { text-align: center; margin: 10px 0 0; }
+    dialog button { position: absolute; top: 6px; right: 6px; border: 0; border-radius: 50%; width: 36px; height: 36px; font-size: 1.1rem; cursor: pointer; background: var(--panel); color: var(--text); }
+    .toast {
+      position: fixed; left: 50%; bottom: 20px; transform: translate(-50%, 80px); background: var(--text); color: var(--bg);
+      padding: 9px 16px; border-radius: 999px; font-weight: 600; font-size: .88rem; transition: transform .45s var(--spring); z-index: 10;
+    }
+    .toast.is-on { transform: translate(-50%, 0); }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <div class="top-inner">
+      <a class="brand" href="./"><img src="icon-192.png" alt="" width="32" height="32"> Liquid Bullet</a>
+      <span class="spacer"></span>
+      <a class="pill-link" href="review.html">Review</a>
+      <a class="pill-link" href="./">Abrir la app</a>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <h1>Biblioteca de imágenes</h1>
+    <p class="lede">Cada imagen de Liquid Bullet tiene un tipo y se usa <strong>solo</strong> para eso. Aquí ves todas, dónde están y quién las usa. Toca una para verla en grande, o su ruta para copiarla.</p>
+
+    <section class="how" aria-label="Cómo añadir imágenes">
+      <div><b>1 · Mándame la imagen</b><span>Y dime de qué tipo es: portada de playlist, icono de canción, fondo, icono de fondo, icono de la app, compartir o captura.</span></div>
+      <div><b>2 · Va a su carpeta</b><span>Con el siguiente número libre y su versión pequeña (p. ej. <code>covers/cover-45.jpg</code> + <code>-sm.jpg</code>).</span></div>
+      <div><b>3 · Se registra sola</b><span><code>python3 tools/build_image_library.py</code> la añade aquí y calcula dónde se usa.</span></div>
+    </section>
+
+    <div class="toolbar">
+      <div id="tabs" class="tabs" role="toolbar" aria-label="Tipo de imagen"></div>
+      <input id="search" class="search" type="search" placeholder="Buscar por nombre, playlist o archivo…" aria-label="Buscar imágenes">
+    </div>
+    <div id="typeInfo" class="type-info" aria-live="polite"></div>
+    <div id="grid" class="grid" aria-live="polite"></div>
+    <p id="empty" class="empty" hidden>Ninguna imagen coincide.</p>
+  </main>
+
+  <dialog id="viewer" aria-label="Imagen ampliada">
+    <button type="button" id="viewerClose" aria-label="Cerrar">✕</button>
+    <img id="viewerImg" alt="">
+    <p id="viewerText"></p>
+  </dialog>
+  <div id="toast" class="toast" role="status"></div>
+
+  <script>
+    (function () {
+      'use strict';
+      var state = { type: 'all', q: '', data: null };
+      var $ = function (id) { return document.getElementById(id); };
+      var norm = function (t) { return String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); };
+
+      function toast(text) {
+        var el = $('toast');
+        el.textContent = text;
+        el.classList.add('is-on');
+        clearTimeout(toast.t);
+        toast.t = setTimeout(function () { el.classList.remove('is-on'); }, 1800);
+      }
+
+      function el(tag, cls, text) {
+        var node = document.createElement(tag);
+        if (cls) node.className = cls;
+        if (text != null) node.textContent = text;
+        return node;
+      }
+
+      function renderTabs() {
+        var counts = { all: state.data.images.length };
+        state.data.images.forEach(function (img) { counts[img.type] = (counts[img.type] || 0) + 1; });
+        var tabs = [['all', 'Todas']].concat(Object.keys(state.data.types).map(function (k) { return [k, state.data.types[k].name]; }));
+        $('tabs').replaceChildren.apply($('tabs'), tabs.map(function (t) {
+          var b = el('button', 'tab', t[1]);
+          b.type = 'button';
+          b.dataset.type = t[0];
+          b.setAttribute('aria-pressed', String(state.type === t[0]));
+          b.append(el('span', 'n', String(counts[t[0]] || 0)));
+          return b;
+        }));
+      }
+
+      function renderInfo() {
+        var info = $('typeInfo');
+        var type = state.data.types[state.type];
+        info.classList.toggle('is-on', Boolean(type));
+        if (!type) { info.replaceChildren(); return; }
+        var folder = el('span');
+        folder.append('Carpeta: ', el('code', '', type.folder));
+        info.replaceChildren(el('strong', '', type.name), el('span', '', type.use), folder, el('span', '', 'Tamaño: ' + type.size));
+      }
+
+      function renderGrid() {
+        var q = norm(state.q);
+        var list = state.data.images.filter(function (img) {
+          if (state.type !== 'all' && img.type !== state.type) return false;
+          return !q || norm([img.label, img.usage, img.file, img.notes].join(' ')).indexOf(q) !== -1;
+        });
+        var frag = document.createDocumentFragment();
+        list.forEach(function (img) {
+          var card = el('article', 'card');
+          card.dataset.type = img.type;
+          var thumb = el('button', 'thumb');
+          thumb.type = 'button';
+          thumb.dataset.full = img.file;
+          thumb.dataset.label = img.label;
+          thumb.setAttribute('aria-label', 'Ver ' + img.label + ' en grande');
+          var pic = document.createElement('img');
+          pic.src = img.small || img.file;
+          pic.alt = img.label;
+          pic.loading = 'lazy';
+          pic.decoding = 'async';
+          thumb.append(pic);
+          var meta = el('div', 'meta');
+          var usage = el('span', 'usage' + (/^Libre/.test(img.usage) ? ' free' : ''), img.usage);
+          var file = el('button', 'file', img.file);
+          file.type = 'button';
+          file.dataset.copy = img.file;
+          file.title = 'Copiar ruta';
+          meta.append(el('span', 'badge', (state.data.types[img.type] || {}).name || img.type), el('span', 'label', img.label), usage, file);
+          if (img.notes) meta.append(el('span', 'usage', img.notes));
+          card.append(thumb, meta);
+          frag.append(card);
+        });
+        $('grid').replaceChildren(frag);
+        $('empty').hidden = list.length > 0;
+      }
+
+      function render() { renderTabs(); renderInfo(); renderGrid(); }
+
+      $('tabs').addEventListener('click', function (e) {
+        var b = e.target.closest('.tab');
+        if (!b) return;
+        state.type = b.dataset.type;
+        try { history.replaceState(null, '', state.type === 'all' ? location.pathname : '#' + state.type); } catch (err) { /* sin historial */ }
+        render();
+      });
+      $('search').addEventListener('input', function (e) { state.q = e.target.value; renderGrid(); });
+      $('grid').addEventListener('click', function (e) {
+        var copy = e.target.closest('[data-copy]');
+        if (copy) {
+          var text = copy.dataset.copy;
+          (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject())
+            .then(function () { toast('Copiado: ' + text); }, function () { toast(text); });
+          return;
+        }
+        var thumb = e.target.closest('.thumb');
+        if (!thumb) return;
+        $('viewerImg').src = thumb.dataset.full;
+        $('viewerImg').alt = thumb.dataset.label;
+        $('viewerText').textContent = thumb.dataset.label + ' · ' + thumb.dataset.full;
+        $('viewer').showModal();
+      });
+      $('viewerClose').addEventListener('click', function () { $('viewer').close(); });
+      $('viewer').addEventListener('click', function (e) { if (e.target === $('viewer')) $('viewer').close(); });
+
+      fetch('imagenes.json', { cache: 'no-cache' }).then(function (r) { return r.json(); }).then(function (data) {
+        state.data = data;
+        var hash = location.hash.slice(1);
+        if (data.types[hash]) state.type = hash;
+        render();
+      }).catch(function () {
+        $('grid').replaceChildren(el('p', 'empty', 'No se pudo cargar imagenes.json.'));
+      });
+    })();
+  </script>
+</body>
+</html>
