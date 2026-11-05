@@ -47,6 +47,10 @@
     }
     h1 { font-size: clamp(1.8rem, 5vw, 2.8rem); line-height: 1.05; margin: 28px 0 8px; letter-spacing: -.02em; }
     .lede { color: var(--muted); max-width: 70ch; margin: 0 0 20px; }
+    .readonly {
+      margin: 0 0 16px; padding: 12px 14px; border-radius: var(--radius); font-size: .9rem;
+      background: color-mix(in srgb, var(--accent) 12%, var(--panel)); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    }
     .how {
       display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; margin: 0 0 24px;
     }
@@ -128,6 +132,8 @@
   <main class="wrap">
     <h1>Biblioteca de imágenes</h1>
     <p class="lede">Cada imagen de Liquid Bullet tiene un tipo y se usa <strong>solo</strong> para eso. Aquí ves todas, dónde están y quién las usa. Toca una para verla en grande, o su ruta para copiarla.</p>
+
+    <p class="readonly" role="note">🔒 <strong>Solo lectura.</strong> Desde esta página nadie puede subir, cambiar ni borrar imágenes: no hay formulario ni servidor que las reciba. Las imágenes solo se añaden desde el repositorio de Liquid Bullet, y solo quien tiene permiso de escritura en él puede hacerlo.</p>
 
     <section class="how" aria-label="Cómo añadir imágenes">
       <div><b>1 · Mándame la imagen</b><span>Y dime de qué tipo es: portada de playlist, icono de canción, fondo, icono de fondo, icono de la app, compartir o captura.</span></div>
