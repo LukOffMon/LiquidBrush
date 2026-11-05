@@ -6426,3 +6426,163 @@ textarea {
 .home-row { scroll-snap-type: x proximity; overscroll-behavior-x: contain; }
 
 .update-notes { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+
+/* =========================================================
+   Cuenta (opcional) · hoja con la esencia de Liquid
+   ========================================================= */
+.cuenta-btn { position: relative; width: 40px; height: 40px; padding: 0; border-radius: 50%; overflow: visible; }
+.cuenta-btn .cuenta-avatar.is-barra { width: 34px; height: 34px; font-size: .95rem; }
+.cuenta-btn:not(.is-sesion)::after { content: ''; position: absolute; top: 4px; right: 4px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: cuenta-latido 2.4s ease-in-out infinite; }
+.cuenta-btn.is-sesion::before { content: ''; position: absolute; inset: 0; border-radius: 50%; border: 2px solid #3ddc97; pointer-events: none; }
+.cuenta-btn[data-estado="sincronizando"]::before { border-color: transparent; border-top-color: var(--accent); animation: spin 1s linear infinite; }
+.cuenta-btn[data-estado="error"]::before { border-color: #ffb020; }
+.cuenta-btn[data-estado="sin-conexion"]::before, .cuenta-btn[data-estado="pendiente"]::before { border-color: var(--border); }
+@keyframes cuenta-latido { 50% { transform: scale(1.5); opacity: .5; } }
+
+.cuenta-sheet { width: min(480px, 100vw); }
+.cuenta-body > * { flex: none; }
+.cuenta-body { display: flex; flex-direction: column; gap: 12px; max-height: min(88dvh, 820px); overflow-y: auto; }
+.cuenta-head { display: grid; grid-template-columns: 40px 1fr 40px; align-items: center; gap: 6px; }
+.cuenta-head .sheet-title { text-align: center; margin: 0; outline: none; }
+.cuenta-pasos { display: flex; gap: 6px; justify-content: center; }
+.cuenta-pasos span { width: 26px; height: 4px; border-radius: 99px; background: var(--border); transition: background-color .3s; }
+.cuenta-pasos span.is-on { background: var(--accent); }
+.cuenta-titulo { margin: 4px 0 0; font-size: 1.25rem; text-align: center; }
+.cuenta-texto { margin: 0; color: var(--text-dim, inherit); font-size: .92rem; line-height: 1.45; }
+.cuenta-pie { margin: 4px 0 0; font-size: .78rem; opacity: .75; text-align: center; line-height: 1.4; }
+.cuenta-label { margin: 0; font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; opacity: .8; }
+
+/* Collage de portadas que flotan */
+.cuenta-collage { position: relative; height: 136px; margin: 4px auto 6px; width: 220px; flex: none; }
+.cuenta-collage img { position: absolute; width: 104px; height: 104px; border-radius: 18px; object-fit: cover; box-shadow: var(--shadow); }
+.cuenta-collage-0 { left: 0; top: 18px; transform: rotate(-9deg); }
+.cuenta-collage-1 { left: 58px; top: 0; z-index: 2; }
+.cuenta-collage-2 { right: 0; top: 18px; transform: rotate(9deg); }
+:root:not(.no-motion) .cuenta-collage img { animation: cuenta-flota 6s ease-in-out infinite alternate; }
+:root:not(.no-motion) .cuenta-collage-1 { animation-delay: -2s; }
+:root:not(.no-motion) .cuenta-collage-2 { animation-delay: -4s; }
+@keyframes cuenta-flota { to { translate: 0 -6px; } }
+
+.cuenta-ventajas { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: .92rem; }
+.cuenta-ventajas li { display: flex; gap: 10px; align-items: center; padding: 8px 12px; border-radius: 12px; background: var(--surface-2); }
+.cuenta-acciones { display: grid; gap: 8px; }
+.cuenta-acciones .btn, .cuenta-cta { width: 100%; justify-content: center; }
+.cuenta-conoce-titulo { margin: 6px 0 0; font-weight: 700; font-size: .86rem; }
+.cuenta-conoce { display: flex; gap: 8px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; padding-bottom: 4px; scroll-snap-type: x proximity; flex: none; }
+.cuenta-conoce::-webkit-scrollbar { display: none; }
+.cuenta-conoce-card { flex: none; display: flex; flex-direction: column; gap: 4px; width: 128px; min-height: 76px; padding: 10px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); text-decoration: none; font-size: .78rem; line-height: 1.25; font-weight: 600; scroll-snap-align: start; }
+.cuenta-conoce-card span { font-size: 1.3rem; }
+
+/* Formularios */
+.cuenta-form { display: grid; gap: 10px; }
+.cuenta-campo { display: grid; gap: 5px; font-size: .84rem; font-weight: 600; }
+.cuenta-campo input { width: 100%; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); font: inherit; font-size: 1rem; }
+.cuenta-campo input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+.cuenta-clave { position: relative; display: block; }
+.cuenta-clave input { padding-right: 48px; }
+.cuenta-clave .icon-btn { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); font-size: 1rem; }
+.cuenta-sugerencia { margin: -4px 0 0; font-size: .84rem; }
+.cuenta-link-mini { border: 0; background: none; color: var(--accent); font: inherit; font-weight: 700; padding: 0; cursor: pointer; text-decoration: underline; }
+.cuenta-link { justify-self: center; font-size: .86rem; }
+.cuenta-fila { display: flex; gap: 8px; flex-wrap: wrap; justify-content: space-between; }
+.cuenta-fila .btn { flex: 1 1 auto; justify-content: center; }
+.cuenta-error { margin: 0; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, #ff5f6d 16%, transparent); color: var(--text); font-size: .88rem; }
+.cuenta-aviso { margin: 0; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, var(--accent) 12%, transparent); font-size: .86rem; line-height: 1.4; }
+.cuenta-aviso.is-fuerte { background: color-mix(in srgb, #ffb020 22%, transparent); }
+.cuenta-check { display: flex; gap: 10px; align-items: flex-start; font-size: .82rem; line-height: 1.4; }
+.cuenta-check input { margin-top: 3px; accent-color: var(--accent); width: 18px; height: 18px; flex: none; }
+.cuenta-robot:empty { display: none; }
+.cuenta-robot { display: flex; justify-content: center; }
+
+/* Botón con barra líquida mientras trabaja */
+.cuenta-cta { position: relative; overflow: hidden; }
+.cuenta-cta-barra { position: absolute; left: 0; bottom: 0; height: 3px; width: 0; background: currentColor; opacity: .6; }
+.cuenta-cta.is-ocupado .cuenta-cta-barra { animation: cuenta-barra 1.4s ease-in-out infinite; }
+@keyframes cuenta-barra { 0% { width: 0; left: 0; } 50% { width: 70%; left: 15%; } 100% { width: 0; left: 100%; } }
+
+/* Medidor líquido de la contraseña */
+.cuenta-medidor { height: 8px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+.cuenta-medidor span { display: block; height: 100%; width: 0; border-radius: inherit; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width .5s var(--spring, ease); }
+.cuenta-medidor span[data-puntos="0"], .cuenta-medidor span[data-puntos="1"] { background: #ff5f6d; }
+.cuenta-medidor span[data-puntos="2"] { background: #ffb020; }
+.cuenta-medidor-texto { margin: -4px 0 0; font-size: .8rem; opacity: .85; }
+.cuenta-reglas { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; font-size: .76rem; }
+.cuenta-reglas li { padding: 3px 9px; border-radius: 99px; background: var(--surface-2); opacity: .75; }
+.cuenta-reglas li.is-ok { opacity: 1; background: color-mix(in srgb, #3ddc97 22%, transparent); }
+.cuenta-reglas li.is-ok::before { content: '✓ '; }
+
+/* Código en gotas de cromo */
+.cuenta-gotas { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+.cuenta-gota { width: 100%; aspect-ratio: 4 / 5; border-radius: 48% 48% 42% 42% / 56% 56% 40% 40%; border: 1px solid var(--border); text-align: center; font: inherit; font-size: 1.5rem; font-weight: 800; color: var(--text);
+  background: radial-gradient(circle at 35% 25%, rgba(255, 255, 255, .5), transparent 40%), linear-gradient(160deg, var(--surface-2), var(--surface)); transition: transform .35s var(--spring, ease), box-shadow .3s; }
+.cuenta-gota:focus { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent); }
+.cuenta-gota.is-llena { background: radial-gradient(circle at 35% 25%, rgba(255, 255, 255, .7), transparent 42%), linear-gradient(160deg, #e9edf4, #5a6273 60%, #1d1a30); color: #0f0d18; transform: translateY(-2px); }
+.cuenta-gotas.is-ok .cuenta-gota { background: linear-gradient(160deg, #a8ffd8, #3ddc97); color: #0b2a1d; }
+:root:not(.no-motion) .cuenta-gotas.is-ok .cuenta-gota { animation: cuenta-funde .5s var(--spring, ease) both; }
+:root:not(.no-motion) .cuenta-gotas.is-error { animation: cuenta-tiembla .4s ease; }
+@keyframes cuenta-funde { to { transform: scale(.92); } }
+@keyframes cuenta-tiembla { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+.no-motion .cuenta-gotas.is-error .cuenta-gota { border-color: #ff5f6d; }
+/* Reloj derretido: la barra se «derrite» mientras corren los 10 minutos */
+.cuenta-reloj { height: 6px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+.cuenta-reloj span { display: block; height: 100%; width: calc(var(--p, 1) * 100%); background: linear-gradient(90deg, var(--accent-2), var(--accent)); border-radius: 0 99px 99px 0; transition: width 1s linear; }
+.cuenta-caduca { margin: -4px 0 0; font-size: .8rem; text-align: center; opacity: .85; }
+
+/* Ojos que siguen el cursor y se cierran al escribir la contraseña */
+.cuenta-ojos { display: flex; gap: 14px; justify-content: center; margin-top: 2px; }
+.cuenta-ojos .ojo { position: relative; width: 38px; height: 24px; border-radius: 50%; background: #f4f2fb; overflow: hidden; box-shadow: inset 0 -3px 6px rgba(0, 0, 0, .25); transition: height .25s ease, margin .25s ease; }
+.cuenta-ojos .ojo i { position: absolute; left: 50%; top: 50%; width: 13px; height: 13px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #9ee7ff, #1a3f6b 60%, #05070d); transform: translate(calc(-50% + var(--ox, 0px)), calc(-50% + var(--oy, 0px))); }
+.cuenta-ojos.is-cerrados .ojo { height: 3px; margin: 10px 0; }
+
+/* Unir datos y bienvenida */
+.cuenta-resumen { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.cuenta-resumen li { padding: 10px 12px; border-radius: 12px; background: var(--surface-2); }
+.cuenta-progreso { height: 8px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+.cuenta-progreso span { display: block; height: 100%; width: 40%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); animation: cuenta-barra 1.4s ease-in-out infinite; }
+.cuenta-progreso-texto { margin: 0; text-align: center; font-size: .86rem; }
+.cuenta-miembro { display: grid; justify-items: center; gap: 6px; text-align: center; }
+.cuenta-dna { display: grid; gap: 6px; padding: 12px; border-radius: 14px; background: var(--surface-2); }
+.cuenta-celebra { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px; border-radius: 16px; border: 1px solid var(--border); background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 16%, var(--surface)), var(--surface)); color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.cuenta-celebra img { width: 56px; height: 56px; border-radius: 12px; object-fit: cover; }
+.cuenta-celebra span { display: grid; flex: 1; min-width: 0; }
+.cuenta-celebra small { opacity: .75; font-size: .76rem; }
+.cuenta-celebra b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Avatar */
+.cuenta-avatar { display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; overflow: hidden; flex: none; font-weight: 800; font-size: 1.05rem; }
+.cuenta-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.cuenta-avatar.is-inicial { background: var(--av, #ff7ad9); color: #0f0d18; }
+.cuenta-avatar.is-emoji { background: var(--surface-2); font-size: 1.3rem; }
+.cuenta-avatar.is-grande { width: 76px; height: 76px; font-size: 1.9rem; box-shadow: var(--shadow); }
+.cuenta-avatares { display: grid; grid-template-columns: repeat(auto-fill, minmax(46px, 1fr)); gap: 8px; }
+.cuenta-avatares.is-mini { grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); }
+.cuenta-avatar-op { padding: 2px; border: 2px solid transparent; border-radius: 50%; background: none; cursor: pointer; display: grid; place-items: center; }
+.cuenta-avatar-op[aria-checked="true"] { border-color: var(--accent); }
+
+/* Tu cuenta */
+.cuenta-perfil { display: flex; align-items: center; gap: 14px; }
+.cuenta-perfil .cuenta-titulo { text-align: left; }
+.cuenta-correo { margin: 2px 0 0; font-size: .86rem; opacity: .8; word-break: break-all; }
+.cuenta-ok { color: #3ddc97; font-weight: 800; }
+.cuenta-tarjeta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.cuenta-tarjeta div { display: grid; padding: 10px; border-radius: 14px; background: var(--surface-2); text-align: center; }
+.cuenta-tarjeta b { font-size: 1rem; text-transform: capitalize; }
+.cuenta-tarjeta span { font-size: .72rem; opacity: .75; }
+.cuenta-bloque { display: grid; gap: 8px; padding-top: 10px; border-top: 1px solid var(--border); }
+.cuenta-bloque h4 { margin: 0; font-size: .9rem; }
+.cuenta-sync { margin: 0; font-size: .88rem; }
+.cuenta-sync[data-estado="error"] { color: #ffb020; }
+.cuenta-dispositivos { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.cuenta-disp { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border-radius: 12px; background: var(--surface-2); font-size: .84rem; }
+.cuenta-salir { width: 100%; justify-content: center; }
+
+/* Ajustes → Tu cuenta */
+.cuenta-ajuste { display: grid; gap: 10px; }
+.cuenta-ajuste-fila { display: flex; align-items: center; gap: 12px; }
+.cuenta-ajuste-fila span { display: grid; }
+.cuenta-ajuste-fila small { opacity: .75; }
+.cuenta-ajuste-botones { display: flex; gap: 8px; flex-wrap: wrap; }
+.cuenta-ajuste-botones .btn { flex: 1 1 auto; justify-content: center; }
+
+.ultra .cuenta-collage, .ultra .cuenta-ojos { display: none; }
+.ultra .cuenta-btn::after { animation: none; }

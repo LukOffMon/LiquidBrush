@@ -159,6 +159,16 @@ Cuando se publica una versión nueva, la app lo detecta (al abrirla, al volver a
 
 Las notas salen de [`novedades.json`](novedades.json): al publicar, añade arriba un bloque con `version`, `date`, `title` e `items` y ejecuta `python3 tools/bump_version.py`. También se ven en **Ajustes → Ayuda → Novedades de esta versión**.
 
+## Cuentas (opcionales)
+
+Sin cuenta, la app funciona igual que siempre (todo en el navegador). Con cuenta, favoritas, playlists, escucha y ajustes se sincronizan entre dispositivos. La primera vez que se abre la app tras la actualización sale la hoja de cuenta; «Seguir sin cuenta» la cierra y no vuelve a salir. En **Ajustes → Tu cuenta** siempre están *Iniciar sesión* / *Cerrar sesión*.
+
+- **Servidor**: Worker de Cloudflare en [`cuentas/`](cuentas/) (`https://liquid-cuentas.liquidbulletofficial.workers.dev`) con D1 `liquid-cuentas-db` (cuentas, sesiones, códigos), R2 privado `liquid-cuentas` (datos de cada persona), Turnstile y freno por IP. Plan completo: [`docs/Liquid-Bullet-Cuentas-Plan.pdf`](docs/Liquid-Bullet-Cuentas-Plan.pdf).
+- **Correo**: los códigos salen de `liquidbulletofficial@gmail.com` por SMTP con contraseña de aplicación (pueden llegar a Spam; la app lo avisa).
+- **Contraseñas**: el navegador estira la contraseña (PBKDF2, 600.000 vueltas) y el Worker guarda PBKDF2(HMAC(pimienta, clave)). Nunca viaja ni se guarda en claro.
+- **Archivo por persona**: `cuentas/<id>/datos.json.gz` y `escucha-AAAA.json.gz`, con ids de canción de 7 caracteres, fechas en minutos y solo lo que cambió (si nada cambió, no se escribe).
+- **Publicar el Worker**: `cd cuentas && npm install && npx wrangler deploy` (con `CLOUDFLARE_API_TOKEN`). Tablas: `npm run migrar`. Secretos (`wrangler secret put`): `SMTP_PASS`, `PIMIENTA`, `FIRMA`, `TURNSTILE_SECRETO`, `ADMIN`. **No pierdas `PIMIENTA` ni `FIRMA`**: sin ellas, las contraseñas guardadas dejan de valer.
+
 ## Páginas aparte
 
 - [`review.html`](review.html): review interactiva de Liquid Bullet (qué trae, nota por apartados, simulador del algoritmo, temas, comparativa, preguntas).

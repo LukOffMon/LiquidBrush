@@ -20,7 +20,11 @@ SW = ROOT / 'sw.js'
 def update_csp(html):
     scripts = re.findall(r'<script>(.*?)</script>', html, re.S)
     hashes = ' '.join("'sha256-%s'" % base64.b64encode(hashlib.sha256(s.encode()).digest()).decode() for s in scripts)
-    return re.sub(r"script-src 'self'( 'sha256-[A-Za-z0-9+/=]+')*", f"script-src 'self' {hashes}", html)
+    # Conserva los orígenes extra (p. ej. Turnstile) y sustituye solo los hashes de los scripts en línea
+    def rehacer(m):
+        otros = [t for t in m.group(1).split() if not t.startswith("'sha256-") and t != "'self'"]
+        return "script-src " + ' '.join(["'self'", *otros, hashes])
+    return re.sub(r"script-src ([^;\"]*)", rehacer, html, count=1)
 
 
 def bump(text, name):

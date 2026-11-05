@@ -1,0 +1,14 @@
+{
+  "name": "liquid-cuentas",
+  "private": true,
+  "description": "Worker de cuentas de Liquid Bullet (Cloudflare: D1, R2, Turnstile).",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "migrar": "wrangler d1 migrations apply liquid-cuentas-db --remote"
+  },
+  "devDependencies": {
+    "wrangler": "4.40.0"
+  }
+}
