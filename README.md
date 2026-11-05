@@ -130,6 +130,14 @@ Liquid Bullet es una PWA: se instala desde el navegador, sin tienda de apps. Ins
 - **iPhone/iPad**: Compartir (□↑) → *Añadir a pantalla de inicio*. Apple no deja mostrar un botón de instalar: la app enseña los pasos en Ajustes.
 - Las actualizaciones llegan solas al abrirla (no hay que reinstalar).
 
+## Modo ultraligero
+
+**Ajustes → Rendimiento → Modo ultraligero**: la versión más rápida de la app, para teléfonos lentos o con poca batería. Quita el vidrio (desenfoques), sombras, animaciones, transiciones, el fondo y la escena surrealista, el visualizador y el color tomado de la portada, y usa las letras del sistema (no descarga ninguna tipografía). Se aplica antes de pintar la página y se recuerda; al desactivarlo vuelven tus ajustes de apariencia tal como estaban. En un móvil emulado: la carga pasa de ~9,8 s a ~2 s de trabajo y en reposo la app deja de trabajar por completo.
+
+## Ocultar playlists
+
+Abre una playlist y toca el **ojo tachado**: deja de verse en Playlists, Inicio (accesos, mixes del día, Explora), Buscar y Lab. No se borra nada: sus canciones siguen en la Biblioteca y los enlaces compartidos funcionan. Se vuelven a mostrar en **Ajustes → Contenido oculto** (una a una o «Mostrar todas»). Se guarda solo en este navegador (`liquidbrush:hidden-playlists`).
+
 ## Cuando otra app corta la música
 
 Si TikTok, Instagram o una llamada le quitan el audio, la música se pausa y Liquid Bullet lo recuerda. Vuelve a sonar sola cuando hay una señal de que se puede: en iPhone cuando iOS avisa que terminó la interrupción, en Android cuando el navegador devuelve el audio (sonidos cortos), y en todos los casos al volver a Liquid Bullet un instante o al pulsar ▶ en la pantalla de bloqueo o la notificación, sin abrir la app. No reanuda si se desconectaron los auriculares, ni tras más de 3 horas.

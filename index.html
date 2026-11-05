@@ -2,7 +2,7 @@
 <html lang="es" data-theme="chrome">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-Ocw3mDWwseA5SjQTBBTc7Kyz+qhu42SvGGYW4U4SVtQ='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https:; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-2sUInM3bLi+BoQ56EnPv9BsEqEH9ZPYExkpQqnK+nYs='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https:; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="description" content="Liquid Bullet — música que se derrite: tu reproductor web personal, surrealista y cromado.">
   <meta name="theme-color" content="#100d1c">
@@ -46,7 +46,7 @@
   <link rel="dns-prefetch" href="https://pub-0854e4225565462db16fa787cf2ab81c.r2.dev">
   <link rel="dns-prefetch" href="https://pub-864cd199a5e04cb0b5faf77320b1e47b.r2.dev">
   <link rel="dns-prefetch" href="https://lrclib.net">
-  <link rel="stylesheet" href="styles.css?v=27">
+  <link rel="stylesheet" href="styles.css?v=28">
   <script>
     /* Aplica el tema, la fuente y el tamaño de letra guardados antes de pintar (sin parpadeos) */
     (function () {
@@ -60,7 +60,8 @@
         if (['street', 'graffiti', 'classic'].indexOf(settings.font) !== -1) root.setAttribute('data-font', settings.font);
         if (['system', 'small', 'normal', 'large', 'xl'].indexOf(settings.textSize) !== -1) root.setAttribute('data-text', settings.textSize);
         if (settings.motion === false) root.classList.add('no-motion');
-        if (!settings.wall || settings.wall.mode !== 'off') root.classList.add('has-wall');
+        if (settings.ultra === true) root.classList.add('ultra', 'lite', 'no-motion');
+        if ((!settings.wall || settings.wall.mode !== 'off') && settings.ultra !== true) root.classList.add('has-wall');
       } catch (e) { /* sin acceso a localStorage */ }
       /* Solo se descargan las letras tipográficas del tema y la fuente elegidos (antes, las seis siempre) */
       var FONT_URL = {
@@ -72,6 +73,8 @@
         tinos: 'Tinos:ital,wght@0,400;0,700;1,400'
       };
       window.lbLoadFonts = function (theme, font) {
+        /* Modo ultraligero: letras del sistema, nada que descargar */
+        if (document.documentElement.classList.contains('ultra')) return;
         var need = ['inter'];
         if (theme === 'ebano') need.push('tinos');
         else {
@@ -260,6 +263,8 @@
     <symbol id="i-person" viewBox="0 0 24 24"><path d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9zm0 2c-4.4 0-8 2.2-8 5v2h16v-2c0-2.8-3.6-5-8-5z"/></symbol>
     <symbol id="i-drag" viewBox="0 0 24 24"><path d="M4 8h16v2H4V8zm0 6h16v2H4v-2z"/></symbol>
     <symbol id="i-mail" viewBox="0 0 24 24"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></symbol>
+    <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46A11.8 11.8 0 0 0 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78 3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z"/></symbol>
     <symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 3a9 9 0 0 0 0 18c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></symbol>
   </svg>
 
@@ -619,6 +624,18 @@
         </button>
       </div>
 
+      <section class="settings-group" aria-labelledby="setUltraTitle">
+        <h3 id="setUltraTitle" class="settings-group-title">Rendimiento</h3>
+        <label class="setting switch">
+          <span class="setting-text">
+            <span class="setting-name">Modo ultraligero</span>
+            <span class="setting-hint">Lo más rápido posible: sin vidrio, sombras, animaciones, fondo, visualizador ni letras tipográficas descargadas. Ideal para teléfonos lentos o con poca batería. Tus ajustes de apariencia se guardan y vuelven al desactivarlo.</span>
+          </span>
+          <input id="ultraToggle" type="checkbox" role="switch">
+          <span class="switch-track" aria-hidden="true"></span>
+        </label>
+      </section>
+
       <section class="settings-group" aria-labelledby="setLookTitle">
         <h3 id="setLookTitle" class="settings-group-title">Apariencia</h3>
         <label class="setting">
@@ -706,6 +723,14 @@
         <p id="installNote" class="sheet-note">Instala Liquid Bullet como una app: icono propio, pantalla completa, abre al instante y sigue sonando con la pantalla apagada.</p>
         <button id="installBtn" class="btn" type="button" hidden>Instalar Liquid Bullet</button>
         <ol id="installSteps" class="install-steps" hidden></ol>
+      </section>
+
+      <section class="settings-group" aria-labelledby="setHiddenTitle">
+        <h3 id="setHiddenTitle" class="settings-group-title">Contenido oculto</h3>
+        <p class="sheet-note">Para ocultar una playlist, ábrela y toca el ojo tachado. Sigue existiendo (sus canciones están en la Biblioteca), solo deja de verse en Playlists, Inicio, Buscar y Lab.</p>
+        <p id="hiddenEmpty" class="sheet-note">No tienes playlists ocultas.</p>
+        <ul id="hiddenList" class="hidden-list"></ul>
+        <button id="hiddenShowAll" class="btn" type="button" hidden>Mostrar todas</button>
       </section>
 
       <section class="settings-group" aria-labelledby="setDownTitle">
@@ -799,6 +824,6 @@
   <!-- Reproductores para el ecualizador (necesitan CORS en el servidor del audio) -->
   <audio id="audio3" preload="metadata" crossorigin="anonymous"></audio>
   <audio id="audio4" preload="auto" crossorigin="anonymous"></audio>
-  <script src="app.js?v=30" defer></script>
+  <script src="app.js?v=31" defer></script>
 </body>
 </html>
