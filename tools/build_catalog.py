@@ -11,6 +11,7 @@ sume música:
 Si aparece un artista nuevo que no está en ninguna playlist, la canción va a DEFAULT_PLAYLIST y el
 script lo avisa para que se añada donde corresponda.
 """
+import hashlib
 import json
 import html
 import random
@@ -594,14 +595,27 @@ def main():
     previous = {}
     if (ROOT / 'catalog.json').exists():
         previous = json.loads((ROOT / 'catalog.json').read_text(encoding='utf-8'))
-    song_files, song_covers = assign_song_covers(tracks, previous.get('songCoverFiles', []), previous.get('songCovers', {}))
+    # Los iconos se reparten entre las canciones que se ven (sin copias), así cada icono sale las
+    # mismas veces en la app (o con una de diferencia). Cada copia oculta lleva el icono de su original.
+    song_files, song_covers = assign_song_covers(unique, previous.get('songCoverFiles', []), previous.get('songCovers', {}))
+    original = {song_key(t)[1]: t['id'] for t in unique}
+    for t in tracks:
+        if t['id'] in song_covers:
+            continue
+        twin = original.get(song_key(t)[1])
+        if twin in song_covers:
+            song_covers[t['id']] = song_covers[twin]
+        elif song_files:
+            # Excluida de las playlists (no se ve): un icono fijo según su id
+            song_covers[t['id']] = int(hashlib.md5(t['id'].encode()).hexdigest(), 16) % len(song_files)
     catalog = {'version': 1, 'genres': genres, 'playlists': out, 'aliases': aliases,
                'songCoverFiles': song_files, 'songCovers': song_covers}
     (ROOT / 'catalog.json').write_text(json.dumps(catalog, ensure_ascii=False, indent=1), encoding='utf-8')
     shared = write_share_pages(tracks, out, {tid: song_files[i] for tid, i in song_covers.items()})
-    uses = {}
-    for i in song_covers.values():
-        uses[i] = uses.get(i, 0) + 1
+    # Se cuentan las canciones que se ven en la app (sin copias): ahí es donde deben salir parejos
+    uses = {i: 0 for i in range(len(song_files))}
+    for t in unique:
+        uses[song_covers[t['id']]] += 1
     if uses:
         print(f'Portadas de canciones: {len(song_files)} iconos, entre {min(uses.values())} y {max(uses.values())} canciones cada uno')
     print(f'{shared} páginas para compartir en s/')

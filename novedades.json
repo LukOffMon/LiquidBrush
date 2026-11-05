@@ -1,6 +1,15 @@
 {
   "releases": [
     {
+      "version": "v45",
+      "date": "noviembre 2026",
+      "title": "5 iconos de canción nuevos",
+      "items": [
+        "Llegan 5 iconos nuevos para las canciones: el perro con alas azules, el bosque al atardecer, el león rojo entre edificios, las estrellas sobre leopardo y los cuervos.",
+        "Ahora hay 44 iconos repartidos lo más parejo posible: 43 salen en 89 canciones y uno en 90. Algunas canciones estrenan icono."
+      ]
+    },
+    {
       "version": "v44",
       "date": "noviembre 2026",
       "title": "Playlists revisadas canción por canción",
