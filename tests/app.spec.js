@@ -88,3 +88,47 @@ test('las pestañas se recorren con las flechas', async ({ page }) => {
   await expect(page.locator('.tab[data-view="library"]')).toHaveAttribute('aria-selected', 'true');
   await expect(page.locator('.tab[data-view="library"]')).toBeFocused();
 });
+
+test('ocultar una playlist y volver a mostrarla desde Ajustes', async ({ page }) => {
+  await page.goto('./');
+  await expect(page.locator('#libCount')).not.toHaveText('0');
+  await page.evaluate(() => document.querySelector('.tab[data-view="playlists"]').click());
+  const card = page.locator('#playlistGrid .pl-card[data-key="sys:luna-swing"]');
+  await expect(card).toHaveCount(1);
+  await card.click();
+  await page.locator('[data-action="hide-playlist"]').click();
+  await expect(page.locator('.toast')).toContainText('oculta');
+  await expect(card).toHaveCount(0);
+  await expect(page.locator('.pl-hidden-note')).toContainText('1 playlist oculta');
+  // No sale en la búsqueda de playlists
+  await page.fill('#searchInput', 'luna swing');
+  await expect(page.locator('#searchPlaylists .pl-card[data-key="sys:luna-swing"]')).toHaveCount(0);
+  await page.fill('#searchInput', '');
+  // Se recupera desde Ajustes → Contenido oculto (y sigue así al recargar)
+  await page.reload();
+  await page.locator('#settingsBtn').click();
+  await expect(page.locator('#hiddenList')).toContainText('Luna Swing');
+  await page.locator('#hiddenList [data-action="unhide-playlist"]').click();
+  await expect(page.locator('#hiddenEmpty')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await page.evaluate(() => document.querySelector('.tab[data-view="playlists"]').click());
+  await expect(card).toHaveCount(1);
+});
+
+test('el modo ultraligero quita efectos y se recuerda', async ({ page }) => {
+  await page.goto('./');
+  await expect(page.locator('#libCount')).not.toHaveText('0');
+  await page.locator('#settingsBtn').click();
+  await page.locator('#ultraToggle').check({ force: true });
+  const root = page.locator('html');
+  await expect(root).toHaveClass(/\bultra\b/);
+  await expect(root).not.toHaveClass(/has-wall/);
+  expect(await page.evaluate(() => getComputedStyle(document.querySelector('.player')).backdropFilter)).toBe('none');
+  await page.reload();
+  await expect(root).toHaveClass(/\bultra\b/);
+  await expect(page.locator('#libCount')).not.toHaveText('0');
+  await page.locator('#settingsBtn').click();
+  await expect(page.locator('#ultraToggle')).toBeChecked();
+  await page.locator('#ultraToggle').uncheck({ force: true });
+  await expect(root).not.toHaveClass(/\bultra\b/);
+});

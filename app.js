@@ -87,7 +87,8 @@
     trash: 'liquidbrush:trash',
     lyricsOffsets: 'liquidbrush:lyrics-offsets',
     errors: 'liquidbrush:errors',
-    install: 'liquidbrush:install'
+    install: 'liquidbrush:install',
+    hidden: 'liquidbrush:hidden-playlists'
   };
 
   const LYRICS_API = 'https://lrclib.net/api';
@@ -269,6 +270,10 @@
     installNote: $('installNote'),
     installBtn: $('installBtn'),
     installSteps: $('installSteps'),
+    hiddenList: $('hiddenList'),
+    hiddenEmpty: $('hiddenEmpty'),
+    hiddenShowAll: $('hiddenShowAll'),
+    ultraToggle: $('ultraToggle'),
     clearDownloads: $('clearDownloads'),
     autoFavToggle: $('autoFavToggle'),
     softPauseToggle: $('softPauseToggle'),
@@ -531,18 +536,24 @@
       softPause: saved.softPause !== false,
       // Descargar sola cada canción que marques con ♥ (solo con Wi-Fi o sin ahorro de datos)
       autoFav: saved.autoFav === true,
+      // Modo ultraligero: sin vidrio, sombras, animaciones, fondo, visualizador ni letras descargadas
+      ultra: saved.ultra === true,
       lastBackup: Number(saved.lastBackup) || 0,
       backupNagAt: Number(saved.backupNagAt) || 0
     };
   })();
   const saveSettings = () => storage.set(KEYS.settings, settings);
 
+  // «lite» lo pone detectLiteMode en equipos modestos; el modo ultraligero lo fuerza
+  let autoLite = false;
   function applyLook() {
     const root = document.documentElement;
+    root.classList.toggle('ultra', settings.ultra);
+    root.classList.toggle('lite', autoLite || settings.ultra);
     root.dataset.font = settings.font;
     window.lbLoadFonts?.(root.dataset.theme, settings.font);
     root.dataset.text = settings.textSize;
-    root.classList.toggle('no-motion', !settings.motion);
+    root.classList.toggle('no-motion', !settings.motion || settings.ultra);
   }
 
   // Vibración corta (Android); iOS no deja vibrar desde la web
@@ -1151,6 +1162,8 @@
     plays: {},
     // Playlists fijadas arriba (claves "sys:…", "local:…"), solo en este dispositivo
     pins: [],
+    // Playlists ocultas (claves "sys:…", "local:…"): no salen en Playlists, Inicio, Buscar ni Lab
+    hidden: [],
     // Artistas que sigues y lo último que buscaste (solo en este navegador)
     follows: [],
     searches: []
@@ -2126,7 +2139,7 @@
   }
 
   function labGenres() {
-    return systemPlaylists().map((pl) => ({ name: pl.name, description: pl.description || '', count: playlistTracksOf(pl).length }))
+    return shownPls(systemPlaylists()).map((pl) => ({ name: pl.name, description: pl.description || '', count: playlistTracksOf(pl).length }))
       .filter((g) => g.count > 0);
   }
 
@@ -2703,6 +2716,10 @@
     const pin = makeButton(`icon-btn pin-btn${pinned ? ' is-active' : ''}`, 'pin-playlist', pinned ? 'Dejar de fijar' : 'Fijar arriba en Playlists', 'pin');
     pin.setAttribute('aria-pressed', String(pinned));
     actions.append(pin);
+    if (pl.kind !== 'auto') {
+      const hidden = isHiddenPl(pl.key);
+      actions.append(makeButton('icon-btn', 'hide-playlist', hidden ? 'Volver a mostrar en las listas' : 'Ocultar de las listas', hidden ? 'eye' : 'eye-off'));
+    }
     if (tracks.length) actions.append(makeButton('icon-btn', 'share-playlist', 'Compartir playlist', 'share'));
     if (tracks.length) actions.append(makeButton('btn btn-ghost btn-small', 'export-m3u', 'Descargar como .m3u (VLC y otros reproductores)', '', '.m3u'));
     if (pl.kind === 'local') {
@@ -2759,6 +2776,47 @@
     renderList();
   }
 
+  /* ---------- Playlists ocultas ---------- */
+  // Ocultar no borra nada: la playlist y sus canciones siguen en la Biblioteca y en los enlaces
+  // compartidos; solo deja de aparecer en las listas. Se vuelven a mostrar desde Ajustes.
+  const isHiddenPl = (key) => library.hidden.includes(key);
+  const shownPls = (playlists) => playlists.filter((pl) => !isHiddenPl(pl.key));
+
+  function setPlaylistHidden(key, hide, { quiet = false } = {}) {
+    const pl = getPlaylist(key);
+    if (hide === isHiddenPl(key)) return;
+    library.hidden = hide ? [...library.hidden, key] : library.hidden.filter((k) => k !== key);
+    storage.set(KEYS.hidden, library.hidden);
+    haptic(10);
+    updateCounts();
+    renderHiddenSettings();
+    if (hide && state.openPlaylist === key) setView('playlists');
+    else renderList();
+    if (quiet) return;
+    const name = pl?.name || 'La playlist';
+    if (hide) {
+      showToast(`«${name}» está oculta. Vuelve a verla en Ajustes → Contenido oculto.`, {
+        label: 'Deshacer',
+        run: () => setPlaylistHidden(key, false, { quiet: true })
+      });
+    } else showToast(`«${name}» vuelve a verse.`);
+  }
+
+  // Ajustes → Contenido oculto
+  function renderHiddenSettings() {
+    if (!els.hiddenList) return;
+    const items = library.hidden.map((key) => [key, getPlaylist(key)]).filter(([, pl]) => pl);
+    els.hiddenEmpty.hidden = items.length > 0;
+    els.hiddenShowAll.hidden = items.length < 2;
+    els.hiddenList.replaceChildren(...items.map(([key, pl]) => {
+      const li = makeEl('li', 'hidden-item');
+      const show = makeButton('btn btn-small', 'unhide-playlist', `Mostrar ${pl.name}`, 'eye', 'Mostrar');
+      show.dataset.key = key;
+      li.append(playlistCover(pl, 40), makeEl('span', 'hidden-name', pl.name), show);
+      return li;
+    }));
+  }
+
   /* ---------- Color de la cabecera según la portada de la playlist ---------- */
   function coverSample(pl) {
     if (pl.cover?.type === 'image') return { src: pl.cover.src.replace(/\.jpg$/, '-sm.jpg') };
@@ -2790,6 +2848,7 @@
     if (sample.hex) return apply(sample.hex);
     if (sample.rgb) return apply(`rgb(${sample.rgb.map(Math.round).join(', ')})`);
     const cacheId = `cover:${sample.src}`;
+    if (settings.ultra) return apply(pl.color || '');
     if (colorCache.has(cacheId)) {
       const rgb = colorCache.get(cacheId);
       return apply(rgb ? `rgb(${rgb.map(Math.round).join(', ')})` : pl.color || '');
@@ -3109,7 +3168,7 @@
   // Mix diario: uno por estilo favorito, mitad conocidas y mitad por descubrir; cambia cada día
   function dailyMixes() {
     const scores = genreScores();
-    const playlists = systemPlaylists().filter((pl) => pl.trackIds.length);
+    const playlists = shownPls(systemPlaylists()).filter((pl) => pl.trackIds.length);
     const ranked = scores.size
       ? playlists.slice().sort((a, b) => (scores.get(b.name) || 0) - (scores.get(a.name) || 0))
       : seededShuffle(playlists, `mixes-${todayKey()}`);
@@ -3313,7 +3372,7 @@
     const tiles = [];
     const seen = new Set();
     const add = (pl) => {
-      if (!pl || seen.has(pl.key) || !pl.trackIds.length) return;
+      if (!pl || seen.has(pl.key) || !pl.trackIds.length || isHiddenPl(pl.key)) return;
       seen.add(pl.key);
       tiles.push(pl);
     };
@@ -3470,7 +3529,7 @@
 
   function exploreGrid() {
     const grid = makeEl('div', 'explore-grid');
-    systemPlaylists().filter((pl) => pl.trackIds.length).forEach((pl) => {
+    shownPls(systemPlaylists()).filter((pl) => pl.trackIds.length).forEach((pl) => {
       const tile = makeEl('button', 'explore-tile');
       tile.type = 'button';
       tile.dataset.action = 'open-playlist';
@@ -3831,7 +3890,7 @@
   /* ---------- Playlists que coinciden con la búsqueda ---------- */
   function renderSearchPlaylists(q) {
     const matches = q
-      ? [...pinnedFirst([...systemPlaylists(), ...localPlaylists()])]
+      ? [...pinnedFirst(shownPls([...systemPlaylists(), ...localPlaylists()]))]
         .filter((pl) => normalize(`${pl.name} ${pl.description || ''}`).includes(q))
         .slice(0, 12)
       : [];
@@ -3884,8 +3943,8 @@
     const newCard = makeButton('pl-card pl-card-new', 'new-playlist', 'Crear una playlist nueva', 'playlist-add', 'Nueva playlist');
     const autos = autoPlaylists().filter((pl) => pl.trackIds.some((id) => state.trackMap.has(id)));
 
-    const unpinned = (playlists) => playlists.filter((pl) => !isPinned(pl.key));
-    const pinned = library.pins.map(getPlaylist).filter(Boolean);
+    const unpinned = (playlists) => shownPls(playlists).filter((pl) => !isPinned(pl.key));
+    const pinned = shownPls(library.pins.map(getPlaylist).filter(Boolean));
     const parts = [];
     if (pinned.length) parts.push(section('📌 Fijadas', '', pinned));
     parts.push(
@@ -3894,13 +3953,17 @@
     );
     const autoLeft = unpinned(autos);
     if (autoLeft.length) parts.push(section('Para ti', '', autoLeft));
+    if (library.hidden.length) {
+      const note = makeEl('p', 'pl-note pl-hidden-note', `${library.hidden.length === 1 ? 'Hay 1 playlist oculta' : `Hay ${library.hidden.length} playlists ocultas`}: vuelve a verlas en Ajustes → Contenido oculto.`);
+      parts.push(note);
+    }
     els.playlistGrid.classList.toggle('is-list', settings.plView === 'list');
     els.playlistGrid.replaceChildren(...parts);
   }
 
   function updateCounts() {
     els.libCount.textContent = String(state.libraryTracks.length);
-    els.plCount.textContent = String(systemPlaylists().length + library.local.length);
+    els.plCount.textContent = String(shownPls([...systemPlaylists(), ...localPlaylists()]).length);
     updateFavCount();
   }
 
@@ -5379,6 +5442,10 @@
   }
 
   function updateDynamicColor(track) {
+    if (settings.ultra) {
+      resetDynamicColor();
+      return;
+    }
     if (track.hue !== null && track.hue !== undefined) {
       applyDynamicColor(hslToRgb(track.hue / 360, 0.65, 0.5));
       return;
@@ -5716,8 +5783,9 @@
     }
 
     function frame(time) {
-      if (!onScreen) {
+      if (!onScreen || settings.ultra) {
         rafId = null;
+        if (settings.ultra) ctx.clearRect(0, 0, width, height);
         return;
       }
       if (time - lastFrame < FRAME_MS) {
@@ -5788,6 +5856,10 @@
     }
 
     function start() {
+      if (settings.ultra) {
+        ctx.clearRect(0, 0, width, height);
+        return;
+      }
       if (!rafId && onScreen) rafId = requestAnimationFrame(frame);
     }
 
@@ -6152,6 +6224,7 @@
       switch (action) {
         case 'open-playlist': openPlaylist(target.dataset.key); break;
         case 'pin-playlist': if (pl) togglePin(pl.key); break;
+        case 'hide-playlist': if (pl) setPlaylistHidden(pl.key, !isHiddenPl(pl.key)); break;
         case 'share-playlist': sharePlaylist(pl); break;
         case 'go-view': setView(target.dataset.value); break;
         case 'open-artist': openArtist(target.dataset.value); break;
@@ -6546,6 +6619,30 @@
       applyLook();
     });
     els.plViewSelect.addEventListener('change', () => setPlaylistView(els.plViewSelect.value));
+    els.ultraToggle.addEventListener('change', () => {
+      settings.ultra = els.ultraToggle.checked;
+      saveSettings();
+      applyLook();
+      wall.applyMode();
+      visualizer.start();
+      if (state.currentTrack) updateDynamicColor(state.currentTrack);
+      showToast(settings.ultra
+        ? 'Modo ultraligero activado: sin efectos, fondo ni animaciones.'
+        : 'Modo ultraligero desactivado: vuelven los efectos.');
+    });
+    els.hiddenList.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-action="unhide-playlist"]');
+      if (button) setPlaylistHidden(button.dataset.key, false);
+    });
+    els.hiddenShowAll.addEventListener('click', () => {
+      const count = library.hidden.length;
+      library.hidden = [];
+      storage.set(KEYS.hidden, library.hidden);
+      updateCounts();
+      renderHiddenSettings();
+      renderList();
+      showToast(count === 1 ? 'La playlist oculta vuelve a verse.' : `Las ${count} playlists ocultas vuelven a verse.`);
+    });
     els.motionToggle.addEventListener('change', () => {
       settings.motion = els.motionToggle.checked;
       saveSettings();
@@ -6917,7 +7014,7 @@
     let scrollingUntil = 0;
     const icons = new Map();
 
-    const enabled = () => settings.wall.mode !== 'off';
+    const enabled = () => settings.wall.mode !== 'off' && !settings.ultra;
     const alive = () => enabled() && settings.wall.alive && settings.motion && !reduced.matches
       && !document.documentElement.classList.contains('lite');
 
@@ -7498,6 +7595,8 @@
 
   function openSettings() {
     renderStorageInfo();
+    renderHiddenSettings();
+    els.ultraToggle.checked = settings.ultra;
     errorLog.renderButton();
     els.fontSelect.value = settings.font;
     els.textSizeSelect.value = settings.textSize;
@@ -7541,6 +7640,8 @@
     state.sort = savedSort in SORTS ? savedSort : 'original';
     const savedPins = storage.get(KEYS.pins, []);
     library.pins = Array.isArray(savedPins) ? savedPins.filter((k) => typeof k === 'string') : [];
+    const savedHidden = storage.get(KEYS.hidden, []);
+    library.hidden = Array.isArray(savedHidden) ? savedHidden.filter((k) => typeof k === 'string') : [];
     // Como en Spotify, la app abre siempre en Inicio
     state.view = 'home';
     const savedFollows = storage.get(KEYS.follows, []);
@@ -7573,7 +7674,8 @@
     const memory = navigator.deviceMemory || 8;
     const saveData = navigator.connection?.saveData === true;
     // iPhone y iPad informan pocos núcleos pero mueven el vidrio sin problema
-    if ((cores <= 4 && !IS_IOS) || memory <= 2 || saveData) document.documentElement.classList.add('lite');
+    autoLite = (cores <= 4 && !IS_IOS) || memory <= 2 || saveData;
+    if (autoLite) document.documentElement.classList.add('lite');
   }
 
   function init() {
