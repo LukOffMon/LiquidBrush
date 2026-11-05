@@ -6,7 +6,7 @@
    - Los MP3 descargados desde la app viven en AUDIO_CACHE y se
      reproducen desde ahí (con soporte de rangos para poder adelantar).
    ========================================================= */
-const VERSION = 'v42';
+const VERSION = 'v43';
 const SHELL_CACHE = `liquidbrush-shell-${VERSION}`;
 const DATA_CACHE = 'liquidbrush-data';
 const AUDIO_CACHE = 'liquidbrush-audio';
@@ -14,8 +14,8 @@ const AUDIO_CACHE = 'liquidbrush-audio';
 const SHELL = [
   './',
   'index.html',
-  'styles.css?v=28',
-  'app.js?v=31',
+  'styles.css?v=29',
+  'app.js?v=32',
   'favicon.png',
   'logo.svg',
   'manifest.webmanifest',
@@ -36,8 +36,13 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(SHELL_CACHE)
       .then((cache) => cache.addAll(SHELL))
-      .then(() => self.skipWaiting())
   );
+  // No se activa sola: la app avisa «Hay una versión nueva» y la aplica al pulsar Actualizar
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
+  if (event.data?.type === 'GET_VERSION') event.source?.postMessage({ type: 'VERSION', version: VERSION });
 });
 
 self.addEventListener('activate', (event) => {

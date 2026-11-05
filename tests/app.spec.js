@@ -132,3 +132,75 @@ test('el modo ultraligero quita efectos y se recuerda', async ({ page }) => {
   await page.locator('#ultraToggle').uncheck({ force: true });
   await expect(root).not.toHaveClass(/\bultra\b/);
 });
+
+// WAV silencioso de 30 s para que el reproductor suene de verdad
+function silentWav(seconds = 30, rate = 8000) {
+  const data = Buffer.alloc(seconds * rate * 2);
+  const header = Buffer.alloc(44);
+  header.write('RIFF', 0); header.writeUInt32LE(36 + data.length, 4); header.write('WAVE', 8);
+  header.write('fmt ', 12); header.writeUInt32LE(16, 16); header.writeUInt16LE(1, 20); header.writeUInt16LE(1, 22);
+  header.writeUInt32LE(rate, 24); header.writeUInt32LE(rate * 2, 28); header.writeUInt16LE(2, 32); header.writeUInt16LE(16, 34);
+  header.write('data', 36); header.writeUInt32LE(data.length, 40);
+  return Buffer.concat([header, data]);
+}
+
+test('los botones ▶ de la playlist y del reproductor cambian a la vez', async ({ page }) => {
+  const wav = silentWav();
+  await page.route(/r2\.dev/, (route) => route.fulfill({ status: 200, contentType: 'audio/wav', body: wav }));
+  await page.goto('./?view=playlists');
+  await page.locator('.pl-card').first().click();
+  const viewPlay = page.locator('.view-play').first();
+  await viewPlay.click();
+  await expect(page.locator('body')).toHaveClass(/is-playing/);
+  await expect(viewPlay.locator('use')).toHaveAttribute('href', '#i-pause');
+  await expect(page.locator('#playBtn use')).toHaveAttribute('href', '#i-pause');
+  // Pausar desde el reproductor cambia también el de la playlist
+  await page.locator('#playBtn').click();
+  await expect(viewPlay.locator('use')).toHaveAttribute('href', '#i-play');
+  // Y el de la playlist reanuda (no vuelve a empezar)
+  await viewPlay.click();
+  await expect(page.locator('#playBtn use')).toHaveAttribute('href', '#i-pause');
+  await expect(viewPlay.locator('use')).toHaveAttribute('href', '#i-pause');
+});
+
+test('Inicio trae daylist, selección rápida y mixes', async ({ page }) => {
+  await page.goto('./');
+  await expect(page.locator('#libCount')).not.toHaveText('0');
+  await expect(page.locator('.qp-item')).toHaveCount(16);
+  await expect(page.locator('.home-section-title', { hasText: 'Tus mixes del día' })).toBeVisible();
+  await expect(page.locator('.home-section-title', { hasText: 'Hecho para ti' })).toBeVisible();
+});
+
+test('Lab: una receta crea una mezcla y se pueden quitar canciones', async ({ page }) => {
+  await page.goto('./?view=lab');
+  await page.locator('[data-lab-action="recipe"][data-value="variety"]').click();
+  const rows = page.locator('.lab-result:not(.lab-seeds) .lab-track');
+  await expect(rows).toHaveCount(60);
+  // «Un artista por canción»: ningún artista repetido
+  const artists = await rows.locator('.lab-track-artist').allTextContents();
+  const main = artists.map((a) => a.split(' · ')[0].split(',')[0].trim().toLowerCase());
+  expect(new Set(main).size).toBe(main.length);
+  await rows.first().locator('[data-lab-action="remove"]').click();
+  await expect(rows).toHaveCount(59);
+});
+
+test('el aleatorio deja al final lo recién escuchado', async ({ page }) => {
+  await page.goto('./?view=library');
+  await expect(page.locator('#libCount')).not.toHaveText('0');
+  // Marca como recién escuchadas las 20 primeras canciones de la Biblioteca
+  const recent = await page.locator('.track').evaluateAll((els) => els.slice(0, 20).map((el) => el.dataset.id));
+  await page.evaluate((ids) => {
+    const now = Date.now();
+    localStorage.setItem('liquidbrush:heard', JSON.stringify(Object.fromEntries(ids.map((id) => [id, now]))));
+  }, recent);
+  await page.goto('./?view=library');
+  await expect(page.locator('#libCount')).not.toHaveText('0');
+  // Teclas S (aleatorio) y Q (A continuación): en el móvil esos botones viven en Sonando
+  await page.locator('body').press('s');
+  await expect(page.locator('#shuffleBtn')).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('.track').nth(25).locator('.track-main').click();
+  await page.locator('body').press('q');
+  const queued = await page.locator('#queueDialog [data-id]').evaluateAll((els) => els.slice(0, 40).map((el) => el.dataset.id));
+  // Lo recién escuchado casi nunca sale entre las próximas 40 de ~3900
+  expect(queued.filter((id) => recent.includes(id)).length).toBeLessThanOrEqual(1);
+});

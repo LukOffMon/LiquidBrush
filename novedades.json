@@ -1,0 +1,27 @@
+{
+  "releases": [
+    {
+      "version": "v43",
+      "date": "noviembre 2026",
+      "title": "Inicio que te conoce, Lab nuevo y aleatorio sin repeticiones",
+      "items": [
+        "Inicio nuevo: «Tu daylist» cambia con la mañana, la tarde y la noche según lo que sueles poner a esa hora.",
+        "Selección rápida (como en YouTube Music): 16 canciones para empezar ya; cada una arranca su propia radio.",
+        "Mixes del día por «familia» de artistas, «Porque escuchaste…», Radar de novedades, Joyas olvidadas, En repetición y Artistas por descubrir.",
+        "Los accesos rápidos de arriba muestran lo último que pusiste: playlists, artistas y radios.",
+        "Resumen de tu semana en Inicio (toca para ir a Stats).",
+        "El algoritmo de Liquid aprende de verdad: cuenta los segundos que escuchas, lo reciente pesa más, las canciones que saltas salen menos y tiene en cuenta los artistas que escuchas los mismos días.",
+        "Aleatorio sin repeticiones: lo que sonó hoy o ayer va al final, nunca el mismo artista muy seguido ni rachas largas de un solo estilo, y la misma canción repetida suena una vez.",
+        "Lab rehecho: recetas de un toque (Lo mejor de ti, Descubrimiento profundo, Joyas olvidadas, Para este momento, Un artista por canción, Sal de tu burbuja).",
+        "Lab a medida: canciones semilla, control conocidas ↔ nuevas, duración en canciones o minutos, máximo por artista y orden «viaje de estilos».",
+        "Lab: quita canciones del resultado, mándalo a la cola y mira «Tu ADN musical».",
+        "Todos los botones ▶ se sincronizan: el de la playlist, el del artista, los mixes de Inicio y Lab cambian a ⏸ mientras suenan y, al tocarlos otra vez, pausan.",
+        "Modo ultraligero más ligero: sin miniaturas en las listas (ni se descargan), portada pequeña, sin vibración e Inicio más corto.",
+        "Toques más fluidos: presión suave con rebote, ▶/⏸ que se transforma y secciones que entran en cascada.",
+        "Aviso de versión nueva con botón Actualizar (sigues donde ibas) y este detalle de novedades.",
+        "«Tyler, The Creator» ya no se parte en dos artistas.",
+        "Nombres y duraciones revisados en las 3.931 canciones: corregidos títulos con restos del archivo y duraciones imposibles."
+      ]
+    }
+  ]
+}

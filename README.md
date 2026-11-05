@@ -75,7 +75,15 @@ Al abrir la app vuelve a poner la última canción que sonaba, en el segundo exa
 
 Liquid funciona como Spotify, pero con tu colección de MP3: todo se calcula en el navegador con tus canciones, lo que escuchas y tus favoritas.
 
-- **Inicio** (la app abre aquí): saludo según la hora, accesos rápidos (fijadas, tus playlists y tus estilos más escuchados), **Tus mixes del día** (uno por estilo favorito, mitad conocidas y mitad por descubrir; cambian cada día), **Hecho para ti** (Descubre semanal con canciones que aún no has oído, De nuevo y En repetición), artistas que sigues, **Radios** y **Explora tus estilos**.
+- **Inicio** (la app abre aquí), hecho con lo que de verdad escuchas:
+  - resumen de tu semana y **accesos rápidos** con lo último que pusiste (playlists, artistas, radios) y tus fijadas;
+  - **Tu daylist**: lo que sueles poner en este momento del día (madrugada, mañana, tarde, noche); cambia 4 veces al día;
+  - **Selección rápida** (como en YouTube Music): 16 canciones; cada una arranca su propia radio;
+  - **Tus mixes del día**: uno por cada «familia» de artistas que escuchas (el artista y sus parecidos), mitad conocidas y mitad por descubrir;
+  - **Porque escuchaste…** (tus artistas de estos días y sus parecidos), **Hecho para ti** (Radar de novedades, Descubre semanal, En repetición, Joyas olvidadas, De nuevo, tu día de la semana, Hace un año, Sin estrenar), **Artistas por descubrir**, artistas que sigues, **Radios** y **Explora tus estilos** (primero los tuyos).
+- **El algoritmo de Liquid** (todo en el navegador): segundos reales escuchados por canción y día con vida media de 14 días, las canciones que saltas antes de 30 s (cuentan en contra; terminarla recupera puntos), cuándo sonó cada una por última vez (`liquidbrush:heard`), favoritas, artistas que sigues, colaboraciones, estilo compartido y los artistas que escuchas los mismos días.
+- **Aleatorio sin repeticiones**: orden aleatorio ponderado en el que lo que sonó hace poco (horas o días) va al final y lo que saltas sale menos; nunca el mismo artista en las últimas canciones ni más de dos seguidas del mismo estilo, y la misma canción repetida suena una sola vez.
+- **Botones ▶ sincronizados**: el de la playlist, el del artista, los mixes de Inicio y Lab muestran ⏸ mientras suenan y, al tocarlos de nuevo, pausan o reanudan (no vuelven a empezar).
 - **Artistas**: todos los artistas de la colección, primero los que sigues. Cada uno tiene su página con sus canciones, en qué playlists aparece, artistas parecidos, **Seguir** y **Radio**. Tocar el artista en Sonando abre su página; debajo de la letra está **Acerca del artista**.
 - **Radio**: empieza por un artista (o por una canción, desde el ＋) y se renueva sola con artistas parecidos, sin fin.
 - **Buscar**: al tocar el buscador salen tus **búsquedas recientes** (con Borrar) y los estilos para explorar; los resultados muestran también artistas.
@@ -93,11 +101,12 @@ Liquid funciona como Spotify, pero con tu colección de MP3: todo se calcula en 
 
 Pestaña **Lab** (en el móvil, botón de la barra inferior):
 
-- **Mezcla estilos**: eliges varias playlists-estilo y Lab las combina por turnos, sin repetir canción ni (cuando se puede) artista seguido.
-- **Suma artistas**: buscador para añadir artistas a la mezcla.
-- **Tamaño** (20, 40, 60 o 100) y **solo lo que no he escuchado**.
-- La mezcla se reproduce o se **guarda como playlist propia**.
-- **Si te gusta…**: eliges un artista y recomienda otros por colaboraciones y estilo compartido.
+- **Recetas** de un toque: Lo mejor de ti, Descubrimiento profundo, Joyas olvidadas, Para este momento, Un artista por canción y Sal de tu burbuja.
+- **Mezcla estilos** (primero los tuyos) y **suma artistas y canciones semilla** (una canción trae su artista, sus parecidos y su estilo).
+- **Ajustes**: duración en canciones (20–100) o minutos (30 min, 1 h, 2 h), **Descubrimiento** de «solo conocidas» a «solo nuevas», máximo por artista y orden **mezclada** o **viaje de estilos**.
+- El resultado se edita (✕ en cada canción), se reproduce, va **a la cola** o se **guarda como playlist propia**.
+- **Si te gusta…**: artistas parecidos (colaboraciones, estilo y lo que escuchas los mismos días), con botón Radio.
+- **Tu ADN musical**: tus estilos en porcentaje, cuántos artistas escuchas, cuánto es nuevo para ti y tu momento del día.
 
 ## Contacto
 
@@ -132,7 +141,7 @@ Liquid Bullet es una PWA: se instala desde el navegador, sin tienda de apps. Ins
 
 ## Modo ultraligero
 
-**Ajustes → Rendimiento → Modo ultraligero**: la versión más rápida de la app, para teléfonos lentos o con poca batería. Quita el vidrio (desenfoques), sombras, animaciones, transiciones, el fondo y la escena surrealista, el visualizador y el color tomado de la portada, y usa las letras del sistema (no descarga ninguna tipografía). Se aplica antes de pintar la página y se recuerda; al desactivarlo vuelven tus ajustes de apariencia tal como estaban. En un móvil emulado: la carga pasa de ~9,8 s a ~2 s de trabajo y en reposo la app deja de trabajar por completo.
+**Ajustes → Rendimiento → Modo ultraligero**: la versión más rápida de la app, para teléfonos lentos o con poca batería. Quita el vidrio (desenfoques), sombras, animaciones, transiciones, el fondo y la escena surrealista, el visualizador y el color tomado de la portada, y usa las letras del sistema (no descarga ninguna tipografía). Además no pinta (ni descarga) las miniaturas de las listas, usa la portada pequeña en Sonando, no vibra, acorta Inicio y no calcula las filas fuera de pantalla (`content-visibility`). Se aplica antes de pintar la página y se recuerda; al desactivarlo vuelven tus ajustes de apariencia tal como estaban. En un móvil emulado: la carga pasa de ~9,8 s a ~2 s de trabajo y en reposo la app deja de trabajar por completo.
 
 ## Ocultar playlists
 
@@ -143,6 +152,21 @@ Abre una playlist y toca el **ojo tachado**: deja de verse en Playlists, Inicio 
 Si TikTok, Instagram o una llamada le quitan el audio, la música se pausa y Liquid Bullet lo recuerda. Vuelve a sonar sola cuando hay una señal de que se puede: en iPhone cuando iOS avisa que terminó la interrupción, en Android cuando el navegador devuelve el audio (sonidos cortos), y en todos los casos al volver a Liquid Bullet un instante o al pulsar ▶ en la pantalla de bloqueo o la notificación, sin abrir la app. No reanuda si se desconectaron los auriculares, ni tras más de 3 horas.
 
 Lo que **no** puede hacer ninguna web (ni Spotify): enterarse de que cerraste TikTok si nadie la avisa. Android e iOS no le dicen a la app interrumpida que la otra terminó; reintentar en bucle le quitaría el audio a TikTok cada pocos segundos.
+
+## Actualizaciones con aviso
+
+Cuando se publica una versión nueva, la app lo detecta (al abrirla, al volver a ella y cada 30 min) y muestra **«Hay una versión nueva de Liquid Bullet»** con **Actualizar**, **Luego** y **¿Qué trae?** (el detalle del parche, oculto hasta que lo pides). Actualizar guarda la canción y el segundo exacto, recarga y sigue sonando. El service worker nuevo espera a que lo pidas (no se activa solo).
+
+Las notas salen de [`novedades.json`](novedades.json): al publicar, añade arriba un bloque con `version`, `date`, `title` e `items` y ejecuta `python3 tools/bump_version.py`. También se ven en **Ajustes → Ayuda → Novedades de esta versión**.
+
+## Páginas aparte
+
+- [`review.html`](review.html): review interactiva de Liquid Bullet (qué trae, nota por apartados, simulador del algoritmo, temas, comparativa, preguntas).
+- [`imagenes.html`](imagenes.html): **Biblioteca de imágenes**. Cada imagen tiene un tipo (portada de playlist, icono de canción, fondo, icono de fondo, icono de la app, compartir, captura) y se usa solo para eso. Para sumar una: guárdala en la carpeta de su tipo con el siguiente número libre y ejecuta `python3 tools/build_image_library.py` (regenera [`imagenes.json`](imagenes.json) con dónde se usa cada una; las notas escritas a mano se conservan).
+
+## Verificación de nombres
+
+[`docs/verificacion-nombres.md`](docs/verificacion-nombres.md): las 3.931 canciones comparadas con Deezer (título, artista y duración), lo corregido y lo que queda por revisar a mano.
 
 ## Modo offline
 

@@ -6176,3 +6176,253 @@ textarea {
   background-color: var(--bg) !important;
   background-image: none !important;
 }
+
+/* ---------- Aviso de actualización ---------- */
+.update-banner {
+  position: fixed;
+  left: 50%;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(560px, calc(100vw - 24px));
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: var(--surface);
+  color: var(--text, #fff);
+  border: 1px solid var(--border);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, .35);
+  transform: translate(-50%, -140%);
+  opacity: 0;
+  transition: transform .5s cubic-bezier(.2, .9, .25, 1.15), opacity .3s ease;
+}
+.update-banner.is-visible { transform: translate(-50%, 0); opacity: 1; }
+.update-logo { width: 40px; height: 40px; border-radius: 10px; flex: none; }
+.update-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; font-size: .86rem; line-height: 1.3; }
+.update-text span { opacity: .75; font-size: .8rem; }
+.update-actions { display: flex; gap: 6px; flex: none; }
+.update-actions .btn { padding: 8px 14px; min-height: 0; }
+@media (max-width: 520px) {
+  .update-banner { flex-wrap: wrap; }
+  .update-actions { width: 100%; justify-content: flex-end; }
+}
+.ultra .update-banner { transition: none; box-shadow: none; }
+.update-banner { flex-wrap: wrap; max-height: calc(100dvh - 24px); overflow: auto; }
+.update-notes { width: 100%; font-size: .84rem; line-height: 1.45; border-top: 1px solid var(--border); padding-top: 10px; }
+.update-notes h4 { margin: 8px 0 4px; font-size: .9rem; }
+.update-notes ul { margin: 0; padding-left: 18px; }
+.update-notes li { margin: 3px 0; }
+.update-notes .update-date { opacity: .6; font-size: .75rem; }
+
+/* ---------- Inicio: lo que suena se ve (▶/⏸ sincronizados) ---------- */
+.home-card.is-current .home-card-play { opacity: 1; transform: none; }
+.home-card.is-current .home-card-art { box-shadow: var(--shadow), 0 0 0 2px var(--accent); }
+.view-play.is-on, .home-hero.is-on .home-hero-play { animation: lb-pulse 2.4s ease-in-out infinite; }
+@keyframes lb-pulse { 50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--accent) 18%, transparent); } }
+
+/* Resumen de la semana */
+.home-hello { display: flex; margin: -14px 0 -12px; }
+.home-week {
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--text);
+  font: inherit;
+  font-size: .82rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+/* Tu daylist */
+.home-hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  margin: 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background:
+    radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--accent) 30%, transparent), transparent 60%),
+    linear-gradient(135deg, var(--surface-2), var(--surface));
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform .35s var(--spring, ease);
+}
+.home-hero:active { transform: scale(.985); }
+.home-hero-art { width: 112px; height: 112px; border-radius: 16px; object-fit: cover; flex: none; box-shadow: var(--shadow); }
+.home-hero-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1; }
+.home-hero-eyebrow { font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+.home-hero-title { font-size: clamp(1.15rem, 3.6vw, 1.6rem); font-weight: 800; line-height: 1.1; }
+.home-hero-sub { font-size: .82rem; opacity: .75; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.home-hero-play {
+  display: grid; place-items: center; flex: none;
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--accent); color: var(--on-accent);
+}
+.home-hero-play .icon { width: 24px; height: 24px; }
+@media (max-width: 520px) {
+  .home-hero-art { width: 84px; height: 84px; }
+  .home-hero-play { width: 44px; height: 44px; }
+}
+
+/* Selección rápida (columnas de 4 que se deslizan) */
+.qp-grid {
+  display: grid;
+  grid-template-rows: repeat(4, auto);
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(260px, 32%);
+  gap: 6px 14px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  padding-bottom: 4px;
+}
+.qp-grid::-webkit-scrollbar { display: none; }
+@media (max-width: 720px) { .qp-grid { grid-auto-columns: 86%; } }
+.qp-item {
+  display: flex; align-items: center; gap: 10px;
+  min-width: 0; padding: 6px; border: 0; border-radius: 12px;
+  background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer;
+  scroll-snap-align: start;
+  transition: background-color .2s, transform .3s var(--spring, ease);
+}
+.qp-item:hover { background: var(--surface-hover); }
+.qp-item:active { transform: scale(.98); }
+.qp-item.is-current { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.qp-item.is-current .qp-title { color: var(--accent); }
+.qp-cover { width: 48px; height: 48px; border-radius: 8px; object-fit: cover; flex: none; }
+.qp-text { display: flex; flex-direction: column; min-width: 0; }
+.qp-title, .qp-artist { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qp-title { font-weight: 700; font-size: .92rem; }
+.qp-artist { font-size: .8rem; opacity: .7; }
+
+.home-tile-photo { width: 56px; height: 56px; object-fit: cover; flex: none; }
+.home-tile.is-artist .home-tile-photo { border-radius: 50%; margin: 0 2px; width: 52px; height: 52px; }
+
+.ultra .home-hero, .ultra .qp-item { transition: none; }
+.ultra .view-play.is-on, .ultra .home-hero.is-on .home-hero-play { animation: none; }
+
+/* ---------- Lab: recetas, semillas, ajustes y ADN ---------- */
+.lab-recipes { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+.lab-recipe {
+  display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 10px; row-gap: 2px;
+  align-items: center; padding: 12px; border: 1px solid var(--border); border-radius: 16px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 12%, var(--surface)), var(--surface));
+  color: var(--text); font: inherit; text-align: left; cursor: pointer;
+  transition: transform .45s var(--spring, ease), border-color .2s;
+}
+.lab-recipe:hover { border-color: color-mix(in srgb, var(--accent) 50%, transparent); }
+.lab-recipe:active { transform: scale(.97); }
+.lab-recipe-icon { grid-row: 1 / 3; font-size: 1.6rem; line-height: 1; }
+.lab-recipe-name { font-weight: 800; font-size: .92rem; }
+.lab-recipe-hint { font-size: .74rem; opacity: .7; line-height: 1.3; }
+.lab-option { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.lab-option-label { font-size: .78rem; font-weight: 700; opacity: .8; text-transform: uppercase; letter-spacing: .05em; }
+.lab-range-row { display: flex; align-items: center; gap: 10px; max-width: 460px; }
+.lab-range-row .lab-range { flex: 1; }
+.lab-range-end { font-size: .78rem; opacity: .7; }
+.lab-seeds { margin-top: 8px; }
+.lab-track { display: flex; align-items: center; gap: 4px; }
+.lab-track .lab-track-btn { flex: 1; min-width: 0; }
+.lab-track-remove { flex: none; opacity: .6; }
+.lab-track-remove:hover { opacity: 1; }
+.lab-track img { width: 40px; height: 40px; border-radius: 6px; object-fit: cover; flex: none; }
+.lab-like-row { display: flex; gap: 8px; align-items: center; }
+.lab-like-row .lab-select { flex: 1; min-width: 0; }
+.lab-rec img { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; }
+.dna-facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+.dna-fact { display: flex; flex-direction: column; gap: 2px; padding: 10px; border-radius: 14px; background: var(--surface-2); }
+.dna-fact strong { font-size: 1.25rem; text-transform: capitalize; }
+.dna-fact span { font-size: .74rem; opacity: .7; line-height: 1.25; }
+.dna-bars { display: flex; flex-direction: column; gap: 7px; }
+.dna-row { display: grid; grid-template-columns: minmax(90px, 140px) 1fr 40px; align-items: center; gap: 10px; font-size: .84rem; }
+.dna-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dna-bar { height: 8px; border-radius: 99px; background: var(--surface-2); position: relative; overflow: hidden; }
+.dna-bar::after { content: ''; position: absolute; inset: 0 auto 0 0; width: var(--w); border-radius: inherit; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+.dna-pct { text-align: right; opacity: .7; font-variant-numeric: tabular-nums; }
+@media (max-width: 520px) { .dna-facts { grid-template-columns: 1fr 1fr; } .lab-recipes { grid-template-columns: 1fr 1fr; } }
+.ultra .lab-recipe { transition: none; background: var(--surface); }
+
+/* ---------- Modo ultraligero de verdad ----------
+   Las miniaturas de las listas no se pintan (y como son «lazy», ni se descargan): cada fila
+   es solo texto. Las filas fuera de pantalla no se calculan (content-visibility). */
+.ultra .track-cover,
+.ultra .qp-cover,
+.ultra .lab-track img,
+.ultra .lab-rec img,
+.ultra .home-tile-photo,
+.ultra .artist-photo,
+.ultra .recent-row,
+.ultra .np-about,
+.ultra .contact-link .icon { display: none !important; }
+.ultra .track { content-visibility: auto; contain-intrinsic-size: auto 56px; }
+.ultra .home-section, .ultra .lab-section, .ultra .stat-card { content-visibility: auto; contain-intrinsic-size: auto 260px; }
+.ultra .home-card { flex-basis: 120px; }
+.ultra .home-card-play { opacity: 1; transform: none; }
+.ultra .artist-card { min-height: 0; }
+.ultra .qp-item { padding: 8px; }
+.ultra img { image-rendering: auto; }
+
+/* ---------- Fluidez: cada toque responde como algo físico ----------
+   Presión suave (no un «salto» de juguete), rebote al soltar, ▶/⏸ que se transforma
+   y secciones de Inicio que entran en cascada. Todo se apaga con «Menos movimiento». */
+:root:not(.no-motion) .icon-btn:active:not(:disabled),
+:root:not(.no-motion) .nav-btn:active,
+:root:not(.no-motion) .btn:active:not(:disabled),
+:root:not(.no-motion) .chip:active,
+:root:not(.no-motion) .tab:active { transform: scale(0.93); }
+
+:root:not(.no-motion) .home-card,
+:root:not(.no-motion) .home-tile,
+:root:not(.no-motion) .explore-tile,
+:root:not(.no-motion) .artist-card,
+:root:not(.no-motion) .lab-rec {
+  transition: transform 0.55s var(--spring), background-color 0.3s var(--ease-fluid), box-shadow 0.35s var(--ease-fluid);
+  -webkit-tap-highlight-color: transparent;
+}
+:root:not(.no-motion) .home-card:hover .home-card-art { transform: translateY(-3px); }
+:root:not(.no-motion) .home-card-art { transition: transform 0.55s var(--spring), box-shadow 0.35s var(--ease-fluid); }
+:root:not(.no-motion) .home-card:active,
+:root:not(.no-motion) .home-tile:active,
+:root:not(.no-motion) .explore-tile:active,
+:root:not(.no-motion) .artist-card:active,
+:root:not(.no-motion) .lab-rec:active { transform: scale(0.96); transition-duration: 0.14s; }
+
+/* ▶ ⇄ ⏸ con un pequeño «latido» */
+:root:not(.no-motion) .play-btn .icon,
+:root:not(.no-motion) [data-play-source] .icon { transition: transform 0.4s var(--spring); }
+:root:not(.no-motion) body.is-playing #playBtn .icon,
+:root:not(.no-motion) [data-play-source].is-on .icon { animation: icon-morph 0.42s var(--spring); }
+@keyframes icon-morph {
+  0% { transform: scale(0.6) rotate(-12deg); opacity: 0.4; }
+  100% { transform: none; opacity: 1; }
+}
+
+/* Como en Apple Music: la portada se encoge un poco en pausa y crece al sonar */
+:root:not(.no-motion) .cover-wrap { transition: transform 0.7s var(--spring), box-shadow 0.5s var(--ease-fluid); }
+:root:not(.no-motion) body:not(.is-playing) .cover-wrap { transform: scale(0.94); }
+
+/* Inicio entra en cascada */
+:root:not(.no-motion) .library-view.rows-in .home-section,
+:root:not(.no-motion) .library-view.rows-in .home-hero,
+:root:not(.no-motion) .library-view.rows-in .home-quick,
+:root:not(.no-motion) .library-view.rows-in .lab-section {
+  animation: row-in 0.6s var(--ease-fluid) both;
+}
+:root:not(.no-motion) .library-view.rows-in :is(.home-section, .home-hero, .lab-section):nth-child(2) { animation-delay: 50ms; }
+:root:not(.no-motion) .library-view.rows-in :is(.home-section, .home-hero, .lab-section):nth-child(3) { animation-delay: 100ms; }
+:root:not(.no-motion) .library-view.rows-in :is(.home-section, .home-hero, .lab-section):nth-child(4) { animation-delay: 150ms; }
+:root:not(.no-motion) .library-view.rows-in :is(.home-section, .home-hero, .lab-section):nth-child(n+5) { animation-delay: 200ms; }
+
+/* Filas con desplazamiento que encaja */
+.home-row { scroll-snap-type: x proximity; overscroll-behavior-x: contain; }
+
+.update-notes { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
