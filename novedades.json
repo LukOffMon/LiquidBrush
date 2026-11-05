@@ -1,6 +1,15 @@
 {
   "releases": [
     {
+      "version": "v47",
+      "date": "noviembre 2026",
+      "title": "Fuera 10 canciones con el audio equivocado",
+      "items": [
+        "Quitamos 10 canciones cuyo archivo no era la canción que decía ser (p. ej. «que dificil me la haces» de One Flyt, que en realidad duraba 9:41 y sonaba otra cosa). Gracias por reportarlo.",
+        "Volverán cuando se suba el audio correcto."
+      ]
+    },
+    {
       "version": "v46",
       "date": "noviembre 2026",
       "title": "Cuentas de Liquid Bullet (opcionales)",
@@ -23,19 +32,6 @@
       "items": [
         "Llegan 5 iconos nuevos para las canciones: el perro con alas azules, el bosque al atardecer, el león rojo entre edificios, las estrellas sobre leopardo y los cuervos.",
         "Ahora hay 44 iconos repartidos lo más parejo posible: 43 salen en 89 canciones y uno en 90. Algunas canciones estrenan icono."
-      ]
-    },
-    {
-      "version": "v44",
-      "date": "noviembre 2026",
-      "title": "Playlists revisadas canción por canción",
-      "items": [
-        "Revisadas las 41 playlists y sus 3.917 canciones: 110 canciones cambian a la playlist que les toca.",
-        "Perreo Nocturno queda solo para perreo: el rap mexicano (Wk, Mime 871, Simpson Ahuevo…) pasa a Rima Cruda, lo alternativo (LATIN MAFIA, CA7RIEL & Paco Amoroso, iza tkm) a Alma Latina y lo español (nusar3000, Bb trickz, ROSALÍA) a Calle Cromo.",
-        "ShyBully («Tattoo», «Shy») pasa a Corazón Roto.",
-        "El rock argentino de culto (Serú Girán, Pescado Rabioso, Almendra, Los Pericos, Los Cafres) pasa de Trueno Clásico a Ciudad Furia.",
-        "El pop de pista de los 2000 (Nelly Furtado, Gwen Stefani, Justin Timberlake) pasa a Neón Eterno; Lily Allen, a Londres Rosa; Coldplay, a Lluvia Lenta; Chase Atlantic, a Seda Nocturna.",
-        "«Black Country, New Road» ya no se parte en dos artistas."
       ]
     }
   ]
