@@ -148,7 +148,7 @@ function silentWav(seconds = 30, rate = 8000) {
   return Buffer.concat([header, data]);
 }
 
-test('los botones ▶ de la playlist y del reproductor cambian a la vez', async ({ page }) => {
+test('los botones de reproducir de la playlist y del reproductor cambian a la vez', async ({ page }) => {
   const wav = silentWav();
   await page.route(/r2\.dev/, (route) => route.fulfill({ status: 200, contentType: 'audio/wav', body: wav }));
   await page.goto('./?view=playlists');

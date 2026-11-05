@@ -171,7 +171,7 @@ export function correoBienvenida(nombre) {
   return {
     asunto: 'Tu música ya está a salvo',
     texto: `${hola}:\n\nTu cuenta de Liquid Bullet está lista. Tus favoritas, playlists y lo que escuchas te siguen a cualquier dispositivo.\n\nTres trucos:\n· Selección rápida (Inicio): toca una canción y sigue con su radio.\n· Lab: recetas de un toque y mezclas a medida.\n· Descarga playlists para escuchar sin internet.\n\nConoce todo lo que trae: https://lukoffmon.github.io/LiquidBrush/review.html`,
-    html: marco(`${hola} 👋`, `Tu cuenta de Liquid Bullet está lista. Tus favoritas, playlists y lo que escuchas te siguen a cualquier dispositivo.<br><br>
+    html: marco(hola, `Tu cuenta de Liquid Bullet está lista. Tus favoritas, playlists y lo que escuchas te siguen a cualquier dispositivo.<br><br>
 <b>Tres trucos:</b><br>· <b>Selección rápida</b> (Inicio): toca una canción y sigue con su radio.<br>· <b>Lab</b>: recetas de un toque y mezclas a medida.<br>· <b>Descarga</b> playlists para escuchar sin internet.<br><br>
 <a href="https://lukoffmon.github.io/LiquidBrush/review.html" style="color:#9ee7ff">Conoce todo lo que trae</a>`)
   };

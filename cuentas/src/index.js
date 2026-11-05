@@ -89,7 +89,8 @@ function claveValida(texto) {
 const nombreLimpio = (texto) => String(texto || '').replace(/\p{Cc}/gu, '').trim().slice(0, 40) || null;
 const avatarLimpio = (texto) => {
   const a = String(texto || '').trim();
-  return /^(inicial:#[0-9a-f]{6}|emoji:.{1,8}|fondo:\d{2}|icono:song-\d{2})$/iu.test(a) ? a : null;
+  // Avatares: inicial con color o icono de fondo (sin emojis ni iconos de canción)
+  return /^(inicial:#[0-9a-f]{6}|fondo:\d{2})$/i.test(a) ? a : null;
 };
 
 function nombreDispositivo(request, propio) {

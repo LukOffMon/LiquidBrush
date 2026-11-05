@@ -56,14 +56,6 @@
     "src": "801-833/807 - Midfug - Vas y vienes.mp3"
   },
   {
-    "id": "801-833-808-los-ribeteroz-fr1zi-loveuikari-elevenkd-date-gra-e32107",
-    "title": "Date Grasa",
-    "artist": "Los+RibeteroZ, Fr1zi, LoveUikari, ElevenKD",
-    "album": "",
-    "duration": "3:11",
-    "src": "801-833/808 - Los RibeteroZ, Fr1zi, LoveUikari, ElevenKD - Date Grasa.mp3"
-  },
-  {
     "id": "801-833-809-la-intimidad-paxheko-umi-not-human-glaede-yered--0b574a",
     "title": "tentacion",
     "artist": "la intimidad, paxheko, Umi Not Human, Glaede, Yered!!",
@@ -78,14 +70,6 @@
     "album": "",
     "duration": "2:09",
     "src": "801-833/810 - Chzter, Tzunami, Doony Graff - ENTE VIRTUAL.mp3"
-  },
-  {
-    "id": "801-833-811-ruzzo-doblezz-tbx-dicaprio-mp3-39afa4",
-    "title": "Dicaprio",
-    "artist": "Ruzzo Doblezz, TBX",
-    "album": "",
-    "duration": "2:12",
-    "src": "801-833/811 - Ruzzo Doblezz, TBX - Dicaprio.mp3"
   },
   {
     "id": "801-833-812-xosa-akal-maravilla-mp3-601117",
@@ -128,14 +112,6 @@
     "src": "801-833/816 - Yeyo - Bendecido.mp3"
   },
   {
-    "id": "801-833-817-kiddwero-lanetadelplaneta-prod-cod3x-mp3-4fe61b",
-    "title": "LaNEtAdElPlaneTa(Prod.Cod3x)",
-    "artist": "KIDDWERO",
-    "album": "",
-    "duration": "2:44",
-    "src": "801-833/817 - KIDDWERO - LaNEtAdElPlaneTa(Prod.Cod3x).mp3"
-  },
-  {
     "id": "801-833-818-novato-el-flow-rory-swan-dj-preciozo-dejate-ver--2c7a29",
     "title": "Dejate ver",
     "artist": "Novato El Flow, Rory Swan, dj Preciozo",
@@ -168,14 +144,6 @@
     "src": "801-833/822 - MXLVIXJE, Lxmb Gold, JOSTIN JA, morenoguapo - Estaba por llamarte.mp3"
   },
   {
-    "id": "801-833-823-tennessee-beats-bbbartex-xosa-jossed-marroneo-mp-661f06",
-    "title": "Marroneo",
-    "artist": "Tennessee Beats, bbbartex, xosa, Jossed",
-    "album": "",
-    "duration": "2:05",
-    "src": "801-833/823 - Tennessee Beats, bbbartex, xosa, Jossed - Marroneo.mp3"
-  },
-  {
     "id": "801-833-824-jose-alatorre-candyoperreo-mp3-f483de",
     "title": "candyOperreo",
     "artist": "Jose Alatorre",
@@ -192,14 +160,6 @@
     "src": "801-833/827 - Nana Nina, Gamboa - My White Kitty.mp3"
   },
   {
-    "id": "801-833-828-cherry-chola-chico-sonido-the-pink-room-mp3-3e825a",
-    "title": "The Pink Room",
-    "artist": "Cherry Chola, Chico Sonido",
-    "album": "",
-    "duration": "2:56",
-    "src": "801-833/828 - Cherry Chola, Chico Sonido - The Pink Room.mp3"
-  },
-  {
     "id": "801-833-830-1tbsp-soltera-soulseek-mp3-b5dab6",
     "title": "Soulseek",
     "artist": "1tbsp, Soltera",
@@ -214,14 +174,6 @@
     "album": "",
     "duration": "3:08",
     "src": "801-833/831 - 3delincuentes - NOLECREO!MIAU.mp3"
-  },
-  {
-    "id": "801-833-832-mj-nebreda-nick-leon-bubalu-mp3-e026d9",
-    "title": "Bubalú",
-    "artist": "MJ Nebreda, Nick León",
-    "album": "",
-    "duration": "2:56",
-    "src": "801-833/832 - MJ Nebreda, Nick Leon - Bubalu.mp3"
   },
   {
     "id": "801-833-833-sajiva-neyka-nene-mp3-c45a00",
@@ -736,36 +688,12 @@
     "src": "001-100/064 - Radiohead - Codex.mp3"
   },
   {
-    "id": "001-100-065-nusar3000-gianni-batista-mota-mp3-19852b",
-    "title": "MOTA",
-    "artist": "nusar3000, GIANNI BATISTA",
-    "album": "",
-    "duration": "2:54",
-    "src": "001-100/065 - nusar3000, GIANNI BATISTA - MOTA.mp3"
-  },
-  {
-    "id": "001-100-066-nusar3000-gianni-batista-jugo-mp3-d339e3",
-    "title": "JUGO",
-    "artist": "nusar3000, GIANNI BATISTA",
-    "album": "",
-    "duration": "2:02",
-    "src": "001-100/066 - nusar3000, GIANNI BATISTA - JUGO.mp3"
-  },
-  {
     "id": "001-100-067-nusar3000-gianni-batista-nosesitukieres-mp3-33a077",
     "title": "nosesitukieres",
     "artist": "nusar3000, GIANNI BATISTA",
     "album": "",
     "duration": "2:09",
     "src": "001-100/067 - nusar3000, GIANNI BATISTA - nosesitukieres.mp3"
-  },
-  {
-    "id": "001-100-068-nusar3000-gianni-batista-refrigerante-mp3-52d42e",
-    "title": "REFRIGERANTE",
-    "artist": "nusar3000, GIANNI BATISTA",
-    "album": "",
-    "duration": "2:02",
-    "src": "001-100/068 - nusar3000, GIANNI BATISTA - REFRIGERANTE.mp3"
   },
   {
     "id": "001-100-069-nusar3000-gianni-batista-guarana-mp3-f39471",
@@ -792,60 +720,12 @@
     "src": "001-100/072 - nusar3000, GIANNI BATISTA - PIZZA PLANET.mp3"
   },
   {
-    "id": "001-100-073-nusar3000-gianni-batista-compay51-mp3-c00c49",
-    "title": "compay51",
-    "artist": "nusar3000, GIANNI BATISTA",
-    "album": "",
-    "duration": "3:04",
-    "src": "001-100/073 - nusar3000, GIANNI BATISTA - compay51.mp3"
-  },
-  {
-    "id": "001-100-074-nusar3000-naskar-mp3-c9d78a",
-    "title": "NASKAR",
-    "artist": "nusar3000",
-    "album": "",
-    "duration": "2:25",
-    "src": "001-100/074 - nusar3000 - NASKAR.mp3"
-  },
-  {
-    "id": "001-100-075-nusar3000-pj-sin-suela-bendecido-mp3-a92e20",
-    "title": "BENDECIDO",
-    "artist": "nusar3000, Pj Sin Suela",
-    "album": "",
-    "duration": "2:00",
-    "src": "001-100/075 - nusar3000, Pj Sin Suela - BENDECIDO.mp3"
-  },
-  {
     "id": "001-100-076-nusar3000-azuleja-sheftek-mp3-55d210",
     "title": "SHEFTEK",
     "artist": "nusar3000, Azuleja",
     "album": "",
     "duration": "1:44",
     "src": "001-100/076 - nusar3000, Azuleja - SHEFTEK.mp3"
-  },
-  {
-    "id": "001-100-077-nusar3000-levante-mp3-c97f97",
-    "title": "LEVANTE",
-    "artist": "nusar3000",
-    "album": "",
-    "duration": "1:43",
-    "src": "001-100/077 - nusar3000 - LEVANTE.mp3"
-  },
-  {
-    "id": "001-100-079-nusar3000-alcancia-mp3-1a443f",
-    "title": "ALCANCÍA",
-    "artist": "nusar3000",
-    "album": "",
-    "duration": "2:37",
-    "src": "001-100/079 - nusar3000 - ALCANCIA.mp3"
-  },
-  {
-    "id": "001-100-080-nusar3000-israel-fernandez-rosa-de-jerico-mp3-addddd",
-    "title": "ROSA DE JERICÓ",
-    "artist": "nusar3000, Israel Fernández",
-    "album": "",
-    "duration": "2:58",
-    "src": "001-100/080 - nusar3000, Israel Fernandez - ROSA DE JERICO.mp3"
   },
   {
     "id": "001-100-081-nusar3000-tausert-mp3-6ab1c9",
@@ -1096,14 +976,6 @@
     "src": "101-200/111 - Flavien Berger - Brutalisme.mp3"
   },
   {
-    "id": "101-200-112-mou-ca-va-le-faire-mp3-a7b91e",
-    "title": "Ça va le faire",
-    "artist": "Mou",
-    "album": "",
-    "duration": "3:23",
-    "src": "101-200/112 - Mou - Ca va le faire.mp3"
-  },
-  {
     "id": "101-200-113-warner-case-jean-tonique-i-miss-new-york-mp3-6c5422",
     "title": "i miss new york",
     "artist": "warner case, Jean Tonique",
@@ -1118,14 +990,6 @@
     "album": "",
     "duration": "2:10",
     "src": "101-200/114 - Alastair Lane, VONFELT - Bon Voyage.mp3"
-  },
-  {
-    "id": "101-200-115-lewis-ofman-un-amour-au-super-u-mp3-cbafa5",
-    "title": "Un amour au super u",
-    "artist": "Lewis OfMan",
-    "album": "",
-    "duration": "3:10",
-    "src": "101-200/115 - Lewis OfMan - Un amour au super u.mp3"
   },
   {
     "id": "101-200-116-polo-pan-cur-croise-mp3-ec4d39",
@@ -1264,22 +1128,6 @@
     "src": "101-200/132 - YoSoyMatt, Eva de Marce, Polocorp - La Nina del Volcan (Polocorp Remix).mp3"
   },
   {
-    "id": "101-200-133-ladi-noche-fina-mp3-696312",
-    "title": "noche fina",
-    "artist": "LaDí",
-    "album": "",
-    "duration": "3:37",
-    "src": "101-200/133 - LaDi - noche fina.mp3"
-  },
-  {
-    "id": "101-200-134-le-venado-weird-fishes-mp3-78c44f",
-    "title": "Weird Fishes",
-    "artist": "le venado",
-    "album": "",
-    "duration": "5:18",
-    "src": "101-200/134 - le venado - Weird Fishes.mp3"
-  },
-  {
     "id": "101-200-135-yosoymatt-eva-de-marce-french-braids-sr-tigre-fr-6b60d7",
     "title": "Sr. Tigre - French Braids Rework",
     "artist": "YoSoyMatt, Eva de Marce, French Braids",
@@ -1350,22 +1198,6 @@
     "album": "",
     "duration": "3:26",
     "src": "101-200/143 - CERO39, Eva de Marce, Iusef - Sal de Mar.mp3"
-  },
-  {
-    "id": "101-200-144-acid-coco-sonando-mp3-b2f1cf",
-    "title": "Soñando",
-    "artist": "Acid Coco",
-    "album": "",
-    "duration": "3:33",
-    "src": "101-200/144 - Acid Coco - Sonando.mp3"
-  },
-  {
-    "id": "101-200-145-miel-centro-mp3-7363d1",
-    "title": "Centro",
-    "artist": "MIEL",
-    "album": "",
-    "duration": "3:37",
-    "src": "101-200/145 - MIEL - Centro.mp3"
   },
   {
     "id": "101-200-146-yosoymatt-jupiter-mp3-3e05e4",
@@ -1456,22 +1288,6 @@
     "src": "101-200/156 - Karen y Los Remedios - Presagio.mp3"
   },
   {
-    "id": "101-200-157-real-cumbia-activa-rca-la-isla-en-el-sol-pt-1-mp-b48dc0",
-    "title": "La Isla En El Sol, Pt. 1",
-    "artist": "Real Cumbia Activa RCA",
-    "album": "",
-    "duration": "2:55",
-    "src": "101-200/157 - Real Cumbia Activa RCA - La Isla En El Sol, Pt. 1.mp3"
-  },
-  {
-    "id": "101-200-158-ztvz-bailame-asi-mp3-b484d5",
-    "title": "Báilame Así",
-    "artist": "ZTVZ",
-    "album": "",
-    "duration": "2:54",
-    "src": "101-200/158 - ZTVZ - Bailame Asi.mp3"
-  },
-  {
     "id": "101-200-159-los-eclipses-eva-de-marce-dan-solo-elodie-mp3-aa5e53",
     "title": "Elodie",
     "artist": "Los Eclipses, Eva de Marce, Dan Solo",
@@ -1528,28 +1344,12 @@
     "src": "101-200/165 - Pitto - You.mp3"
   },
   {
-    "id": "101-200-166-pantera-blue-ame-mp3-3a05f5",
-    "title": "AMÉ",
-    "artist": "PANTERA BLUE",
-    "album": "",
-    "duration": "2:05",
-    "src": "101-200/166 - PANTERA BLUE - AME.mp3"
-  },
-  {
     "id": "101-200-167-eme-sarav-give-it-up-2-me-mp3-10aae1",
     "title": "Give It Up 2 Me",
     "artist": "Eme Sarav",
     "album": "",
     "duration": "3:23",
     "src": "101-200/167 - Eme Sarav - Give It Up 2 Me.mp3"
-  },
-  {
-    "id": "101-200-168-vonnside-www-mp3-b90d14",
-    "title": "www",
-    "artist": "vonnside",
-    "album": "",
-    "duration": "3:04",
-    "src": "101-200/168 - vonnside - www.mp3"
   },
   {
     "id": "101-200-169-ztvz-24-horas-mp3-d5916a",
@@ -1608,28 +1408,12 @@
     "src": "101-200/175 - Tutankhamun - Coltrane.mp3"
   },
   {
-    "id": "101-200-176-perro-salchicha-como-pompa-mp3-3648cd",
-    "title": "Como Pompa",
-    "artist": "Perro Salchicha",
-    "album": "",
-    "duration": "3:23",
-    "src": "101-200/176 - Perro Salchicha - Como Pompa.mp3"
-  },
-  {
     "id": "101-200-177-los-eclipses-eva-de-marce-dan-solo-la-cumbia-de--577f9f",
     "title": "La Cumbia de los Corazones Rotos",
     "artist": "Los Eclipses, Eva de Marce, Dan Solo",
     "album": "",
     "duration": "3:56",
     "src": "101-200/177 - Los Eclipses, Eva de Marce, Dan Solo - La Cumbia de los Corazones Rotos.mp3"
-  },
-  {
-    "id": "101-200-178-shmiks-j-guero-lucy-y-el-tigre-j-guero-remix-mp3-899d23",
-    "title": "Lucy y El Tigre (J Güero Remix)",
-    "artist": "Shmiks, J Güero",
-    "album": "",
-    "duration": "2:53",
-    "src": "101-200/178 - Shmiks, J Guero - Lucy y El Tigre (J Guero Remix).mp3"
   },
   {
     "id": "101-200-179-le-venado-sed-de-sangre-mp3-50ffef",
@@ -1664,14 +1448,6 @@
     "src": "101-200/182 - Los Eclipses, Eva de Marce, Dan Solo - Nada Mas.mp3"
   },
   {
-    "id": "101-200-183-tati-falco-haydee-mp3-e419b1",
-    "title": "Haydee",
-    "artist": "Tati Falco",
-    "album": "",
-    "duration": "3:48",
-    "src": "101-200/183 - Tati Falco - Haydee.mp3"
-  },
-  {
     "id": "101-200-184-weste-jamas-mp3-31ae09",
     "title": "Jamas",
     "artist": "Weste",
@@ -1696,14 +1472,6 @@
     "src": "101-200/186 - Karen y Los Remedios, Eva de Marce, Isaac Soto - Hablame de ti.mp3"
   },
   {
-    "id": "101-200-187-pantera-blue-sofia-y-yo-mp3-946196",
-    "title": "Sofía y yo",
-    "artist": "PANTERA BLUE",
-    "album": "",
-    "duration": "2:15",
-    "src": "101-200/187 - PANTERA BLUE - Sofia y yo.mp3"
-  },
-  {
     "id": "101-200-188-los-eclipses-eva-de-marce-dan-solo-temperatura-m-4687e1",
     "title": "Temperatura",
     "artist": "Los Eclipses, Eva de Marce, Dan Solo",
@@ -1712,44 +1480,12 @@
     "src": "101-200/188 - Los Eclipses, Eva de Marce, Dan Solo - Temperatura.mp3"
   },
   {
-    "id": "101-200-189-tati-falco-los-estimados-mp3-b080ab",
-    "title": "Los Estimados",
-    "artist": "Tati Falco",
-    "album": "",
-    "duration": "4:09",
-    "src": "101-200/189 - Tati Falco - Los Estimados.mp3"
-  },
-  {
     "id": "101-200-190-le-venado-mailob-mp3-ecccd4",
     "title": "Mailob",
     "artist": "le venado",
     "album": "",
     "duration": "2:50",
     "src": "101-200/190 - le venado - Mailob.mp3"
-  },
-  {
-    "id": "101-200-191-emally-villa-baby-yo-mp3-5e585e",
-    "title": "BABY YO",
-    "artist": "Emally Villa",
-    "album": "",
-    "duration": "3:13",
-    "src": "101-200/191 - Emally Villa - BABY YO.mp3"
-  },
-  {
-    "id": "101-200-192-golf-trip-soul-brother-mp3-70844a",
-    "title": "Soul Brother",
-    "artist": "Golf Trip",
-    "album": "",
-    "duration": "4:08",
-    "src": "101-200/192 - Golf Trip - Soul Brother.mp3"
-  },
-  {
-    "id": "101-200-193-elia-y-elizabeth-relatin-kartell-ponte-bajo-el-s-f67983",
-    "title": "Ponte Bajo El Sol - Kartell Remix",
-    "artist": "Elia y Elizabeth, RELATIN, Kartell",
-    "album": "",
-    "duration": "3:48",
-    "src": "101-200/193 - Elia y Elizabeth, RELATIN, Kartell - Ponte Bajo El Sol - Kartell Remix.mp3"
   },
   {
     "id": "101-200-194-yosoymatt-french-braids-eva-de-marce-discoman-mp-55d2f1",
@@ -1766,14 +1502,6 @@
     "album": "",
     "duration": "3:24",
     "src": "101-200/195 - French Braids, Dom McAllister - Shady.mp3"
-  },
-  {
-    "id": "101-200-196-marine-neuilly-confetti-mp3-7731b7",
-    "title": "Confetti",
-    "artist": "Marine Neuilly",
-    "album": "",
-    "duration": "3:19",
-    "src": "101-200/196 - Marine Neuilly - Confetti.mp3"
   },
   {
     "id": "101-200-197-harmless-nacho-s-mp3-3bb71a",
@@ -1808,28 +1536,12 @@
     "src": "101-200/200 - Disco Bahia, Coco Santos, Noah Pino Palo - Bahia.mp3"
   },
   {
-    "id": "201-300-201-epilogio-los-perros-van-al-cielo-mp3-85ec48",
-    "title": "Los Perros Van Al Cielo",
-    "artist": "Epilogio",
-    "album": "",
-    "duration": "3:23",
-    "src": "201-300/201 - Epilogio - Los Perros Van Al Cielo.mp3"
-  },
-  {
     "id": "201-300-202-soultade-juno-mp3-619056",
     "title": "Juno",
     "artist": "Soultade",
     "album": "",
     "duration": "3:10",
     "src": "201-300/202 - Soultade - Juno.mp3"
-  },
-  {
-    "id": "201-300-203-disco-bahia-marbrisa-mp3-9ae8b3",
-    "title": "Marbrisa",
-    "artist": "Disco Bahía",
-    "album": "",
-    "duration": "3:35",
-    "src": "201-300/203 - Disco Bahia - Marbrisa.mp3"
   },
   {
     "id": "201-300-204-yosoymatt-french-braids-eva-de-marce-el-sabor-de-94596c",
@@ -1880,38 +1592,6 @@
     "src": "201-300/209 - Sunshine Boysclub - Right Out The Window.mp3"
   },
   {
-    "id": "201-300-212-wizardjit-other-way-mp3-631362",
-    "title": "other .way",
-    "artist": "wizardjit",
-    "album": "",
-    "duration": "1:22",
-    "src": "201-300/212 - wizardjit - other .way.mp3"
-  },
-  {
-    "id": "201-300-213-celai-quits-mp3-29e1b7",
-    "title": "quits",
-    "artist": "celai",
-    "album": "",
-    "duration": "2:16",
-    "src": "201-300/213 - celai - quits.mp3"
-  },
-  {
-    "id": "201-300-219-guitarbf-crybaby-mp3-f32aca",
-    "title": "crybaby",
-    "artist": "guitarbf",
-    "album": "",
-    "duration": "1:34",
-    "src": "201-300/219 - guitarbf - crybaby.mp3"
-  },
-  {
-    "id": "201-300-221-punchy-untreated-scars-mp3-d4c014",
-    "title": "Untreated Scars",
-    "artist": "punchy",
-    "album": "",
-    "duration": "3:26",
-    "src": "201-300/221 - punchy - Untreated Scars.mp3"
-  },
-  {
     "id": "201-300-222-ankle-save-yourself-mp3-a678e6",
     "title": "save yourself",
     "artist": "ankle",
@@ -1944,14 +1624,6 @@
     "src": "201-300/231 - kiheir - campus crush.mp3"
   },
   {
-    "id": "201-300-236-celai-krawl-mp3-5defe7",
-    "title": "krawl",
-    "artist": "celai",
-    "album": "",
-    "duration": "3:01",
-    "src": "201-300/236 - celai - krawl.mp3"
-  },
-  {
     "id": "201-300-238-junshi-gomi-mp3-26868b",
     "title": "ᏋᏒᎧᎶᏋ ᏝᎧᏉᏋ ᎮᎧᏖᎥᎧᏁ",
     "artist": "Junshi, Gomi",
@@ -1966,46 +1638,6 @@
     "album": "",
     "duration": "1:48",
     "src": "201-300/239 - schizocat - kiss me and shut up.mp3"
-  },
-  {
-    "id": "201-300-240-late-mp3-336d3f",
-    "title": "late",
-    "artist": "⎍⧮⫽⩘⧅⦔⨬⧇⩕⥉⦾⫰⧪⦑⧛⨳",
-    "album": "",
-    "duration": "2:02",
-    "src": "201-300/240 - - late.mp3"
-  },
-  {
-    "id": "201-300-241-anxiety-poser-talk-to-me-one-more-time-mp3-997bf8",
-    "title": "talk to me one more time",
-    "artist": "Anxiety, poser",
-    "album": "",
-    "duration": "2:23",
-    "src": "201-300/241 - Anxiety, poser - talk to me one more time.mp3"
-  },
-  {
-    "id": "201-300-242-punchy-what-you-lookin-at-mp3-785ee4",
-    "title": "what you lookin at",
-    "artist": "punchy",
-    "album": "",
-    "duration": "2:58",
-    "src": "201-300/242 - punchy - what you lookin at.mp3"
-  },
-  {
-    "id": "201-300-243-guitarbf-something-feels-off-mp3-858555",
-    "title": "something feels off",
-    "artist": "guitarbf",
-    "album": "",
-    "duration": "1:33",
-    "src": "201-300/243 - guitarbf - something feels off.mp3"
-  },
-  {
-    "id": "201-300-247-celai-witches-mp3-699972",
-    "title": "witches",
-    "artist": "celai",
-    "album": "",
-    "duration": "3:05",
-    "src": "201-300/247 - celai - witches.mp3"
   },
   {
     "id": "201-300-251-morgue-vault-myspace-mp3-6bdda6",
@@ -2032,28 +1664,12 @@
     "src": "201-300/253 - punchy - Behind the Curtains.mp3"
   },
   {
-    "id": "201-300-254-guitarbf-casper-s-pishogue-shes-a-10-but-shes-ps-d9746e",
-    "title": "shes a 10 but shes psycho",
-    "artist": "guitarbf, casper's pishogue",
-    "album": "",
-    "duration": "1:19",
-    "src": "201-300/254 - guitarbf, casper's pishogue - shes a 10 but shes psycho.mp3"
-  },
-  {
     "id": "201-300-257-piggybank112-cigarette-mp3-b53f4d",
     "title": "cigarette",
     "artist": "Piggybank112",
     "album": "",
     "duration": "2:16",
     "src": "201-300/257 - Piggybank112 - cigarette.mp3"
-  },
-  {
-    "id": "201-300-258-celai-locksmith-mp3-e98030",
-    "title": "locksmith",
-    "artist": "celai",
-    "album": "",
-    "duration": "2:32",
-    "src": "201-300/258 - celai - locksmith.mp3"
   },
   {
     "id": "201-300-260-stereo-madness-guxo-pura-mp3-6ea90e",
@@ -2096,14 +1712,6 @@
     "src": "201-300/264 - Lu Jr - Mal de ti.mp3"
   },
   {
-    "id": "201-300-265-stereo-madness-calor-como-loca-mp3-459abc",
-    "title": "Calor, Como Loca",
-    "artist": "Stereo Madness",
-    "album": "",
-    "duration": "3:30",
-    "src": "201-300/265 - Stereo Madness - Calor, Como Loca.mp3"
-  },
-  {
     "id": "201-300-266-leiti-terrorista-mp3-6f1632",
     "title": "Terrorista",
     "artist": "LEÏTI",
@@ -2112,52 +1720,12 @@
     "src": "201-300/266 - LEITI - Terrorista.mp3"
   },
   {
-    "id": "201-300-267-d-valentino-instante-mp3-f03cfc",
-    "title": "instante",
-    "artist": "D.Valentino",
-    "album": "",
-    "duration": "2:27",
-    "src": "201-300/267 - D.Valentino - instante.mp3"
-  },
-  {
-    "id": "201-300-268-enry-k-carla-bumbumbum-mp3-684bf1",
-    "title": "BUMBUMBUM",
-    "artist": "Enry-K, CARLA",
-    "album": "",
-    "duration": "3:41",
-    "src": "201-300/268 - Enry-K, CARLA - BUMBUMBUM.mp3"
-  },
-  {
     "id": "201-300-269-teo-lucadamo-tengo-un-amor-mp3-0ebe55",
     "title": "Tengo Un Amor",
     "artist": "Teo Lucadamo",
     "album": "",
     "duration": "2:49",
     "src": "201-300/269 - Teo Lucadamo - Tengo Un Amor.mp3"
-  },
-  {
-    "id": "201-300-270-stereo-madness-botines-blancos-mp3-ed765a",
-    "title": "Botines Blancos",
-    "artist": "Stereo Madness",
-    "album": "",
-    "duration": "2:43",
-    "src": "201-300/270 - Stereo Madness - Botines Blancos.mp3"
-  },
-  {
-    "id": "201-300-271-ukd-badthing-99ers-mp3-2e64cd",
-    "title": "99ers",
-    "artist": "ukd, badthing",
-    "album": "",
-    "duration": "0:32",
-    "src": "201-300/271 - ukd, badthing - 99ers.mp3"
-  },
-  {
-    "id": "201-300-272-gatti-koboss-beats-ilyam-con-nadievvs-mp3-3e23f6",
-    "title": "CON NADIE//VVS",
-    "artist": "Gatti, Koboss Beats, Ilyam",
-    "album": "",
-    "duration": "2:40",
-    "src": "201-300/272 - Gatti, Koboss Beats, Ilyam - CON NADIEVVS.mp3"
   },
   {
     "id": "201-300-273-guxo-shyne-mi-amor-un-tro-de-vaina-mp3-ec540c",
@@ -2176,36 +1744,12 @@
     "src": "201-300/274 - WEST DUBAI - BBY NUNCA TUVE MIEDO AL AMOR.mp3"
   },
   {
-    "id": "201-300-275-lu-jr-redflag-mp3-780e34",
-    "title": "Redflag",
-    "artist": "Lu Jr",
-    "album": "",
-    "duration": "2:09",
-    "src": "201-300/275 - Lu Jr - Redflag.mp3"
-  },
-  {
     "id": "201-300-276-stereo-madness-medicine-pa-la-flu-mp3-8079e6",
     "title": "Medicine Pa La Flu",
     "artist": "Stereo Madness",
     "album": "",
     "duration": "2:43",
     "src": "201-300/276 - Stereo Madness - Medicine Pa La Flu.mp3"
-  },
-  {
-    "id": "201-300-277-mita-envidia-de-mi-mp3-b20bf2",
-    "title": "envidia de mi",
-    "artist": "mita",
-    "album": "",
-    "duration": "2:15",
-    "src": "201-300/277 - mita - envidia de mi.mp3"
-  },
-  {
-    "id": "201-300-278-sam-davies-leiti-iseekarlo-cuenta-a-0-mp3-d51050",
-    "title": "Cuenta a 0",
-    "artist": "SAM DAVIES, LEÏTI, iseekarlo",
-    "album": "",
-    "duration": "3:07",
-    "src": "201-300/278 - SAM DAVIES, LEITI, iseekarlo - Cuenta a 0.mp3"
   },
   {
     "id": "201-300-279-enry-k-craneo-cientifico-mp3-00ac3a",
@@ -2224,14 +1768,6 @@
     "src": "201-300/280 - Teo Lucadamo - Con Esta Cara, Con Este Pelo.mp3"
   },
   {
-    "id": "201-300-281-stereo-madness-pesadilla-en-el-club-mp3-a7c7a0",
-    "title": "Pesadilla En El Club",
-    "artist": "Stereo Madness",
-    "album": "",
-    "duration": "1:39",
-    "src": "201-300/281 - Stereo Madness - Pesadilla En El Club.mp3"
-  },
-  {
     "id": "201-300-282-superreservao-stereo-madness-azulado-mp3-8540bd",
     "title": "azulado",
     "artist": "superreservao, Stereo Madness",
@@ -2246,14 +1782,6 @@
     "album": "",
     "duration": "2:35",
     "src": "201-300/283 - UGLY, Chef C - B.B.B.mp3"
-  },
-  {
-    "id": "201-300-284-guxo-logal-eestsyde-xo-glock-rosa-mp3-a5c456",
-    "title": "Glock Rosa",
-    "artist": "Guxo, Logal, eestsyde.xo",
-    "album": "",
-    "duration": "2:42",
-    "src": "201-300/284 - Guxo, Logal, eestsyde.xo - Glock Rosa.mp3"
   },
   {
     "id": "201-300-285-icy-vedo-naturaleza-mp3-d028c9",
@@ -2304,14 +1832,6 @@
     "src": "201-300/290 - Enry-K, LEITI - Hajime Sorayama.mp3"
   },
   {
-    "id": "201-300-292-stereo-madness-chica-cosmica-mp3-af3675",
-    "title": "Chica Cósmica",
-    "artist": "Stereo Madness",
-    "album": "",
-    "duration": "3:23",
-    "src": "201-300/292 - Stereo Madness - Chica Cosmica.mp3"
-  },
-  {
     "id": "201-300-293-superreservao-anarqueen-mp3-20fc13",
     "title": "anarqueen",
     "artist": "superreservao",
@@ -2328,36 +1848,12 @@
     "src": "201-300/295 - LEITI - X5.mp3"
   },
   {
-    "id": "201-300-296-guxo-0-0-mp3-61332c",
-    "title": "0'0",
-    "artist": "Guxo",
-    "album": "",
-    "duration": "2:33",
-    "src": "201-300/296 - Guxo - 0'0.mp3"
-  },
-  {
     "id": "201-300-297-estrellas-del-rap-nacional-bella-kanela-mc-bella-fe7a22",
     "title": "Mc Bella Kanela",
     "artist": "Estrellas Del Rap Nacional, Bella Kanela",
     "album": "",
     "duration": "1:50",
     "src": "201-300/297 - Estrellas Del Rap Nacional, Bella Kanela - Mc Bella Kanela.mp3"
-  },
-  {
-    "id": "201-300-298-stereo-madness-fiebre-mp3-1b82e9",
-    "title": "Fiebre",
-    "artist": "Stereo Madness",
-    "album": "",
-    "duration": "3:06",
-    "src": "201-300/298 - Stereo Madness - Fiebre.mp3"
-  },
-  {
-    "id": "201-300-299-lu-jr-criminal-mp3-f325ab",
-    "title": "Criminal",
-    "artist": "Lu Jr",
-    "album": "",
-    "duration": "2:09",
-    "src": "201-300/299 - Lu Jr - Criminal.mp3"
   },
   {
     "id": "201-300-300-nico-el-adivino-mp3-aa764e",
@@ -2374,14 +1870,6 @@
     "album": "",
     "duration": "2:42",
     "src": "801-900/801 - cybernene, Doony Graff - MONEY MAKER.mp3"
-  },
-  {
-    "id": "801-900-802-la-obsesion-doony-graff-nasty-vato-novato-el-flo-969e00",
-    "title": "#OBSSECHUGG",
-    "artist": "La Obsesion, Doony Graff, Nasty Vato, Novato El Flow, Viglezz",
-    "album": "",
-    "duration": "2:44",
-    "src": "801-900/802 - La Obsesion, Doony Graff, Nasty Vato, Novato El Flow, Viglezz - OBSSECHUGG.mp3"
   },
   {
     "id": "801-900-803-cachirula-loojan-doony-graff-chaka-mp3-3d23c4",
@@ -2408,14 +1896,6 @@
     "src": "801-900/805 - Doony Graff, Ezya - HONDA.mp3"
   },
   {
-    "id": "801-900-806-la-obsesion-doony-graff-yeyo-bby-gangsta-onemill-90e481",
-    "title": "xxxTravagancia",
-    "artist": "La Obsesion, Doony Graff, Yeyo, Bby Gangsta, Onemillionkisses",
-    "album": "",
-    "duration": "3:16",
-    "src": "801-900/806 - La Obsesion, Doony Graff, Yeyo, Bby Gangsta, Onemillionkisses - xxxTravagancia.mp3"
-  },
-  {
     "id": "801-900-807-kaydy-cain-doony-graff-jakobb-ia-mp3-95c4ca",
     "title": "IA",
     "artist": "Kaydy Cain, Doony Graff, JAKOBB",
@@ -2432,14 +1912,6 @@
     "src": "801-900/808 - Doony Graff - Todo me vale verga.mp3"
   },
   {
-    "id": "801-900-809-la-obsesion-yeyo-doony-graff-novato-el-flow-josa-512cfc",
-    "title": "Dos16 (feat. Josa El Menor, Vic Gunn, Malo & Viglezz)",
-    "artist": "La Obsesion, Yeyo, Doony Graff, Novato El Flow, Josa El Menor, Vic Gunn, Malo, Viglezz",
-    "album": "",
-    "duration": "5:29",
-    "src": "801-900/809 - La Obsesion, Yeyo, Doony Graff, Novato El Flow, Josa El Menor, Vic Gunn, Malo, Viglezz - Dos16 (feat. Josa El Meno.mp3"
-  },
-  {
     "id": "801-900-810-xiyo-fernandezz-doony-graff-yeyo-ezya-perfecta-m-d81530",
     "title": "Perfecta",
     "artist": "Xiyo, Fernandezz, Doony Graff, Yeyo, Ezya",
@@ -2448,28 +1920,12 @@
     "src": "801-900/810 - Xiyo, Fernandezz, Doony Graff, Yeyo, Ezya - Perfecta.mp3"
   },
   {
-    "id": "801-900-811-doony-graff-belikona-mp3-ae8747",
-    "title": "BELIKONA",
-    "artist": "Doony Graff",
-    "album": "",
-    "duration": "2:11",
-    "src": "801-900/811 - Doony Graff - BELIKONA.mp3"
-  },
-  {
     "id": "801-900-812-doony-graff-ezya-marihuana-mp3-3f14cf",
     "title": "MARIHUANA",
     "artist": "Doony Graff, Ezya",
     "album": "",
     "duration": "2:37",
     "src": "801-900/812 - Doony Graff, Ezya - MARIHUANA.mp3"
-  },
-  {
-    "id": "801-900-813-doony-graff-ezya-vecinita-mp3-3f849f",
-    "title": "Vecinita",
-    "artist": "Doony Graff, Ezya",
-    "album": "",
-    "duration": "2:11",
-    "src": "801-900/813 - Doony Graff, Ezya - Vecinita.mp3"
   },
   {
     "id": "801-900-814-ladiferencia2006-doony-graff-novato-el-flow-queh-edbb8c",
@@ -2488,14 +1944,6 @@
     "src": "801-900/815 - Pipo Beatz, Xiyo, Fernandezz, 8belial, Yeyo, Doony Graff - Ella.mp3"
   },
   {
-    "id": "801-900-816-doony-graff-ezya-te-quiero-mucho-mp3-b1ba22",
-    "title": "te quiero mucho",
-    "artist": "Doony Graff, Ezya",
-    "album": "",
-    "duration": "2:43",
-    "src": "801-900/816 - Doony Graff, Ezya - te quiero mucho.mp3"
-  },
-  {
     "id": "801-900-817-somos-frijoleros-doony-graff-ezya-toy-selectah-h-7afffe",
     "title": "Here We Kum",
     "artist": "Somos Frijoleros, Doony Graff, Ezya, Toy Selectah",
@@ -2510,14 +1958,6 @@
     "album": "",
     "duration": "2:41",
     "src": "801-900/818 - Kevis & Maykyy, Doony Graff - TODOS SERIOS.mp3"
-  },
-  {
-    "id": "801-900-819-ikoniko-doony-graff-fuentes-prod-sabor-ferrari-m-a84673",
-    "title": "SABOR FERRARI",
-    "artist": "Ikoniko, Doony Graff, Fuentes Prod",
-    "album": "",
-    "duration": "2:43",
-    "src": "801-900/819 - Ikoniko, Doony Graff, Fuentes Prod - SABOR FERRARI.mp3"
   },
   {
     "id": "801-900-820-doony-graff-nezayork-mp3-356e8e",
@@ -2544,22 +1984,6 @@
     "src": "801-900/822 - Doony Graff - goku ssj 1000000000000000000000000000000000000000000000000000000000000000.mp3"
   },
   {
-    "id": "801-900-823-doony-graff-ezya-panamiur-mp3-259f00",
-    "title": "PANAMIUR",
-    "artist": "Doony Graff, Ezya",
-    "album": "",
-    "duration": "2:37",
-    "src": "801-900/823 - Doony Graff, Ezya - PANAMIUR.mp3"
-  },
-  {
-    "id": "801-900-824-doony-graff-pekoro-mp3-7daee3",
-    "title": "Pekoro",
-    "artist": "Doony Graff",
-    "album": "",
-    "duration": "2:35",
-    "src": "801-900/824 - Doony Graff - Pekoro.mp3"
-  },
-  {
     "id": "801-900-825-doony-graff-mija-mp3-cf2b47",
     "title": "Mija",
     "artist": "Doony Graff",
@@ -2568,60 +1992,12 @@
     "src": "801-900/825 - Doony Graff - Mija.mp3"
   },
   {
-    "id": "801-900-826-doony-graff-ezya-tu-cancion-mas-pegada-es-la-mia-2032a2",
-    "title": "tu canción mas pegada es la mia menos topada",
-    "artist": "Doony Graff, Ezya",
-    "album": "",
-    "duration": "2:11",
-    "src": "801-900/826 - Doony Graff, Ezya - tu cancion mas pegada es la mia menos topada.mp3"
-  },
-  {
     "id": "801-900-827-sinaka-doony-graff-prendo-uno-mp3-a9e17d",
     "title": "PRENDO UNO",
     "artist": "SINAKA, Doony Graff",
     "album": "",
     "duration": "2:43",
     "src": "801-900/827 - SINAKA, Doony Graff - PRENDO UNO.mp3"
-  },
-  {
-    "id": "801-900-828-doony-graff-rip-mr-pomel-mp3-4d4aeb",
-    "title": "RIP Mr. Pomel",
-    "artist": "Doony Graff",
-    "album": "",
-    "duration": "2:37",
-    "src": "801-900/828 - Doony Graff - RIP Mr. Pomel.mp3"
-  },
-  {
-    "id": "801-900-829-purpple-k-xosa-doony-graff-low-low-mp3-3811da",
-    "title": "Low Low",
-    "artist": "Purpple K, xosa, Doony Graff",
-    "album": "",
-    "duration": "3:39",
-    "src": "801-900/829 - Purpple K, xosa, Doony Graff - Low Low.mp3"
-  },
-  {
-    "id": "801-900-830-sa-koro-doony-graff-guerrilla-mp3-f822a4",
-    "title": "guerrilla",
-    "artist": "Sa!koro, Doony Graff",
-    "album": "",
-    "duration": "1:58",
-    "src": "801-900/830 - Sa!koro, Doony Graff - guerrilla.mp3"
-  },
-  {
-    "id": "801-900-831-doony-graff-sereno-moreno-mp3-15737f",
-    "title": "Sereno Moreno",
-    "artist": "Doony Graff",
-    "album": "",
-    "duration": "2:51",
-    "src": "801-900/831 - Doony Graff - Sereno Moreno.mp3"
-  },
-  {
-    "id": "801-900-832-vic-gunn-doony-graff-ezya-griselda-mp3-448cc1",
-    "title": "Griselda",
-    "artist": "Vic Gunn, Doony Graff, Ezya",
-    "album": "",
-    "duration": "3:16",
-    "src": "801-900/832 - Vic Gunn, Doony Graff, Ezya - Griselda.mp3"
   },
   {
     "id": "801-900-833-khxznq-fairytales-mp3-aecdbe",
@@ -2712,14 +2088,6 @@
     "src": "801-900/844 - ilyTOMMY - pretty ho3.mp3"
   },
   {
-    "id": "801-900-845-void-empireofyu-summertime-mp3-80bf1b",
-    "title": "SUMMERTIME",
-    "artist": "void, empireofyu",
-    "album": "",
-    "duration": "2:34",
-    "src": "801-900/845 - void, empireofyu - SUMMERTIME.mp3"
-  },
-  {
     "id": "801-900-846-dedwrite-wavy-dreams-mp3-3757b0",
     "title": "wavy dreams",
     "artist": "dedwrite",
@@ -2782,14 +2150,6 @@
     "album": "",
     "duration": "2:41",
     "src": "801-900/853 - Lelo - Main Event.mp3"
-  },
-  {
-    "id": "801-900-854-dreaming-numb-the-pain-rehab-my-hatred-kept-me-a-ed9627",
-    "title": "my hatred kept me alive (till death 4)",
-    "artist": "dreaming., numb the pain, rehab",
-    "album": "",
-    "duration": "2:50",
-    "src": "801-900/854 - dreaming., numb the pain, rehab - my hatred kept me alive (till death 4).mp3"
   },
   {
     "id": "801-900-856-void-empireofyu-different-mp3-5bea8e",
@@ -2872,14 +2232,6 @@
     "src": "801-900/865 - Trefuego - FOREAL.mp3"
   },
   {
-    "id": "801-900-867-void-24-songs-mp3-e5fcb9",
-    "title": "24 Songs",
-    "artist": "void",
-    "album": "",
-    "duration": "3:27",
-    "src": "801-900/867 - void - 24 Songs.mp3"
-  },
-  {
     "id": "801-900-868-landonbeck-santi-p-bottom-mp3-7afaf5",
     "title": "Bottom",
     "artist": "LandonBeck, Santi P",
@@ -2918,14 +2270,6 @@
     "album": "",
     "duration": "1:08",
     "src": "801-900/872 - are you really fine , khxznq - hes such a mystery.mp3"
-  },
-  {
-    "id": "801-900-873-khalil-must-b-nice-mp3-cbf19e",
-    "title": "Must B Nice",
-    "artist": "Khalil",
-    "album": "",
-    "duration": "3:13",
-    "src": "801-900/873 - Khalil - Must B Nice.mp3"
   },
   {
     "id": "801-900-874-lucki-options-mp3-5158b0",
@@ -3006,22 +2350,6 @@
     "album": "",
     "duration": "2:56",
     "src": "801-900/883 - Ramona - Bonita.mp3"
-  },
-  {
-    "id": "801-900-884-reptilianshrine-cop-killer-mp3-7937d2",
-    "title": "Cop Killer",
-    "artist": "reptilianshrine",
-    "album": "",
-    "duration": "4:22",
-    "src": "801-900/884 - reptilianshrine - Cop Killer.mp3"
-  },
-  {
-    "id": "801-900-885-khxznq-dropped-out-mp3-938724",
-    "title": "Dropped Out",
-    "artist": "khxznq",
-    "album": "",
-    "duration": "2:44",
-    "src": "801-900/885 - khxznq - Dropped Out.mp3"
   },
   {
     "id": "801-900-886-lucki-sunset-mp3-a8d3ec",
@@ -3160,14 +2488,6 @@
     "src": "901-971/904 - LUCKI - Leave Her.mp3"
   },
   {
-    "id": "901-971-905-ghostyy-do-you-want-remix-mp3-1e66a5",
-    "title": "Do You Want (remix)",
-    "artist": "GHOSTYY",
-    "album": "",
-    "duration": "2:36",
-    "src": "901-971/905 - GHOSTYY - Do You Want (remix).mp3"
-  },
-  {
     "id": "901-971-906-prodwithflavor-300-every-sip-mp3-aa9ab1",
     "title": "300 Every Sip",
     "artist": "ProdWithFlavor",
@@ -3232,14 +2552,6 @@
     "src": "901-971/913 - kush - Undercover.mp3"
   },
   {
-    "id": "901-971-914-neptune-tuneski-moon-mp3-8993b1",
-    "title": "Moon",
-    "artist": "neptune, tuneski",
-    "album": "",
-    "duration": "2:22",
-    "src": "901-971/914 - neptune, tuneski - Moon.mp3"
-  },
-  {
     "id": "901-971-915-feelinmyself-xiillos-just-one-not-2-mp3-e06418",
     "title": "Just One Not 2",
     "artist": "feelinmyself, Xiillos",
@@ -3254,14 +2566,6 @@
     "album": "",
     "duration": "1:47",
     "src": "901-971/916 - Paulie Leparik - Middy Titty - Slowed Reverb.mp3"
-  },
-  {
-    "id": "901-971-917-harmless-bridges-mp3-d775bb",
-    "title": "Bridges",
-    "artist": "Harmless",
-    "album": "",
-    "duration": "3:13",
-    "src": "901-971/917 - Harmless - Bridges.mp3"
   },
   {
     "id": "901-971-918-the-space-ocean-15-mp3-617c6f",
@@ -3286,14 +2590,6 @@
     "album": "",
     "duration": "3:29",
     "src": "901-971/920 - Harmless - Cool Kids.mp3"
-  },
-  {
-    "id": "901-971-921-vansire-from-the-subway-train-extended-version-m-0f95ad",
-    "title": "From the Subway Train - Extended Version",
-    "artist": "Vansire",
-    "album": "",
-    "duration": "2:20",
-    "src": "901-971/921 - Vansire - From the Subway Train - Extended Version.mp3"
   },
   {
     "id": "901-971-922-the-strokes-the-adults-are-talking-mp3-e4cc6b",
@@ -4264,14 +3560,6 @@
     "src": "001-100/083 - The Marias - ...baby one more time.mp3"
   },
   {
-    "id": "001-100-084-the-marias-i-like-it-mp3-e5294c",
-    "title": "I Like It",
-    "artist": "The Marías",
-    "album": "",
-    "duration": "3:12",
-    "src": "001-100/084 - The Marias - I Like It.mp3"
-  },
-  {
     "id": "001-100-085-the-marias-loverboy-mp3-d6a422",
     "title": "Loverboy",
     "artist": "The Marías",
@@ -4376,14 +3664,6 @@
     "src": "001-100/001 - Jose Alatorre, Josa El Menor, Viglezz - tu eres lo q pido.mp3"
   },
   {
-    "id": "001-100-002-denna-la-porri-legorreta-bomba-mp3-965d36",
-    "title": "BOMBA",
-    "artist": "DENNA LA PORRI, Legorreta",
-    "album": "",
-    "duration": "3:20",
-    "src": "001-100/002 - DENNA LA PORRI, Legorreta - BOMBA.mp3"
-  },
-  {
     "id": "001-100-003-nana-nina-recorde-y-me-enoje-mp3-bc2d12",
     "title": "recordé y me enojé",
     "artist": "Nana Nina",
@@ -4438,14 +3718,6 @@
     "album": "",
     "duration": "2:43",
     "src": "001-100/011 - Lil Naay - UNA BABY EN SANTIAGO.mp3"
-  },
-  {
-    "id": "001-100-012-jaysee-msvnto-es-una-adiccion-mp3-527c48",
-    "title": "Es una adicción",
-    "artist": "JAYSEE, Msvnto",
-    "album": "",
-    "duration": "2:58",
-    "src": "001-100/012 - JAYSEE, Msvnto - Es una adiccion.mp3"
   },
   {
     "id": "001-100-013-hennessyyy-kennedy-kappone-santeria-mp3-07ce35",
@@ -4600,28 +3872,12 @@
     "src": "001-100/039 - Novato El Flow, Ezya - Especialista.mp3"
   },
   {
-    "id": "001-100-045-la-obsesion-fafabian-pollito83exclusive-mp3-88b31a",
-    "title": "Pollito83Exclusive",
-    "artist": "La Obsesion, fafabian",
-    "album": "",
-    "duration": "2:24",
-    "src": "001-100/045 - La Obsesion, fafabian - Pollito83Exclusive.mp3"
-  },
-  {
     "id": "001-100-046-cachirula-loojan-dime-si-recuerdas-mp3-0d52e6",
     "title": "Dime si recuerdas",
     "artist": "Cachirula, LOOJAN",
     "album": "",
     "duration": "2:20",
     "src": "001-100/046 - Cachirula, LOOJAN - Dime si recuerdas.mp3"
-  },
-  {
-    "id": "001-100-047-la-obsesion-nasty-vato-vic-gunn-doony-graff-fuen-4911fc",
-    "title": "RAMPAMPAMPAM",
-    "artist": "La Obsesion, Nasty Vato, Vic Gunn, Doony Graff, Fuentes Prod",
-    "album": "",
-    "duration": "2:44",
-    "src": "001-100/047 - La Obsesion, Nasty Vato, Vic Gunn, Doony Graff, Fuentes Prod - RAMPAMPAMPAM.mp3"
   },
   {
     "id": "001-100-048-jose-alatorre-se-subio-alatorre-mp3-5549b8",
@@ -4728,22 +3984,6 @@
     "src": "001-100/064 - DENNA LA PORRI, Legorreta - SUENO.mp3"
   },
   {
-    "id": "001-100-067-la-zanta-xit-que-la-musica-no-pare-mp3-b31039",
-    "title": "Que La Música No Pare",
-    "artist": "La Zanta Xit",
-    "album": "",
-    "duration": "4:25",
-    "src": "001-100/067 - La Zanta Xit - Que La Musica No Pare.mp3"
-  },
-  {
-    "id": "001-100-068-tbx-denna-la-porri-oye-moreno-mp3-5b5eb4",
-    "title": "OYE MORENO",
-    "artist": "TBX, DENNA LA PORRI",
-    "album": "",
-    "duration": "2:29",
-    "src": "001-100/068 - TBX, DENNA LA PORRI - OYE MORENO.mp3"
-  },
-  {
     "id": "001-100-069-alanis-yuki-dimelo-mp3-b9cfbf",
     "title": "Dimelo",
     "artist": "Alanis Yuki",
@@ -4758,14 +3998,6 @@
     "album": "",
     "duration": "4:08",
     "src": "001-100/070 - Jowell & Randy - Come Back To My Crib.mp3"
-  },
-  {
-    "id": "001-100-071-novato-el-flow-fuentes-prod-chichagirl-mp3-3026fa",
-    "title": "CHICHAGIRL",
-    "artist": "Novato El Flow, Fuentes Prod",
-    "album": "",
-    "duration": "2:21",
-    "src": "001-100/071 - Novato El Flow, Fuentes Prod - CHICHAGIRL.mp3"
   },
   {
     "id": "001-100-072-jessvel-peyret-jose-alatorre-noche-fria-mp3-13fd5d",

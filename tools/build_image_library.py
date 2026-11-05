@@ -25,13 +25,13 @@ OUT = ROOT / 'imagenes.json'
 
 TYPES = {
     'portada-playlist': {'name': 'Portadas de playlist', 'folder': 'covers/', 'size': '600 × 600 px + versión -sm de 320 px',
-                         'use': 'Solo como portada de una playlist (oficial o automática).'},
+                         'use': 'Solo como portada de su playlist (oficial o automática). Nunca para otra cosa: ni decoración, ni avatares, ni collages.'},
     'icono-cancion': {'name': 'Iconos de canción', 'folder': 'covers/songs/', 'size': '600 × 600 px + versión -sm de 320 px',
-                      'use': 'Solo como icono de canciones: se reparten por igual entre todas.'},
+                      'use': 'Solo como icono de su canción: cada canción usa el suyo y se reparten por igual (88–89 canciones por icono). Nunca para otra cosa.'},
     'fondo': {'name': 'Fondos de pantalla', 'folder': 'wallpapers/', 'size': 'vertical, ~1600 px de alto',
-              'use': 'Solo como fondo de la app (Ajustes → Fondo).'},
+              'use': 'Fondo de la app (Ajustes → Fondo). Se puede reutilizar: collage de bienvenida de la cuenta, decoración.'},
     'icono-fondo': {'name': 'Iconos de fondo', 'folder': 'wallpapers/icons/', 'size': 'cuadrado + -thumb',
-                    'use': 'Solo en el botón redondo para cambiar de fondo y en el selector.'},
+                    'use': 'Botón para cambiar de fondo y selector. Se puede reutilizar: avatar de la cuenta, icono de playlists propias, collage de bienvenida.'},
     'icono-app': {'name': 'Iconos de la app', 'folder': '/', 'size': '192, 512 y 180 px',
                   'use': 'Solo como icono de la app instalada, pestaña y logo.'},
     'compartir': {'name': 'Imagen para compartir', 'folder': '/', 'size': '1200 × 630 px',

@@ -1,6 +1,18 @@
 {
   "releases": [
     {
+      "version": "v49",
+      "date": "noviembre 2026",
+      "title": "Biblioteca revisada canción por canción",
+      "items": [
+        "Revisamos el audio de las 3.931 canciones una por una: huella acústica contra el fragmento oficial, video de origen y audios repetidos.",
+        "Quitamos 288 canciones cuyo archivo sonaba a otra canción (por ejemplo, varias de pupsies, Doony Graff o Cisne Elocuente que en realidad repetían otro tema). Volverán cuando se suba el audio correcto.",
+        "Quedan 3.633 canciones, todas comprobadas, y ningún archivo roto.",
+        "Sin emojis: iconos propios en toda la app, el Lab, tu cuenta, la review y los correos. Tus playlists con emoji pasan solas al icono equivalente.",
+        "Las portadas de playlist solo se usan como portadas, y cada icono de canción solo en su canción: los avatares de cuenta son iniciales o fondos."
+      ]
+    },
+    {
       "version": "v47",
       "date": "noviembre 2026",
       "title": "Fuera 10 canciones con el audio equivocado",
