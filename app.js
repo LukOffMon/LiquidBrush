@@ -35,6 +35,12 @@
         name: 'db4',
         list: 'musica/db4.json',
         base: 'https://pub-0854e4225565462db16fa787cf2ab81c.r2.dev'
+      },
+      {
+        // 5.º bucket (quinta cuenta de Cloudflare)
+        name: 'db5',
+        list: 'musica/db5.json',
+        base: 'https://pub-864cd199a5e04cb0b5faf77320b1e47b.r2.dev'
       }
     ],
     tracksUrl: 'tracks.json',
@@ -80,7 +86,8 @@
     disliked: 'liquidbrush:disliked',
     trash: 'liquidbrush:trash',
     lyricsOffsets: 'liquidbrush:lyrics-offsets',
-    errors: 'liquidbrush:errors'
+    errors: 'liquidbrush:errors',
+    install: 'liquidbrush:install'
   };
 
   const LYRICS_API = 'https://lrclib.net/api';
@@ -259,6 +266,9 @@
     trashList: $('trashList'),
     offlinePill: $('offlinePill'),
     storageInfo: $('storageInfo'),
+    installNote: $('installNote'),
+    installBtn: $('installBtn'),
+    installSteps: $('installSteps'),
     clearDownloads: $('clearDownloads'),
     autoFavToggle: $('autoFavToggle'),
     softPauseToggle: $('softPauseToggle'),
@@ -5838,25 +5848,41 @@
   }
 
   /* ---------- Interrupciones de audio (otra app con sonido, llamadas) ---------- */
-  // Al abrir otra app que suena (p. ej. Chess.com) el sistema pausa la música sin pasar por la app.
-  // Se distingue de otras pausas del sistema (desconectar los auriculares) porque llega justo
-  // al salir de Liquid Bullet o porque iOS marca la sesión de audio como interrumpida.
+  // Si otra app con sonido (TikTok, Instagram, una llamada) le quita el audio a Liquid Bullet, el sistema
+  // pausa la música sin pasar por la app. Esa pausa se recuerda y la música vuelve sola en cuanto hay una
+  // señal de que se puede: iOS avisa del fin de la interrupción (audioSession), Android devuelve el audio
+  // tras sonidos cortos (notificaciones) y, en cualquier caso, al volver a Liquid Bullet (aunque sea un
+  // instante) o con ▶ de la pantalla de bloqueo / notificación, sin abrir la app.
+  // Lo que no se hace: reintentar en bucle desde segundo plano. En Android eso le quita el audio a la otra
+  // app (TikTok se pausaría cada pocos segundos) y desactiva la reanudación propia del navegador.
   const interruption = {
     active: false,
     hiddenAt: 0,
+    since: 0,
+    outputChangedAt: 0,
     timers: [],
+    // Una pausa del sistema cuenta como interrupción si la app está en segundo plano (da igual cuánto
+    // tiempo lleve fuera), si acaba de salir o si iOS marca la sesión de audio como interrumpida.
+    // No cuenta si justo cambió la salida de audio (auriculares desconectados): ahí la pausa es a propósito.
     start() {
       const session = navigator.audioSession;
-      const justLeft = document.hidden && Date.now() - this.hiddenAt < 8000;
-      if (session?.state !== 'interrupted' && !justLeft) return;
+      const away = document.hidden || Date.now() - this.hiddenAt < 8000;
+      if (session?.state !== 'interrupted' && !away) return;
+      if (Date.now() - this.outputChangedAt < 2000) return;
       this.clear();
       this.active = true;
-      // En segundo plano se reintenta un par de veces (Android devuelve el audio enseguida)
-      if (document.hidden) this.timers = [800, 2500, 6000].map((ms) => setTimeout(() => this.resume(), ms));
+      this.since = Date.now();
+      // Dos intentos tempranos para cortes muy breves (un aviso del sistema); después se espera una señal
+      if (document.hidden) this.timers = [1200, 4000].map((ms) => setTimeout(() => this.resume(), ms));
     },
     resume() {
       if (!this.active || !els.audio.paused || !state.currentTrack) return;
       if (navigator.audioSession?.state === 'interrupted') return;
+      // Tras horas en pausa, volver a la app no debería hacer sonar nada por sorpresa
+      if (Date.now() - this.since > 3 * 60 * 60 * 1000) {
+        this.clear();
+        return;
+      }
       play({ quiet: true });
     },
     clear() {
@@ -5867,6 +5893,14 @@
   };
 
   function setupAudioSession() {
+    // Auriculares o Bluetooth desconectados: el sistema pausa y no hay que reanudar por el altavoz
+    navigator.mediaDevices?.addEventListener?.('devicechange', () => {
+      interruption.outputChangedAt = Date.now();
+      if (Date.now() - interruption.since < 2000) interruption.clear();
+    });
+    // Más señales de «el usuario volvió»: la página sale de la caché (pageshow) o recupera el foco
+    window.addEventListener('pageshow', () => interruption.resume());
+    window.addEventListener('focus', () => interruption.resume());
     const session = navigator.audioSession;
     // Solo se escucha el estado: fijar session.type en iOS corta la música al salir de la app
     if (!session) return;
@@ -6877,6 +6911,10 @@
     let pulse = 0;
     let dyn = '#ffffff';
     let dynFrames = 0;
+    let stageVars = '';
+    // Mientras se desplaza una lista el fondo se queda quieto: redibujarlo bajo los paneles de cristal
+    // (backdrop-filter) obliga a repintarlos en cada fotograma y el scroll iba a tirones
+    let scrollingUntil = 0;
     const icons = new Map();
 
     const enabled = () => settings.wall.mode !== 'off';
@@ -7042,13 +7080,26 @@
     function frame(time) {
       rafId = requestAnimationFrame(frame);
       if (time - lastFrame < FRAME_MS) return;
+      if (performance.now() < scrollingUntil) {
+        lastFrame = time;
+        return;
+      }
       const dt = Math.min(0.1, (time - (lastFrame || time)) / 1000);
       lastFrame = time;
       const level = musicLevel(time);
       pulse += (level - pulse) * 0.25;
-      els.wallStage.style.setProperty('--beat', pulse.toFixed(3));
-      els.wallStage.style.setProperty('--px', `${(tilt.x * 14).toFixed(1)}px`);
-      els.wallStage.style.setProperty('--py', `${(tilt.y * 14).toFixed(1)}px`);
+      if (pulse < 0.002) pulse = 0;
+      // Solo se tocan las variables CSS si cambian (cada cambio recalcula estilos)
+      const beat = pulse.toFixed(2);
+      const px = (tilt.x * 14).toFixed(0);
+      const py = (tilt.y * 14).toFixed(0);
+      const vars = `${beat}|${px}|${py}`;
+      if (vars !== stageVars) {
+        stageVars = vars;
+        els.wallStage.style.setProperty('--beat', beat);
+        els.wallStage.style.setProperty('--px', `${px}px`);
+        els.wallStage.style.setProperty('--py', `${py}px`);
+      }
 
       ctx.clearRect(0, 0, width, height);
       // El color de la carátula se lee de vez en cuando (leerlo en cada fotograma cuesta)
@@ -7108,6 +7159,7 @@
         rafId = null;
         ctx.clearRect(0, 0, width, height);
         els.wallStage.style.setProperty('--beat', '0');
+        stageVars = '';
       }
       els.wallpaper.classList.toggle('is-alive', alive());
     }
@@ -7125,6 +7177,17 @@
       });
       document.addEventListener('visibilitychange', updateLoop);
       reduced.addEventListener?.('change', updateLoop);
+      // capture: también el scroll de listas y paneles internos (no burbujea)
+      let scrollTimer = null;
+      document.addEventListener('scroll', () => {
+        scrollingUntil = performance.now() + 300;
+        if (!scrollTimer) els.wallpaper.classList.add('is-scrolling');
+        clearTimeout(scrollTimer);
+        scrollTimer = setTimeout(() => {
+          scrollTimer = null;
+          els.wallpaper.classList.remove('is-scrolling');
+        }, 300);
+      }, { capture: true, passive: true });
       // Paralaje: el cursor en el ordenador, la inclinación del móvil en Android
       window.addEventListener('pointermove', (event) => {
         if (event.pointerType !== 'mouse') return;
@@ -7140,6 +7203,95 @@
     }
 
     return { init, applyMode, onTrack, renderGrid, updateLoop };
+  })();
+
+  /* ---------- Instalar la app (PWA) ---------- */
+  // Android/escritorio (Chrome, Edge, Samsung Internet): el navegador ofrece instalarla con su propio
+  // diálogo (beforeinstallprompt). iPhone/iPad no tienen ese diálogo: se explica cómo añadirla desde
+  // Compartir. Instalada abre a pantalla completa, sin barra del navegador y con su icono.
+  const install = (() => {
+    let deferred = null;
+    const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches
+      || window.matchMedia('(display-mode: minimal-ui)').matches || navigator.standalone === true;
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    const info = storage.get(KEYS.install, null) || { visits: 0, hinted: false };
+
+    function steps() {
+      if (IS_IOS) {
+        return [
+          'Toca Compartir (el cuadrado con la flecha ↑): en Safari está abajo; en Chrome, arriba a la derecha.',
+          'Desliza y elige «Añadir a pantalla de inicio».',
+          'Pulsa «Añadir» y abre Liquid Bullet desde su icono nuevo.'
+        ];
+      }
+      return [
+        `Abre el menú del navegador (${isAndroid ? '⋮ arriba a la derecha' : '⋮ o ≡'}).`,
+        'Elige «Instalar app» o «Añadir a pantalla de inicio».',
+        'Confirma y abre Liquid Bullet desde su icono nuevo.'
+      ];
+    }
+
+    function render() {
+      if (!els.installNote) return;
+      if (isStandalone()) {
+        els.installNote.textContent = 'Ya la estás usando como app instalada. ✓';
+        els.installBtn.hidden = true;
+        els.installSteps.hidden = true;
+        return;
+      }
+      els.installBtn.hidden = !deferred;
+      els.installSteps.hidden = Boolean(deferred);
+      if (!deferred) els.installSteps.replaceChildren(...steps().map((text) => makeEl('li', '', text)));
+    }
+
+    async function prompt() {
+      if (!deferred) {
+        if (!els.settingsDialog.open) openSettings();
+        els.installNote.scrollIntoView({ block: 'center' });
+        return;
+      }
+      const event = deferred;
+      deferred = null;
+      event.prompt();
+      const choice = await event.userChoice.catch(() => null);
+      if (choice?.outcome === 'accepted') showToast('¡Listo! Liquid Bullet ya está en tu pantalla de inicio.');
+      render();
+    }
+
+    // Una sola sugerencia, a partir de la segunda visita y cuando ya suena algo
+    function hintOnce() {
+      if (info.hinted || info.visits < 2 || isStandalone()) return;
+      if (!deferred && !IS_IOS) return;
+      info.hinted = true;
+      storage.set(KEYS.install, info);
+      showToast(IS_IOS ? 'Instala Liquid Bullet en tu iPhone para que suene mejor.' : 'Instala Liquid Bullet como app.', {
+        label: IS_IOS ? 'Cómo' : 'Instalar',
+        run: prompt
+      });
+    }
+
+    function init() {
+      if (!isStandalone()) {
+        info.visits++;
+        storage.set(KEYS.install, info);
+      }
+      window.addEventListener('beforeinstallprompt', (event) => {
+        event.preventDefault();
+        deferred = event;
+        render();
+      });
+      window.addEventListener('appinstalled', () => {
+        deferred = null;
+        info.hinted = true;
+        storage.set(KEYS.install, info);
+        render();
+      });
+      els.installBtn?.addEventListener('click', prompt);
+      els.audio.addEventListener('playing', () => setTimeout(hintOnce, 20000), { once: true });
+      render();
+    }
+
+    return { init, render };
   })();
 
   /* ---------- Tutorial de bienvenida (solo la primera vez) ---------- */
@@ -7463,6 +7615,7 @@
     setupSurrealEyes();
     wall.init();
     tour.init();
+    install.init();
     document.querySelectorAll('.settings-group-title').forEach((title) => title.prepend(sticker(title.textContent)));
     updateNav();
     updateOnlineStatus();
