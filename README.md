@@ -13,7 +13,7 @@ El tema "Surrealista" incluye una escena animada: esfera de cromo en el horizont
 
 ## Añadir tus canciones (Cloudflare R2)
 
-La música vive en **4 buckets** de Cloudflare R2, cada uno en una cuenta distinta (10 GB gratis por cuenta). Cada bucket tiene su lista de canciones en la carpeta [`musica/`](musica/) de este repositorio. No hay base de datos: la app lee esas listas y reproduce los MP3 directamente desde cada bucket.
+La música vive en **5 buckets** de Cloudflare R2, cada uno en una cuenta distinta (10 GB gratis por cuenta). Cada bucket tiene su lista de canciones en la carpeta [`musica/`](musica/) de este repositorio. No hay base de datos: la app lee esas listas y reproduce los MP3 directamente desde cada bucket.
 
 | Lista | Bucket | URL pública |
 | --- | --- | --- |
@@ -21,6 +21,7 @@ La música vive en **4 buckets** de Cloudflare R2, cada uno en una cuenta distin
 | [`musica/salt.json`](musica/salt.json) | `liquidsaltdb5` | `https://pub-b05e243e7441423f9c4a25dfe8411da3.r2.dev` |
 | [`musica/brush3.json`](musica/brush3.json) | `liquidbrush3db3` | `https://pub-342aee3eb054410cb02224940f684884.r2.dev` |
 | [`musica/db4.json`](musica/db4.json) | `liquidbulletdb66` | `https://pub-0854e4225565462db16fa787cf2ab81c.r2.dev` |
+| [`musica/db5.json`](musica/db5.json) | 5.º bucket | `https://pub-864cd199a5e04cb0b5faf77320b1e47b.r2.dev` |
 
 Para sumar otro bucket: añade una entrada en `CONFIG.sources` (en `app.js`) con `name`, `list` y `base`, crea `musica/<name>.json` y añádelo a la lista `SHELL` de `sw.js`.
 
@@ -79,7 +80,7 @@ Liquid funciona como Spotify, pero con tu colección de MP3: todo se calcula en 
 - **Radio**: empieza por un artista (o por una canción, desde el ＋) y se renueva sola con artistas parecidos, sin fin.
 - **Buscar**: al tocar el buscador salen tus **búsquedas recientes** (con Borrar) y los estilos para explorar; los resultados muestran también artistas.
 - **A continuación**: botón **Editar** para reordenar arrastrando del asa, y abajo Aleatorio, Repetir y Temporizador.
-- **Portadas**: todas son imágenes. Las playlists usan `covers/cover-NN.jpg` (Escuchadas hace poco y Tus más escuchadas, `cover-27` y `cover-28`; Velo Sónico y Niebla Pesada, `cover-29` y `cover-30`; Vampiro Digital, Chicle Tóxico, Verso Azul, Otoño Modal, Café Lento y Beat Nipón, `cover-31` a `cover-36`). Cada canción lleva uno de los 18 iconos de [`covers/songs/`](covers/songs/), repartidos al azar y por igual (unas 180 canciones por icono). `tools/build_catalog.py` guarda el reparto en `catalog.json`: cada canción conserva su icono y las nuevas reciben el menos usado. Para sumar iconos, añade `song-19.jpg` (600 px) y `song-19-sm.jpg` (320 px): al regenerar, algunas canciones pasan a los nuevos para que todos queden parejos. Los enlaces compartidos de canciones usan ese icono como miniatura.
+- **Portadas**: todas son imágenes. Las playlists usan `covers/cover-NN.jpg` (Escuchadas hace poco y Tus más escuchadas, `cover-27` y `cover-28`; Velo Sónico y Niebla Pesada, `cover-29` y `cover-30`; Vampiro Digital, Chicle Tóxico, Verso Azul, Otoño Modal, Café Lento y Beat Nipón, `cover-31` a `cover-36`; Sol Sintético, Londres Rosa, Ola Tibia, Cereza Suave, Terciopelo Azul, Luna Swing e Infierno Rosa, `cover-37` a `cover-43`). Cada canción lleva uno de los 39 iconos de [`covers/songs/`](covers/songs/), repartidos al azar y por igual (unas 100 canciones por icono). `tools/build_catalog.py` guarda el reparto en `catalog.json`: cada canción conserva su icono y las nuevas reciben el menos usado. Para sumar iconos, añade `song-40.jpg` (600 px) y `song-40-sm.jpg` (320 px): al regenerar, algunas canciones pasan a los nuevos para que todos queden parejos. Los enlaces compartidos de canciones usan ese icono como miniatura.
 
 ## Compartir
 
@@ -108,7 +109,7 @@ La primera vez que alguien abre la app sale un recorrido de 7 pasos que resalta 
 
 ## Catálogo de playlists de base
 
-[`catalog.json`](catalog.json) define las 34 playlists de base (Cuarto Pastel, Seda Nocturna, Ácido Lento, Riviera Francesa, Lluvia Lenta, Velo Sónico, Señal Rota, Ghost Case, Chicle Tóxico, Corazón Roto, Vampiro Digital, Ola Fría, Neón Eterno, Brillo Disco, Perreo Nocturno, Barrio Sur, Calle Cromo, Dembow Añejo, Trap Lunar, Rima Cruda, Verso Azul, Nube Púrpura, Trueno Clásico, Niebla Pesada, Ciudad Furia, Alma Latina, Verano Tropical, Humo Dorado, Otoño Modal, Café Lento, Beat Nipón, Vinilo Rosa, Seúl Brillante y Tokio Eléctrico), su descripción, su portada (imágenes de [`covers/`](covers/)) y el estilo de cada canción. Se genera con:
+[`catalog.json`](catalog.json) define las 41 playlists de base (Cuarto Pastel, Londres Rosa, Seda Nocturna, Ácido Lento, Sol Sintético, Ola Tibia, Cereza Suave, Riviera Francesa, Lluvia Lenta, Velo Sónico, Señal Rota, Ghost Case, Chicle Tóxico, Corazón Roto, Vampiro Digital, Ola Fría, Neón Eterno, Brillo Disco, Perreo Nocturno, Barrio Sur, Calle Cromo, Infierno Rosa, Dembow Añejo, Trap Lunar, Rima Cruda, Verso Azul, Nube Púrpura, Trueno Clásico, Niebla Pesada, Ciudad Furia, Alma Latina, Verano Tropical, Humo Dorado, Terciopelo Azul, Luna Swing, Otoño Modal, Café Lento, Beat Nipón, Vinilo Rosa, Seúl Brillante y Tokio Eléctrico), su descripción, su portada (imágenes de [`covers/`](covers/)) y el estilo de cada canción. Se genera con:
 
 ```bash
 python3 tools/build_catalog.py
@@ -121,9 +122,23 @@ El script lee toda la Biblioteca (`musica/*.json`), quita duplicados y pone cada
 - **Transiciones DJ** (interruptor, tecla D): mezcla la canción que termina con la siguiente usando dos reproductores; la duración es configurable (3–12 s) y se acorta en canciones cortas.
 - **Stats**: minutos por día, horas favoritas, géneros, artistas, tendencias frente al mes anterior y canciones del mes. Se calculan con un registro guardado solo en el navegador.
 
+## Instalarla como app
+
+Liquid Bullet es una PWA: se instala desde el navegador, sin tienda de apps. Instalada abre a pantalla completa con su icono, sin barra del navegador, arranca al instante (la app vive en el teléfono gracias a `sw.js`) y el sistema la trata como una app de música (controles en la pantalla de bloqueo, sigue sonando con la pantalla apagada).
+
+- **Android** (Chrome, Edge, Samsung Internet): **Ajustes → App en tu teléfono → Instalar Liquid Bullet**, o el menú ⋮ → *Instalar app*. A partir de la segunda visita la app lo sugiere una vez.
+- **iPhone/iPad**: Compartir (□↑) → *Añadir a pantalla de inicio*. Apple no deja mostrar un botón de instalar: la app enseña los pasos en Ajustes.
+- Las actualizaciones llegan solas al abrirla (no hay que reinstalar).
+
+## Cuando otra app corta la música
+
+Si TikTok, Instagram o una llamada le quitan el audio, la música se pausa y Liquid Bullet lo recuerda. Vuelve a sonar sola cuando hay una señal de que se puede: en iPhone cuando iOS avisa que terminó la interrupción, en Android cuando el navegador devuelve el audio (sonidos cortos), y en todos los casos al volver a Liquid Bullet un instante o al pulsar ▶ en la pantalla de bloqueo o la notificación, sin abrir la app. No reanuda si se desconectaron los auriculares, ni tras más de 3 horas.
+
+Lo que **no** puede hacer ninguna web (ni Spotify): enterarse de que cerraste TikTok si nadie la avisa. Android e iOS no le dicen a la app interrumpida que la otra terminó; reintentar en bucle le quitaría el audio a TikTok cada pocos segundos.
+
 ## Modo offline
 
-- La app se puede **instalar** (en el móvil: *Añadir a pantalla de inicio*) y abre sin conexión gracias a `sw.js`, que guarda la app y la última lista de canciones.
+- La app se puede **instalar** (ver arriba) y abre sin conexión gracias a `sw.js`, que guarda la app y la última lista de canciones.
 - Cada playlist tiene un botón **⬇ Descargar**: guarda sus MP3 en el dispositivo para escucharlos sin internet. Púlsalo de nuevo para detener la descarga; cuando la playlist está completa, sirve para quitar las descargas.
 - Sin conexión, las canciones no descargadas se ven atenuadas y se saltan al pasar a la siguiente.
 - Si el servidor del audio no envía CORS (el bucket de R2 sin política CORS), en Android y escritorio se guarda una copia "opaca" que igual suena sin conexión. Safari (iPhone/iPad) no reproduce copias opacas: para descargar ahí las canciones de Cloudflare hay que añadir la política CORS del bucket.

@@ -44,8 +44,9 @@
   <link rel="dns-prefetch" href="https://pub-b05e243e7441423f9c4a25dfe8411da3.r2.dev">
   <link rel="dns-prefetch" href="https://pub-342aee3eb054410cb02224940f684884.r2.dev">
   <link rel="dns-prefetch" href="https://pub-0854e4225565462db16fa787cf2ab81c.r2.dev">
+  <link rel="dns-prefetch" href="https://pub-864cd199a5e04cb0b5faf77320b1e47b.r2.dev">
   <link rel="dns-prefetch" href="https://lrclib.net">
-  <link rel="stylesheet" href="styles.css?v=26">
+  <link rel="stylesheet" href="styles.css?v=27">
   <script>
     /* Aplica el tema, la fuente y el tamaño de letra guardados antes de pintar (sin parpadeos) */
     (function () {
@@ -700,6 +701,13 @@
         </label>
       </section>
 
+      <section class="settings-group" aria-labelledby="setAppTitle">
+        <h3 id="setAppTitle" class="settings-group-title">App en tu teléfono</h3>
+        <p id="installNote" class="sheet-note">Instala Liquid Bullet como una app: icono propio, pantalla completa, abre al instante y sigue sonando con la pantalla apagada.</p>
+        <button id="installBtn" class="btn" type="button" hidden>Instalar Liquid Bullet</button>
+        <ol id="installSteps" class="install-steps" hidden></ol>
+      </section>
+
       <section class="settings-group" aria-labelledby="setDownTitle">
         <h3 id="setDownTitle" class="settings-group-title">Descargas y espacio</h3>
         <p id="storageInfo" class="sheet-note">Calculando…</p>
@@ -791,6 +799,6 @@
   <!-- Reproductores para el ecualizador (necesitan CORS en el servidor del audio) -->
   <audio id="audio3" preload="metadata" crossorigin="anonymous"></audio>
   <audio id="audio4" preload="auto" crossorigin="anonymous"></audio>
-  <script src="app.js?v=29" defer></script>
+  <script src="app.js?v=30" defer></script>
 </body>
 </html>

@@ -8,6 +8,7 @@ de API de R2 (solo lectura basta). Las claves se leen de variables de entorno, n
     R2_SALT_ACCESS_KEY_ID   / R2_SALT_SECRET_ACCESS_KEY     -> liquidsaltdb5
     R2_BRUSH3_ACCESS_KEY_ID / R2_BRUSH3_SECRET_ACCESS_KEY   -> liquidbrush3db3
     R2_DB4_ACCESS_KEY_ID    / R2_DB4_SECRET_ACCESS_KEY      -> liquidbulletdb66 (más R2_DB4_ACCOUNT)
+    R2_DB5_ACCESS_KEY_ID    / R2_DB5_SECRET_ACCESS_KEY      -> 5.º bucket (más R2_DB5_BUCKET y R2_DB5_ACCOUNT)
 
 Uso:
     python3 tools/sync_r2.py            # todos los buckets que tengan clave
@@ -57,6 +58,12 @@ BUCKETS = {
         'bucket': os.environ.get('R2_DB4_BUCKET', 'liquidbulletdb66'),
         'account': os.environ.get('R2_DB4_ACCOUNT', ''),
         'public': 'https://pub-0854e4225565462db16fa787cf2ab81c.r2.dev',
+    },
+    'db5': {
+        # 5.º bucket: nombre y cuenta se leen del entorno
+        'bucket': os.environ.get('R2_DB5_BUCKET', ''),
+        'account': os.environ.get('R2_DB5_ACCOUNT', ''),
+        'public': 'https://pub-864cd199a5e04cb0b5faf77320b1e47b.r2.dev',
     },
 }
 AUDIO_EXT = ('.mp3', '.m4a', '.ogg', '.wav', '.flac')
