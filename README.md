@@ -124,7 +124,7 @@ La primera vez que alguien abre la app sale un recorrido de 7 pasos que resalta 
 python3 tools/build_catalog.py
 ```
 
-El script lee toda la Biblioteca (`musica/*.json`), quita duplicados y pone cada canción en exactamente una playlist según su artista (la tabla `PLAYLISTS` del script). Si sube un artista nuevo, va a Cuarto Pastel y el script avisa para que lo añadas a la playlist que le toque. Vuelve a ejecutarlo cada vez que añadas música.
+El script lee toda la Biblioteca (`musica/*.json`), quita duplicados y pone cada canción en exactamente una playlist según su artista (la tabla `PLAYLISTS` del script). La revisión completa de noviembre de 2026 (qué canción va en cada playlist y por qué se movió) está en [`docs/revision-playlists.md`](docs/revision-playlists.md), y el listado entero en [`docs/playlists-completas.md`](docs/playlists-completas.md). Si sube un artista nuevo, va a Cuarto Pastel y el script avisa para que lo añadas a la playlist que le toque. Vuelve a ejecutarlo cada vez que añadas música.
 
 ## Transiciones DJ y estadísticas
 

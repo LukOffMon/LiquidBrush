@@ -1,6 +1,19 @@
 {
   "releases": [
     {
+      "version": "v44",
+      "date": "noviembre 2026",
+      "title": "Playlists revisadas canción por canción",
+      "items": [
+        "Revisadas las 41 playlists y sus 3.917 canciones: 110 canciones cambian a la playlist que les toca.",
+        "Perreo Nocturno queda solo para perreo: el rap mexicano (Wk, Mime 871, Simpson Ahuevo…) pasa a Rima Cruda, lo alternativo (LATIN MAFIA, CA7RIEL & Paco Amoroso, iza tkm) a Alma Latina y lo español (nusar3000, Bb trickz, ROSALÍA) a Calle Cromo.",
+        "ShyBully («Tattoo», «Shy») pasa a Corazón Roto.",
+        "El rock argentino de culto (Serú Girán, Pescado Rabioso, Almendra, Los Pericos, Los Cafres) pasa de Trueno Clásico a Ciudad Furia.",
+        "El pop de pista de los 2000 (Nelly Furtado, Gwen Stefani, Justin Timberlake) pasa a Neón Eterno; Lily Allen, a Londres Rosa; Coldplay, a Lluvia Lenta; Chase Atlantic, a Seda Nocturna.",
+        "«Black Country, New Road» ya no se parte en dos artistas."
+      ]
+    },
+    {
       "version": "v43",
       "date": "noviembre 2026",
       "title": "Inicio que te conoce, Lab nuevo y aleatorio sin repeticiones",
