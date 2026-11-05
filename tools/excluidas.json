@@ -1,0 +1,19 @@
+{
+  "_": "Canciones que existen en el bucket pero no deben salir en la app (audio equivocado, copias rotas…). tools/sync_r2.py las salta. Para recuperar una: sube el MP3 correcto con el mismo nombre y quítala de aquí.",
+  "pepper": {
+    "301-400/301 - Enry-K - 8 DIOPTRiAS.mp3": "Audio incorrecto: el archivo dura 44:08 y no es «8 DIOPTRíAS» de Enry-K",
+    "501-600/553 - One Flyt, Ventu Beats - El primer dia.mp3": "Audio incorrecto: el archivo dura 123:40 y no es «El primer día» de One Flyt, Ventu Beats",
+    "501-600/583 - Troubless, Dj Secio, J3UNO - Fuego (Da Roots).mp3": "Audio incorrecto: el archivo dura 22:54 y no es «Fuego (Da Roots)» de Troubless, Dj Secio, J3UNO",
+    "601-700/609 - One Flyt, Ema, Ventu Beats - que dificil me la haces.mp3": "Audio incorrecto: el archivo dura 9:42 y no es «que dificil me la haces» de One Flyt, Ema, Ventu Beats"
+  },
+  "db4": {
+    "101-200/103 - pupsies - Bedtime Stories.mp3": "Audio incorrecto: el archivo dura 27:41 y no es «Bedtime Stories» de pupsies",
+    "VitC 001-100/VitC 048 - rlax - 190.mp3": "Audio incorrecto: el archivo dura 33:10 y no es «190» de rlax",
+    "VitC 201-300/VitC 279 - Toshiki Soejima, Takuya Kuroda, edbl - Resonance.mp3": "Audio incorrecto: el archivo dura 51:30 y no es «Resonance» de Toshiki Soejima, Takuya Kuroda, edbl",
+    "VitC 201-300/VitC 296 - Lionmilk - fantasy.mp3": "Audio incorrecto: el archivo dura 64:31 y no es «fantasy» de Lionmilk",
+    "VitC 301-359/VitC 303 - Night Tempo - Digital Detox.mp3": "Audio incorrecto: el archivo dura 62:22 y no es «Digital Detox» de Night Tempo"
+  },
+  "db5": {
+    "1. Tame Impala 601-700/689 - JW Francis, Paul Cherry - Row Row.mp3": "Audio incorrecto: el archivo dura 56:49 y no es «Row Row» de JW Francis, Paul Cherry"
+  }
+}

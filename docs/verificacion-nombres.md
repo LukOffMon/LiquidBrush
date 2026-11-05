@@ -12,7 +12,7 @@ el resultado está aquí.
 | Título y artista coinciden con la versión publicada | 3.718 (94,6 %) |
 | Coinciden, pero Deezer devolvió primero un cover/karaoke (el nombre está bien) | ~120 |
 | Solo existen en SoundCloud/YouTube o con otro alfabeto (ruso, japonés): nombre correcto | ~75 |
-| Mal nombradas o con datos erróneos | **10** (corregidas abajo) |
+| Mal nombradas o con datos erróneos | **2** títulos corregidos · **10** con audio equivocado (quitadas) |
 | Dudosas: necesitan que alguien las escuche | 9 |
 
 En resumen: la colección está **muy bien nombrada**. Lo que fallaba eran restos del archivo de
@@ -28,14 +28,26 @@ respeta estos valores al volver a sincronizar.
 | --- | --- | --- |
 | Título | Blondie | `Heart Of Glass [24-Bit Digitally Remastered 01] - Remastered 2001` → `Heart Of Glass - Remastered 2001` |
 | Título | The Weeknd, Playboi Carti | `Timeless (feat Playboi Carti)` → `Timeless (feat. Playboi Carti)` |
-| Duración | pupsies – Bedtime Stories | 27:41 → 3:37 |
-| Duración | Toshiki Soejima, Takuya Kuroda, edbl – Resonance | 51:30 → 3:28 |
-| Duración | Lionmilk – fantasy | 64:31 → 2:32 |
-| Duración | Night Tempo – Digital Detox | 62:22 → 2:24 |
-| Duración | JW Francis, Paul Cherry – Row Row | 56:49 → 3:16 |
-| Duración | Enry-K – 8 DIOPTRíAS | 44:08 → 2:23 |
-| Duración | Troubless, Dj Secio, J3UNO – Fuego (Da Roots) | 22:54 → 3:06 |
-| Duración | One Flyt, Ema, Ventu Beats – que dificil me la haces | 9:42 → 2:16 |
+## Corrección (noviembre 2026): 10 canciones con el audio equivocado
+
+En la primera revisión cambié la duración de 8 canciones pensando que el MP3 se había leído mal. **Fue un error**: al reproducir «que dificil me la haces» se vio que el archivo de verdad dura 9:41 y **no es esa canción**. La duración original era la real; lo que está mal es el audio.
+
+Por eso estas 10 canciones **se quitaron de la app** (siguen en su bucket). Están en [`tools/excluidas.json`](../tools/excluidas.json) y `sync_r2.py` las salta para que no vuelvan:
+
+| Canción | El archivo dura | La publicada dura |
+| --- | ---: | ---: |
+| One Flyt, Ema, Ventu Beats – que dificil me la haces | 9:42 | 2:16 |
+| Enry-K – 8 DIOPTRíAS | 44:08 | 2:23 |
+| Troubless, Dj Secio, J3UNO – Fuego (Da Roots) | 22:54 | 3:06 |
+| pupsies – Bedtime Stories | 27:41 | 3:37 |
+| Toshiki Soejima, Takuya Kuroda, edbl – Resonance | 51:30 | 3:28 |
+| Lionmilk – fantasy | 64:31 | 2:32 |
+| Night Tempo – Digital Detox | 62:22 | 2:24 |
+| JW Francis, Paul Cherry – Row Row | 56:49 | 3:16 |
+| One Flyt, Ventu Beats – El primer día | 123:40 | (no publicada) |
+| rlax – 190 | 33:10 | (no publicada) |
+
+Para recuperar una: sube el MP3 correcto con el mismo nombre al bucket, quítala de `tools/excluidas.json` y ejecuta `python3 tools/sync_r2.py` y `python3 tools/build_catalog.py`.
 
 Además, en la app: **«Tyler, The Creator»** (y Earth, Wind & Fire; Crosby, Stills & Nash) ya no
 se parte en dos artistas por la coma: antes salían «Tyler» y «The Creator» por separado en
@@ -46,8 +58,6 @@ Artistas, Lab y radios.
 | Canción | Qué pasa | Pista |
 | --- | --- | --- |
 | Jose Alatorre – `losdelmomento.com` (salt, 001-100/035, 2:11) | El título es la web de donde se bajó, no la canción | Por duración, probablemente **«yo no soy»** (2:04) o **«unico amor»** (2:03) |
-| rlax – `190` (db4, 33:10) | Duración probablemente mal leída; no está en Deezer | Escuchar y corregir `duration` |
-| One Flyt, Ventu Beats – `El primer día` (pepper, 123:40) | Duración imposible; no está en Deezer | Escuchar y corregir `duration` |
 | Eyedress, Paul Cherry – Dancing with My Demons (0:34) | La publicada dura 3:42: ¿archivo cortado? | Volver a subir el MP3 |
 | pupsies – sunshine beach ★ (0:32) | La publicada dura 2:14 | ¿Archivo cortado? |
 | VARIATION – Stuck In Heaven (0:34) | La publicada dura 1:42 | ¿Archivo cortado? |

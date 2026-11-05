@@ -206,6 +206,9 @@ def sync(name):
         print(f'{name}: falta {prefix}ACCESS_KEY_ID / {prefix}SECRET_ACCESS_KEY, se salta')
         return
     objects = sorted((k, s) for k, s in list_objects(cfg, access, secret) if k.lower().endswith(AUDIO_EXT))
+    # Archivos con audio equivocado o rotos: siguen en el bucket pero no salen en la app
+    excluidas = json.loads((ROOT / 'tools' / 'excluidas.json').read_text(encoding='utf-8')).get(name, {}) if (ROOT / 'tools' / 'excluidas.json').exists() else {}
+    objects = [(k, s) for k, s in objects if k not in excluidas]
     path = ROOT / 'musica' / f'{name}.json'
     old = {row.get('src'): row for row in json.loads(path.read_text(encoding='utf-8'))} if path.exists() else {}
     todo = [(k, s) for k, s in objects if not (old.get(k) or {}).get('duration')]
