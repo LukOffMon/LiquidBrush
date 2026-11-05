@@ -8265,6 +8265,1334 @@
     return { init, render };
   })();
 
+  /* =========================================================
+     Cuenta de Liquid Bullet (opcional)
+     - Sin cuenta, todo sigue igual: se guarda solo en este navegador.
+     - Con cuenta, favoritas, playlists, escucha y ajustes viajan a cualquier dispositivo.
+     - La contraseña se estira aquí (PBKDF2, 600.000 vueltas) y nunca sale en claro del teléfono.
+     - El archivo de cada persona va mínimo: ids de 7 caracteres, fechas en minutos, gzip y la
+       escucha separada por año (ver docs/Liquid-Bullet-Cuentas-Plan.pdf).
+     ========================================================= */
+  const CUENTA_API = 'https://liquid-cuentas.liquidbulletofficial.workers.dev';
+  const TURNSTILE_SITIO = '0x4AAAAAAF1SaKaBNeMZR5B-';
+  const REVIEW_URL = 'https://lukoffmon.github.io/LiquidBrush/review.html';
+  const CORREO_REMITENTE = 'liquidbulletofficial@gmail.com';
+
+  const cuenta = (() => {
+    const K = {
+      sesion: 'liquidbrush:cuenta',
+      ofrecida: 'liquidbrush:cuenta-ofrecida',
+      meta: 'liquidbrush:sync-meta',
+      dispositivo: 'liquidbrush:dispositivo',
+      ultimoCorreo: 'liquidbrush:cuenta-correo'
+    };
+    let sesion = storage.get(K.sesion, null);
+    if (!sesion || !sesion.renovacion) sesion = null;
+    const ui = { dialog: null, body: null, pantalla: 'bienvenida', datos: {}, temporizadores: [] };
+    const sync = { estado: sesion ? 'pendiente' : 'apagado', ultima: sesion?.ultimaSync || 0, enCurso: null, error: '' };
+
+    /* ---------- API ---------- */
+    class ErrorCuenta extends Error {
+      constructor(codigo, extra = {}) { super(codigo); this.codigo = codigo; this.extra = extra; }
+    }
+
+    function guardarSesion() {
+      if (sesion) storage.set(K.sesion, sesion);
+      else { try { localStorage.removeItem(K.sesion); } catch { /* sin acceso */ } }
+      actualizarBotones();
+    }
+
+    let renovando = null;
+    async function renovar() {
+      if (renovando) return renovando;
+      renovando = (async () => {
+        const r = await fetch(`${CUENTA_API}/renovar`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ renovacion: sesion.renovacion })
+        });
+        const d = await r.json().catch(() => ({}));
+        if (r.status === 409) {
+          // Otra pestaña ya renovó: se toma su sesión
+          const otra = storage.get(K.sesion, null);
+          if (otra?.renovacion && otra.renovacion !== sesion.renovacion) { sesion = otra; return; }
+        }
+        if (!d.ok) {
+          if (r.status === 401) cerrarLocal('caducada');
+          throw new ErrorCuenta(d.error || 'sesion_caducada');
+        }
+        sesion = { ...sesion, ...d.sesion };
+        guardarSesion();
+      })();
+      try { await renovando; } finally { renovando = null; }
+    }
+
+    async function api(ruta, { metodo = 'POST', cuerpo, auth = false, crudo, cabeceras = {}, binario = false } = {}) {
+      if (!navigator.onLine) throw new ErrorCuenta('sin_conexion');
+      for (let intento = 0; intento < 2; intento++) {
+        if (auth) {
+          if (!sesion) throw new ErrorCuenta('sesion_caducada');
+          if ((sesion.caducaPase || 0) - 60 < Date.now() / 1000) await renovar();
+        }
+        const h = { ...cabeceras };
+        if (cuerpo) h['Content-Type'] = 'application/json';
+        if (auth) h.Authorization = `Bearer ${sesion.pase}`;
+        let r;
+        try {
+          r = await fetch(CUENTA_API + ruta, { method: metodo, headers: h, body: crudo ?? (cuerpo ? JSON.stringify(cuerpo) : undefined) });
+        } catch {
+          throw new ErrorCuenta('sin_conexion');
+        }
+        if (auth && r.status === 401 && intento === 0) { await renovar(); continue; }
+        const tipo = r.headers.get('content-type') || '';
+        if (binario && r.ok && !tipo.includes('json')) return { estado: r.status, etag: r.headers.get('ETag'), cuerpo: await r.arrayBuffer() };
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || d.ok === false) throw new ErrorCuenta(d.error || 'interno', { ...d, estado: r.status });
+        return { ...d, estado: r.status, etag: r.headers.get('ETag') };
+      }
+      throw new ErrorCuenta('sesion_caducada');
+    }
+
+    /* ---------- Contraseña: se estira en el dispositivo ---------- */
+    const te = new TextEncoder();
+    const b64url = (bytes) => btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+    async function claveCliente(correo, contrasena) {
+      const sal = await crypto.subtle.digest('SHA-256', te.encode(`liquidbullet:v1:${correo.trim().toLowerCase()}`));
+      const material = await crypto.subtle.importKey('raw', te.encode(contrasena), 'PBKDF2', false, ['deriveBits']);
+      const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: sal, iterations: 600000 }, material, 256);
+      return b64url(bits);
+    }
+
+    function fuerza(contrasena) {
+      const c = String(contrasena || '');
+      const reglas = {
+        largo: c.length >= 10,
+        letras: /\p{L}/u.test(c),
+        numeros: /\d/.test(c),
+        extra: /[^\p{L}\d]/u.test(c) || (/\p{Lu}/u.test(c) && /\p{Ll}/u.test(c))
+      };
+      let puntos = Object.values(reglas).filter(Boolean).length;
+      if (c.length >= 14 && puntos >= 3) puntos = 4;
+      if (!reglas.largo) puntos = Math.min(puntos, 1);
+      const textos = ['Muy débil', 'Débil: añade más caracteres', 'Aceptable: suma números o símbolos', 'Buena', 'Excelente'];
+      return { reglas, puntos, texto: c ? textos[puntos] : 'Mínimo 10 caracteres, con letras y números', valida: reglas.largo && reglas.letras && reglas.numeros };
+    }
+
+    // ¿Apareció en filtraciones? (Have I Been Pwned por rango: solo salen 5 caracteres del hash)
+    async function filtrada(contrasena) {
+      try {
+        const hash = [...new Uint8Array(await crypto.subtle.digest('SHA-1', te.encode(contrasena)))]
+          .map((b) => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+        const r = await fetch(`https://api.pwnedpasswords.com/range/${hash.slice(0, 5)}`, { headers: { 'Add-Padding': 'true' } });
+        if (!r.ok) return false;
+        const resto = hash.slice(5);
+        return (await r.text()).split('\n').some((linea) => linea.startsWith(resto) && Number(linea.split(':')[1]) > 0);
+      } catch {
+        return false;
+      }
+    }
+
+    /* ---------- Turnstile (anti-bots, casi siempre invisible) ---------- */
+    const robot = { cargando: null, widget: null, token: null, esperas: [] };
+    function cargarTurnstile() {
+      if (window.turnstile) return Promise.resolve();
+      if (robot.cargando) return robot.cargando;
+      robot.cargando = new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+        s.async = true;
+        s.onload = () => resolve();
+        s.onerror = () => { robot.cargando = null; reject(new ErrorCuenta('robot')); };
+        document.head.append(s);
+      });
+      return robot.cargando;
+    }
+
+    async function montarRobot() {
+      const caja = ui.body?.querySelector('.cuenta-robot');
+      if (!caja) return;
+      try { await cargarTurnstile(); } catch { return; }
+      if (robot.widget !== null) { try { window.turnstile.remove(robot.widget); } catch { /* ya no existe */ } }
+      robot.token = null;
+      const tema = document.documentElement.dataset.theme === 'minimal' ? 'light' : 'dark';
+      robot.widget = window.turnstile.render(caja, {
+        sitekey: TURNSTILE_SITIO, appearance: 'interaction-only', theme: tema, language: 'es',
+        callback: (t) => { robot.token = t; robot.esperas.splice(0).forEach((r) => r(t)); },
+        'expired-callback': () => { robot.token = null; },
+        'error-callback': () => { robot.token = null; }
+      });
+    }
+
+    function tokenRobot() {
+      if (robot.token) return Promise.resolve(robot.token);
+      return new Promise((resolve, reject) => {
+        robot.esperas.push(resolve);
+        setTimeout(() => reject(new ErrorCuenta('robot')), 20000);
+      });
+    }
+
+    function gastarRobot() {
+      robot.token = null;
+      try { if (robot.widget !== null) window.turnstile.reset(robot.widget); } catch { /* sin widget */ }
+    }
+
+    /* ---------- Textos ---------- */
+    const ERRORES = {
+      credenciales: 'Correo o contraseña incorrectos.',
+      demasiados_intentos: 'Demasiados intentos. Prueba en unos minutos o recupera tu contraseña.',
+      demasiados_envios: 'Ya pediste varios códigos. Espera un rato y vuelve a intentarlo.',
+      codigo_incorrecto: 'Código incorrecto.',
+      codigo_caducado: 'Ese código caducó. Pide uno nuevo.',
+      espera_reenvio: 'Espera un momento para pedir otro código.',
+      contrasena_debil: 'Usa al menos 10 caracteres, con letras y números.',
+      contrasena_filtrada: 'Esta contraseña apareció en una filtración conocida. Elige otra.',
+      clave_repetida: 'Elige una contraseña distinta de la anterior.',
+      correo_invalido: 'Revisa el correo: parece que falta algo.',
+      sin_conexion: 'No hay conexión. Puedes seguir sin cuenta y entrar luego.',
+      envio_no_disponible: 'Estamos teniendo problemas para enviar correos. Prueba en unas horas.',
+      sesion_caducada: 'Vuelve a entrar para seguir sincronizando. Tus datos de este dispositivo siguen aquí.',
+      robot: 'No pudimos comprobar que eres tú. Inténtalo de nuevo.',
+      ya_registrado: 'Ese correo ya tiene cuenta. Entra con tu contraseña.',
+      interno: 'Algo falló de nuestro lado. Inténtalo de nuevo en un momento.'
+    };
+    const mensaje = (e) => {
+      const codigo = e?.codigo || 'interno';
+      let texto = ERRORES[codigo] || ERRORES.interno;
+      if (codigo === 'codigo_incorrecto' && Number.isInteger(e.extra?.quedan)) texto += ` Te quedan ${e.extra.quedan} intento${e.extra.quedan === 1 ? '' : 's'}.`;
+      if ((codigo === 'espera_reenvio' || codigo === 'demasiados_intentos') && e.extra?.esperar) texto += ` (${formatTime(e.extra.esperar)})`;
+      return texto;
+    };
+    const esc = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const ocultarCorreo = (c) => String(c).replace(/^(.)[^@]*(@.*)$/, '$1•••$2');
+
+    function abrirCorreoUrl(correo) {
+      const dominio = String(correo).split('@')[1] || '';
+      if (/gmail|googlemail/.test(dominio)) return 'https://mail.google.com/mail/u/0/#search/from%3Aliquidbulletofficial%40gmail.com';
+      if (/outlook|hotmail|live|msn/.test(dominio)) return 'https://outlook.live.com/mail/0/';
+      if (/icloud|me\.com|mac\.com/.test(dominio)) return 'https://www.icloud.com/mail';
+      if (/yahoo/.test(dominio)) return 'https://mail.yahoo.com/';
+      return `mailto:`;
+    }
+
+    /* ---------- Avatar (con iconos de la colección) ---------- */
+    const COLORES = ['#ff7ad9', '#7ef9ff', '#ffe27a', '#7a5cff', '#3ddc97', '#ff9f43'];
+    const ICONOS = ['song-40', 'song-42', 'song-44', 'song-07', 'song-21', 'song-33'];
+    const FONDOS = ['03', '07', '11'];
+    function avatarHtml(avatar, nombre, clase = '') {
+      const inicial = esc((nombre || sesion?.perfil?.correo || '?').trim().charAt(0).toUpperCase() || '?');
+      const a = String(avatar || '');
+      if (a.startsWith('icono:')) return `<span class="cuenta-avatar ${clase}"><img src="covers/songs/${esc(a.slice(6))}-sm.jpg" alt=""></span>`;
+      if (a.startsWith('fondo:')) return `<span class="cuenta-avatar ${clase}"><img src="wallpapers/icons/${esc(a.slice(6))}-thumb.jpg" alt=""></span>`;
+      if (a.startsWith('emoji:')) return `<span class="cuenta-avatar is-emoji ${clase}">${esc(a.slice(6))}</span>`;
+      const color = a.startsWith('inicial:') ? a.slice(8) : COLORES[0];
+      return `<span class="cuenta-avatar is-inicial ${clase}" style="--av:${esc(color)}">${inicial}</span>`;
+    }
+
+    /* ---------- Hoja y pantallas ---------- */
+    function limpiarTemporizadores() {
+      ui.temporizadores.splice(0).forEach((t) => clearInterval(t));
+    }
+
+    function abrir(pantalla = sesion ? 'cuenta' : 'bienvenida', datos = {}) {
+      if (!ui.dialog) return;
+      ir(pantalla, datos);
+      if (!ui.dialog.open) ui.dialog.showModal();
+    }
+
+    function cerrar() {
+      limpiarTemporizadores();
+      if (ui.dialog?.open) ui.dialog.close();
+    }
+
+    function ir(pantalla, datos = {}) {
+      limpiarTemporizadores();
+      ui.pantalla = pantalla;
+      ui.datos = { ...ui.datos, ...datos };
+      const render = PANTALLAS[pantalla] || PANTALLAS.bienvenida;
+      ui.body.innerHTML = render(ui.datos);
+      ui.body.dataset.pantalla = pantalla;
+      ui.dialog.classList.toggle('is-cuenta', pantalla === 'cuenta');
+      PREPARAR[pantalla]?.(ui.datos);
+      if (ui.body.querySelector('.cuenta-robot')) montarRobot();
+      const foco = ui.body.querySelector('[autofocus]') || ui.body.querySelector('h2');
+      foco?.focus({ preventScroll: true });
+    }
+
+    const cabecera = (titulo, volver = 'bienvenida', paso = '') => `
+      <div class="cuenta-head">
+        ${volver ? `<button type="button" class="icon-btn" data-cuenta="ir" data-ir="${volver}" aria-label="Volver"><svg class="icon" aria-hidden="true"><use href="#i-back"></use></svg></button>` : '<span></span>'}
+        <h2 class="sheet-title" tabindex="-1">${titulo}</h2>
+        <button type="button" class="icon-btn" data-cuenta="cerrar" aria-label="Cerrar"><svg class="icon" aria-hidden="true"><use href="#i-close"></use></svg></button>
+      </div>${paso ? `<div class="cuenta-pasos" aria-label="${esc(paso)}">${paso}</div>` : ''}`;
+    const pasos = (actual, total) => Array.from({ length: total }, (_, i) => `<span class="${i < actual ? 'is-on' : ''}"></span>`).join('');
+    const errorBox = '<p class="cuenta-error" role="alert" aria-live="assertive" hidden></p>';
+    const botonPrincipal = (texto, accion) => `<button type="submit" class="btn btn-primary cuenta-cta" data-cuenta="${accion}"><span class="cuenta-cta-text">${texto}</span><span class="cuenta-cta-barra" aria-hidden="true"></span></button>`;
+
+    function collage() {
+      const pls = (typeof shownPls === 'function' ? shownPls(systemPlaylists()) : systemPlaylists()).filter((p) => p.cover?.src);
+      let top = pls;
+      try {
+        const p = tasteProfile();
+        top = pls.slice().sort((a, b) => p.genreN(b.name) - p.genreN(a.name));
+      } catch { /* sin perfil aún */ }
+      return top.slice(0, 3).map((pl, i) => `<img class="cuenta-collage-${i}" src="${esc(pl.cover.src.replace(/\.jpg$/, '-sm.jpg'))}" alt="" width="120" height="120" loading="lazy">`).join('');
+    }
+
+    const CONOCE = [
+      ['⭐', 'Nuestra nota', 'nota'], ['🧰', 'Todo lo que trae', 'que-trae'], ['🧠', 'Cómo aprende de ti', 'algoritmo'],
+      ['🎨', 'Sus cuatro temas', 'temas'], ['💿', 'Playlists de autor', 'playlists'], ['⚖️', 'Frente a otras apps', 'comparativa'], ['❓', 'Preguntas', 'preguntas']
+    ];
+
+    const PANTALLAS = {
+      bienvenida: () => `
+        ${cabecera('Tu cuenta', '')}
+        <div class="cuenta-collage" aria-hidden="true">${collage()}</div>
+        <h3 class="cuenta-titulo">Tu música, en todos tus dispositivos</h3>
+        <ul class="cuenta-ventajas">
+          <li><span aria-hidden="true">☁️</span> Nunca pierdes favoritas ni playlists.</li>
+          <li><span aria-hidden="true">📱</span> Lo mismo en tu teléfono y en tu compu.</li>
+          <li><span aria-hidden="true">✨</span> Tus mixes siguen aprendiendo de ti.</li>
+        </ul>
+        <div class="cuenta-acciones">
+          <button type="button" class="btn btn-primary cuenta-cta" data-cuenta="ir" data-ir="alta">Crear cuenta</button>
+          <button type="button" class="btn" data-cuenta="ir" data-ir="entrar">Ya tengo cuenta</button>
+          <button type="button" class="btn btn-ghost" data-cuenta="sin-cuenta">Seguir sin cuenta</button>
+        </div>
+        <p class="cuenta-conoce-titulo">¿Primera vez? Conoce Liquid</p>
+        <div class="cuenta-conoce">${CONOCE.map(([ico, t, ancla]) => `<a class="cuenta-conoce-card" href="${REVIEW_URL}#${ancla}" target="_blank" rel="noopener"><span aria-hidden="true">${ico}</span>${t}</a>`).join('')}</div>
+        <p class="cuenta-pie">🔒 Opcional y sin anuncios. Sin cuenta, todo se guarda solo en este navegador. Tus datos no se venden ni se comparten.</p>`,
+
+      alta: (d) => {
+        const paso = d.pasoAlta || 1;
+        if (paso === 1) return `
+          ${cabecera('Crear cuenta', 'bienvenida', pasos(1, 3))}
+          <form class="cuenta-form" data-form="alta-correo" novalidate>
+            <label class="cuenta-campo"><span>Tu correo</span>
+              <input name="correo" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" required value="${esc(d.correo || '')}" autofocus>
+            </label>
+            <p class="cuenta-sugerencia" hidden></p>
+            ${errorBox}
+            ${botonPrincipal('Siguiente', 'enviar')}
+          </form>`;
+        if (paso === 2) return `
+          ${cabecera('Crea tu contraseña', 'alta-1', pasos(2, 3))}
+          <form class="cuenta-form" data-form="alta-clave" novalidate>
+            <input type="email" name="usuario" autocomplete="username" value="${esc(d.correo || '')}" hidden>
+            <label class="cuenta-campo"><span>Contraseña</span>
+              <span class="cuenta-clave"><input name="clave" type="password" autocomplete="new-password" required minlength="10" autofocus>
+              <button type="button" class="icon-btn" data-cuenta="ver-clave" aria-label="Mostrar contraseña">👁</button></span>
+            </label>
+            <div class="cuenta-medidor" aria-hidden="true"><span></span></div>
+            <p class="cuenta-medidor-texto" aria-live="polite">Mínimo 10 caracteres, con letras y números</p>
+            <ul class="cuenta-reglas">
+              <li data-regla="largo">10 caracteres o más</li><li data-regla="letras">Letras</li><li data-regla="numeros">Números</li><li data-regla="extra">Mayúsculas o símbolos (extra)</li>
+            </ul>
+            ${errorBox}
+            ${botonPrincipal('Siguiente', 'enviar')}
+          </form>`;
+        return `
+          ${cabecera('¿Cómo te llamamos?', 'alta-2', pasos(3, 3))}
+          <form class="cuenta-form" data-form="alta-final" novalidate>
+            <label class="cuenta-campo"><span>Nombre (opcional)</span>
+              <input name="nombre" type="text" autocomplete="given-name" maxlength="40" value="${esc(d.nombre || '')}" placeholder="Para saludarte en Inicio">
+            </label>
+            <p class="cuenta-label">Elige tu avatar</p>
+            <div class="cuenta-avatares" role="radiogroup" aria-label="Avatar">
+              ${[...COLORES.slice(0, 4).map((c) => `inicial:${c}`), ...ICONOS.map((i) => `icono:${i}`), ...FONDOS.map((f) => `fondo:${f}`)]
+                .map((a) => `<button type="button" role="radio" aria-checked="${a === (d.avatar || 'inicial:#ff7ad9')}" class="cuenta-avatar-op" data-cuenta="avatar" data-avatar="${esc(a)}">${avatarHtml(a, d.nombre || d.correo)}</button>`).join('')}
+            </div>
+            <label class="cuenta-check"><input type="checkbox" name="privacidad" required> <span>Acepto que mis favoritas, playlists, escucha y ajustes se guarden en el almacenamiento privado de Liquid Bullet. Puedo descargarlos o borrarlos cuando quiera.</span></label>
+            <div class="cuenta-robot" aria-live="polite"></div>
+            ${errorBox}
+            ${botonPrincipal('Crear y enviar código', 'enviar')}
+          </form>`;
+      },
+      'alta-1': () => '',
+      'alta-2': () => '',
+      'alta-3': () => '',
+
+      codigo: (d) => `
+        ${cabecera('Revisa tu correo', d.motivo === 'recuperar' ? 'recuperar' : 'alta-3')}
+        <p class="cuenta-texto">Te enviamos un código de 6 dígitos a <b>${esc(ocultarCorreo(d.correo))}</b>.</p>
+        <p class="cuenta-aviso">📬 <b>Puede tardar un minuto y llegar a Spam o Promociones</b>: búscalo como <i>Liquid Bullet</i> (${CORREO_REMITENTE}).</p>
+        <form class="cuenta-form" data-form="codigo" novalidate>
+          <div class="cuenta-gotas" role="group" aria-label="Código de 6 dígitos">
+            ${Array.from({ length: 6 }, (_, i) => `<input class="cuenta-gota" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Dígito ${i + 1}" ${i === 0 ? 'autocomplete="one-time-code" autofocus' : 'autocomplete="off"'}>`).join('')}
+          </div>
+          <div class="cuenta-reloj" aria-hidden="true"><span></span></div>
+          <p class="cuenta-caduca">El código caduca en <b class="cuenta-caduca-t">10:00</b></p>
+          <p class="cuenta-aviso is-fuerte" hidden>¿No lo ves? Revisa <b>Spam</b> y márcalo como <i>No es spam</i>: los próximos llegarán bien.</p>
+          ${errorBox}
+          <div class="cuenta-fila">
+            <a class="btn" href="${esc(abrirCorreoUrl(d.correo))}" target="_blank" rel="noopener">Abrir correo</a>
+            <button type="button" class="btn btn-ghost" data-cuenta="reenviar" disabled>Reenviar (<span class="cuenta-reenviar-t">60</span> s)</button>
+          </div>
+          <button type="button" class="btn btn-ghost cuenta-link" data-cuenta="ir" data-ir="${d.motivo === 'recuperar' ? 'recuperar' : 'alta-1'}">Cambiar correo</button>
+        </form>`,
+
+      entrar: (d) => `
+        ${cabecera('Entrar', 'bienvenida')}
+        <div class="cuenta-ojos" aria-hidden="true"><span class="ojo"><i></i></span><span class="ojo"><i></i></span></div>
+        <form class="cuenta-form" data-form="entrar" novalidate>
+          <label class="cuenta-campo"><span>Correo</span>
+            <input name="correo" type="email" inputmode="email" autocomplete="username" autocapitalize="off" spellcheck="false" required value="${esc(d.correo || storage.get(K.ultimoCorreo, '') || '')}" autofocus>
+          </label>
+          <label class="cuenta-campo"><span>Contraseña</span>
+            <span class="cuenta-clave"><input name="clave" type="password" autocomplete="current-password" required>
+            <button type="button" class="icon-btn" data-cuenta="ver-clave" aria-label="Mostrar contraseña">👁</button></span>
+          </label>
+          <div class="cuenta-robot"></div>
+          ${errorBox}
+          ${botonPrincipal('Entrar', 'enviar')}
+          <div class="cuenta-fila">
+            <button type="button" class="btn btn-ghost cuenta-link" data-cuenta="ir" data-ir="recuperar">¿Olvidaste tu contraseña?</button>
+            <button type="button" class="btn btn-ghost cuenta-link" data-cuenta="ir" data-ir="alta-1">Crear cuenta</button>
+          </div>
+        </form>`,
+
+      recuperar: (d) => `
+        ${cabecera('Recuperar contraseña', 'entrar', pasos(1, 3))}
+        <p class="cuenta-texto">Escribe tu correo y te enviamos un código para elegir una contraseña nueva.</p>
+        <form class="cuenta-form" data-form="recuperar" novalidate>
+          <label class="cuenta-campo"><span>Tu correo</span>
+            <input name="correo" type="email" inputmode="email" autocomplete="username" autocapitalize="off" spellcheck="false" required value="${esc(d.correo || storage.get(K.ultimoCorreo, '') || '')}" autofocus>
+          </label>
+          <div class="cuenta-robot"></div>
+          ${errorBox}
+          ${botonPrincipal('Enviar código', 'enviar')}
+        </form>`,
+
+      nueva: () => `
+        ${cabecera('Nueva contraseña', 'recuperar', pasos(3, 3))}
+        <form class="cuenta-form" data-form="nueva" novalidate>
+          <input type="email" name="usuario" autocomplete="username" value="${esc(ui.datos.correo || '')}" hidden>
+          <label class="cuenta-campo"><span>Contraseña nueva</span>
+            <span class="cuenta-clave"><input name="clave" type="password" autocomplete="new-password" required minlength="10" autofocus>
+            <button type="button" class="icon-btn" data-cuenta="ver-clave" aria-label="Mostrar contraseña">👁</button></span>
+          </label>
+          <div class="cuenta-medidor" aria-hidden="true"><span></span></div>
+          <p class="cuenta-medidor-texto" aria-live="polite">Mínimo 10 caracteres, con letras y números</p>
+          ${errorBox}
+          ${botonPrincipal('Guardar y entrar', 'enviar')}
+        </form>`,
+
+      unir: (d) => `
+        ${cabecera('Une tus datos', '')}
+        <p class="cuenta-texto">En este dispositivo tienes:</p>
+        <ul class="cuenta-resumen">
+          <li>❤️ <b>${d.resumen?.favoritas || 0}</b> favoritas</li>
+          <li>🎵 <b>${d.resumen?.playlists || 0}</b> playlists propias</li>
+          <li>📊 <b>${d.resumen?.dias || 0}</b> días de escucha</li>
+        </ul>
+        <div class="cuenta-acciones">
+          <button type="button" class="btn btn-primary cuenta-cta" data-cuenta="unir">Unir con mi cuenta (recomendado)</button>
+          <button type="button" class="btn btn-ghost" data-cuenta="reemplazar">Usar solo lo de mi cuenta</button>
+        </div>
+        <div class="cuenta-progreso" hidden><span></span></div>
+        <p class="cuenta-progreso-texto" aria-live="polite"></p>`,
+
+      miembro: (d) => {
+        const pick = d.cancion ? getTrack(d.cancion) : null;
+        return `
+        ${cabecera('¡Listo!', '')}
+        <div class="cuenta-miembro">
+          ${avatarHtml(sesion?.perfil?.avatar, sesion?.perfil?.nombre, 'is-grande')}
+          <h3 class="cuenta-titulo">Hola${sesion?.perfil?.nombre ? `, ${esc(sesion.perfil.nombre)}` : ''} 👋</h3>
+          <p class="cuenta-texto">Tu música ya está a salvo y te sigue a cualquier dispositivo.</p>
+        </div>
+        ${dnaHtml()}
+        ${pick ? `<button type="button" class="cuenta-celebra" data-cuenta="celebrar" data-id="${esc(pick.id)}">
+          <img src="${esc(pick.thumb)}" alt="" width="56" height="56"><span><small>Celébralo con esta</small><b>${esc(splitTitle(pick.title).main)}</b><small>${esc(pick.knownArtist || pick.artist)} · y su radio</small></span><svg class="icon" aria-hidden="true"><use href="#i-play"></use></svg></button>` : ''}
+        <div class="cuenta-acciones"><button type="button" class="btn btn-primary cuenta-cta" data-cuenta="cerrar">Ir a Inicio</button></div>`;
+      },
+
+      cuenta: () => {
+        const p = sesion?.perfil || {};
+        const desde = p.creado ? new Date(p.creado * 1000).toLocaleDateString('es', { month: 'long', year: 'numeric' }) : '';
+        let minutos = 0;
+        Object.values(listen.log).forEach((dia) => Object.values(dia.s || {}).forEach((s) => { minutos += s / 60; }));
+        return `
+        ${cabecera('Tu cuenta', '')}
+        <div class="cuenta-perfil">
+          ${avatarHtml(p.avatar, p.nombre, 'is-grande')}
+          <div><h3 class="cuenta-titulo">${esc(p.nombre || 'Sin nombre')}</h3><p class="cuenta-correo">${esc(p.correo || '')} <span class="cuenta-ok">✓</span></p></div>
+        </div>
+        <div class="cuenta-tarjeta">
+          <div><b>${esc(desde)}</b><span>miembro desde</span></div>
+          <div><b>${Math.round(minutos).toLocaleString('es')}</b><span>minutos</span></div>
+          <div><b>${state.favorites.size}</b><span>favoritas</span></div>
+        </div>
+        <section class="cuenta-bloque">
+          <h4>Sincronización</h4>
+          <p class="cuenta-sync" data-estado="${sync.estado}">${textoSync()}</p>
+          <button type="button" class="btn" data-cuenta="sincronizar">Sincronizar ahora</button>
+        </section>
+        <section class="cuenta-bloque">
+          <h4>Perfil</h4>
+          <form class="cuenta-form" data-form="perfil" novalidate>
+            <label class="cuenta-campo"><span>Nombre</span><input name="nombre" type="text" maxlength="40" value="${esc(p.nombre || '')}"></label>
+            <div class="cuenta-avatares is-mini" role="radiogroup" aria-label="Avatar">
+              ${[...COLORES.map((c) => `inicial:${c}`), ...ICONOS.map((i) => `icono:${i}`), ...FONDOS.map((f) => `fondo:${f}`)]
+                .map((a) => `<button type="button" role="radio" aria-checked="${a === p.avatar}" class="cuenta-avatar-op" data-cuenta="avatar" data-avatar="${esc(a)}">${avatarHtml(a, p.nombre)}</button>`).join('')}
+            </div>
+            ${errorBox}
+            <button type="submit" class="btn" data-cuenta="enviar">Guardar perfil</button>
+          </form>
+        </section>
+        <section class="cuenta-bloque">
+          <h4>Dispositivos conectados</h4>
+          <ul class="cuenta-dispositivos"><li class="cuenta-texto">Cargando…</li></ul>
+          <button type="button" class="btn btn-ghost" data-cuenta="salir-todo">Cerrar sesión en los demás</button>
+        </section>
+        <section class="cuenta-bloque">
+          <label class="cuenta-check"><input type="checkbox" class="cuenta-borrar-local"> <span>Borrar también lo guardado en este dispositivo (útil en un teléfono prestado)</span></label>
+          <button type="button" class="btn cuenta-salir" data-cuenta="salir">Cerrar sesión</button>
+        </section>
+        <p class="cuenta-pie">Cambiar correo, huella / Face ID y borrar la cuenta llegan en las próximas versiones.</p>`;
+      }
+    };
+
+    function dnaHtml() {
+      try {
+        const p = tasteProfile();
+        const genres = [...p.genres.entries()].filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]).slice(0, 4);
+        if (!genres.length) return '';
+        const total = genres.reduce((s, [, v]) => s + v, 0) || 1;
+        return `<div class="cuenta-dna"><p class="cuenta-label">Tu ADN musical · viaja contigo</p>${genres.map(([g, v]) =>
+          `<div class="dna-row"><span class="dna-name">${esc(g)}</span><span class="dna-bar" style="--w:${Math.max(6, Math.round((v / total) * 100))}%"></span><span class="dna-pct">${Math.round((v / total) * 100)}%</span></div>`).join('')}</div>`;
+      } catch {
+        return '';
+      }
+    }
+
+    function textoSync() {
+      if (!navigator.onLine) return 'Sin conexión: se guarda al volver.';
+      if (sync.estado === 'sincronizando') return 'Sincronizando…';
+      if (sync.estado === 'error') return `No se pudo sincronizar${sync.error ? `: ${sync.error}` : ''}. Se reintentará solo.`;
+      if (!sync.ultima) return 'Aún sin sincronizar.';
+      const seg = Math.max(0, Math.round(Date.now() / 1000 - sync.ultima));
+      return `✓ Al día · hace ${seg < 60 ? 'unos segundos' : seg < 3600 ? `${Math.round(seg / 60)} min` : `${Math.round(seg / 3600)} h`}`;
+    }
+
+    /* ---------- Comportamiento de cada pantalla ---------- */
+    function errorEn(form, e) {
+      const box = form?.querySelector('.cuenta-error') || ui.body.querySelector('.cuenta-error');
+      if (!box) { showToast(mensaje(e)); return; }
+      box.textContent = typeof e === 'string' ? e : mensaje(e);
+      box.hidden = false;
+    }
+
+    function ocupado(form, on, texto) {
+      const btn = form?.querySelector('.cuenta-cta, [type="submit"]');
+      if (!btn) return;
+      btn.disabled = on;
+      btn.classList.toggle('is-ocupado', on);
+      const t = btn.querySelector('.cuenta-cta-text');
+      if (t) {
+        if (on) { btn.dataset.texto = t.textContent; t.textContent = texto || 'Comprobando…'; }
+        else if (btn.dataset.texto) t.textContent = btn.dataset.texto;
+      }
+    }
+
+    function medidor(input) {
+      const f = fuerza(input.value);
+      const barra = ui.body.querySelector('.cuenta-medidor span');
+      if (barra) {
+        barra.style.width = `${Math.max(input.value ? 8 : 0, f.puntos * 25)}%`;
+        barra.dataset.puntos = String(f.puntos);
+      }
+      const texto = ui.body.querySelector('.cuenta-medidor-texto');
+      if (texto) texto.textContent = f.texto;
+      ui.body.querySelectorAll('[data-regla]').forEach((li) => li.classList.toggle('is-ok', f.reglas[li.dataset.regla]));
+      return f;
+    }
+
+    const PREPARAR = {
+      'alta-1': () => ir('alta', { pasoAlta: 1 }),
+      'alta-2': () => ir('alta', { pasoAlta: 2 }),
+      'alta-3': () => ir('alta', { pasoAlta: 3 }),
+      alta: (d) => {
+        const correo = ui.body.querySelector('input[name="correo"]');
+        if (correo) {
+          const sug = ui.body.querySelector('.cuenta-sugerencia');
+          const TIPOS = { 'gmial.com': 'gmail.com', 'gmal.com': 'gmail.com', 'gmail.co': 'gmail.com', 'gamil.com': 'gmail.com', 'hotmial.com': 'hotmail.com', 'hotmal.com': 'hotmail.com', 'outlok.com': 'outlook.com', 'yaho.com': 'yahoo.com', 'icloud.co': 'icloud.com' };
+          correo.addEventListener('input', () => {
+            const dom = correo.value.split('@')[1]?.toLowerCase();
+            const ok = dom && TIPOS[dom];
+            sug.hidden = !ok;
+            if (ok) sug.innerHTML = `¿Quisiste decir <button type="button" class="cuenta-link-mini" data-cuenta="sugerencia" data-valor="${esc(correo.value.split('@')[0])}@${ok}">${esc(ok)}</button>?`;
+          });
+        }
+        const clave = ui.body.querySelector('input[name="clave"]');
+        if (clave) clave.addEventListener('input', () => medidor(clave));
+        if (d.pasoAlta === 3 && !d.avatar) ui.datos.avatar = 'inicial:#ff7ad9';
+      },
+      nueva: () => {
+        const clave = ui.body.querySelector('input[name="clave"]');
+        clave?.addEventListener('input', () => medidor(clave));
+      },
+      entrar: () => {
+        // Los ojos de la escena se cierran mientras escribes la contraseña
+        const ojos = ui.body.querySelector('.cuenta-ojos');
+        const clave = ui.body.querySelector('input[name="clave"]');
+        clave?.addEventListener('focus', () => ojos?.classList.toggle('is-cerrados', clave.type === 'password'));
+        clave?.addEventListener('blur', () => ojos?.classList.remove('is-cerrados'));
+        ui.body.addEventListener('pointermove', (e) => {
+          const r = ojos?.getBoundingClientRect();
+          if (!r || !settings.motion) return;
+          const dx = Math.max(-1, Math.min(1, (e.clientX - (r.left + r.width / 2)) / 160));
+          const dy = Math.max(-1, Math.min(1, (e.clientY - (r.top + r.height / 2)) / 160));
+          ojos.style.setProperty('--ox', `${dx * 4}px`);
+          ojos.style.setProperty('--oy', `${dy * 3}px`);
+        });
+      },
+      codigo: (d) => {
+        const gotas = [...ui.body.querySelectorAll('.cuenta-gota')];
+        const form = ui.body.querySelector('form');
+        const completo = () => gotas.map((g) => g.value).join('');
+        const comprobar = () => { if (/^\d{6}$/.test(completo())) enviarCodigo(form, completo()); };
+        gotas.forEach((g, i) => {
+          g.addEventListener('input', () => {
+            const v = g.value.replace(/\D/g, '');
+            if (v.length > 1) {
+              // Pegado o autocompletado del código entero
+              v.slice(0, 6).split('').forEach((c, j) => { if (gotas[i + j]) gotas[i + j].value = c; });
+              gotas[Math.min(5, i + v.length - 1)].focus();
+            } else {
+              g.value = v;
+              if (v && gotas[i + 1]) gotas[i + 1].focus();
+            }
+            g.classList.toggle('is-llena', Boolean(g.value));
+            comprobar();
+          });
+          g.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace' && !g.value && gotas[i - 1]) { gotas[i - 1].focus(); gotas[i - 1].value = ''; gotas[i - 1].classList.remove('is-llena'); }
+          });
+        });
+        // Cuenta atrás de validez (el «reloj derretido») y del reenvío
+        const fin = d.caducaEn || Date.now() + 600000;
+        const reenvioDesde = d.enviadoEn || Date.now();
+        const t = ui.body.querySelector('.cuenta-caduca-t');
+        const reloj = ui.body.querySelector('.cuenta-reloj span');
+        const reBtn = ui.body.querySelector('[data-cuenta="reenviar"]');
+        const reT = ui.body.querySelector('.cuenta-reenviar-t');
+        const fuerte = ui.body.querySelector('.cuenta-aviso.is-fuerte');
+        const tick = () => {
+          const quedan = Math.max(0, Math.round((fin - Date.now()) / 1000));
+          if (t) t.textContent = formatTime(quedan);
+          if (reloj) reloj.style.setProperty('--p', String(quedan / 600));
+          const espera = Math.max(0, 60 - Math.round((Date.now() - reenvioDesde) / 1000));
+          if (reBtn) { reBtn.disabled = espera > 0; reBtn.firstChild.textContent = espera > 0 ? 'Reenviar (' : 'Reenviar código'; }
+          if (reT) { reT.textContent = String(espera); reT.parentElement.lastChild.textContent = espera > 0 ? ' s)' : ''; reT.hidden = espera <= 0; }
+          if (fuerte && Date.now() - reenvioDesde > 30000 && !completo()) fuerte.hidden = false;
+        };
+        tick();
+        ui.temporizadores.push(setInterval(tick, 1000));
+      },
+      unir: () => {},
+      cuenta: () => {
+        cargarDispositivos();
+        ui.datos.avatarNuevo = null;
+      }
+    };
+
+    async function cargarDispositivos() {
+      const lista = ui.body.querySelector('.cuenta-dispositivos');
+      if (!lista) return;
+      try {
+        const d = await api('/yo/dispositivos', { metodo: 'GET', auth: true });
+        lista.innerHTML = d.dispositivos.map((x) => `<li class="cuenta-disp"><span>${/iPhone|Android|iPad/.test(x.nombre) ? '📱' : '💻'} <b>${esc(x.nombre)}</b> · ${x.actual ? 'este dispositivo' : `hace ${tiempoDesde(x.vista)}`}</span>${x.actual ? '' : `<button type="button" class="btn btn-ghost" data-cuenta="cerrar-disp" data-id="${esc(x.id)}">Cerrar</button>`}</li>`).join('');
+      } catch (e) {
+        lista.innerHTML = `<li class="cuenta-texto">${esc(mensaje(e))}</li>`;
+      }
+    }
+
+    function tiempoDesde(seg) {
+      const s = Math.max(0, Date.now() / 1000 - seg);
+      if (s < 3600) return `${Math.max(1, Math.round(s / 60))} min`;
+      if (s < 86400) return `${Math.round(s / 3600)} h`;
+      return `${Math.round(s / 86400)} días`;
+    }
+
+    async function enviarCodigo(form, codigo) {
+      if (form.dataset.enviando) return;
+      form.dataset.enviando = '1';
+      const caja = ui.body.querySelector('.cuenta-gotas');
+      try {
+        if (ui.datos.motivo === 'recuperar') {
+          ui.datos.codigo = codigo;
+          caja?.classList.add('is-ok');
+          setTimeout(() => ir('nueva'), settings.motion ? 450 : 0);
+          return;
+        }
+        const d = await api('/alta/confirmar', { cuerpo: { correo: ui.datos.correo, codigo } });
+        caja?.classList.add('is-ok');
+        haptic(15);
+        await iniciado(d);
+      } catch (e) {
+        caja?.classList.remove('is-ok');
+        caja?.classList.add('is-error');
+        setTimeout(() => caja?.classList.remove('is-error'), 500);
+        errorEn(form, e);
+        if (e.codigo !== 'codigo_caducado') ui.body.querySelectorAll('.cuenta-gota').forEach((g) => { g.value = ''; g.classList.remove('is-llena'); });
+        ui.body.querySelector('.cuenta-gota')?.focus();
+      } finally {
+        delete form.dataset.enviando;
+      }
+    }
+
+    // Sesión nueva: se guarda, se decide si unir datos y se sincroniza
+    async function iniciado(d) {
+      sesion = { ...d.sesion, perfil: d.perfil, ultimaSync: 0 };
+      storage.set(K.ultimoCorreo, d.perfil?.correo || ui.datos.correo || '');
+      guardarSesion();
+      storage.set(K.ofrecida, true);
+      const resumen = resumenLocal();
+      if (resumen.favoritas || resumen.playlists || resumen.dias) ir('unir', { resumen });
+      else {
+        await sincronizar({ silencioso: true });
+        bienvenidaMiembro();
+      }
+    }
+
+    function bienvenidaMiembro() {
+      let cancion = null;
+      try { cancion = quickPicks()[0]?.id || null; } catch { /* sin biblioteca */ }
+      ir('miembro', { cancion });
+      renderList();
+    }
+
+    function resumenLocal() {
+      return { favoritas: state.favorites.size, playlists: library.local.length, dias: Object.keys(listen.log).length };
+    }
+
+    async function alEnviar(form) {
+      const tipo = form.dataset.form;
+      const v = (n) => form.querySelector(`[name="${n}"]`)?.value ?? '';
+      const caja = form.querySelector('.cuenta-error');
+      if (caja) caja.hidden = true;
+      try {
+        if (tipo === 'alta-correo') {
+          const correo = v('correo').trim().toLowerCase();
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(correo)) throw new ErrorCuenta('correo_invalido');
+          ir('alta', { correo, pasoAlta: 2 });
+          return;
+        }
+        if (tipo === 'alta-clave' || tipo === 'nueva') {
+          const f = fuerza(v('clave'));
+          if (!f.valida) throw new ErrorCuenta('contrasena_debil');
+          ocupado(form, true, 'Comprobando…');
+          if (await filtrada(v('clave'))) throw new ErrorCuenta('contrasena_filtrada');
+          const clave = await claveCliente(ui.datos.correo, v('clave'));
+          if (tipo === 'alta-clave') { ui.datos.clave = clave; ir('alta', { pasoAlta: 3 }); return; }
+          const d = await api('/recuperar/nueva', { cuerpo: { correo: ui.datos.correo, codigo: ui.datos.codigo, clave } });
+          showToast('Contraseña cambiada. Cerramos tus otras sesiones.');
+          await iniciado(d);
+          return;
+        }
+        if (tipo === 'alta-final') {
+          if (!form.querySelector('[name="privacidad"]').checked) throw 'Acepta la privacidad para crear la cuenta.';
+          ocupado(form, true, 'Enviando código…');
+          ui.datos.nombre = v('nombre').trim();
+          const turnstile = await tokenRobot();
+          const d = await api('/alta', { cuerpo: { correo: ui.datos.correo, clave: ui.datos.clave, nombre: ui.datos.nombre, avatar: ui.datos.avatar, turnstile } });
+          gastarRobot();
+          ir('codigo', { motivo: 'alta', caducaEn: Date.now() + (d.caduca || 600) * 1000, enviadoEn: Date.now() });
+          return;
+        }
+        if (tipo === 'entrar') {
+          const correo = v('correo').trim().toLowerCase();
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(correo)) throw new ErrorCuenta('correo_invalido');
+          if (!v('clave')) throw new ErrorCuenta('credenciales');
+          ocupado(form, true, 'Entrando…');
+          const clave = await claveCliente(correo, v('clave'));
+          const turnstile = await tokenRobot();
+          ui.datos.correo = correo;
+          const d = await api('/entrar', { cuerpo: { correo, clave, turnstile } });
+          gastarRobot();
+          if (d.borradoCancelado) showToast('Cancelamos el borrado programado de tu cuenta.');
+          await iniciado(d);
+          return;
+        }
+        if (tipo === 'recuperar') {
+          const correo = v('correo').trim().toLowerCase();
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(correo)) throw new ErrorCuenta('correo_invalido');
+          ocupado(form, true, 'Enviando código…');
+          const turnstile = await tokenRobot();
+          const d = await api('/recuperar', { cuerpo: { correo, turnstile } });
+          gastarRobot();
+          ir('codigo', { correo, motivo: 'recuperar', caducaEn: Date.now() + (d.caduca || 600) * 1000, enviadoEn: Date.now() });
+          return;
+        }
+        if (tipo === 'perfil') {
+          ocupado(form, true);
+          const cuerpo = { nombre: v('nombre').trim() };
+          if (ui.datos.avatarNuevo) cuerpo.avatar = ui.datos.avatarNuevo;
+          const d = await api('/yo', { metodo: 'PATCH', cuerpo, auth: true });
+          sesion.perfil = d.perfil;
+          guardarSesion();
+          showToast('Perfil guardado.');
+          ir('cuenta');
+          renderList();
+        }
+      } catch (e) {
+        if (['alta-final', 'entrar', 'recuperar'].includes(tipo)) gastarRobot();
+        errorEn(form, e);
+      } finally {
+        ocupado(form, false);
+      }
+    }
+
+    async function alClic(target) {
+      const accion = target.dataset.cuenta;
+      switch (accion) {
+        case 'ir': ir(target.dataset.ir); break;
+        case 'cerrar': cerrar(); break;
+        case 'sin-cuenta':
+          storage.set(K.ofrecida, true);
+          cerrar();
+          showToast('Sigues sin cuenta. Puedes entrar cuando quieras desde Ajustes.');
+          break;
+        case 'ver-clave': {
+          const input = target.parentElement.querySelector('input');
+          input.type = input.type === 'password' ? 'text' : 'password';
+          target.setAttribute('aria-label', input.type === 'password' ? 'Mostrar contraseña' : 'Ocultar contraseña');
+          ui.body.querySelector('.cuenta-ojos')?.classList.toggle('is-cerrados', input.type === 'password' && document.activeElement === input);
+          break;
+        }
+        case 'sugerencia': {
+          const input = ui.body.querySelector('input[name="correo"]');
+          input.value = target.dataset.valor;
+          ui.body.querySelector('.cuenta-sugerencia').hidden = true;
+          break;
+        }
+        case 'avatar':
+          target.closest('[role="radiogroup"]').querySelectorAll('[role="radio"]').forEach((b) => b.setAttribute('aria-checked', String(b === target)));
+          if (ui.pantalla === 'cuenta') ui.datos.avatarNuevo = target.dataset.avatar;
+          else ui.datos.avatar = target.dataset.avatar;
+          break;
+        case 'reenviar': {
+          try {
+            target.disabled = true;
+            const d = await api('/codigo/reenviar', { cuerpo: { correo: ui.datos.correo, motivo: ui.datos.motivo || 'alta' } });
+            showToast('Te enviamos otro código (revisa también Spam).');
+            ir('codigo', { caducaEn: Date.now() + (d.caduca || 600) * 1000, enviadoEn: Date.now() });
+          } catch (e) {
+            errorEn(ui.body.querySelector('form'), e);
+          }
+          break;
+        }
+        case 'unir':
+        case 'reemplazar': {
+          ui.body.querySelectorAll('.cuenta-acciones button').forEach((b) => { b.disabled = true; });
+          const barra = ui.body.querySelector('.cuenta-progreso');
+          const texto = ui.body.querySelector('.cuenta-progreso-texto');
+          barra.hidden = false;
+          texto.textContent = accion === 'unir' ? 'Subiendo tus playlists y favoritas…' : 'Trayendo lo de tu cuenta…';
+          const ok = await sincronizar({ reemplazar: accion === 'reemplazar', silencioso: true });
+          texto.textContent = ok ? '✓ Todo guardado' : 'No se pudo sincronizar ahora; se reintentará solo.';
+          setTimeout(bienvenidaMiembro, 600);
+          break;
+        }
+        case 'celebrar': {
+          const track = getTrack(target.dataset.id);
+          cerrar();
+          if (track) startRadio(artistKeyOf(track), track);
+          break;
+        }
+        case 'sincronizar':
+          await sincronizar();
+          if (ui.pantalla === 'cuenta') ir('cuenta');
+          break;
+        case 'cerrar-disp':
+          try {
+            await api(`/yo/dispositivos/${target.dataset.id}`, { metodo: 'DELETE', auth: true });
+            target.closest('li')?.remove();
+            showToast('Sesión cerrada en ese dispositivo.');
+          } catch (e) { showToast(mensaje(e)); }
+          break;
+        case 'salir-todo':
+          try {
+            await api('/salir/todo', { auth: true });
+            showToast('Cerramos tu sesión en los demás dispositivos.');
+            cargarDispositivos();
+          } catch (e) { showToast(mensaje(e)); }
+          break;
+        case 'salir': {
+          const borrar = ui.body.querySelector('.cuenta-borrar-local')?.checked;
+          await sincronizar({ silencioso: true }).catch(() => {});
+          try { await api('/salir', { auth: true }); } catch { /* aunque falle, se cierra aquí */ }
+          cerrarLocal('salir');
+          cerrar();
+          if (borrar) borrarLocal();
+          else showToast('Cerraste sesión. Tus datos siguen en este dispositivo.');
+          break;
+        }
+        default: break;
+      }
+    }
+
+    function cerrarLocal(motivo) {
+      sesion = null;
+      sync.estado = 'apagado';
+      guardarSesion();
+      if (motivo === 'caducada') showToast(ERRORES.sesion_caducada);
+    }
+
+    function borrarLocal() {
+      [KEYS.favorites, KEYS.playlists, KEYS.recent, KEYS.plays, KEYS.listen, KEYS.follows, KEYS.pins, KEYS.hidden,
+        KEYS.disliked, KEYS.heard, KEYS.skips, KEYS.contexts, KEYS.searches, KEYS.trash, KEYS.resume, KEYS.resumeQueue, K.meta, K.ultimoCorreo]
+        .forEach((k) => { try { localStorage.removeItem(k); } catch { /* sin acceso */ } });
+      location.reload();
+    }
+
+    /* =========================================================
+       Sincronización: archivo mínimo por persona en R2
+       ========================================================= */
+    const BASE_MIN = 26297280; // minutos desde 1970 hasta 2020-01-01: las fechas caben en 7 cifras
+    const minAhora = () => Math.floor(Date.now() / 60000) - BASE_MIN;
+    const LAPIDA_MIN = 90 * 24 * 60; // las marcas de borrado se guardan 90 días
+    const FUENTES = { pepper: 'p', salt: 's', brush3: 'b', db4: '4', db5: '5' };
+    let cortosPorId = null;
+
+    function mapasCortos() {
+      if (cortosPorId && cortosPorId.n === state.tracks.length) return cortosPorId;
+      const corto = new Map();
+      const largo = new Map();
+      state.tracks.forEach((t) => {
+        const c = idCorto(t.id);
+        corto.set(t.id, c);
+        largo.set(c, t.id);
+      });
+      cortosPorId = { n: state.tracks.length, corto, largo };
+      return cortosPorId;
+    }
+    // «brush3:101-200-148-clairo-4ever-mp3-c0bf5f» (59 caracteres de media) → «bc0bf5f» (7)
+    function idCorto(id) {
+      const m = /^(pepper|salt|brush3|db4|db5):.*-([0-9a-f]{6})$/.exec(String(id));
+      return m ? FUENTES[m[1]] + m[2] : `~${id}`;
+    }
+    const aCorto = (id) => mapasCortos().corto.get(id) || idCorto(id);
+    const aLargo = (c) => mapasCortos().largo.get(c) || (String(c).startsWith('~') ? String(c).slice(1) : null);
+
+    function metaLocal() {
+      const m = storage.get(K.meta, null) || {};
+      return { sets: m.sets || {}, pl: m.pl || {}, otrosPlays: m.otrosPlays || {}, otrosLog: m.otrosLog || {}, etag: m.etag || {}, escucha: m.escucha !== false };
+    }
+    const guardarMeta = (m) => storage.set(K.meta, m);
+
+    function idDispositivo() {
+      let d = storage.get(K.dispositivo, '');
+      if (!d) { d = Math.random().toString(36).slice(2, 8); storage.set(K.dispositivo, d); }
+      return d;
+    }
+
+    // Conjuntos (favoritas, seguidos…): {clave: fechaMin} presente / {clave: -fechaMin} quitado
+    function difConjunto(meta, actuales, conocida) {
+      const t = minAhora();
+      const presentes = new Set(actuales);
+      presentes.forEach((k) => { if (meta[k] === undefined || meta[k] < 0) meta[k] = t; });
+      Object.keys(meta).forEach((k) => {
+        if (meta[k] >= 0 && !presentes.has(k) && conocida(k)) meta[k] = -t;
+      });
+      return meta;
+    }
+
+    function mezclarConjunto(local, remoto) {
+      const out = {};
+      const t = minAhora();
+      new Set([...Object.keys(local), ...Object.keys(remoto || {})]).forEach((k) => {
+        const a = local[k];
+        const b = remoto?.[k];
+        let v;
+        if (a === undefined) v = b;
+        else if (b === undefined) v = a;
+        else if (Math.abs(a) !== Math.abs(b)) v = Math.abs(a) > Math.abs(b) ? a : b;
+        else v = a >= 0 || b >= 0 ? Math.abs(a) : a; // empate: gana «está»
+        if (v < 0 && t + v > LAPIDA_MIN) return; // marca de borrado vieja: fuera
+        out[k] = v;
+      });
+      return out;
+    }
+    const presentesDe = (m) => Object.keys(m).filter((k) => m[k] >= 0);
+
+    const CONJUNTOS = {
+      f: { leer: () => [...state.favorites].map(aCorto), conocida: (k) => Boolean(aLargo(k)), aplicar: (claves) => {
+        state.favorites = new Set(claves.map(aLargo).filter(Boolean));
+        storage.set(KEYS.favorites, [...state.favorites]);
+      } },
+      dl: { leer: () => [...disliked].map(aCorto), conocida: (k) => Boolean(aLargo(k)), aplicar: (claves) => {
+        disliked.clear();
+        claves.map(aLargo).filter(Boolean).forEach((id) => disliked.add(id));
+        storage.set(KEYS.disliked, [...disliked]);
+      } },
+      fo: { leer: () => library.follows.slice(), conocida: () => true, aplicar: (c) => { library.follows = c; storage.set(KEYS.follows, c); } },
+      pi: { leer: () => library.pins.slice(), conocida: () => true, aplicar: (c) => { library.pins = c; storage.set(KEYS.pins, c); } },
+      hi: { leer: () => library.hidden.slice(), conocida: () => true, aplicar: (c) => { library.hidden = c; storage.set(KEYS.hidden, c); } }
+    };
+
+    const huellaPl = (p) => `${p.name}|${p.emoji || ''}|${p.color || ''}|${p.trackIds.join(',')}`;
+
+    function difPlaylists(meta) {
+      const t = minAhora();
+      const vivas = new Set();
+      library.local.forEach((p) => {
+        vivas.add(p.id);
+        const h = String(hashString(huellaPl(p)));
+        if (!meta[p.id] || meta[p.id].h !== h || meta[p.id].x) meta[p.id] = { h, t };
+      });
+      Object.keys(meta).forEach((id) => { if (!vivas.has(id) && !meta[id].x) meta[id] = { x: t }; });
+      return meta;
+    }
+
+    function plACompacta(p, meta) {
+      return { i: p.id, n: p.name, e: p.emoji || '', c: p.color || '', k: p.trackIds.map(aCorto), t: meta[p.id]?.t || 0, cr: p.createdAt || 0 };
+    }
+
+    function mezclarPlaylists(metaPl, remotas) {
+      const t = minAhora();
+      const porId = new Map();
+      library.local.forEach((p) => porId.set(p.id, { ...plACompacta(p, metaPl), fuente: 'local' }));
+      Object.entries(metaPl).forEach(([id, m]) => { if (m.x) porId.set(id, { i: id, x: m.x, fuente: 'local' }); });
+      (remotas || []).forEach((r) => {
+        const actual = porId.get(r.i);
+        const tR = r.x || r.t || 0;
+        const tL = actual ? (actual.x || actual.t || 0) : -1;
+        if (!actual || tR > tL) porId.set(r.i, { ...r, fuente: 'remota' });
+      });
+      return [...porId.values()].filter((p) => !(p.x && t - p.x > LAPIDA_MIN)).map(({ fuente, ...p }) => p);
+    }
+
+    function aplicarPlaylists(lista, metaPl) {
+      const locales = new Map(library.local.map((p) => [p.id, p]));
+      library.local = lista.filter((p) => !p.x).map((p) => {
+        const previa = locales.get(p.i) || {};
+        const pl = { ...previa, id: p.i, name: p.n, emoji: p.e || previa.emoji || '💿', color: p.c || previa.color || '#8a93a6',
+          trackIds: (p.k || []).map(aLargo).filter(Boolean), createdAt: p.cr || previa.createdAt || Date.now() };
+        metaPl[p.i] = { h: String(hashString(huellaPl(pl))), t: p.t || 0 };
+        return pl;
+      });
+      lista.filter((p) => p.x).forEach((p) => { metaPl[p.i] = { x: p.x }; });
+      saveLocalPlaylists();
+    }
+
+    // Suma / resta de estructuras numéricas (para separar lo de este dispositivo de lo de los demás)
+    function sumar(a, b, signo = 1) {
+      const out = { ...a };
+      Object.entries(b || {}).forEach(([k, v]) => {
+        if (typeof v === 'number') {
+          const r = (out[k] || 0) + signo * v;
+          if (r > 0) out[k] = r; else delete out[k];
+        } else if (v && typeof v === 'object') {
+          const r = sumar(out[k] && typeof out[k] === 'object' ? out[k] : {}, v, signo);
+          if (Object.keys(r).length) out[k] = r; else delete out[k];
+        }
+      });
+      return out;
+    }
+
+    // Registro de un día → forma compacta (ids cortos, horas solo con algo, estilos por momento)
+    function diaACompacto(e) {
+      const o = {};
+      const s = {};
+      Object.entries(e.s || {}).forEach(([id, sec]) => { if (sec > 0) s[aCorto(id)] = Math.round(sec); });
+      if (Object.keys(s).length) o.s = s;
+      const p = {};
+      Object.entries(e.p || {}).forEach(([id, n]) => { if (n > 0) p[aCorto(id)] = n; });
+      if (Object.keys(p).length) o.p = p;
+      const h = {};
+      (e.h || []).forEach((sec, i) => { if (sec > 0) h[i] = Math.round(sec); });
+      if (Object.keys(h).length) o.h = h;
+      if (e.g && Object.keys(e.g).length) o.g = e.g;
+      return o;
+    }
+    function diaDeCompacto(o) {
+      const e = { s: {}, p: {}, h: new Array(24).fill(0), g: o.g ? JSON.parse(JSON.stringify(o.g)) : {} };
+      Object.entries(o.s || {}).forEach(([c, sec]) => { const id = aLargo(c); if (id) e.s[id] = sec; });
+      Object.entries(o.p || {}).forEach(([c, n]) => { const id = aLargo(c); if (id) e.p[id] = n; });
+      Object.entries(o.h || {}).forEach(([i, sec]) => { e.h[Number(i)] = sec; });
+      return e;
+    }
+    const sumarDia = (a, b, signo = 1) => {
+      const r = sumar({ s: a.s, p: a.p, g: a.g, h: Object.fromEntries((a.h || []).map((v, i) => [i, v])) },
+        { s: b.s, p: b.p, g: b.g, h: Object.fromEntries((b.h || []).map((v, i) => [i, v])) }, signo);
+      const h = new Array(24).fill(0);
+      Object.entries(r.h || {}).forEach(([i, v]) => { h[Number(i)] = v; });
+      return { s: r.s || {}, p: r.p || {}, g: r.g || {}, h };
+    };
+
+    async function comprimir(obj) {
+      const stream = new Blob([JSON.stringify(obj)]).stream().pipeThrough(new CompressionStream('gzip'));
+      return new Response(stream).arrayBuffer();
+    }
+    async function descomprimir(buffer) {
+      const stream = new Blob([buffer]).stream().pipeThrough(new DecompressionStream('gzip'));
+      return JSON.parse(await new Response(stream).text());
+    }
+
+    // JSON con claves ordenadas: compara contenido sin importar el orden (evita escrituras de más en R2)
+    const canon = (v) => (Array.isArray(v) ? `[${v.map(canon).join(',')}]`
+      : v && typeof v === 'object' ? `{${Object.keys(v).sort().map((k) => `${JSON.stringify(k)}:${canon(v[k])}`).join(',')}}` : JSON.stringify(v));
+
+    // Lee, mezcla y sube un archivo con su ETag (si otro dispositivo escribió antes, vuelve a mezclar)
+    async function sincronizarArchivo(ruta, nombre, meta, mezclar) {
+      for (let intento = 0; intento < 3; intento++) {
+        const r = await api(ruta, { metodo: 'GET', auth: true, binario: true });
+        const remoto = r.cuerpo ? await descomprimir(r.cuerpo) : null;
+        const etag = r.cuerpo ? r.etag : null;
+        const { doc, aplicar } = mezclar(remoto);
+        // Sin cambios respecto a lo que ya hay: no se escribe (ahorra operaciones de R2)
+        if (remoto && canon(remoto) === canon(doc)) {
+          aplicar();
+          meta.etag[nombre] = etag;
+          return true;
+        }
+        try {
+          const subida = await api(ruta, { metodo: 'PUT', auth: true, crudo: await comprimir(doc),
+            cabeceras: { 'Content-Type': 'application/gzip', ...(etag ? { 'If-Match': etag } : { 'If-None-Match': '*' }) } });
+          aplicar();
+          meta.etag[nombre] = subida.etag;
+          return true;
+        } catch (e) {
+          if (e.codigo === 'cambio_en_otro_dispositivo' && intento < 2) continue;
+          throw e;
+        }
+      }
+      return false;
+    }
+
+    async function sincronizar({ reemplazar = false, silencioso = false } = {}) {
+      if (!sesion) return false;
+      if (sync.enCurso) return sync.enCurso;
+      if (typeof CompressionStream === 'undefined') {
+        if (!silencioso) showToast('Este navegador es antiguo para sincronizar. Actualízalo para usar tu cuenta.');
+        return false;
+      }
+      sync.estado = 'sincronizando';
+      actualizarBotones();
+      sync.enCurso = (async () => {
+        try {
+          const meta = metaLocal();
+          const yo = idDispositivo();
+          if (reemplazar) {
+            meta.sets = {};
+            meta.pl = {};
+            Object.values(CONJUNTOS).forEach((c) => c.aplicar([]));
+            library.local = [];
+            meta.otrosPlays = {};
+            meta.otrosLog = {};
+            library.plays = {};
+            listen.log = {};
+          }
+          // Lo propio de este dispositivo = lo que hay menos lo que se sumó de los demás
+          const propiosPlays = sumar(library.plays, meta.otrosPlays, -1);
+
+          await sincronizarArchivo('/datos', 'datos', meta, (remoto) => {
+            const r = remoto || {};
+            const sets = {};
+            Object.entries(CONJUNTOS).forEach(([k, c]) => {
+              const local = difConjunto({ ...(meta.sets[k] || {}) }, c.leer(), c.conocida);
+              sets[k] = mezclarConjunto(local, r[k]);
+            });
+            const metaPl = difPlaylists({ ...meta.pl });
+            const pl = mezclarPlaylists(metaPl, r.pl);
+            // Reproducciones: cada dispositivo sube las suyas; el total es la suma
+            const pc = { ...(r.pc || {}) };
+            const mias = {};
+            Object.entries(propiosPlays).forEach(([id, n]) => { if (n > 0) mias[aCorto(id)] = n; });
+            if (Object.keys(mias).length) pc[yo] = mias; else delete pc[yo];
+            // Última escucha (minutos) y saltos: el máximo de cada dispositivo
+            const hd = { ...(r.hd || {}) };
+            Object.entries(taste.heard).forEach(([id, ms]) => {
+              const c = aCorto(id);
+              const m = Math.floor(ms / 60000) - BASE_MIN;
+              if (!hd[c] || hd[c] < m) hd[c] = m;
+            });
+            Object.keys(hd).forEach((c) => { if (minAhora() - hd[c] > 90 * 24 * 60) delete hd[c]; });
+            const sk = { ...(r.sk || {}) };
+            Object.entries(taste.skips).forEach(([id, n]) => { const c = aCorto(id); sk[c] = Math.max(sk[c] || 0, n); });
+            const aj = { ...(r.aj || {}) };
+            const tema = storage.get(KEYS.theme, 'chrome');
+            // El tema viaja: gana el último cambio (un dispositivo nuevo adopta el de la cuenta)
+            const temaCambiado = meta.tema !== undefined && meta.tema !== tema;
+            if (!aj.tema || temaCambiado) aj.tema = [minAhora(), tema];
+            const doc = { v: 1, t: minAhora(), ...Object.fromEntries(Object.entries(sets).filter(([, v]) => Object.keys(v).length)), pl, pc, hd, sk, aj };
+            Object.keys(doc).forEach((k) => { if (doc[k] && typeof doc[k] === 'object' && !Array.isArray(doc[k]) && !Object.keys(doc[k]).length) delete doc[k]; });
+            if (!doc.pl.length) delete doc.pl;
+            if (remoto && canon({ ...doc, t: remoto.t }) === canon(remoto)) doc.t = remoto.t;
+            return {
+              doc,
+              aplicar: () => {
+                Object.entries(CONJUNTOS).forEach(([k, c]) => c.aplicar(presentesDe(sets[k])));
+                meta.sets = sets;
+                aplicarPlaylists(pl, metaPl);
+                meta.pl = metaPl;
+                const otros = {};
+                Object.entries(pc).forEach(([d, mapa]) => {
+                  if (d === yo) return;
+                  Object.entries(mapa).forEach(([c, n]) => { const id = aLargo(c); if (id) otros[id] = (otros[id] || 0) + n; });
+                });
+                library.plays = sumar(propiosPlays, otros);
+                meta.otrosPlays = otros;
+                storage.set(KEYS.plays, library.plays);
+                Object.entries(hd).forEach(([c, m]) => { const id = aLargo(c); if (id) taste.heard[id] = Math.max(taste.heard[id] || 0, (m + BASE_MIN) * 60000); });
+                Object.entries(sk).forEach(([c, n]) => { const id = aLargo(c); if (id) taste.skips[id] = Math.max(taste.skips[id] || 0, n); });
+                taste.dirty = true;
+                taste.profile = null;
+                taste.save();
+                if (aj.tema && aj.tema[1] !== tema) applyTheme(aj.tema[1]);
+                meta.tema = aj.tema?.[1];
+              }
+            };
+          });
+
+          if (meta.escucha) {
+            flushListening();
+            const anios = new Set([new Date().getFullYear(), new Date().getFullYear() - 1, ...Object.keys(listen.log).map((d) => Number(d.slice(0, 4)))]);
+            const propioLog = {};
+            Object.entries(listen.log).forEach(([dia, e]) => {
+              const otro = meta.otrosLog[dia];
+              const mio = otro ? sumarDia(e, otro, -1) : e;
+              if (Object.keys(mio.s || {}).length || Object.keys(mio.p || {}).length) propioLog[dia] = mio;
+            });
+            const nuevosOtros = {};
+            for (const anio of [...anios].sort()) {
+              const prefijo = `${anio}-`;
+              const misDias = Object.entries(propioLog).filter(([d]) => d.startsWith(prefijo));
+              await sincronizarArchivo(`/datos/escucha/${anio}`, `escucha-${anio}`, meta, (remoto) => {
+                const d = JSON.parse(JSON.stringify(remoto?.d || {}));
+                Object.keys(d).forEach((md) => { if (d[md][yo] && !propioLog[`${anio}-${md.slice(0, 2)}-${md.slice(2)}`]) delete d[md][yo]; });
+                misDias.forEach(([dia, e]) => {
+                  const md = dia.slice(5).replace('-', '');
+                  d[md] = d[md] || {};
+                  d[md][yo] = diaACompacto(e);
+                });
+                Object.keys(d).forEach((md) => { if (!Object.keys(d[md]).length) delete d[md]; });
+                const doc = { v: 1, d };
+                return {
+                  doc,
+                  aplicar: () => {
+                    Object.entries(d).forEach(([md, porDisp]) => {
+                      const dia = `${anio}-${md.slice(0, 2)}-${md.slice(2)}`;
+                      Object.entries(porDisp).forEach(([disp, o]) => {
+                        if (disp === yo) return;
+                        nuevosOtros[dia] = sumarDia(nuevosOtros[dia] || { s: {}, p: {}, g: {}, h: [] }, diaDeCompacto(o));
+                      });
+                    });
+                  }
+                };
+              });
+              if (!misDias.length && anio < new Date().getFullYear() - 1) break;
+            }
+            const combinado = {};
+            new Set([...Object.keys(propioLog), ...Object.keys(nuevosOtros)]).forEach((dia) => {
+              combinado[dia] = sumarDia(propioLog[dia] || { s: {}, p: {}, g: {}, h: [] }, nuevosOtros[dia] || { s: {}, p: {}, g: {}, h: [] });
+            });
+            listen.log = combinado;
+            meta.otrosLog = nuevosOtros;
+            saveListening();
+          }
+
+          guardarMeta(meta);
+          sync.ultima = Math.floor(Date.now() / 1000);
+          sync.estado = 'al-dia';
+          sync.error = '';
+          if (sesion) { sesion.ultimaSync = sync.ultima; guardarSesion(); }
+          taste.profile = null;
+          updateCounts();
+          renderList();
+          if (!silencioso) showToast('✓ Sincronizado');
+          return true;
+        } catch (e) {
+          sync.estado = 'error';
+          sync.error = e?.codigo === 'sin_conexion' ? 'sin conexión' : '';
+          if (!silencioso) showToast(mensaje(e));
+          return false;
+        } finally {
+          sync.enCurso = null;
+          actualizarBotones();
+        }
+      })();
+      return sync.enCurso;
+    }
+
+    /* ---------- Botones de la barra y de Ajustes ---------- */
+    function actualizarBotones() {
+      const btn = document.getElementById('cuentaBtn');
+      if (btn) {
+        const p = sesion?.perfil;
+        btn.classList.toggle('is-sesion', Boolean(sesion));
+        btn.dataset.estado = sesion ? (navigator.onLine ? sync.estado : 'sin-conexion') : 'apagado';
+        btn.innerHTML = sesion ? avatarHtml(p?.avatar, p?.nombre, 'is-barra') : '<svg class="icon" aria-hidden="true"><use href="#i-person"></use></svg>';
+        btn.setAttribute('aria-label', sesion ? `Tu cuenta (${p?.correo || ''})` : 'Iniciar sesión o crear cuenta');
+        btn.title = sesion ? 'Tu cuenta' : 'Iniciar sesión';
+      }
+      const ajuste = document.getElementById('cuentaAjuste');
+      if (ajuste) {
+        ajuste.innerHTML = sesion
+          ? `<div class="cuenta-ajuste-fila">${avatarHtml(sesion.perfil?.avatar, sesion.perfil?.nombre)}<span><b>${esc(sesion.perfil?.nombre || sesion.perfil?.correo || 'Tu cuenta')}</b><small>${esc(textoSync())}</small></span></div>
+             <div class="cuenta-ajuste-botones"><button type="button" class="btn" data-cuenta-ajuste="cuenta">Tu cuenta</button><button type="button" class="btn btn-ghost" data-cuenta-ajuste="salir">Cerrar sesión</button></div>`
+          : `<p class="sheet-note">Opcional: guarda favoritas, playlists y escucha para tenerlas en todos tus dispositivos. Sin cuenta, todo sigue funcionando y se guarda solo en este navegador.</p>
+             <div class="cuenta-ajuste-botones"><button type="button" class="btn btn-primary" data-cuenta-ajuste="entrar">Iniciar sesión</button><button type="button" class="btn" data-cuenta-ajuste="alta">Crear cuenta</button></div>`;
+      }
+    }
+
+    function init() {
+      ui.dialog = document.getElementById('cuentaDialog');
+      ui.body = document.getElementById('cuentaBody');
+      if (!ui.dialog || !ui.body) return;
+      ui.body.addEventListener('click', (e) => {
+        const t = e.target.closest('[data-cuenta]');
+        if (t && t.dataset.cuenta !== 'enviar') alClic(t);
+      });
+      ui.body.addEventListener('submit', (e) => { e.preventDefault(); alEnviar(e.target); });
+      ui.dialog.addEventListener('close', () => {
+        limpiarTemporizadores();
+        storage.set(K.ofrecida, true);
+        // Primera visita: después de la cuenta, el tutorial
+        if (!storage.get(KEYS.tour, false)) setTimeout(() => tour.open(), 400);
+      });
+      ui.dialog.addEventListener('click', (e) => { if (e.target === ui.dialog) cerrar(); });
+      document.getElementById('cuentaBtn')?.addEventListener('click', () => abrir());
+      document.getElementById('cuentaAjuste')?.addEventListener('click', (e) => {
+        const t = e.target.closest('[data-cuenta-ajuste]');
+        if (!t) return;
+        const a = t.dataset.cuentaAjuste;
+        els.settingsDialog.close();
+        if (a === 'salir') abrir('cuenta');
+        else abrir(a === 'cuenta' ? 'cuenta' : a === 'alta' ? 'alta-1' : 'entrar');
+      });
+      actualizarBotones();
+
+      // ?cuenta=alta|entrar (desde la review o un correo)
+      const pedido = new URLSearchParams(location.search).get('cuenta');
+      if (pedido) {
+        setTimeout(() => abrir(sesion ? 'cuenta' : pedido === 'alta' ? 'alta-1' : 'entrar'), 600);
+        try { history.replaceState(null, '', location.pathname + location.hash); } catch { /* sin historial */ }
+      } else if (!sesion && !storage.get(K.ofrecida, false)) {
+        // Lo primero al abrir tras la actualización: la cuenta (se puede rechazar y todo sigue igual)
+        setTimeout(() => abrir('bienvenida'), 700);
+      }
+
+      if (sesion) {
+        // Al abrir, al volver a la app (más de 2 min) y cada 5 min con la app abierta
+        setTimeout(() => sincronizar({ silencioso: true }), 2500);
+        document.addEventListener('visibilitychange', () => {
+          if (!sesion) return;
+          if (document.visibilityState === 'hidden') sincronizar({ silencioso: true });
+          else if (Date.now() / 1000 - sync.ultima > 120) sincronizar({ silencioso: true });
+        });
+        setInterval(() => { if (sesion && document.visibilityState === 'visible') sincronizar({ silencioso: true }); }, 5 * 60000);
+      }
+      window.addEventListener('online', actualizarBotones);
+      window.addEventListener('offline', actualizarBotones);
+    }
+
+    const vaPrimero = () => !sesion && !storage.get(K.ofrecida, false);
+
+    return { init, abrir, sincronizar, vaPrimero, haySesion: () => Boolean(sesion), nombre: () => sesion?.perfil?.nombre || '' };
+  })();
+
+
   /* ---------- Tutorial de bienvenida (solo la primera vez) ---------- */
   const tour = (() => {
     const isPhone = () => window.matchMedia('(max-width: 860px)').matches;
@@ -8357,7 +9685,8 @@
         open();
       });
       // Primera visita: se muestra cuando ya cargó la app (y nunca más)
-      if (!seen()) setTimeout(open, 900);
+      // Si va primero la cuenta (primera vez tras la actualización), el tutorial sale al cerrarla
+      if (!seen() && !cuenta.vaPrimero()) setTimeout(open, 900);
     }
 
     return { init, open };
@@ -8591,6 +9920,7 @@
     setupAudioSession();
     setupSurrealEyes();
     wall.init();
+    cuenta.init();
     tour.init();
     install.init();
     document.querySelectorAll('.settings-group-title').forEach((title) => title.prepend(sticker(title.textContent)));

@@ -2,7 +2,7 @@
 <html lang="es" data-theme="chrome">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-2sUInM3bLi+BoQ56EnPv9BsEqEH9ZPYExkpQqnK+nYs='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https:; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://challenges.cloudflare.com 'sha256-2sUInM3bLi+BoQ56EnPv9BsEqEH9ZPYExkpQqnK+nYs='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https:; worker-src 'self'; manifest-src 'self'; frame-src https://challenges.cloudflare.com; object-src 'none'; base-uri 'self'; form-action 'self'">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="description" content="Liquid Bullet — música que se derrite: tu reproductor web personal, surrealista y cromado.">
   <meta name="theme-color" content="#100d1c">
@@ -46,7 +46,7 @@
   <link rel="dns-prefetch" href="https://pub-0854e4225565462db16fa787cf2ab81c.r2.dev">
   <link rel="dns-prefetch" href="https://pub-864cd199a5e04cb0b5faf77320b1e47b.r2.dev">
   <link rel="dns-prefetch" href="https://lrclib.net">
-  <link rel="stylesheet" href="styles.css?v=31">
+  <link rel="stylesheet" href="styles.css?v=32">
   <script>
     /* Aplica el tema, la fuente y el tamaño de letra guardados antes de pintar (sin parpadeos) */
     (function () {
@@ -283,6 +283,9 @@
       </span>
       <button id="wallBtn" class="wall-btn" type="button" aria-label="Cambiar el fondo de pantalla" title="Otro fondo">
         <img id="wallBtnImg" src="wallpapers/icons/01.jpg" alt="" width="36" height="36">
+      </button>
+      <button id="cuentaBtn" class="icon-btn cuenta-btn" type="button" aria-label="Iniciar sesión o crear cuenta" title="Iniciar sesión">
+        <svg class="icon" aria-hidden="true"><use href="#i-person"></use></svg>
       </button>
       <button id="settingsBtn" class="icon-btn settings-btn" type="button" aria-label="Configuración" title="Configuración">
         <svg class="icon" aria-hidden="true"><use href="#i-settings"></use></svg>
@@ -624,6 +627,11 @@
         </button>
       </div>
 
+      <section class="settings-group settings-cuenta" aria-labelledby="setCuentaTitle">
+        <h3 id="setCuentaTitle" class="settings-group-title">Tu cuenta</h3>
+        <div id="cuentaAjuste" class="cuenta-ajuste"></div>
+      </section>
+
       <section class="settings-group" aria-labelledby="setUltraTitle">
         <h3 id="setUltraTitle" class="settings-group-title">Rendimiento</h3>
         <label class="setting switch">
@@ -765,6 +773,7 @@
           <summary>Privacidad: qué se guarda y dónde</summary>
           <p class="sheet-note">Tus favoritas, playlists, historial, Stats, búsquedas y ajustes se guardan <strong>solo en este navegador</strong> (no hay cuentas ni servidor propio). Si borras los datos del sitio, se pierden: haz copias desde Playlists → ⬇.</p>
           <p class="sheet-note">La app solo se conecta a los servidores de la música (Cloudflare R2), a LRCLIB para buscar letras (envía título, artista y duración) y a Google Fonts para las letras tipográficas. No hay publicidad ni analítica.</p>
+          <p class="sheet-note"><strong>Si inicias sesión</strong> (opcional), tus favoritas, playlists, escucha y ajustes se guardan en el almacenamiento privado de Liquid Bullet en Cloudflare, comprimidos y separados por cuenta, para tenerlos en todos tus dispositivos. Tu contraseña se cifra en tu dispositivo y nunca se guarda ni se envía en claro. Los códigos llegan desde liquidbulletofficial@gmail.com (pueden caer en Spam). Puedes cerrar sesión y borrar lo de este dispositivo cuando quieras.</p>
         </details>
       </section>
 
@@ -821,6 +830,10 @@
     </div>
   </dialog>
 
+  <!-- Cuenta (opcional): crear, entrar, recuperar y tu cuenta -->
+  <dialog id="cuentaDialog" class="sheet cuenta-sheet" aria-label="Tu cuenta de Liquid Bullet">
+    <div id="cuentaBody" class="sheet-body cuenta-body"></div>
+  </dialog>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <!-- Aviso de versión nueva: el botón la aplica sin perder la canción -->
   <div id="updateBanner" class="update-banner" role="alert" hidden>
@@ -842,6 +855,6 @@
   <!-- Reproductores para el ecualizador (necesitan CORS en el servidor del audio) -->
   <audio id="audio3" preload="metadata" crossorigin="anonymous"></audio>
   <audio id="audio4" preload="auto" crossorigin="anonymous"></audio>
-  <script src="app.js?v=34" defer></script>
+  <script src="app.js?v=35" defer></script>
 </body>
 </html>

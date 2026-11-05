@@ -1,6 +1,22 @@
 {
   "releases": [
     {
+      "version": "v46",
+      "date": "noviembre 2026",
+      "title": "Cuentas de Liquid Bullet (opcionales)",
+      "items": [
+        "Nuevo: cuenta opcional y gratis para tener tus favoritas, playlists, escucha y ajustes en todos tus dispositivos.",
+        "Liquid sigue funcionando igual sin cuenta: la primera vez te la ofrecemos y, si dices «Seguir sin cuenta», todo sigue normal.",
+        "Crear cuenta con tu correo y contraseña: te llega un código de 6 dígitos desde liquidbulletofficial@gmail.com (puede llegar a Spam o Promociones).",
+        "Tu contraseña se cifra en tu dispositivo y nunca se envía en claro. Se comprueba que no haya salido en filtraciones conocidas.",
+        "¿Olvidaste tu contraseña? Recupérala con un código; por seguridad se cierran tus otras sesiones.",
+        "Tu cuenta: perfil con avatar de la colección, estado de sincronización, dispositivos conectados y cerrar sesión (también en todos los demás).",
+        "Ajustes → Tu cuenta: siempre a mano «Iniciar sesión» o «Cerrar sesión».",
+        "Sincronización mínima: ids de 7 caracteres, comprimido y escucha separada por año; si usas dos dispositivos a la vez, se mezcla sin perder nada.",
+        "La review suma la sección de cuentas y un botón «Crear mi cuenta»."
+      ]
+    },
+    {
       "version": "v45",
       "date": "noviembre 2026",
       "title": "5 iconos de canción nuevos",
@@ -20,29 +36,6 @@
         "El rock argentino de culto (Serú Girán, Pescado Rabioso, Almendra, Los Pericos, Los Cafres) pasa de Trueno Clásico a Ciudad Furia.",
         "El pop de pista de los 2000 (Nelly Furtado, Gwen Stefani, Justin Timberlake) pasa a Neón Eterno; Lily Allen, a Londres Rosa; Coldplay, a Lluvia Lenta; Chase Atlantic, a Seda Nocturna.",
         "«Black Country, New Road» ya no se parte en dos artistas."
-      ]
-    },
-    {
-      "version": "v43",
-      "date": "noviembre 2026",
-      "title": "Inicio que te conoce, Lab nuevo y aleatorio sin repeticiones",
-      "items": [
-        "Inicio nuevo: «Tu daylist» cambia con la mañana, la tarde y la noche según lo que sueles poner a esa hora.",
-        "Selección rápida (como en YouTube Music): 16 canciones para empezar ya; cada una arranca su propia radio.",
-        "Mixes del día por «familia» de artistas, «Porque escuchaste…», Radar de novedades, Joyas olvidadas, En repetición y Artistas por descubrir.",
-        "Los accesos rápidos de arriba muestran lo último que pusiste: playlists, artistas y radios.",
-        "Resumen de tu semana en Inicio (toca para ir a Stats).",
-        "El algoritmo de Liquid aprende de verdad: cuenta los segundos que escuchas, lo reciente pesa más, las canciones que saltas salen menos y tiene en cuenta los artistas que escuchas los mismos días.",
-        "Aleatorio sin repeticiones: lo que sonó hoy o ayer va al final, nunca el mismo artista muy seguido ni rachas largas de un solo estilo, y la misma canción repetida suena una vez.",
-        "Lab rehecho: recetas de un toque (Lo mejor de ti, Descubrimiento profundo, Joyas olvidadas, Para este momento, Un artista por canción, Sal de tu burbuja).",
-        "Lab a medida: canciones semilla, control conocidas ↔ nuevas, duración en canciones o minutos, máximo por artista y orden «viaje de estilos».",
-        "Lab: quita canciones del resultado, mándalo a la cola y mira «Tu ADN musical».",
-        "Todos los botones ▶ se sincronizan: el de la playlist, el del artista, los mixes de Inicio y Lab cambian a ⏸ mientras suenan y, al tocarlos otra vez, pausan.",
-        "Modo ultraligero más ligero: sin miniaturas en las listas (ni se descargan), portada pequeña, sin vibración e Inicio más corto.",
-        "Toques más fluidos: presión suave con rebote, ▶/⏸ que se transforma y secciones que entran en cascada.",
-        "Aviso de versión nueva con botón Actualizar (sigues donde ibas) y este detalle de novedades.",
-        "«Tyler, The Creator» ya no se parte en dos artistas.",
-        "Nombres y duraciones revisados en las 3.931 canciones: corregidos títulos con restos del archivo y duraciones imposibles."
       ]
     }
   ]

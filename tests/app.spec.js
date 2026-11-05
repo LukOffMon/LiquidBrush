@@ -6,7 +6,11 @@ const isPhone = (page) => page.viewportSize().width <= 860;
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
-    try { localStorage.setItem('liquidbrush:tour', 'true'); } catch { /* sin almacenamiento */ }
+    try {
+      localStorage.setItem('liquidbrush:tour', 'true');
+      // La hoja de cuenta sale la primera vez: en los demás tests ya se vio
+      if (!sessionStorage.getItem('prueba-cuenta-nueva')) localStorage.setItem('liquidbrush:cuenta-ofrecida', 'true');
+    } catch { /* sin almacenamiento */ }
   });
   // Sin red hacia los buckets ni LRCLIB: el audio no es parte de estas pruebas
   await page.route(/r2\.dev|lrclib\.net/, (route) => route.abort());
@@ -203,4 +207,41 @@ test('el aleatorio deja al final lo recién escuchado', async ({ page }) => {
   const queued = await page.locator('#queueDialog [data-id]').evaluateAll((els) => els.slice(0, 40).map((el) => el.dataset.id));
   // Lo recién escuchado casi nunca sale entre las próximas 40 de ~3900
   expect(queued.filter((id) => recent.includes(id)).length).toBeLessThanOrEqual(1);
+});
+
+test('la cuenta sale primero, se puede rechazar y Ajustes ofrece iniciar sesión', async ({ page }) => {
+  await page.addInitScript(() => {
+    sessionStorage.setItem('prueba-cuenta-nueva', '1');
+    if (!sessionStorage.getItem('ya-cargo')) { localStorage.removeItem('liquidbrush:cuenta-ofrecida'); sessionStorage.setItem('ya-cargo', '1'); }
+  });
+  await page.goto('./');
+  await expect(page.locator('#cuentaDialog')).toBeVisible();
+  await expect(page.locator('#cuentaBody')).toContainText('Tu música, en todos tus dispositivos');
+  await expect(page.locator('.cuenta-conoce-card')).toHaveCount(7);
+  await page.locator('[data-cuenta="sin-cuenta"]').click();
+  await expect(page.locator('#cuentaDialog')).toBeHidden();
+  await expect(page.locator('#libCount')).not.toHaveText('0');
+  await page.reload();
+  await expect(page.locator('#libCount')).not.toHaveText('0');
+  await expect(page.locator('#cuentaDialog')).toBeHidden();
+  await page.locator('#settingsBtn').click();
+  await expect(page.locator('#cuentaAjuste')).toContainText('Iniciar sesión');
+  await expect(page.locator('#cuentaAjuste')).toContainText('Crear cuenta');
+});
+
+test('crear cuenta: valida el correo y mide la contraseña', async ({ page }) => {
+  await page.goto('./?cuenta=alta');
+  await expect(page.locator('[data-form="alta-correo"]')).toBeVisible();
+  await page.fill('input[name="correo"]', 'sin-arroba');
+  await page.locator('.cuenta-cta').click();
+  await expect(page.locator('.cuenta-error')).toContainText('Revisa el correo');
+  await page.fill('input[name="correo"]', 'hola@gmial.com');
+  await expect(page.locator('.cuenta-sugerencia')).toContainText('gmail.com');
+  await page.locator('[data-cuenta="sugerencia"]').click();
+  await expect(page.locator('input[name="correo"]')).toHaveValue('hola@gmail.com');
+  await page.locator('.cuenta-cta').click();
+  await page.fill('input[name="clave"]', 'corta1');
+  await expect(page.locator('.cuenta-medidor-texto')).toContainText('Débil');
+  await page.locator('.cuenta-cta').click();
+  await expect(page.locator('.cuenta-error')).toContainText('10 caracteres');
 });
