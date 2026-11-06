@@ -1,6 +1,17 @@
 {
   "releases": [
     {
+      "version": "v59",
+      "date": "noviembre 2026",
+      "title": "La música ya no se queda en 0:00",
+      "items": [
+        "iPhone: al pasar de canción sola (fin de canción o Transiciones DJ, sobre todo con la pantalla bloqueada) la siguiente podía quedarse en 0:00 sin sonar hasta que adelantabas. Ahora sigue en el mismo reproductor y empieza sola.",
+        "Si una canción se atasca (el segundo no avanza), Liquid lo nota en unos 5 segundos y se recupera sola: primero como cuando adelantas a mano, luego recargándola en el mismo segundo y, si no hay manera, pasando a la siguiente.",
+        "La pantalla de bloqueo muestra al instante la canción y el tiempo correctos (antes podía quedarse con la anterior terminada, «3:35 · −0:00»).",
+        "En iPhone ya no se precarga la canción siguiente en paralelo: iOS no lo aprovecha y podía quitarle el audio a la que sonaba."
+      ]
+    },
+    {
       "version": "v57",
       "date": "noviembre 2026",
       "title": "Liquid Lab, ahora en su propio sitio",

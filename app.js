@@ -2010,7 +2010,9 @@
     if (!nextId || nextId === preloader.id || !navigator.onLine) return;
     const track = getTrack(nextId);
     if (!track?.src || isDownloaded(track)) return;
-    if (navigator.connection?.saveData) return;
+    if (navigator.connection?.saveData || DEVICE.saveData) return;
+    // iOS ignora la precarga de un reproductor que no suena y puede quitarle el audio al que sí suena
+    if (IS_IOS) return;
     preloader.id = nextId;
     if (!preloader.audio) {
       preloader.audio = new Audio();
@@ -2063,11 +2065,19 @@
     }, 50);
   }
 
+  // iPhone/iPad: iOS solo deja arrancar OTRO reproductor de audio dentro de un toque. Al pasar de canción
+  // sola (fin de canción, transición DJ, pantalla bloqueada) el reproductor nuevo se quedaba en 0:00 sin
+  // sonar y la pantalla de bloqueo seguía con la canción anterior terminada. Ahí se reutiliza el mismo.
+  const canSwitchDeck = () => !IS_IOS || (!document.hidden && navigator.userActivation?.isActive === true);
+
   // Elige el reproductor para la siguiente canción (con o sin ecualizador) y, si toca, empieza la mezcla
   function prepareDeck(track, autoplay, fade) {
     const outgoing = els.audio;
-    const pool = wantsEq(track) && ensureEqGraph() ? eqDecks : plainDecks;
-    const mixing = dj.enabled && fade > 0 && autoplay && !outgoing.paused && Boolean(outgoing.getAttribute('src'));
+    let pool = wantsEq(track) && ensureEqGraph() ? eqDecks : plainDecks;
+    const switchable = canSwitchDeck();
+    // Sin poder cambiar: se sigue en el mismo reproductor (un reproductor normal sirve para cualquier canción)
+    if (!switchable && plainDecks.includes(outgoing)) pool = plainDecks;
+    const mixing = switchable && dj.enabled && fade > 0 && autoplay && !outgoing.paused && Boolean(outgoing.getAttribute('src'));
     dj.transitioning = false;
     eq.swapFrom = null;
     if (mixing) {
@@ -6139,6 +6149,8 @@
     updateDynamicColor(track);
     if (autoplay) wall.onTrack();
     updateMediaSession(track);
+    stallGuard.reset();
+    updatePositionStateNow();
     resume.save(true);
     resume.saveQueue();
     if (els.queueDialog.open) renderQueue();
@@ -7222,6 +7234,52 @@
   }
 
   /* ---------- Media Session (controles en la pantalla de bloqueo) ---------- */
+  // Vigía: la canción figura como «sonando» pero el segundo no avanza (red atascada, iOS en segundo plano).
+  // Hace sola lo que arreglaba adelantar a mano: un salto mínimo; luego recarga en el mismo segundo;
+  // y si sigue atascada, pasa a la siguiente.
+  const stallGuard = (() => {
+    const CHECK_MS = 2500;
+    let lastTime = -1;
+    let still = 0;
+    let attempts = 0;
+    let timer = null;
+    function reset() {
+      still = 0;
+      attempts = 0;
+      lastTime = els.audio.currentTime;
+    }
+    function tick() {
+      const audio = els.audio;
+      if (!state.wantsPlay || audio.paused || audio.ended || state.isSeeking || !audio.getAttribute('src')) { reset(); return; }
+      // Sin conexión y sin descarga no hay nada que recuperar
+      if (!navigator.onLine && !isDownloaded(state.currentTrack)) return;
+      const time = audio.currentTime;
+      if (Math.abs(time - lastTime) > 0.05) { lastTime = time; still = 0; attempts = 0; return; }
+      if (++still < 2) return;
+      still = 0;
+      attempts++;
+      errorLog.add(`Audio atascado (intento ${attempts})`, state.currentTrack?.id || '');
+      if (attempts === 1) {
+        try { audio.currentTime = time + 0.01; } catch { /* sin datos aún */ }
+        audio.play().catch(() => {});
+      } else if (attempts === 2) {
+        state.pendingSeek = time;
+        audio.load();
+        audio.play().catch(() => {});
+      } else {
+        attempts = 0;
+        if (state.queue.length > 1) {
+          showToast(`«${splitTitle(state.currentTrack?.title || '').main}» no avanza: pasamos a la siguiente.`);
+          next(false, 0);
+        }
+      }
+    }
+    function start() {
+      if (!timer && !LAB_MODE) timer = setInterval(tick, CHECK_MS);
+    }
+    return { reset, start };
+  })();
+
   function updateMediaSession(track) {
     if (!('mediaSession' in navigator) || typeof MediaMetadata === 'undefined') return;
     try {
@@ -7341,7 +7399,12 @@
         state.pendingSeek = null;
       }
       updateProgressUI(els.audio.currentTime, getDuration());
+      updatePositionStateNow();
     });
+    // La pantalla de bloqueo se actualiza al momento (antes, como mucho cada 4 s: tras cambiar de canción
+    // seguía mostrando la anterior terminada, «3:35 · −0:00»)
+    ['playing', 'seeked', 'ratechange', 'durationchange'].forEach((type) => on(type, updatePositionStateNow));
+    on('playing', () => stallGuard.reset());
     on('durationchange', () => {
       if (!state.isSeeking) updateProgressUI(els.audio.currentTime, getDuration());
     });
@@ -10371,7 +10434,7 @@
     applyLook();
     els.eqPreset.replaceChildren(...Object.entries(EQ_PRESETS).map(([value, preset]) => new Option(preset.name, value)));
     document.documentElement.classList.toggle('is-ios', IS_IOS);
-    if (IS_IOS) els.djFade.closest('.dj-fade').title = 'En iPhone/iPad la transición es un empalme corto: iOS no permite bajar el volumen desde la web.';
+    if (IS_IOS) els.djFade.closest('.dj-fade').title = 'En iPhone/iPad la canción siguiente entra directa: iOS no deja mezclar dos canciones desde la web ni arrancar otra con la pantalla bloqueada.';
 
     els.cover.src = PLACEHOLDER_COVER;
     els.miniCover.src = PLACEHOLDER_COVER;
@@ -10403,6 +10466,7 @@
     els.autoFavToggle.checked = settings.autoFav;
     setupMediaSessionHandlers();
     setupAudioSession();
+    stallGuard.start();
     setupSurrealEyes();
     wall.init();
     cuenta.init();
