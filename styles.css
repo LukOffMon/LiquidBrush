@@ -6785,7 +6785,6 @@ textarea {
 .lab-recipe-hint {
   min-width: 0;
   overflow-wrap: anywhere;
-  hyphens: auto;
 }
 
 /* 320 px (iPhone SE, Android pequeños): la barra superior se salía 5 px */
@@ -6811,4 +6810,86 @@ textarea {
 
 @media (max-width: 340px) {
   .bottom-nav .nav-btn span { font-size: 0.66rem; letter-spacing: 0; }
+}
+
+/* =========================================================
+   Liquid Lab (lab.html): sitio aparte, sin reproductor ni navegación de Liquid
+   ========================================================= */
+[data-mode="lab"] .now-playing,
+[data-mode="lab"] .player,
+[data-mode="lab"] .bottom-nav,
+[data-mode="lab"] .search,
+[data-mode="lab"] .tabs,
+[data-mode="lab"] #recentRow,
+[data-mode="lab"] #filterChips,
+[data-mode="lab"] #alphaRail,
+[data-mode="lab"] #trackList,
+[data-mode="lab"] #listInfo,
+[data-mode="lab"] #viewHead,
+[data-mode="lab"] .search-panel,
+[data-mode="lab"] .search-playlists,
+[data-mode="lab"] #cuentaBtn {
+  display: none !important;
+}
+
+[data-mode="lab"] .layout,
+[data-mode="lab"] body .layout {
+  grid-template-columns: minmax(0, 1fr) !important;
+  max-width: 980px;
+  padding-bottom: calc(40px + env(safe-area-inset-bottom));
+}
+
+.lab-hero { display: none; }
+
+[data-mode="lab"] .lab-hero {
+  display: block;
+  padding: 18px 8px 8px;
+}
+
+.lab-hero-eyebrow {
+  margin: 0 0 6px;
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.lab-hero-title {
+  margin: 0 0 10px;
+  font-family: var(--brand-font, inherit);
+  font-size: clamp(1.7rem, 6vw, 2.6rem);
+  line-height: 1.05;
+}
+
+.lab-hero-text {
+  max-width: 62ch;
+  margin: 0;
+  color: var(--text-muted);
+  font-family: var(--song-font);
+  letter-spacing: normal;
+  text-transform: none;
+  line-height: 1.5;
+}
+
+/* Liquid Lab en el teléfono: recetas a una columna (a dos, las palabras largas se partían) */
+@media (max-width: 460px) {
+  [data-mode="lab"] .lab-recipes { grid-template-columns: minmax(0, 1fr); }
+}
+
+.lab-back { display: none; }
+
+[data-mode="lab"] .lab-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+[data-mode="lab"] .lab-back .icon { width: 18px; height: 18px; }
+
+@media (max-width: 520px) {
+  [data-mode="lab"] .lab-back span { display: none; }
+  [data-mode="lab"] .lab-back { width: 40px; height: 40px; padding: 0; justify-content: center; }
 }

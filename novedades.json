@@ -1,6 +1,18 @@
 {
   "releases": [
     {
+      "version": "v57",
+      "date": "noviembre 2026",
+      "title": "Liquid Lab, ahora en su propio sitio",
+      "items": [
+        "Lab se separa de Liquid: al tocar Lab se abre Liquid Lab, un sitio dedicado al laboratorio de mezclas, sin el reproductor de por medio.",
+        "Con el mismo algoritmo, tu biblioteca y tus gustos de siempre: recetas, mezcla de estilos, artistas y canciones semilla, «Si te gusta…» y tu ADN musical.",
+        "«Guardar en Liquid» guarda la mezcla como playlist y te lleva a Liquid Bullet con ella abierta, igual que cualquier playlist tuya (y se sincroniza con tu cuenta).",
+        "«Escuchar en Liquid», «A la cola» y las radios te devuelven a Liquid con la mezcla sonando o en la cola.",
+        "Abrir Lab no toca la canción ni la cola de «Continúa donde lo dejaste»."
+      ]
+    },
+    {
       "version": "v55",
       "date": "noviembre 2026",
       "title": "Se adapta a tu teléfono y va más fluida",

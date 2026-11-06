@@ -108,6 +108,22 @@
       device: /Mobi|iPhone|Android/.test(ua) ? 'phone' : 'desktop', touch: navigator.maxTouchPoints > 0, standalone: false,
       memory: 0, cores: 0, lowEnd: false, saveData: false, slowNet: false };
   })();
+  /* ---------- Liquid Lab: sitio aparte (lab.html) ---------- */
+  // Lab ya no es una pestaña de Liquid: tiene su propio sitio con el mismo algoritmo y la misma biblioteca.
+  // Lo que se guarda o se manda a escuchar desde Lab vuelve a Liquid Bullet con una «entrega»
+  // (localStorage, mismo sitio web) que Liquid recoge al abrir.
+  const LAB_MODE = document.documentElement.dataset.mode === 'lab';
+  const LAB_URL = 'lab.html';
+  const LIQUID_URL = './';
+  const LAB_HANDOFF = 'liquidbrush:lab-handoff';
+  const LAB_HANDOFF_TTL = 10 * 60 * 1000;
+  const goToLab = () => location.assign(LAB_URL);
+  // action: 'play' | 'queue' | 'saved' | 'radio'
+  function sendToLiquid(handoff) {
+    try { localStorage.setItem(LAB_HANDOFF, JSON.stringify({ ...handoff, at: Date.now() })); } catch { /* sin almacenamiento */ }
+    location.assign(LIQUID_URL);
+  }
+
   const OS_NAMES = { ios: 'iPhone (iOS)', ipados: 'iPad (iPadOS)', android: 'Android', windows: 'Windows', macos: 'Mac', chromeos: 'ChromeOS', linux: 'Linux', otro: 'otro sistema' };
   const BROWSER_NAMES = { safari: 'Safari', chrome: 'Chrome', firefox: 'Firefox', edge: 'Edge', samsung: 'Samsung Internet', opera: 'Opera', inapp: 'navegador interno', otro: 'otro navegador' };
   const INAPP_NAMES = { instagram: 'Instagram', facebook: 'Facebook', tiktok: 'TikTok', snapchat: 'Snapchat', x: 'X', line: 'LINE', google: 'la app de Google', webview: 'otra app' };
@@ -183,7 +199,7 @@
     currentTrack: null,
     favorites: new Set(),
     // home | library | playlists | artists | favorites | stats | lab, o playlist / artist (uno abierto)
-    view: 'home',
+    view: LAB_MODE ? 'lab' : 'home',
     openPlaylist: null,
     // Artista abierto (vista "artist") y radio en curso
     openArtist: null,
@@ -807,6 +823,8 @@
     if (previousId && getTrack(previousId)) {
       // Llegaron datos nuevos con algo sonando: se conserva la canción y la cola
       state.currentTrack = getTrack(previousId);
+    } else if (LAB_MODE) {
+      // Liquid Lab no tiene reproductor: no carga canción ni toca «Continúa donde lo dejaste»
     } else if (state.tracks.length) {
       if (!resume.restore()) {
         buildQueue((state.tracks.find(isPlayable) || state.tracks[0]).id);
@@ -816,6 +834,39 @@
       els.npContext.textContent = 'Biblioteca vacía';
     }
     openIncomingLink(Boolean(final));
+    receiveFromLab(Boolean(final));
+  }
+
+  // Liquid recoge lo que llegó de Liquid Lab: abre la playlist guardada o pone la mezcla a sonar
+  function receiveFromLab(final) {
+    if (LAB_MODE) return;
+    let handoff = null;
+    try { handoff = JSON.parse(localStorage.getItem(LAB_HANDOFF)); } catch { /* dañada */ }
+    if (!handoff) return;
+    const drop = () => { try { localStorage.removeItem(LAB_HANDOFF); } catch { /* nada */ } };
+    if (!handoff.at || Date.now() - handoff.at > LAB_HANDOFF_TTL) { drop(); return; }
+    const tracks = (Array.isArray(handoff.ids) ? handoff.ids : []).map(getTrack).filter(Boolean);
+    if (handoff.action === 'radio') {
+      drop();
+      if (handoff.artist) startRadio(handoff.artist);
+      return;
+    }
+    // Con la biblioteca guardada puede faltar alguna canción nueva: se espera a la lista fresca
+    if (!tracks.length) { if (final) drop(); return; }
+    drop();
+    const name = String(handoff.name || 'Mezcla de Lab').slice(0, 80);
+    if (handoff.action === 'saved' && handoff.playlist && getPlaylist(`local:${handoff.playlist}`)) {
+      openPlaylist(`local:${handoff.playlist}`);
+      showToast(`Guardada en tus playlists: «${name}».`);
+      return;
+    }
+    if (handoff.action === 'queue' && state.currentTrack && !els.audio.paused) {
+      tracks.forEach((t) => queueTrack(t.id, true, true));
+      showToast(`${songsLabel(tracks.length)} de Lab al final de la cola.`);
+      return;
+    }
+    const start = getTrack(handoff.start) && tracks.some((t) => t.id === handoff.start) ? handoff.start : tracks.find(isPlayable)?.id;
+    if (start) playCollection(tracks, start, name, 'lab:result');
   }
 
   // Recordatorio suave: con playlists propias y sin copia en 30 días (como mucho una vez por semana)
@@ -3077,11 +3128,14 @@
       const result = labSection(lab.resultName ? `Receta · ${lab.resultName}` : 'Tu mezcla',
         `${songsLabel(lab.result.length)} · ${formatTotal(total)} · ${known} conocidas, ${lab.result.length - known} nuevas`);
       const bar = makeEl('div', 'lab-result-actions');
-      const play = markPlayable(labButton('btn btn-primary', 'play', 'Reproducir la mezcla', 'play', 'Reproducir'), 'lab:result', 'la mezcla');
+      // En Liquid Lab los botones llevan la mezcla a Liquid Bullet (ahí suena y ahí se guarda)
+      const play = LAB_MODE
+        ? labButton('btn btn-primary', 'play', 'Escuchar la mezcla en Liquid Bullet', 'play', 'Escuchar en Liquid')
+        : markPlayable(labButton('btn btn-primary', 'play', 'Reproducir la mezcla', 'play', 'Reproducir'), 'lab:result', 'la mezcla');
       bar.append(
         play,
-        labButton('btn', 'queue', 'Añadir la mezcla a la cola', 'queue', 'A la cola'),
-        labButton('btn', 'save', 'Guardar como playlist', 'playlist-add', 'Guardar')
+        labButton('btn', 'queue', LAB_MODE ? 'Añadir la mezcla a la cola de Liquid Bullet' : 'Añadir la mezcla a la cola', 'queue', 'A la cola'),
+        labButton('btn', 'save', LAB_MODE ? 'Guardar como playlist en tu Liquid Bullet' : 'Guardar como playlist', 'playlist-add', LAB_MODE ? 'Guardar en Liquid' : 'Guardar')
       );
       const listEl = makeEl('ol', 'lab-result');
       lab.result.forEach((track) => {
@@ -3153,6 +3207,11 @@
   function handleLabAction(target) {
     const action = target.dataset.labAction;
     const value = target.dataset.value;
+    // En Liquid Lab no se reproduce aquí: la mezcla viaja a Liquid Bullet
+    if (LAB_MODE && ['play', 'play-from', 'queue', 'rec-play', 'save'].includes(action)) {
+      labToLiquid(action, value);
+      return;
+    }
     const toggle = (list, item) => (list.includes(item) ? list.filter((x) => x !== item) : [...list, item]);
     switch (action) {
       case 'recipe': runRecipe(value); haptic(12); return;
@@ -3206,6 +3265,27 @@
   }
 
   const artistName = (key) => labArtists().get(key)?.name || '';
+
+  function labToLiquid(action, value) {
+    if (action === 'rec-play') {
+      const entry = labArtists().get(value);
+      if (!entry) return;
+      const tracks = spaceOut(weightedOrder(entry.tracks.filter(isPlayable), (t) => recencyFactor(t.id)));
+      if (tracks.length) sendToLiquid({ action: 'play', name: `Lab · Si te gusta ${artistName(lab.likeArtist)}: ${entry.name}`, ids: tracks.map((t) => t.id) });
+      return;
+    }
+    if (!lab.result.length) return;
+    const ids = lab.result.map((t) => t.id);
+    if (action === 'save') {
+      const playlist = { id: newId(), name: labName(), emoji: 'ic:flask', color: PLAYLIST_COLORS[lab.result.length % PLAYLIST_COLORS.length],
+        trackIds: ids, createdAt: Date.now() };
+      library.local.push(playlist);
+      saveLocalPlaylists();
+      sendToLiquid({ action: 'saved', playlist: playlist.id, name: playlist.name, ids });
+      return;
+    }
+    sendToLiquid({ action: action === 'queue' ? 'queue' : 'play', name: labName(), ids, start: action === 'play-from' ? value : '' });
+  }
 
   /* ---------- Vistas: Biblioteca, Playlists y Favoritas ---------- */
   function sortTracks(list) {
@@ -5148,6 +5228,11 @@
   }
 
   function setView(view, { playlist = null, fromHistory = false } = {}) {
+    if (!LAB_MODE && view === 'lab') { goToLab(); return; }
+    if (LAB_MODE && view !== 'lab') {
+      location.assign(VIEWS.includes(view) && view !== 'home' ? `${LIQUID_URL}?view=${view}` : LIQUID_URL);
+      return;
+    }
     const previous = state.view;
     const previousPlaylist = state.openPlaylist;
     const previousArtist = state.lastArtist;
@@ -5913,7 +5998,7 @@
     // Se guarda a menudo pero sin escribir en cada timeupdate (cada 4 s, o al instante si force)
     save(force = false) {
       const track = state.currentTrack;
-      if (!track) return;
+      if (!track || LAB_MODE) return;
       const now = Date.now();
       if (!force && now - this.lastSaved < 4000) return;
       this.lastSaved = now;
@@ -5925,12 +6010,14 @@
     // el navegador está libre, no en cada cambio de canción
     queueTimer: 0,
     saveQueue() {
-      if (this.queueTimer) return;
+      if (this.queueTimer || LAB_MODE) return;
       const write = () => { this.queueTimer = 0; this.flushQueue(); };
       this.queueTimer = window.requestIdleCallback ? requestIdleCallback(write, { timeout: 2000 }) : setTimeout(write, 500);
       this.queueIdle = Boolean(window.requestIdleCallback);
     },
     flushQueue() {
+      // Liquid Lab no tiene cola: no debe pisar la de Liquid Bullet al cerrarse
+      if (LAB_MODE) return;
       if (this.queueTimer) {
         if (this.queueIdle) cancelIdleCallback(this.queueTimer); else clearTimeout(this.queueTimer);
         this.queueTimer = 0;
@@ -7178,6 +7265,7 @@
   }
 
   function setupMediaSessionHandlers() {
+    if (LAB_MODE) return;
     if (!('mediaSession' in navigator)) return;
     const handlers = {
       play: () => play(),
@@ -7378,7 +7466,10 @@
         case 'share-playlist': sharePlaylist(pl); break;
         case 'go-view': setView(target.dataset.value); break;
         case 'open-artist': openArtist(target.dataset.value); break;
-        case 'radio-artist': startRadio(target.dataset.value); break;
+        case 'radio-artist':
+          if (LAB_MODE) sendToLiquid({ action: 'radio', artist: target.dataset.value });
+          else startRadio(target.dataset.value);
+          break;
         case 'follow-artist': toggleFollow(target.dataset.value); break;
         case 'more-artists': home.artistsShown += ARTISTS_PAGE; renderList(); break;
         case 'home-play': {
@@ -8131,6 +8222,7 @@
 
     // Atajos de teclado
     document.addEventListener('keydown', (event) => {
+      if (LAB_MODE) return;
       if (event.ctrlKey || event.metaKey || event.altKey) return;
       if (document.querySelector('dialog[open]')) return;
       const target = event.target;
@@ -9920,7 +10012,7 @@
       if (pedido) {
         setTimeout(() => abrir(sesion ? 'cuenta' : pedido === 'alta' ? 'alta-1' : 'entrar'), 600);
         try { history.replaceState(null, '', location.pathname + location.hash); } catch { /* sin historial */ }
-      } else if (!sesion && !storage.get(K.ofrecida, false)) {
+      } else if (!LAB_MODE && !sesion && !storage.get(K.ofrecida, false)) {
         // Lo primero al abrir tras la actualización: la cuenta (se puede rechazar y todo sigue igual)
         setTimeout(() => abrir('bienvenida'), 700);
       }
@@ -9959,7 +10051,7 @@
         text: () => 'Playlists por estilo hechas con toda la biblioteca, las tuyas (botón ＋ de cada canción) y las automáticas: «Escuchadas hace poco» y «Tus más escuchadas». Mantén pulsada una para fijarla arriba.',
         target: () => (isPhone() ? '.nav-btn[data-nav="playlists"]' : '.tab[data-view="playlists"]') },
       { icon: 'flask', title: 'Lab',
-        text: () => 'Combina estilos y artistas y Lab te arma una mezcla a medida. En «Si te gusta…» eliges un artista y te recomienda a quién escuchar después.',
+        text: () => 'Lab es el laboratorio de mezclas y tiene su propio sitio: combina estilos y artistas y te arma una mezcla a medida. Lo que guardes ahí vuelve a Liquid como una playlist más.',
         target: () => (isPhone() ? '.nav-btn[data-nav="lab"]' : '.tab[data-view="lab"]') },
       { icon: 'queue', title: 'El reproductor',
         text: () => 'Transiciones DJ entre canciones, «A continuación» para ver y ordenar la cola, temporizador de apagado y letras sincronizadas. Cada playlist se puede descargar para escucharla sin conexión.',
@@ -10038,7 +10130,7 @@
       });
       // Primera visita: se muestra cuando ya cargó la app (y nunca más)
       // Si va primero la cuenta (primera vez tras la actualización), el tutorial sale al cerrarla
-      if (!seen() && !cuenta.vaPrimero()) setTimeout(open, 900);
+      if (!LAB_MODE && !seen() && !cuenta.vaPrimero()) setTimeout(open, 900);
     }
 
     return { init, open };
@@ -10052,7 +10144,7 @@
     const active = searching ? 'search'
       : state.view === 'home' ? 'home'
       : state.view === 'playlists' || state.view === 'playlist' ? 'playlists'
-      : state.view === 'lab' || state.view === 'stats' ? 'lab' : 'library';
+      : state.view === 'lab' ? 'lab' : 'library';
     els.bottomNav.querySelectorAll('.nav-btn').forEach((button) => {
       const on = button.dataset.nav === active;
       button.classList.toggle('is-active', on);
@@ -10205,8 +10297,8 @@
     library.pins = Array.isArray(savedPins) ? savedPins.filter((k) => typeof k === 'string') : [];
     const savedHidden = storage.get(KEYS.hidden, []);
     library.hidden = Array.isArray(savedHidden) ? savedHidden.filter((k) => typeof k === 'string') : [];
-    // Como en Spotify, la app abre siempre en Inicio
-    state.view = 'home';
+    // Como en Spotify, la app abre siempre en Inicio (Liquid Lab, siempre en Lab)
+    state.view = LAB_MODE ? 'lab' : 'home';
     const savedFollows = storage.get(KEYS.follows, []);
     library.follows = Array.isArray(savedFollows) ? savedFollows.filter((k) => typeof k === 'string') : [];
     const savedSearches = storage.get(KEYS.searches, []);

@@ -108,8 +108,19 @@ def check_manifest():
             errors.append(f'manifest: no existe {item["src"]}')
 
 
+def check_lab():
+    # lab.html (Liquid Lab) se genera desde index.html: si alguien cambia uno y no regenera, falla
+    import build_lab
+    lab = ROOT / 'lab.html'
+    if not lab.exists():
+        errors.append('falta lab.html: ejecuta python3 tools/build_lab.py')
+    elif lab.read_text(encoding='utf-8') != build_lab.build():
+        errors.append('lab.html no está al día con index.html: ejecuta python3 tools/build_lab.py')
+
+
 def main():
     check_lists()
+    check_lab()
     check_catalog()
     check_csp()
     check_versions()

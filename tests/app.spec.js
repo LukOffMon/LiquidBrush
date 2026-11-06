@@ -434,3 +434,52 @@ test.describe('detección de dispositivo, sistema y navegador', () => {
     }
   });
 });
+
+test.describe('Liquid Lab: sitio aparte', () => {
+  test('tocar Lab en Liquid lleva a lab.html, sin reproductor', async ({ page }) => {
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.evaluate(() => document.querySelector('.nav-btn[data-nav="lab"], .tab[data-view="lab"]').click());
+    await expect(page).toHaveURL(/lab\.html$/);
+    await expect(page.locator('html')).toHaveAttribute('data-mode', 'lab');
+    await expect(page.locator('.lab-hero')).toBeVisible();
+    await expect(page.locator('[data-lab-action="recipe"]').first()).toBeVisible();
+    await expect(page.locator('.player')).toBeHidden();
+    await expect(page.locator('.bottom-nav')).toBeHidden();
+    await expect(page.locator('#cuentaDialog')).toBeHidden();
+    // El acceso directo de la app instalada también
+    await page.goto('./?view=lab');
+    await expect(page).toHaveURL(/lab\.html$/);
+  });
+
+  test('«Guardar en Liquid» crea la playlist y vuelve a Liquid con ella abierta', async ({ page }) => {
+    await page.goto('./lab.html');
+    await page.locator('[data-lab-action="recipe"][data-value="variety"]').click();
+    await expect(page.locator('.lab-result:not(.lab-seeds) .lab-track')).toHaveCount(60);
+    await page.locator('[data-lab-action="save"]').click();
+    await expect(page).not.toHaveURL(/lab\.html/);
+    await expect(page.locator('html')).not.toHaveAttribute('data-mode', 'lab');
+    await expect(page.locator('#viewHead')).toContainText('Lab');
+    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('liquidbrush:playlists') || '[]'));
+    expect(saved).toHaveLength(1);
+    expect(saved[0].trackIds).toHaveLength(60);
+    expect(await page.evaluate(() => localStorage.getItem('liquidbrush:lab-handoff'))).toBeNull();
+  });
+
+  test('«Escuchar en Liquid» vuelve a Liquid con la mezcla en la cola, y Lab no pisa «Continúa donde lo dejaste»', async ({ page }) => {
+    await page.goto('./?view=library');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.locator('.track').nth(5).locator('.track-main').click();
+    await expect.poll(() => page.evaluate(() => (localStorage.getItem('liquidbrush:resume-queue') || '').length)).toBeGreaterThan(0);
+    const before = await page.evaluate(() => localStorage.getItem('liquidbrush:resume-queue'));
+    await page.goto('./lab.html');
+    await page.locator('[data-lab-action="recipe"][data-value="variety"]').click();
+    // Lab abierto y cerrado sin tocar nada de la cola de Liquid
+    expect(await page.evaluate(() => localStorage.getItem('liquidbrush:resume-queue'))).toBe(before);
+    await page.locator('[data-lab-action="play"]').click();
+    await expect(page).not.toHaveURL(/lab\.html/);
+    await expect(page.locator('#npContext')).toContainText('Lab');
+    await page.locator('body').press('q');
+    await expect(page.locator('#queueDialog [data-id]')).toHaveCount(60);
+  });
+});

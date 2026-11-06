@@ -44,6 +44,9 @@ def main():
     html = update_csp(html)
     INDEX.write_text(html, encoding='utf-8')
     print('· index.html actualizado')
+    # Liquid Lab (lab.html) se genera a partir de index.html: mismas versiones y misma CSP
+    import build_lab
+    build_lab.main()
 
 
 if __name__ == '__main__':

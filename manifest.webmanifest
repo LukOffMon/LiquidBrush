@@ -77,7 +77,7 @@
     {
       "name": "Lab",
       "short_name": "Lab",
-      "url": "./?view=lab",
+      "url": "./lab.html",
       "icons": [
         {
           "src": "icon-192.png",
