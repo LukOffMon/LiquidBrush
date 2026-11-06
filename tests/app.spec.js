@@ -483,3 +483,87 @@ test.describe('Liquid Lab: sitio aparte', () => {
     await expect(page.locator('#queueDialog [data-id]')).toHaveCount(60);
   });
 });
+
+test.describe('reproducción en segundo plano y audio atascado', () => {
+  test.use({ serviceWorkers: 'block' });
+
+  test('iPhone: al pasar de canción solo (con DJ) sigue en el mismo reproductor', async ({ browser }) => {
+    const ctx = await browser.newContext({
+      userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Mobile/15E148 Safari/604.1',
+      viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, serviceWorkers: 'block'
+    });
+    const page = await ctx.newPage();
+    await page.addInitScript(() => {
+      localStorage.setItem('liquidbrush:tour', 'true');
+      localStorage.setItem('liquidbrush:cuenta-ofrecida', 'true');
+      localStorage.setItem('liquidbrush:dj', 'true');
+      // Como en el iPhone al pasar de canción solo: sin un toque reciente (page.evaluate de Playwright cuenta como toque)
+      Object.defineProperty(navigator, 'userActivation', { get: () => ({ isActive: false, hasBeenActive: true }) });
+    });
+    const wav = silentWav(50);
+    // Como R2: responde por rangos (si no, el navegador no puede adelantar)
+    await page.route(/r2\.dev/, (route) => {
+      const range = /bytes=(\d+)-(\d*)/.exec(route.request().headers().range || '');
+      if (!range) return route.fulfill({ status: 200, contentType: 'audio/wav', headers: { 'Accept-Ranges': 'bytes' }, body: wav });
+      const start = Number(range[1]);
+      const end = range[2] ? Math.min(Number(range[2]), wav.length - 1) : wav.length - 1;
+      return route.fulfill({ status: 206, contentType: 'audio/wav', body: wav.subarray(start, end + 1),
+        headers: { 'Accept-Ranges': 'bytes', 'Content-Range': `bytes ${start}-${end}/${wav.length}` } });
+    });
+    await page.route(/lrclib\.net/, (route) => route.abort());
+    await page.goto('./?view=library');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.locator('.track').nth(2).locator('.track-main').click();
+    await expect(page.locator('body')).toHaveClass(/is-playing/);
+    const firstTitle = await page.locator('#miniTitle').textContent();
+    const deckBefore = await page.evaluate(() => [...document.querySelectorAll('audio[id^="audio"]')].find((a) => !a.paused)?.id);
+    // Casi al final: la transición DJ pasa a la siguiente sin ningún toque
+    await page.waitForTimeout(5500);
+    await page.evaluate((id) => { const a = document.getElementById(id); a.currentTime = a.duration - 2; }, deckBefore);
+    await expect(page.locator('#miniTitle')).not.toHaveText(firstTitle || '', { timeout: 8000 });
+    const playing = await page.evaluate(() => [...document.querySelectorAll('audio[id^="audio"]')].filter((a) => a.getAttribute('src')).map((a) => a.id));
+    expect(playing).toEqual([deckBefore]);
+    await ctx.close();
+  });
+
+  test('si el audio no avanza, se recupera solo y al final pasa a la siguiente', async ({ page }) => {
+    test.setTimeout(60000);
+    // El servidor del audio nunca responde: la canción «suena» pero se queda en 0:00
+    await page.route(/r2\.dev/, () => { /* sin respuesta */ });
+    await page.goto('./?view=library');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.locator('.track').nth(4).locator('.track-main').click();
+    const firstTitle = await page.locator('#miniTitle').textContent();
+    await expect(page.locator('#miniTitle')).not.toHaveText(firstTitle || '', { timeout: 30000 });
+    const log = await page.evaluate(() => JSON.parse(localStorage.getItem('liquidbrush:errors') || '[]').map((e) => e.m));
+    expect(log.some((m) => m.includes('Audio atascado'))).toBe(true);
+  });
+});
+
+test.describe('pantalla de bloqueo', () => {
+  test.use({ serviceWorkers: 'block' });
+
+  test('anterior/siguiente (no ±10 s) y se vuelven a registrar al sonar cada canción', async ({ page }) => {
+    await page.addInitScript(() => {
+      window.__handlers = [];
+      const original = navigator.mediaSession.setActionHandler.bind(navigator.mediaSession);
+      navigator.mediaSession.setActionHandler = (action, handler) => {
+        window.__handlers.push([action, typeof handler]);
+        return original(action, handler);
+      };
+    });
+    const wav = silentWav();
+    await page.route(/r2\.dev/, (route) => route.fulfill({ status: 200, contentType: 'audio/wav', body: wav }));
+    await page.goto('./?view=library');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    const atStart = await page.evaluate(() => window.__handlers.length);
+    await page.locator('.track').nth(3).locator('.track-main').click();
+    await expect(page.locator('body')).toHaveClass(/is-playing/);
+    await expect.poll(() => page.evaluate(() => window.__handlers.length)).toBeGreaterThan(atStart);
+    const last = await page.evaluate(() => Object.fromEntries(window.__handlers));
+    expect(last.nexttrack).toBe('function');
+    expect(last.previoustrack).toBe('function');
+    expect(last.seekforward).toBe('object');
+    expect(last.seekbackward).toBe('object');
+  });
+});
