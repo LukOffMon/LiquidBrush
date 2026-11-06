@@ -539,3 +539,31 @@ test.describe('reproducción en segundo plano y audio atascado', () => {
     expect(log.some((m) => m.includes('Audio atascado'))).toBe(true);
   });
 });
+
+test.describe('pantalla de bloqueo', () => {
+  test.use({ serviceWorkers: 'block' });
+
+  test('anterior/siguiente (no ±10 s) y se vuelven a registrar al sonar cada canción', async ({ page }) => {
+    await page.addInitScript(() => {
+      window.__handlers = [];
+      const original = navigator.mediaSession.setActionHandler.bind(navigator.mediaSession);
+      navigator.mediaSession.setActionHandler = (action, handler) => {
+        window.__handlers.push([action, typeof handler]);
+        return original(action, handler);
+      };
+    });
+    const wav = silentWav();
+    await page.route(/r2\.dev/, (route) => route.fulfill({ status: 200, contentType: 'audio/wav', body: wav }));
+    await page.goto('./?view=library');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    const atStart = await page.evaluate(() => window.__handlers.length);
+    await page.locator('.track').nth(3).locator('.track-main').click();
+    await expect(page.locator('body')).toHaveClass(/is-playing/);
+    await expect.poll(() => page.evaluate(() => window.__handlers.length)).toBeGreaterThan(atStart);
+    const last = await page.evaluate(() => Object.fromEntries(window.__handlers));
+    expect(last.nexttrack).toBe('function');
+    expect(last.previoustrack).toBe('function');
+    expect(last.seekforward).toBe('object');
+    expect(last.seekbackward).toBe('object');
+  });
+});

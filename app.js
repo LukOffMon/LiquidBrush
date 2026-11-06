@@ -7338,7 +7338,17 @@
         if (Number.isFinite(details.seekTime)) seekTo(details.seekTime);
       }
     };
-    Object.entries(handlers).forEach(([action, handler]) => {
+    mediaHandlers = handlers;
+    applyMediaHandlers();
+  }
+
+  // Se vuelven a registrar cada vez que empieza a sonar una canción: si iOS asocia la pantalla de
+  // bloqueo a otro reproductor o pierde los controles, muestra los suyos por defecto (±10 s)
+  // en lugar de «anterior» y «siguiente».
+  let mediaHandlers = null;
+  function applyMediaHandlers() {
+    if (!mediaHandlers || !('mediaSession' in navigator)) return;
+    Object.entries(mediaHandlers).forEach(([action, handler]) => {
       try {
         navigator.mediaSession.setActionHandler(action, handler);
       } catch {
@@ -7404,6 +7414,7 @@
     // La pantalla de bloqueo se actualiza al momento (antes, como mucho cada 4 s: tras cambiar de canción
     // seguía mostrando la anterior terminada, «3:35 · −0:00»)
     ['playing', 'seeked', 'ratechange', 'durationchange'].forEach((type) => on(type, updatePositionStateNow));
+    on('playing', applyMediaHandlers);
     on('playing', () => stallGuard.reset());
     on('durationchange', () => {
       if (!state.isSeeking) updateProgressUI(els.audio.currentTime, getDuration());
