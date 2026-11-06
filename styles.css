@@ -6554,8 +6554,9 @@ textarea {
 .cuenta-avatar.is-inicial { background: var(--av, #ff7ad9); color: #0f0d18; }
 .cuenta-avatar.is-emoji { background: var(--surface-2); font-size: 1.3rem; }
 .cuenta-avatar.is-grande { width: 76px; height: 76px; font-size: 1.9rem; box-shadow: var(--shadow); }
-.cuenta-avatares { display: grid; grid-template-columns: repeat(auto-fill, minmax(46px, 1fr)); gap: 8px; }
-.cuenta-avatares.is-mini { grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); }
+.cuenta-avatares { display: grid; grid-template-columns: repeat(auto-fill, minmax(58px, 1fr)); gap: 8px; }
+.cuenta-avatares.is-mini { grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); }
+.cuenta-avatares .cuenta-avatar { width: 100%; height: auto; aspect-ratio: 1; max-width: 64px; }
 .cuenta-avatar-op { padding: 2px; border: 2px solid transparent; border-radius: 50%; background: none; cursor: pointer; display: grid; place-items: center; }
 .cuenta-avatar-op[aria-checked="true"] { border-color: var(--accent); }
 

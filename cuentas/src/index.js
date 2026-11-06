@@ -89,8 +89,8 @@ function claveValida(texto) {
 const nombreLimpio = (texto) => String(texto || '').replace(/\p{Cc}/gu, '').trim().slice(0, 40) || null;
 const avatarLimpio = (texto) => {
   const a = String(texto || '').trim();
-  // Avatares: inicial con color o icono de fondo (sin emojis ni iconos de canción)
-  return /^(inicial:#[0-9a-f]{6}|fondo:\d{2})$/i.test(a) ? a : null;
+  // Avatares: una de las 8 fotos de perfil (avatars/) o la inicial con color. Nada más.
+  return /^(inicial:#[0-9a-f]{6}|foto:0[1-8])$/i.test(a) ? a : null;
 };
 
 function nombreDispositivo(request, propio) {

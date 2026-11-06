@@ -8498,14 +8498,22 @@
       return `mailto:`;
     }
 
-    /* ---------- Avatar (con iconos de la colección) ---------- */
+    /* ---------- Avatar ---------- */
     const COLORES = ['#ff7ad9', '#7ef9ff', '#ffe27a', '#7a5cff', '#3ddc97', '#ff9f43'];
-    // Avatares: inicial con color o un icono de fondo (los iconos de canción son solo para sus canciones)
+    // Fotos de perfil: las de avatars/ son solo para esto y solo existen en este selector.
+    // Sin foto elegida, la inicial con color. (Los «fondo:NN» antiguos se muestran como inicial.)
+    const FOTOS = ['01', '02', '03', '04', '05', '06', '07', '08'];
+    const OPCIONES_AVATAR = FOTOS.map((f) => `foto:${f}`);
+    // Collage de bienvenida: iconos de fondo (se pueden reutilizar; las fotos de perfil no)
     const FONDOS = ['01', '03', '05', '07', '09', '11', '12', '14'];
     function avatarHtml(avatar, nombre, clase = '') {
       const inicial = esc((nombre || sesion?.perfil?.correo || '?').trim().charAt(0).toUpperCase() || '?');
       const a = String(avatar || '');
-      if (a.startsWith('fondo:')) return `<span class="cuenta-avatar ${clase}"><img src="wallpapers/icons/${esc(a.slice(6))}-thumb.jpg" alt=""></span>`;
+      const foto = /^foto:(0[1-8])$/.exec(a);
+      if (foto) {
+        const grande = clase.includes('is-grande');
+        return `<span class="cuenta-avatar ${clase}"><img src="avatars/avatar-${foto[1]}${grande ? '' : '-sm'}.jpg" alt="" decoding="async"></span>`;
+      }
       const color = a.startsWith('inicial:') ? a.slice(8) : COLORES[0];
       return `<span class="cuenta-avatar is-inicial ${clase}" style="--av:${esc(color)}">${inicial}</span>`;
     }
@@ -8616,8 +8624,8 @@
             </label>
             <p class="cuenta-label">Elige tu avatar</p>
             <div class="cuenta-avatares" role="radiogroup" aria-label="Avatar">
-              ${[...COLORES.map((c) => `inicial:${c}`), ...FONDOS.map((f) => `fondo:${f}`)]
-                .map((a) => `<button type="button" role="radio" aria-checked="${a === (d.avatar || 'inicial:#ff7ad9')}" class="cuenta-avatar-op" data-cuenta="avatar" data-avatar="${esc(a)}">${avatarHtml(a, d.nombre || d.correo)}</button>`).join('')}
+              ${['inicial:#ff7ad9', ...OPCIONES_AVATAR]
+                .map((a, i) => `<button type="button" role="radio" aria-checked="${a === (d.avatar || 'inicial:#ff7ad9')}" class="cuenta-avatar-op" data-cuenta="avatar" data-avatar="${esc(a)}" aria-label="${i ? `Foto ${i}` : 'Tu inicial'}">${avatarHtml(a, d.nombre || d.correo)}</button>`).join('')}
             </div>
             <label class="cuenta-check"><input type="checkbox" name="privacidad" required> <span>Acepto que mis favoritas, playlists, escucha y ajustes se guarden en el almacenamiento privado de Liquid Bullet. Puedo descargarlos o borrarlos cuando quiera.</span></label>
             <div class="cuenta-robot" aria-live="polite"></div>
@@ -8750,8 +8758,8 @@
           <form class="cuenta-form" data-form="perfil" novalidate>
             <label class="cuenta-campo"><span>Nombre</span><input name="nombre" type="text" maxlength="40" value="${esc(p.nombre || '')}"></label>
             <div class="cuenta-avatares is-mini" role="radiogroup" aria-label="Avatar">
-              ${[...COLORES.map((c) => `inicial:${c}`), ...FONDOS.map((f) => `fondo:${f}`)]
-                .map((a) => `<button type="button" role="radio" aria-checked="${a === p.avatar}" class="cuenta-avatar-op" data-cuenta="avatar" data-avatar="${esc(a)}">${avatarHtml(a, p.nombre)}</button>`).join('')}
+              ${['inicial:#ff7ad9', ...OPCIONES_AVATAR]
+                .map((a, i) => `<button type="button" role="radio" aria-checked="${a === (OPCIONES_AVATAR.includes(p.avatar) ? p.avatar : 'inicial:#ff7ad9')}" class="cuenta-avatar-op" data-cuenta="avatar" data-avatar="${esc(a)}" aria-label="${i ? `Foto ${i}` : 'Tu inicial'}">${avatarHtml(a, p.nombre)}</button>`).join('')}
             </div>
             ${errorBox}
             <button type="submit" class="btn" data-cuenta="enviar">Guardar perfil</button>
