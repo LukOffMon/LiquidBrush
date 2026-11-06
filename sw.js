@@ -6,7 +6,7 @@
    - Los MP3 descargados desde la app viven en AUDIO_CACHE y se
      reproducen desde ahí (con soporte de rangos para poder adelantar).
    ========================================================= */
-const VERSION = 'v51';
+const VERSION = 'v53';
 const SHELL_CACHE = `liquidbrush-shell-${VERSION}`;
 const DATA_CACHE = 'liquidbrush-data';
 const AUDIO_CACHE = 'liquidbrush-audio';
@@ -14,15 +14,20 @@ const AUDIO_CACHE = 'liquidbrush-audio';
 const SHELL = [
   './',
   'index.html',
-  'styles.css?v=37',
-  'app.js?v=40',
+  'styles.css?v=39',
+  'app.js?v=42',
   'favicon.png',
   'logo.svg',
   'manifest.webmanifest',
   'apple-touch-icon.png',
   'icon-192.png',
   'icon-512.png',
-  'icon-maskable-512.png',
+  'icon-maskable-512.png'
+];
+
+// Listas de canciones (~2 MB): se guardan aparte y sin bloquear. Antes iban en SHELL y, si una sola
+// fallaba (red lenta, bucket caído), cache.addAll rechazaba entera y la actualización no se instalaba.
+const DATA_FILES = [
   'tracks.json',
   'musica/pepper.json',
   'musica/salt.json',
@@ -35,7 +40,8 @@ const SHELL = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(SHELL_CACHE)
-      .then((cache) => cache.addAll(SHELL))
+      .then((cache) => cache.addAll(SHELL)
+        .then(() => Promise.allSettled(DATA_FILES.map((file) => cache.add(file)))))
   );
   // No se activa sola: la app avisa «Hay una versión nueva» y la aplica al pulsar Actualizar
 });

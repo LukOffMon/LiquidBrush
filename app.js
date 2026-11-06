@@ -302,6 +302,7 @@
     plName: $('plName'),
     plEmojis: $('plEmojis'),
     plColors: $('plColors'),
+    plPortadas: $('plPortadas'),
     addDialog: $('addDialog'),
     addTrackName: $('addTrackName'),
     addList: $('addList'),
@@ -857,22 +858,67 @@
     (unheard ? navigator.setAppBadge(unheard) : navigator.clearAppBadge()).catch(() => {});
   }
 
+  /* Almacén grande en IndexedDB para la copia de la biblioteca (~2 MB). En localStorage ocupaba
+     casi la mitad de los ~5 MB de Safari y su JSON.parse frenaba el arranque. */
+  const bigStore = (() => {
+    let opening = null;
+    function open() {
+      if (!opening) {
+        opening = new Promise((resolve, reject) => {
+          if (!window.indexedDB) { reject(new Error('sin IndexedDB')); return; }
+          const request = indexedDB.open('liquidbrush', 1);
+          request.onupgradeneeded = () => request.result.createObjectStore('kv');
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+          request.onblocked = () => reject(new Error('IndexedDB bloqueada'));
+        });
+        opening.catch(() => { opening = null; });
+      }
+      return opening;
+    }
+    async function run(mode, action) {
+      const db = await open();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('kv', mode);
+        const request = action(tx.objectStore('kv'));
+        tx.oncomplete = () => resolve(request.result);
+        tx.onerror = () => reject(tx.error);
+        tx.onabort = () => reject(tx.error || new Error('IndexedDB: transacción cancelada'));
+      });
+    }
+    return {
+      get: (key) => run('readonly', (store) => store.get(key)),
+      set: (key, value) => run('readwrite', (store) => store.put(value, key))
+    };
+  })();
+  const LIBRARY_IDB_KEY = 'library-cache';
+  const LIBRARY_IDB_FLAG = 'liquidbrush:library-idb';
+  const librarySignature = (raw) => `${raw.length}:${hashString(raw)}`;
+
   // Abre al instante con la biblioteca de la última visita y la actualiza en segundo plano
   async function loadTracks() {
-    let cachedRaw = null;
-    try { cachedRaw = localStorage.getItem(KEYS.libraryCache); } catch { /* sin localStorage */ }
-    let shown = false;
-    if (cachedRaw) {
+    let cached = null;
+    let cachedSig = '';
+    try {
+      cached = await bigStore.get(LIBRARY_IDB_KEY);
+      cachedSig = cached?.sig || '';
+    } catch { /* sin IndexedDB: se usa localStorage como antes */ }
+    // Copia antigua en localStorage (versiones anteriores o navegador sin IndexedDB)
+    let legacyRaw = null;
+    try { legacyRaw = localStorage.getItem(KEYS.libraryCache); } catch { /* sin localStorage */ }
+    if (!cached && legacyRaw) {
       try {
-        const cached = JSON.parse(cachedRaw);
-        if (Array.isArray(cached.rows) && cached.rows.length) {
-          library.catalog = cached.catalog || null;
-          await applyTrackData(cached.rows);
-          shown = true;
-        }
+        cached = JSON.parse(legacyRaw);
+        cachedSig = librarySignature(legacyRaw);
       } catch (error) {
         console.warn('[LiquidBullet] Copia local de la biblioteca dañada; se descarga de nuevo.', error);
       }
+    }
+    let shown = false;
+    if (cached && Array.isArray(cached.rows) && cached.rows.length) {
+      library.catalog = cached.catalog || null;
+      await applyTrackData(cached.rows);
+      shown = true;
     }
     if (!shown) els.listInfo.textContent = 'Cargando canciones…';
 
@@ -881,12 +927,29 @@
       if (!Array.isArray(data)) throw new Error('La lista de canciones debe ser un array');
       const rows = data.map(({ source, ...rest }) => (source ? { ...rest, sourceName: source.name } : rest));
       const fresh = JSON.stringify({ rows, catalog: library.catalog });
-      if (fresh === cachedRaw) { openIncomingLink(true); return; }
-      await applyTrackData(rows, true);
-      // Sin espacio se liberan letras antiguas; si aun así no cabe, se descargará la próxima vez
-      for (let attempt = 0; attempt < 2; attempt++) {
-        try { localStorage.setItem(KEYS.libraryCache, fresh); break; } catch (error) {
-          if (!isQuotaError(error) || !freeStorage(KEYS.libraryCache, 0)) break;
+      const freshSig = librarySignature(fresh);
+      const unchanged = freshSig === cachedSig;
+      if (!unchanged) await applyTrackData(rows, true);
+      else openIncomingLink(true);
+      // Se guarda en IndexedDB; al lograrlo se borra la copia de localStorage (libera ~2 MB)
+      let savedInIdb = unchanged && Boolean(cached?.sig);
+      if (!savedInIdb) {
+        try {
+          await bigStore.set(LIBRARY_IDB_KEY, { sig: freshSig, rows, catalog: library.catalog });
+          savedInIdb = true;
+        } catch { /* sin IndexedDB o sin espacio */ }
+      }
+      if (savedInIdb) {
+        try {
+          localStorage.setItem(LIBRARY_IDB_FLAG, '1');
+          if (legacyRaw !== null) localStorage.removeItem(KEYS.libraryCache);
+        } catch { /* sin localStorage */ }
+      } else if (!unchanged) {
+        // Sin IndexedDB: como antes. Sin espacio se liberan letras antiguas; si no cabe, se descargará la próxima vez
+        for (let attempt = 0; attempt < 2; attempt++) {
+          try { localStorage.setItem(KEYS.libraryCache, fresh); break; } catch (error) {
+            if (!isQuotaError(error) || !freeStorage(KEYS.libraryCache, 0)) break;
+          }
         }
       }
     } catch (error) {
@@ -1261,6 +1324,34 @@
   const PLAYLIST_EMOJIS = ['ic:disc', 'ic:headphones', 'ic:flame', 'ic:moon', 'ic:bubbles', 'ic:heart', 'ic:spark', 'ic:star', 'ic:bolt',
     'ic:cherry', 'ic:eye', 'ic:wave', 'ic:flask', 'ic:note', 'ic:radio', 'ic:palette', 'ic:mic', 'ic:gem',
     ...WALLPAPERS.map((w) => `art:${w.id}`)];
+  // Portadas para las playlists que crea cada persona (covers/propias/). Solo se eligen en
+  // Nueva playlist / Editar playlist: nunca se asignan a las playlists de base ni a las automáticas.
+  const PORTADAS_PROPIAS = [
+    { id: '01', name: 'Cromo encapuchado' },
+    { id: '02', name: 'Ola que mira' },
+    { id: '03', name: 'Tigres de luz' },
+    { id: '04', name: 'Dragón del desierto' },
+    { id: '05', name: 'Leopardo y destellos' },
+    { id: '06', name: 'Collage dorado' },
+    { id: '07', name: 'Cabeza de madera' },
+    { id: '08', name: 'Silueta de tigre' },
+    { id: '09', name: 'Caballeros de taberna' },
+    { id: '10', name: 'Lluvia verde' },
+    { id: '11', name: 'Cuerno ácido' }
+  ];
+  const portadaValida = (id) => (PORTADAS_PROPIAS.some((p) => p.id === id) ? id : '');
+  const portadaSrc = (id, small = false) => `covers/propias/propia-${id}${small ? '-sm' : ''}.jpg`;
+  // Icono pequeño de una playlist propia: su portada si la tiene; si no, su icono
+  function setLocalGlyph(el, p) {
+    const portada = portadaValida(p.portada);
+    if (!portada) { setPlaylistIcon(el, p.emoji); return; }
+    const img = document.createElement('img');
+    img.src = portadaSrc(portada, true);
+    img.alt = '';
+    img.loading = 'lazy';
+    el.classList.add('has-art');
+    el.replaceChildren(img);
+  }
   const PLAYLIST_COLORS = ['#8a93a6', '#ff7ad9', '#7ef9ff', '#ffe27a', '#7a5cff', '#ff5f6d', '#3ddc97', '#ff9f43'];
   const RECENT_LIMIT = 50;
   const TOP_LIMIT = 30;
@@ -1321,7 +1412,9 @@
   function localPlaylists() {
     return library.local.map((p) => ({
       key: `local:${p.id}`, kind: 'local', id: p.id, name: p.name,
-      emoji: p.emoji, color: p.color, trackIds: p.trackIds
+      emoji: p.emoji, color: p.color, trackIds: p.trackIds,
+      portada: portadaValida(p.portada),
+      ...(portadaValida(p.portada) ? { cover: { type: 'image', src: portadaSrc(p.portada) } } : {})
     }));
   }
 
@@ -1452,6 +1545,25 @@
     els.plName.value = existing?.name || '';
     const emoji = existing?.emoji || PLAYLIST_EMOJIS[Math.floor(Math.random() * PLAYLIST_EMOJIS.length)];
     const color = existing?.color || PLAYLIST_COLORS[Math.floor(Math.random() * PLAYLIST_COLORS.length)];
+    const portada = portadaValida(existing?.portada);
+    fillChoices(els.plPortadas, 'plPortada', ['', ...PORTADAS_PROPIAS.map((p) => p.id)], portada, (face, value) => {
+      face.classList.add('portada-face');
+      if (!value) {
+        face.classList.add('is-none');
+        face.textContent = 'Sin portada';
+        face.title = 'Sin portada: mosaico con las portadas de sus canciones';
+        return;
+      }
+      const name = PORTADAS_PROPIAS.find((p) => p.id === value)?.name || '';
+      const img = document.createElement('img');
+      img.src = portadaSrc(value, true);
+      img.alt = name;
+      img.loading = 'lazy';
+      img.width = 64;
+      img.height = 64;
+      face.title = name;
+      face.append(img);
+    });
     fillChoices(els.plEmojis, 'plEmoji', PLAYLIST_EMOJIS, emoji, (face, value) => setPlaylistIcon(face, value));
     fillChoices(els.plColors, 'plColor', PLAYLIST_COLORS, color, (face, value) => {
       face.style.background = value;
@@ -1463,7 +1575,8 @@
     return {
       name,
       emoji: els.plDialog.querySelector('input[name="plEmoji"]:checked')?.value || emoji,
-      color: els.plDialog.querySelector('input[name="plColor"]:checked')?.value || color
+      color: els.plDialog.querySelector('input[name="plColor"]:checked')?.value || color,
+      portada: portadaValida(els.plDialog.querySelector('input[name="plPortada"]:checked')?.value || '')
     };
   }
 
@@ -1511,7 +1624,7 @@
       const days = Math.max(0, TRASH_DAYS - Math.floor((Date.now() - p.deletedAt) / 86400000));
       const button = makeButton('btn trash-restore', 'restore', `Recuperar ${p.name}`, '', p.name);
       const glifo = makeEl('span', 'trash-icon');
-      setPlaylistIcon(glifo, p.emoji);
+      setLocalGlyph(glifo, p);
       button.prepend(glifo);
       button.dataset.id = p.id;
       li.append(button, makeEl('span', 'sheet-note', `${songsLabel(p.trackIds.length)} · se borra del todo en ${days} día${days === 1 ? '' : 's'}`));
@@ -1542,6 +1655,7 @@
       name: `${pl.name} (${pl.kind === 'local' ? 'copia' : 'mía'})`.slice(0, 60),
       emoji: iconoGuardable(pl.emoji),
       color: pl.color || PLAYLIST_COLORS[Math.floor(Math.random() * PLAYLIST_COLORS.length)],
+      portada: pl.kind === 'local' ? portadaValida(pl.portada) : '',
       trackIds: playlistTracksOf(pl).map((t) => t.id),
       createdAt: Date.now()
     };
@@ -1632,7 +1746,7 @@
         const emoji = document.createElement('span');
         emoji.className = 'add-emoji';
         emoji.style.background = p.color;
-        setPlaylistIcon(emoji, p.emoji);
+        setLocalGlyph(emoji, p);
         const name = document.createElement('span');
         name.className = 'add-name';
         name.textContent = p.name;
@@ -1734,6 +1848,7 @@
           name: p.name.slice(0, 60),
           emoji: iconoGuardable(typeof p.emoji === 'string' ? p.emoji.slice(0, 16) : ''),
           color: /^#[0-9a-f]{6}$/i.test(p.color) ? p.color : PLAYLIST_COLORS[0],
+          portada: portadaValida(String(p.portada || '')),
           trackIds: p.trackIds.map(String),
           createdAt: p.createdAt || Date.now()
         });
@@ -4056,12 +4171,9 @@
       .filter((row) => row.similar.length >= 3);
   }
 
+  // Mismos tramos que la daylist (daySegment): el saludo y «Tu … de madrugada» nunca se contradicen
   function greeting() {
-    const h = new Date().getHours();
-    if (h < 6) return 'Buenas noches';
-    if (h < 13) return 'Buenos días';
-    if (h < 20) return 'Buenas tardes';
-    return 'Buenas noches';
+    return ['Feliz madrugada', 'Buenos días', 'Buenas tardes', 'Buenas noches'][daySegment()];
   }
 
   function homeHeader(p) {
@@ -4252,7 +4364,9 @@
         card.setAttribute('aria-label', `Radio de ${entry.name}`);
         const photo = makeEl('span', 'artist-photo-wrap');
         photo.append(photoImg(entry.tracks[0]?.thumb, 96, 'artist-photo'), makeEl('span', 'radio-badge', 'RADIO'));
-        card.append(photo, makeEl('span', 'artist-name', entry.name), makeEl('span', 'artist-meta', 'Y artistas parecidos'));
+        const next = similarArtists(entry.key, 2).map((other) => other.name).filter(Boolean);
+        card.append(photo, makeEl('span', 'artist-name', entry.name),
+          makeEl('span', 'artist-meta', next.length ? `Con ${next.join(' y ')}` : 'Y artistas parecidos'));
         return card;
       }), 'is-artists'));
     }
@@ -5654,6 +5768,35 @@
   }
 
   /* ---------- Reanudar: última canción y segundo exacto (solo en este navegador) ---------- */
+  // Ids cortos para guardar la cola: «brush3:101-200-…-c0bf5f» → «brush3:c0bf5f». Si dos canciones
+  // compartieran huella (casi imposible) o el id no tiene esa forma, se guarda el id completo con «~».
+  const queueCodec = (() => {
+    let maps = null;
+    const shortOf = (id) => {
+      const m = /^([^:]+):.*-([0-9a-f]{6})$/.exec(String(id));
+      return m ? `${m[1]}:${m[2]}` : null;
+    };
+    function build() {
+      if (maps && maps.n === state.tracks.length) return maps;
+      const toShort = new Map();
+      const toLong = new Map();
+      const clash = new Set();
+      state.tracks.forEach((t) => {
+        const c = shortOf(t.id);
+        if (!c) return;
+        if (toLong.has(c) && toLong.get(c) !== t.id) clash.add(c);
+        else toLong.set(c, t.id);
+      });
+      toLong.forEach((long, c) => { if (!clash.has(c)) toShort.set(long, c); });
+      maps = { n: state.tracks.length, toShort, toLong };
+      return maps;
+    }
+    return {
+      encode: (id) => build().toShort.get(id) || `~${id}`,
+      decode: (c) => (String(c).startsWith('~') ? String(c).slice(1) : build().toLong.get(c) || null)
+    };
+  })();
+
   const resume = {
     lastSaved: 0,
     // Se guarda a menudo pero sin escribir en cada timeupdate (cada 4 s, o al instante si force)
@@ -5681,7 +5824,13 @@
         if (this.queueIdle) cancelIdleCallback(this.queueTimer); else clearTimeout(this.queueTimer);
         this.queueTimer = 0;
       }
-      storage.set(KEYS.resumeQueue, { queue: state.queue, base: state.baseQueue, context: state.queueContext, source: state.playSource || '' });
+      // Compacta (v2): ids cortos y el orden original como posiciones dentro de la cola.
+      // Antes se guardaban las dos listas con ids largos: ~480 KB con la biblioteca entera en cola.
+      const queue = state.queue;
+      const position = new Map(queue.map((id, i) => [id, i]));
+      const sameOrder = state.baseQueue.length === queue.length && state.baseQueue.every((id, i) => id === queue[i]);
+      const base = sameOrder ? null : state.baseQueue.map((id) => (position.has(id) ? position.get(id) : queueCodec.encode(id)));
+      storage.set(KEYS.resumeQueue, { v: 2, q: queue.map(queueCodec.encode).join(','), b: base, context: state.queueContext, source: state.playSource || '' });
     },
     // Al abrir la app vuelve a poner la última canción en su segundo y con su cola; false si no hay nada
     restore() {
@@ -5690,9 +5839,15 @@
       if (!track) return false;
       const valid = (ids) => (Array.isArray(ids) ? ids.filter((id) => state.trackMap.has(id)) : []);
       const stored = storage.get(KEYS.resumeQueue, null);
-      const queue = valid(stored?.queue);
+      let rawQueue = stored?.queue;
+      let rawBase = stored?.base;
+      if (stored?.v === 2 && typeof stored.q === 'string') {
+        rawQueue = stored.q ? stored.q.split(',').map(queueCodec.decode) : [];
+        rawBase = Array.isArray(stored.b) ? stored.b.map((x) => (typeof x === 'number' ? rawQueue[x] : queueCodec.decode(x))) : rawQueue;
+      }
+      const queue = valid(rawQueue);
       if (queue.includes(track.id)) {
-        const base = valid(stored.base);
+        const base = valid(rawBase);
         state.baseQueue = base.length ? base : queue.slice();
         state.queue = queue;
         state.queueIndex = queue.indexOf(track.id);
@@ -5766,15 +5921,20 @@
     // Al abrir la app (sin reproducir) la letra se busca un poco después para no frenar el arranque
     // Al saltar canciones seguidas solo se pide la letra de la que se queda (evita el 429 de LRCLIB)
     clearTimeout(lyricsDelay);
+    lyricsPendingFor = null;
     if (autoplay) {
       if (track.lyrics || lyricsCache.has(track.id)) showLyricsFor(track);
       else {
         renderLyrics('', 'Buscando la letra…');
         lyricsDelay = setTimeout(() => { if (state.currentTrack === track) showLyricsFor(track); }, 700);
       }
+    } else if (track.lyrics || lyricsCache.has(track.id)) {
+      showLyricsFor(track);
     } else {
+      // Sin reproducir no se pide nada a LRCLIB (ni datos ni la canción a un tercero):
+      // la letra se busca al darle a reproducir o al abrir el panel de la letra
       renderLyrics('', 'Toca reproducir y la letra aparecerá aquí.');
-      lyricsDelay = setTimeout(() => { if (state.currentTrack === track) showLyricsFor(track); }, 3000);
+      lyricsPendingFor = track;
     }
     highlightCurrent();
     syncPlayButtons();
@@ -5789,6 +5949,7 @@
   }
 
   async function play({ quiet = false } = {}) {
+    flushPendingLyrics();
     state.userPaused = false;
     state.wantsPlay = true;
     if (!state.currentTrack) {
@@ -6220,6 +6381,14 @@
     lyricsCache.set(track.id, text);
     if (storage.set(KEYS.lyricsPrefix + track.id, text)) lyricsIndex.touch(track.id);
     return text;
+  }
+
+  // Letra que quedó por buscar al abrir la app sin reproducir
+  let lyricsPendingFor = null;
+  function flushPendingLyrics() {
+    const track = lyricsPendingFor;
+    lyricsPendingFor = null;
+    if (track && state.currentTrack === track) showLyricsFor(track);
   }
 
   function showLyricsFor(track) {
@@ -7480,7 +7649,10 @@
     });
     els.lyricsPanel.addEventListener('toggle', () => {
       els.lyricsBtn.classList.toggle('is-active', els.lyricsPanel.open);
-      if (els.lyricsPanel.open) syncLyrics(els.audio.currentTime, true);
+      if (els.lyricsPanel.open) {
+        flushPendingLyrics();
+        syncLyrics(els.audio.currentTime, true);
+      }
     });
 
     // Tema
@@ -8556,6 +8728,9 @@
       </div>${paso ? `<div class="cuenta-pasos" aria-label="${esc(paso)}">${paso}</div>` : ''}`;
     const pasos = (actual, total) => Array.from({ length: total }, (_, i) => `<span class="${i < actual ? 'is-on' : ''}"></span>`).join('');
     const errorBox = '<p class="cuenta-error" role="alert" aria-live="assertive" hidden></p>';
+    // Los códigos salen de una cuenta de Gmail: muchas veces llegan a Spam o Promociones. Se avisa antes de enviarlos.
+    const avisoSpam = (texto = 'Te enviaremos un código de 6 dígitos') =>
+      `<p class="cuenta-aviso">${ico('mail')} ${texto} desde <b>${CORREO_REMITENTE}</b>. <b>Si no aparece en un minuto, revisa Spam o Promociones</b> y márcalo como <i>No es spam</i>.</p>`;
     const botonPrincipal = (texto, accion) => `<button type="submit" class="btn btn-primary cuenta-cta" data-cuenta="${accion}"><span class="cuenta-cta-text">${texto}</span><span class="cuenta-cta-barra" aria-hidden="true"></span></button>`;
 
     // Collage de la bienvenida con los fondos de la app (las portadas de playlist son solo para playlists)
@@ -8597,6 +8772,7 @@
               <input name="correo" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" required value="${esc(d.correo || '')}" autofocus>
             </label>
             <p class="cuenta-sugerencia" hidden></p>
+            ${avisoSpam('Al final te enviaremos un código de 6 dígitos para confirmar tu correo')}
             ${errorBox}
             ${botonPrincipal('Siguiente', 'enviar')}
           </form>`;
@@ -8629,6 +8805,7 @@
             </div>
             <label class="cuenta-check"><input type="checkbox" name="privacidad" required> <span>Acepto que mis favoritas, playlists, escucha y ajustes se guarden en el almacenamiento privado de Liquid Bullet. Puedo descargarlos o borrarlos cuando quiera.</span></label>
             <div class="cuenta-robot" aria-live="polite"></div>
+            ${avisoSpam()}
             ${errorBox}
             ${botonPrincipal('Crear y enviar código', 'enviar')}
           </form>`;
@@ -8670,6 +8847,7 @@
           <div class="cuenta-robot"></div>
           ${errorBox}
           ${botonPrincipal('Entrar', 'enviar')}
+          <p class="cuenta-aviso">${ico('mail')} ¿Creaste la cuenta y nunca te llegó el código, o vas a recuperar la contraseña? Los correos salen de <b>${CORREO_REMITENTE}</b> y <b>pueden llegar a Spam o Promociones</b>: revisa ahí antes de pedir otro.</p>
           <div class="cuenta-fila">
             <button type="button" class="btn btn-ghost cuenta-link" data-cuenta="ir" data-ir="recuperar">¿Olvidaste tu contraseña?</button>
             <button type="button" class="btn btn-ghost cuenta-link" data-cuenta="ir" data-ir="alta-1">Crear cuenta</button>
@@ -8684,6 +8862,7 @@
             <input name="correo" type="email" inputmode="email" autocomplete="username" autocapitalize="off" spellcheck="false" required value="${esc(d.correo || storage.get(K.ultimoCorreo, '') || '')}" autofocus>
           </label>
           <div class="cuenta-robot"></div>
+          ${avisoSpam()}
           ${errorBox}
           ${botonPrincipal('Enviar código', 'enviar')}
         </form>`,
@@ -9077,7 +9256,7 @@
         case 'sin-cuenta':
           storage.set(K.ofrecida, true);
           cerrar();
-          showToast('Sigues sin cuenta. Puedes entrar cuando quieras desde Ajustes.');
+          showToast('Sin cuenta. Puedes entrar cuando quieras desde Ajustes.');
           break;
         case 'ver-clave': {
           const input = target.parentElement.querySelector('input');
@@ -9258,7 +9437,8 @@
       hi: { leer: () => library.hidden.slice(), conocida: () => true, aplicar: (c) => { library.hidden = c; storage.set(KEYS.hidden, c); } }
     };
 
-    const huellaPl = (p) => `${p.name}|${p.emoji || ''}|${p.color || ''}|${p.trackIds.join(',')}`;
+    // La portada propia se suma solo si hay: las huellas de las playlists sin portada no cambian
+    const huellaPl = (p) => `${p.name}|${p.emoji || ''}|${p.color || ''}|${p.trackIds.join(',')}${p.portada ? `|f:${p.portada}` : ''}`;
 
     function difPlaylists(meta) {
       const t = minAhora();
@@ -9273,7 +9453,7 @@
     }
 
     function plACompacta(p, meta) {
-      return { i: p.id, n: p.name, e: p.emoji || '', c: p.color || '', k: p.trackIds.map(aCorto), t: meta[p.id]?.t || 0, cr: p.createdAt || 0 };
+      return { i: p.id, n: p.name, e: p.emoji || '', c: p.color || '', f: portadaValida(p.portada), k: p.trackIds.map(aCorto), t: meta[p.id]?.t || 0, cr: p.createdAt || 0 };
     }
 
     function mezclarPlaylists(metaPl, remotas) {
@@ -9295,6 +9475,7 @@
       library.local = lista.filter((p) => !p.x).map((p) => {
         const previa = locales.get(p.i) || {};
         const pl = { ...previa, id: p.i, name: p.n, emoji: iconoGuardable(p.e || previa.emoji), color: p.c || previa.color || '#8a93a6',
+          portada: typeof p.f === 'string' ? portadaValida(p.f) : portadaValida(previa.portada),
           trackIds: (p.k || []).map(aLargo).filter(Boolean), createdAt: p.cr || previa.createdAt || Date.now() };
         metaPl[p.i] = { h: String(hashString(huellaPl(pl))), t: p.t || 0 };
         return pl;
@@ -9576,8 +9757,8 @@
       ui.dialog.addEventListener('close', () => {
         limpiarTemporizadores();
         storage.set(K.ofrecida, true);
-        // Primera visita: después de la cuenta, el tutorial
-        if (!storage.get(KEYS.tour, false)) setTimeout(() => tour.open(), 400);
+        // El tutorial ya no sale encadenado justo después de la cuenta (eran dos ventanas seguidas
+        // antes de oír nada): aparece en la próxima visita y siempre está en Ajustes → Ayuda
       });
       ui.dialog.addEventListener('click', (e) => { if (e.target === ui.dialog) cerrar(); });
       document.getElementById('cuentaBtn')?.addEventListener('click', () => abrir());
@@ -9937,7 +10118,9 @@
     navHistory.init();
     npSheet.init();
     // Mientras llega la biblioteca (primera visita), filas de esqueleto en vez de un hueco
-    if (!storage.get(KEYS.libraryCache, null)) {
+    let hasLibraryCopy = false;
+    try { hasLibraryCopy = localStorage.getItem(LIBRARY_IDB_FLAG) === '1' || localStorage.getItem(KEYS.libraryCache) !== null; } catch { /* sin acceso */ }
+    if (!hasLibraryCopy) {
       els.trackList.replaceChildren(...Array.from({ length: 8 }, () => {
         const li = makeEl('li', 'track-skeleton');
         li.setAttribute('aria-hidden', 'true');

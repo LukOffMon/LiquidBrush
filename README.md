@@ -23,7 +23,7 @@ La música vive en **5 buckets** de Cloudflare R2, cada uno en una cuenta distin
 | [`musica/db4.json`](musica/db4.json) | `liquidbulletdb66` | `https://pub-0854e4225565462db16fa787cf2ab81c.r2.dev` |
 | [`musica/db5.json`](musica/db5.json) | 5.º bucket | `https://pub-864cd199a5e04cb0b5faf77320b1e47b.r2.dev` |
 
-Para sumar otro bucket: añade una entrada en `CONFIG.sources` (en `app.js`) con `name`, `list` y `base`, crea `musica/<name>.json` y añádelo a la lista `SHELL` de `sw.js`.
+Para sumar otro bucket: añade una entrada en `CONFIG.sources` (en `app.js`) con `name`, `list` y `base`, crea `musica/<name>.json` y añádelo a la lista `DATA_FILES` de `sw.js`.
 
 Cada fila del archivo:
 
@@ -69,7 +69,7 @@ Al abrir la app vuelve a poner la última canción que sonaba, en el segundo exa
 
 - **Biblioteca**: todas las canciones, con orden configurable (playlists, título, artista, duración).
 - **Playlists**: las de Liquid Bullet (las del catálogo o, sin catálogo, una por cada `album`), **Mis playlists** y las automáticas *Escuchadas hace poco* y *Tus más escuchadas*.
-- **Mis playlists** se crean en la app (nombre, icono y color) con el botón + de cada canción. Se guardan **solo en ese navegador** (localStorage): si se borra la caché o los datos del sitio, se pierden. Se puede descargar o importar una copia de seguridad en JSON.
+- **Mis playlists** se crean en la app (nombre, **portada**, icono y color). Las 11 portadas de [`covers/propias/`](covers/propias/) son solo para las playlists de cada persona: `build_catalog.py` nunca las usa y `check_site.py` falla si el catálogo de base lleva alguna. Para sumar una, guarda `propia-NN.jpg` (600 px) y `propia-NN-sm.jpg` (320 px), añádela a `PORTADAS_PROPIAS` en `app.js` y ejecuta `tools/build_image_library.py` con el botón + de cada canción. Se guardan **solo en ese navegador** (localStorage): si se borra la caché o los datos del sitio, se pierden. Se puede descargar o importar una copia de seguridad en JSON.
 
 ## Inicio, Artistas y radio
 

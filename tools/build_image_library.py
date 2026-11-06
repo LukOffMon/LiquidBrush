@@ -3,7 +3,8 @@
 
 Cada imagen del proyecto tiene un TIPO, que dice para qué (y solo para qué) se usa:
 
-  portada-playlist  covers/cover-NN.jpg (+ -sm.jpg)          portada de una playlist
+  portada-playlist  covers/cover-NN.jpg (+ -sm.jpg)          portada de una playlist de Liquid Bullet
+  portada-propia    covers/propias/propia-NN.jpg (+ -sm.jpg)  portada que la persona elige para SUS playlists
   icono-cancion     covers/songs/song-NN.jpg (+ -sm.jpg)      icono que llevan las canciones
   fondo             wallpapers/NN.jpg                         fondo de pantalla de la app
   icono-fondo       wallpapers/icons/NN.jpg (+ -thumb.jpg)    botón para elegir el fondo
@@ -27,6 +28,8 @@ OUT = ROOT / 'imagenes.json'
 TYPES = {
     'portada-playlist': {'name': 'Portadas de playlist', 'folder': 'covers/', 'size': '600 × 600 px + versión -sm de 320 px',
                          'use': 'Solo como portada de su playlist (oficial o automática). Nunca para otra cosa: ni decoración, ni avatares, ni collages.'},
+    'portada-propia': {'name': 'Portadas para tus playlists', 'folder': 'covers/propias/', 'size': '600 × 600 px + versión -sm de 320 px',
+                       'use': 'Solo para las playlists que crea cada persona: se eligen en Nueva playlist / Editar playlist → Portada. Nunca se asignan a las playlists de base (catalog.json) ni a las automáticas, ni se usan para otra cosa.'},
     'icono-cancion': {'name': 'Iconos de canción', 'folder': 'covers/songs/', 'size': '600 × 600 px + versión -sm de 320 px',
                       'use': 'Solo como icono de su canción: cada canción usa el suyo y se reparten por igual entre todas las canciones. Nunca para otra cosa.'},
     'fondo': {'name': 'Fondos de pantalla', 'folder': 'wallpapers/', 'size': 'vertical, ~1600 px de alto',
@@ -47,6 +50,13 @@ TYPES = {
 def wallpaper_names():
     text = (ROOT / 'app.js').read_text(encoding='utf-8')
     return dict(re.findall(r"\{ id: '(\d+)', name: '([^']+)'", text))
+
+
+def propia_names():
+    # Los nombres salen de PORTADAS_PROPIAS en app.js (lo que se ve en el selector)
+    text = (ROOT / 'app.js').read_text(encoding='utf-8')
+    block = text.split('const PORTADAS_PROPIAS = [', 1)[1].split('];', 1)[0] if 'const PORTADAS_PROPIAS = [' in text else ''
+    return dict(re.findall(r"\{ id: '(\d+)', name: '([^']+)' \}", block))
 
 
 def main():
@@ -85,6 +95,12 @@ def main():
         names = cover_use.get(rel, [])
         add('portada-playlist', rel, sm if (ROOT / sm).exists() else None,
             ', '.join(names) if names else 'Libre (sin playlist)', f'Portada {path.stem[-2:]}')
+    nombres_propia = propia_names()
+    for path in sorted((ROOT / 'covers' / 'propias').glob('propia-[0-9][0-9].jpg')):
+        rel = f'covers/propias/{path.name}'
+        sm = f'covers/propias/{path.stem}-sm.jpg'
+        add('portada-propia', rel, sm if (ROOT / sm).exists() else None,
+            'Portada a elegir para tus playlists (nunca las de base)', nombres_propia.get(path.stem[-2:], f'Portada propia {path.stem[-2:]}'))
     for path in sorted((ROOT / 'covers' / 'songs').glob('song-[0-9][0-9].jpg')):
         rel = f'covers/songs/{path.name}'
         sm = f'covers/songs/{path.stem}-sm.jpg'

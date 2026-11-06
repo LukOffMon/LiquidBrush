@@ -67,6 +67,9 @@ def check_catalog():
         cover = pl.get('cover') if isinstance(pl, dict) else None
         if isinstance(cover, str) and cover.startswith('covers/') and not (ROOT / cover).exists():
             errors.append(f'catalog.json: no existe la portada {cover}')
+        src = cover.get('src') if isinstance(cover, dict) else cover
+        if isinstance(src, str) and 'covers/propias/' in src:
+            errors.append(f'catalog.json: «{pl.get("name")}» usa {src}, una portada reservada a las playlists de cada persona')
     load_json(ROOT / 'tracks.json')
 
 
@@ -87,10 +90,13 @@ def check_versions():
         worker = re.search(rf'{re.escape(name)}\?v=(\d+)', sw)
         if not page or not worker or page.group(1) != worker.group(1):
             errors.append(f'{name}: la versión ?v= de index.html y sw.js no coincide')
-    for entry in re.findall(r"^\s*'([^']+)',?$", sw.split('const SHELL = [')[1].split('];')[0], re.M):
-        file = entry.split('?')[0]
-        if file not in ('./', '') and not (ROOT / file).exists():
-            errors.append(f'sw.js: SHELL incluye «{entry}», que no existe')
+    for lista in ('SHELL', 'DATA_FILES'):
+        if f'const {lista} = [' not in sw:
+            continue
+        for entry in re.findall(r"^\s*'([^']+)',?$", sw.split(f'const {lista} = [')[1].split('];')[0], re.M):
+            file = entry.split('?')[0]
+            if file not in ('./', '') and not (ROOT / file).exists():
+                errors.append(f'sw.js: {lista} incluye «{entry}», que no existe')
 
 
 def check_manifest():

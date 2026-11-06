@@ -6,6 +6,12 @@
    "size": "600 × 600 px + versión -sm de 320 px",
    "use": "Solo como portada de su playlist (oficial o automática). Nunca para otra cosa: ni decoración, ni avatares, ni collages."
   },
+  "portada-propia": {
+   "name": "Portadas para tus playlists",
+   "folder": "covers/propias/",
+   "size": "600 × 600 px + versión -sm de 320 px",
+   "use": "Solo para las playlists que crea cada persona: se eligen en Nueva playlist / Editar playlist → Portada. Nunca se asignan a las playlists de base (catalog.json) ni a las automáticas, ni se usan para otra cosa."
+  },
   "icono-cancion": {
    "name": "Iconos de canción",
    "folder": "covers/songs/",
@@ -408,6 +414,94 @@
    "type": "portada-playlist",
    "label": "Portada 45",
    "usage": "Balada Eterna",
+   "notes": ""
+  },
+  {
+   "file": "covers/propias/propia-01.jpg",
+   "small": "covers/propias/propia-01-sm.jpg",
+   "type": "portada-propia",
+   "label": "Cromo encapuchado",
+   "usage": "Portada a elegir para tus playlists (nunca las de base)",
+   "notes": ""
+  },
+  {
+   "file": "covers/propias/propia-02.jpg",
+   "small": "covers/propias/propia-02-sm.jpg",
+   "type": "portada-propia",
+   "label": "Ola que mira",
+   "usage": "Portada a elegir para tus playlists (nunca las de base)",
+   "notes": ""
+  },
+  {
+   "file": "covers/propias/propia-03.jpg",
+   "small": "covers/propias/propia-03-sm.jpg",
+   "type": "portada-propia",
+   "label": "Tigres de luz",
+   "usage": "Portada a elegir para tus playlists (nunca las de base)",
+   "notes": ""
+  },
+  {
+   "file": "covers/propias/propia-04.jpg",
+   "small": "covers/propias/propia-04-sm.jpg",
+   "type": "portada-propia",
+   "label": "Dragón del desierto",
+   "usage": "Portada a elegir para tus playlists (nunca las de base)",
+   "notes": ""
+  },
+  {
+   "file": "covers/propias/propia-05.jpg",
+   "small": "covers/propias/propia-05-sm.jpg",
+   "type": "portada-propia",
+   "label": "Leopardo y destellos",
+   "usage": "Portada a elegir para tus playlists (nunca las de base)",
+   "notes": ""
+  },
+  {
+   "file": "covers/propias/propia-06.jpg",
+   "small": "covers/propias/propia-06-sm.jpg",
+   "type": "portada-propia",
+   "label": "Collage dorado",
+   "usage": "Portada a elegir para tus playlists (nunca las de base)",
+   "notes": ""
+  },
+  {
+   "file": "covers/propias/propia-07.jpg",
+   "small": "covers/propias/propia-07-sm.jpg",
+   "type": "portada-propia",
+   "label": "Cabeza de madera",
+   "usage": "Portada a elegir para tus playlists (nunca las de base)",
+   "notes": ""
+  },
+  {
+   "file": "covers/propias/propia-08.jpg",
+   "small": "covers/propias/propia-08-sm.jpg",
+   "type": "portada-propia",
+   "label": "Silueta de tigre",
+   "usage": "Portada a elegir para tus playlists (nunca las de base)",
+   "notes": ""
+  },
+  {
+   "file": "covers/propias/propia-09.jpg",
+   "small": "covers/propias/propia-09-sm.jpg",
+   "type": "portada-propia",
+   "label": "Caballeros de taberna",
+   "usage": "Portada a elegir para tus playlists (nunca las de base)",
+   "notes": ""
+  },
+  {
+   "file": "covers/propias/propia-10.jpg",
+   "small": "covers/propias/propia-10-sm.jpg",
+   "type": "portada-propia",
+   "label": "Lluvia verde",
+   "usage": "Portada a elegir para tus playlists (nunca las de base)",
+   "notes": ""
+  },
+  {
+   "file": "covers/propias/propia-11.jpg",
+   "small": "covers/propias/propia-11-sm.jpg",
+   "type": "portada-propia",
+   "label": "Cuerno ácido",
+   "usage": "Portada a elegir para tus playlists (nunca las de base)",
    "notes": ""
   },
   {
