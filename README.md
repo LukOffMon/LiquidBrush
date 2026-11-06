@@ -97,9 +97,16 @@ Liquid funciona como Spotify, pero con tu colección de MP3: todo se calcula en 
 - Las playlists propias viajan dentro del enlace (`s/mix.html#…`, hasta 150 canciones) y se guardan solas en «Mis playlists» de quien lo abre; su miniatura es el logo.
 - `tools/build_catalog.py` regenera las páginas de `s/` cada vez que se ejecuta. Si el sitio cambia de dirección, actualiza `SITE_URL` en ese script.
 
-## Lab
+## Liquid Lab (sitio aparte)
 
-Pestaña **Lab** (en el móvil, botón de la barra inferior):
+Lab vive en su propio sitio, [`lab.html`](lab.html) (**Liquid Lab**): la pestaña **Lab** de Liquid (y el botón de la barra inferior en el móvil) lleva ahí. Usa el mismo `app.js`, `styles.css`, biblioteca y gustos que Liquid Bullet, pero sin reproductor ni navegación.
+
+- **Guardar en Liquid**: guarda la mezcla como playlist propia (en el navegador y, con cuenta, en la nube) y vuelve a Liquid con ella abierta.
+- **Escuchar en Liquid**, **A la cola**, tocar una canción de la mezcla, «Si te gusta…» y **Radio**: vuelven a Liquid con la mezcla sonando o en la cola.
+- El paso de Lab a Liquid es una «entrega» en `localStorage` (`liquidbrush:lab-handoff`, caduca a los 10 minutos) que Liquid recoge al abrir. Lab no toca «Continúa donde lo dejaste».
+- `lab.html` **se genera** desde `index.html` con `python3 tools/build_lab.py` (lo hace `tools/bump_version.py`); `tools/check_site.py` falla si no está al día. No lo edites a mano.
+
+Lo que ofrece Liquid Lab:
 
 - **Recetas** de un toque: Lo mejor de ti, Descubrimiento profundo, Joyas olvidadas, Para este momento, Un artista por canción y Sal de tu burbuja.
 - **Mezcla estilos** (primero los tuyos) y **suma artistas y canciones semilla** (una canción trae su artista, sus parecidos y su estilo).

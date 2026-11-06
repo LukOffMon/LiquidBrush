@@ -1,6 +1,43 @@
 {
   "releases": [
     {
+      "version": "v57",
+      "date": "noviembre 2026",
+      "title": "Liquid Lab, ahora en su propio sitio",
+      "items": [
+        "Lab se separa de Liquid: al tocar Lab se abre Liquid Lab, un sitio dedicado al laboratorio de mezclas, sin el reproductor de por medio.",
+        "Con el mismo algoritmo, tu biblioteca y tus gustos de siempre: recetas, mezcla de estilos, artistas y canciones semilla, «Si te gusta…» y tu ADN musical.",
+        "«Guardar en Liquid» guarda la mezcla como playlist y te lleva a Liquid Bullet con ella abierta, igual que cualquier playlist tuya (y se sincroniza con tu cuenta).",
+        "«Escuchar en Liquid», «A la cola» y las radios te devuelven a Liquid con la mezcla sonando o en la cola.",
+        "Abrir Lab no toca la canción ni la cola de «Continúa donde lo dejaste»."
+      ]
+    },
+    {
+      "version": "v55",
+      "date": "noviembre 2026",
+      "title": "Se adapta a tu teléfono y va más fluida",
+      "items": [
+        "Liquid Bullet reconoce tu dispositivo, tu sistema (iPhone, iPad, Android, Windows, Mac…) y tu navegador (Safari, Chrome, Samsung Internet, Firefox, Edge…) y se adapta: pasos de instalar exactos para tu navegador, controles que tu teléfono sí admite y modo ligero automático en equipos modestos.",
+        "Si abres Liquid desde Instagram, TikTok, Facebook u otra app, te avisa de que ahí la música se corta al salir y te deja abrirla en Safari o en tu navegador con un toque.",
+        "Inicio aparece en la mitad de tiempo y el arranque bloquea la pantalla un 30 % menos en un móvil de gama media.",
+        "Buscar mientras escribes es mucho más ligero: busca dentro de los resultados anteriores y espera a que termines la palabra.",
+        "Desplazar la Biblioteca es más suave: cada fila se crea en la mitad de tiempo y el efecto de vidrio ya no se repite en cada botón.",
+        "En pantallas pequeñas (iPhone SE, Android de 360 px) ya no se desplaza la página de lado: la barra superior y las Recetas de Lab caben.",
+        "En Ajustes → Ayuda ves qué dispositivo detectó la app, y los informes de errores lo incluyen."
+      ]
+    },
+    {
+      "version": "v54",
+      "date": "noviembre 2026",
+      "title": "Las colaboraciones son de todos sus artistas",
+      "items": [
+        "En Sonando, una canción con varios artistas muestra una ficha por cada uno en «Acerca de los artistas», cada una con su botón Seguir.",
+        "Arriba, cada nombre es su propio enlace: toca el que quieras para ir a su página.",
+        "La canción cuenta para todos sus artistas: aparece en la página de cada uno, suma a sus escuchas en Stats y pesa igual en tus mixes y recomendaciones.",
+        "Artistas con «&», «y» o «x» en el nombre (Polo & Pan, Karen y Los Remedios, TOMORROW X TOGETHER…) ya no se cortan: vuelven a tener ficha, página y radio."
+      ]
+    },
+    {
       "version": "v53",
       "date": "noviembre 2026",
       "title": "Portadas para tus playlists",

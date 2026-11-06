@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<!-- Generado por tools/build_lab.py a partir de index.html: no lo edites a mano -->
+<html lang="es" data-theme="chrome" data-mode="lab">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://challenges.cloudflare.com 'sha256-9TRmdWG2mHi7bhsEvIwvqlasEjH6TPcNyF+KWeexVj8='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https:; worker-src 'self'; manifest-src 'self'; frame-src https://challenges.cloudflare.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Liquid Lab: mezcla estilos, artistas y canciones y crea playlists a tu medida. Lo que guardes aparece en tu Liquid Bullet.">
+  <meta name="theme-color" content="#100d1c">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Liquid Bullet">
+  <meta name="format-detection" content="telephone=no">
+  <title>Liquid Lab — el laboratorio de mezclas de Liquid Bullet</title>
+  <meta property="og:site_name" content="Liquid Bullet">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Liquid Lab">
+  <meta property="og:description" content="Liquid Lab: mezcla estilos, artistas y canciones y crea playlists a tu medida. Lo que guardes aparece en tu Liquid Bullet.">
+  <meta property="og:url" content="https://lukoffmon.github.io/LiquidBrush/lab.html">
+  <meta property="og:image" content="https://lukoffmon.github.io/LiquidBrush/og-image.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Liquid Bullet: música que se derrite">
+  <meta property="og:locale" content="es_ES">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Liquid Lab">
+  <meta name="twitter:description" content="Música que se derrite: tu reproductor web personal, surrealista y cromado.">
+  <meta name="twitter:image" content="https://lukoffmon.github.io/LiquidBrush/og-image.jpg">
+  <link rel="canonical" href="https://lukoffmon.github.io/LiquidBrush/lab.html">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="color-scheme" content="dark light">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"WebApplication","name":"Liquid Bullet","alternateName":"Liquid","url":"https://lukoffmon.github.io/LiquidBrush/","description":"Reproductor web personal de música, surrealista y cromado: playlists, letras sincronizadas, mixes diarios, radio y modo sin conexión.","applicationCategory":"MultimediaApplication","operatingSystem":"Web, Android, iOS","inLanguage":"es","image":"https://lukoffmon.github.io/LiquidBrush/og-image.jpg","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}
+  </script>
+  <link rel="icon" href="logo.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.png" type="image/png" sizes="64x64">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Las listas (musica/*.json, catalog.json) no se precargan: app.js las pide con otras
+       opciones de caché y el navegador las descargaba dos veces -->
+  <link rel="dns-prefetch" href="https://pub-cb798ce2901a49a6a6363d57fbd5ee19.r2.dev">
+  <link rel="dns-prefetch" href="https://pub-b05e243e7441423f9c4a25dfe8411da3.r2.dev">
+  <link rel="dns-prefetch" href="https://pub-342aee3eb054410cb02224940f684884.r2.dev">
+  <link rel="dns-prefetch" href="https://pub-0854e4225565462db16fa787cf2ab81c.r2.dev">
+  <link rel="dns-prefetch" href="https://pub-864cd199a5e04cb0b5faf77320b1e47b.r2.dev">
+  <link rel="dns-prefetch" href="https://lrclib.net">
+  <link rel="stylesheet" href="styles.css?v=44">
+  <script>
+    /* Aplica el tema, la fuente y el tamaño de letra guardados antes de pintar (sin parpadeos) */
+    (function () {
+      var root = document.documentElement;
+      /* Dispositivo, sistema y navegador: se detectan una vez, antes de pintar, y la app se adapta
+         (iPhone y Android no se comportan igual; los navegadores de Instagram o TikTok cortan la música) */
+      try {
+        var ua = navigator.userAgent || '';
+        var touch = navigator.maxTouchPoints > 1;
+        var ipados = /Macintosh/.test(ua) && touch;
+        var os = /iPhone|iPod/.test(ua) ? 'ios' : (/iPad/.test(ua) || ipados) ? 'ipados' : /Android/.test(ua) ? 'android'
+          : /CrOS/.test(ua) ? 'chromeos' : /Windows/.test(ua) ? 'windows' : /Mac OS X|Macintosh/.test(ua) ? 'macos' : /Linux/.test(ua) ? 'linux' : 'otro';
+        var apple = os === 'ios' || os === 'ipados';
+        var version = 0;
+        var vm = apple ? /OS (\d+)[_.](\d+)/.exec(ua) || /Version\/(\d+)\.(\d+)/.exec(ua) : os === 'android' ? /Android (\d+)(?:\.(\d+))?/.exec(ua) : null;
+        if (vm) version = Number(vm[1]) + (Number(vm[2]) || 0) / 100;
+        var inapp = /Instagram/.test(ua) ? 'instagram' : /FBAN|FBAV|FB_IAB|FBIOS/.test(ua) ? 'facebook' : /musical_ly|TikTok|Bytedance|BytedanceWebview/i.test(ua) ? 'tiktok'
+          : /Snapchat/.test(ua) ? 'snapchat' : /Twitter/.test(ua) ? 'x' : /Line\//.test(ua) ? 'line' : /GSA\//.test(ua) ? 'google'
+          : (os === 'android' && /; wv\)/.test(ua)) ? 'webview' : '';
+        var browser = inapp ? 'inapp' : /SamsungBrowser/.test(ua) ? 'samsung' : /EdgA?\/|EdgiOS/.test(ua) ? 'edge' : /OPR\/|OPiOS|Opera/.test(ua) ? 'opera'
+          : /Firefox\/|FxiOS/.test(ua) ? 'firefox' : /CriOS|Chrome\//.test(ua) ? 'chrome' : /Safari\//.test(ua) ? 'safari' : 'otro';
+        var device = os === 'ipados' || (os === 'android' && !/Mobile/.test(ua)) ? 'tablet'
+          : (apple || os === 'android' || /Mobi/.test(ua)) ? 'phone' : 'desktop';
+        var standalone = (window.matchMedia && (matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: minimal-ui)').matches)) || navigator.standalone === true;
+        var memory = navigator.deviceMemory || 0;
+        var cores = navigator.hardwareConcurrency || 0;
+        var connection = navigator.connection || {};
+        /* iPhone y iPad informan pocos núcleos y ninguna memoria, pero mueven el vidrio sin problema */
+        var lowEnd = !apple && ((memory && memory <= 2) || (cores && cores <= 4 && device !== 'desktop'));
+        window.lbDevice = {
+          os: os, osVersion: version, apple: apple, browser: browser, inapp: inapp,
+          engine: apple ? 'webkit' : /Firefox\//.test(ua) ? 'gecko' : /Chrome\//.test(ua) ? 'blink' : /Safari\//.test(ua) ? 'webkit' : 'otro',
+          device: device, touch: touch || (window.matchMedia && matchMedia('(pointer: coarse)').matches), standalone: Boolean(standalone),
+          memory: memory, cores: cores, lowEnd: Boolean(lowEnd), saveData: connection.saveData === true,
+          slowNet: ['slow-2g', '2g'].indexOf(connection.effectiveType) !== -1
+        };
+        root.setAttribute('data-os', os);
+        root.setAttribute('data-browser', browser);
+        root.setAttribute('data-device', device);
+        if (apple) root.classList.add('is-ios');
+        if (inapp) root.classList.add('is-inapp');
+        if (standalone) root.classList.add('is-standalone');
+        if (lowEnd) root.classList.add('is-lowend');
+      } catch (e) { /* sin detección: la app funciona igual */ }
+      root.setAttribute('data-font', 'street');
+      root.setAttribute('data-text', 'system');
+      try {
+        var saved = JSON.parse(localStorage.getItem('liquidbrush:theme'));
+        if (['chrome', 'minimal', 'yem', 'ebano'].indexOf(saved) !== -1) root.setAttribute('data-theme', saved);
+        var settings = JSON.parse(localStorage.getItem('liquidbrush:settings')) || {};
+        if (['street', 'graffiti', 'classic'].indexOf(settings.font) !== -1) root.setAttribute('data-font', settings.font);
+        if (['system', 'small', 'normal', 'large', 'xl'].indexOf(settings.textSize) !== -1) root.setAttribute('data-text', settings.textSize);
+        if (settings.motion === false) root.classList.add('no-motion');
+        if (settings.ultra === true) root.classList.add('ultra', 'lite', 'no-motion');
+        if ((!settings.wall || settings.wall.mode !== 'off') && settings.ultra !== true) root.classList.add('has-wall');
+      } catch (e) { /* sin acceso a localStorage */ }
+      /* Solo se descargan las letras tipográficas del tema y la fuente elegidos (antes, las seis siempre) */
+      var FONT_URL = {
+        inter: 'Inter:wght@400;600;700;800',
+        marker: 'Permanent+Marker',
+        sedgwick: 'Sedgwick+Ave',
+        rubik: 'Rubik+Wet+Paint',
+        syne: 'Syne:wght@700;800',
+        tinos: 'Tinos:ital,wght@0,400;0,700;1,400'
+      };
+      window.lbLoadFonts = function (theme, font) {
+        /* Modo ultraligero: letras del sistema, nada que descargar */
+        if (document.documentElement.classList.contains('ultra')) return;
+        var need = ['inter'];
+        if (theme === 'ebano') need.push('tinos');
+        else {
+          if (theme === 'chrome' || theme === 'yem') need.push('rubik', 'syne');
+          if (font === 'street') need.push('marker');
+          if (font === 'graffiti') need.push('sedgwick', 'marker');
+        }
+        need.forEach(function (key) {
+          if (document.getElementById('font-' + key)) return;
+          var link = document.createElement('link');
+          link.id = 'font-' + key;
+          link.rel = 'stylesheet';
+          link.href = 'https://fonts.googleapis.com/css2?family=' + FONT_URL[key] + '&display=swap';
+          document.head.appendChild(link);
+        });
+      };
+      window.lbLoadFonts(root.getAttribute('data-theme'), root.getAttribute('data-font'));
+    })();
+  </script>
+</head>
+<body>
+  <div class="bg-glow" aria-hidden="true"></div>
+
+  <!-- Degradados compartidos por la escena surrealista (no usar display:none: rompe los degradados) -->
+  <svg class="svg-defs" aria-hidden="true" focusable="false">
+    <defs>
+      <linearGradient id="chrome-v" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#ffffff"/>
+        <stop offset=".22" stop-color="#c5cddb"/>
+        <stop offset=".46" stop-color="#4e5566"/>
+        <stop offset=".53" stop-color="#262a35"/>
+        <stop offset=".62" stop-color="#d9e0ea"/>
+        <stop offset=".82" stop-color="#8790a3"/>
+        <stop offset="1" stop-color="#f4f7fb"/>
+      </linearGradient>
+      <linearGradient id="chrome-h" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#5a6273"/>
+        <stop offset=".3" stop-color="#ffffff"/>
+        <stop offset=".55" stop-color="#7c8597"/>
+        <stop offset=".75" stop-color="#e6ebf3"/>
+        <stop offset="1" stop-color="#3f4554"/>
+      </linearGradient>
+      <radialGradient id="melt-face" cx=".4" cy=".3" r=".85">
+        <stop offset="0" stop-color="#ffffff"/>
+        <stop offset=".55" stop-color="#e4e8f0"/>
+        <stop offset="1" stop-color="#9aa2b4"/>
+      </radialGradient>
+      <radialGradient id="iris-grad">
+        <stop offset="0" stop-color="#1b1030"/>
+        <stop offset=".35" stop-color="#6a5cff"/>
+        <stop offset=".6" stop-color="#4fd6ff"/>
+        <stop offset=".85" stop-color="#ff8fd8"/>
+        <stop offset="1" stop-color="#2b1d4a"/>
+      </radialGradient>
+      <clipPath id="eye-clip"><path d="M4 35 Q60 -14 116 35 Q60 84 4 35 Z"/></clipPath>
+    </defs>
+  </svg>
+
+  <!-- Escena surrealista (solo visible con el tema "Cromo Surreal") -->
+  <div class="surreal" aria-hidden="true">
+    <div class="chrome-sun"></div>
+    <div class="cloud cloud-1"></div>
+    <div class="cloud cloud-2"></div>
+    <div class="cloud cloud-3"></div>
+    <div class="floor"></div>
+
+    <svg class="ladder" viewBox="0 0 60 300" preserveAspectRatio="xMidYMax meet">
+      <rect x="4" y="0" width="6" height="300" rx="3" fill="url(#chrome-h)"/>
+      <rect x="50" y="0" width="6" height="300" rx="3" fill="url(#chrome-h)"/>
+      <rect x="6" y="28" width="48" height="5" rx="2.5" fill="url(#chrome-v)"/>
+      <rect x="6" y="68" width="48" height="5" rx="2.5" fill="url(#chrome-v)"/>
+      <rect x="6" y="108" width="48" height="5" rx="2.5" fill="url(#chrome-v)"/>
+      <rect x="6" y="148" width="48" height="5" rx="2.5" fill="url(#chrome-v)"/>
+      <rect x="6" y="188" width="48" height="5" rx="2.5" fill="url(#chrome-v)"/>
+      <rect x="6" y="228" width="48" height="5" rx="2.5" fill="url(#chrome-v)"/>
+      <rect x="6" y="268" width="48" height="5" rx="2.5" fill="url(#chrome-v)"/>
+    </svg>
+
+    <svg class="melting-clock" viewBox="0 0 240 220">
+      <rect x="8" y="116" width="226" height="12" rx="6" fill="url(#chrome-v)"/>
+      <path d="M30 70C30 30 80 15 130 18C185 21 215 45 212 85C210 110 196 118 180 122C168 126 164 140 166 165C168 190 160 208 148 208C135 208 131 192 134 168C137 140 128 128 112 130C98 132 94 140 92 152C90 162 84 168 78 166C70 164 70 152 70 142C70 130 60 124 46 120C34 116 30 100 30 70Z" fill="url(#melt-face)" stroke="url(#chrome-v)" stroke-width="6" stroke-linejoin="round"/>
+      <g stroke="#3a3f4f" stroke-width="3" stroke-linecap="round">
+        <line x1="120" y1="27" x2="120" y2="35"/>
+        <line x1="180" y1="72" x2="172" y2="72"/>
+        <line x1="60" y1="74" x2="68" y2="74"/>
+      </g>
+      <ellipse cx="150" cy="172" rx="2.5" ry="15" fill="#3a3f4f"/>
+      <g class="clock-hand clock-hour"><line x1="120" y1="72" x2="120" y2="50" stroke="#2a2e3a" stroke-width="5" stroke-linecap="round"/></g>
+      <g class="clock-hand clock-minute"><line x1="120" y1="72" x2="152" y2="58" stroke="#2a2e3a" stroke-width="3" stroke-linecap="round"/></g>
+      <circle cx="120" cy="72" r="5" fill="url(#chrome-v)"/>
+    </svg>
+
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+    <div class="blob blob-4"></div>
+
+    <div class="eye eye-1">
+      <svg viewBox="0 0 120 70">
+        <g class="eye-blink">
+          <path d="M4 35 Q60 -14 116 35 Q60 84 4 35 Z" fill="url(#melt-face)"/>
+          <g clip-path="url(#eye-clip)">
+            <g class="eye-wander">
+              <g class="eye-iris">
+                <circle cx="60" cy="35" r="20" fill="url(#iris-grad)"/>
+                <circle cx="60" cy="35" r="8" fill="#07060c"/>
+                <circle cx="53" cy="28" r="4" fill="#ffffff" opacity=".9"/>
+              </g>
+            </g>
+          </g>
+          <path d="M4 35 Q60 -14 116 35 Q60 84 4 35 Z" fill="none" stroke="url(#chrome-v)" stroke-width="4"/>
+        </g>
+      </svg>
+    </div>
+    <div class="eye eye-2">
+      <svg viewBox="0 0 120 70">
+        <g class="eye-blink">
+          <path d="M4 35 Q60 -14 116 35 Q60 84 4 35 Z" fill="url(#melt-face)"/>
+          <g clip-path="url(#eye-clip)">
+            <g class="eye-wander">
+              <g class="eye-iris">
+                <circle cx="60" cy="35" r="20" fill="url(#iris-grad)"/>
+                <circle cx="60" cy="35" r="8" fill="#07060c"/>
+                <circle cx="53" cy="28" r="4" fill="#ffffff" opacity=".9"/>
+              </g>
+            </g>
+          </g>
+          <path d="M4 35 Q60 -14 116 35 Q60 84 4 35 Z" fill="none" stroke="url(#chrome-v)" stroke-width="4"/>
+        </g>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Fondo de pantalla: dos capas que se funden, partículas y mini iconos flotando -->
+  <div id="wallpaper" class="wallpaper" aria-hidden="true">
+    <div id="wallStage" class="wall-stage">
+      <div class="wall-layer"></div>
+      <div class="wall-layer"></div>
+    </div>
+    <div class="wall-scrim"></div>
+    <canvas id="wallLife" class="wall-life"></canvas>
+  </div>
+
+  <!-- Iconos SVG reutilizables -->
+  <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+    <symbol id="i-brush" viewBox="0 0 24 24"><path d="M7 14c-1.66 0-3 1.34-3 3 0 1.31-1.16 2-2 2 .92 1.22 2.49 2 4 2 2.21 0 4-1.79 4-4 0-1.66-1.34-3-3-3zm13.71-9.37-1.34-1.34a.996.996 0 0 0-1.41 0L9 12.25 11.75 15l8.96-8.96a.996.996 0 0 0 0-1.41z"/></symbol>
+    <symbol id="i-note" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/></symbol>
+    <symbol id="i-download-done" viewBox="0 0 24 24"><path d="M5 18h14v2H5v-2zm4.6-2.7L5 10.7l2-1.9 2.6 2.6L17 4l2 2-9.4 9.3z"/></symbol>
+    <symbol id="i-playlist-add" viewBox="0 0 24 24"><path d="M14 10H3v2h11v-2zm0-4H3v2h11V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM3 16h7v-2H3v2z"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M5 20h14v-2H5v2zm0-10h4v6h6v-6h4l-7-7-7 7z"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></symbol>
+    <symbol id="i-delete" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></symbol>
+    <symbol id="i-cloud-off" viewBox="0 0 24 24"><path d="M19.35 10.04A7.49 7.49 0 0 0 12 4c-1.48 0-2.85.43-4.01 1.17l1.46 1.46A5.47 5.47 0 0 1 12 6a5.5 5.5 0 0 1 5.5 5.5v.5H19a3 3 0 0 1 1.22 5.74l1.45 1.45A5 5 0 0 0 19.35 10.04zM3 5.27l2.75 2.74C2.56 8.15 0 10.77 0 14a6 6 0 0 0 6 6h11.73l2 2L21 20.73 4.27 4 3 5.27zM7.73 10l8 8H6a4 4 0 0 1 0-8h1.73z"/></symbol>
+    <symbol id="i-thumb-down" viewBox="0 0 24 24"><path d="M15 3H6c-.83 0-1.54.5-1.84 1.22l-3.02 7.05A2 2 0 0 0 1 12v2a2 2 0 0 0 2 2h6.31l-.95 4.57-.03.32c0 .41.17.79.44 1.06L9.83 23l6.59-6.59c.36-.36.58-.86.58-1.41V5a2 2 0 0 0-2-2zm4 0v12h4V3h-4z"/></symbol>
+    <symbol id="i-cast" viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v3h2V5h18v14h-7v2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2a5 5 0 0 1 5 5h2c0-3.87-3.13-7-7-7zm0-4v2a9 9 0 0 1 9 9h2c0-6.08-4.93-11-11-11z"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></symbol>
+    <symbol id="i-disc" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 7.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5z"/></symbol>
+    <symbol id="i-headphones" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 3a9 9 0 0 0-9 9v6a3 3 0 0 0 3 3h2v-8H5v-1a7 7 0 0 1 14 0v1h-3v8h2a3 3 0 0 0 3-3v-6a9 9 0 0 0-9-9z"/></symbol>
+    <symbol id="i-flame" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M13.5 1.5s.7 2.5.7 4.5c0 1.9-1.3 3.5-3.2 3.5S7.6 8 7.6 6.1l.03-.34C5.7 8 4.5 11.2 4.5 14.2c0 4.1 3.4 7.3 7.5 7.3s7.5-3.2 7.5-7.3c0-5-2.4-9.5-6-12.7z"/></symbol>
+    <symbol id="i-bubbles" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M8 12a5 5 0 1 0 0 10 5 5 0 0 0 0-10zM17 6a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM9 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 2l2.3 6.7L21 11l-6.7 2.3L12 20l-2.3-6.7L3 11l6.7-2.3zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5-4.8-4.6 6.6-.9z"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M13 2L4 14h6l-1 8 9-12h-6z"/></symbol>
+    <symbol id="i-cherry" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M7.5 12.5a4.25 4.25 0 1 0 0 8.5 4.25 4.25 0 0 0 0-8.5zm9.5-1a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM9.2 12.8C10.5 8.6 13.7 5 18.6 3.3l.6 1.8c-3.4 1.2-6 3.8-7.4 6.9 1.4.2 2.7.8 3.6 1.6l-1.3 1.4c-1.1-.9-2.6-1.4-4.2-1.4-.3 0-.5-.6-.7-.8z"/></symbol>
+    <symbol id="i-wave" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M2 10c2.5-3 5-3 7.5 0s5 3 7.5 0 3.5-2.4 5-1.5v3c-1.5-.9-2.5 0-5 1.5s-5 3-7.5 0-5-3-7.5 0zm0 6c2.5-3 5-3 7.5 0s5 3 7.5 0 3.5-2.4 5-1.5v3c-1.5-.9-2.5 0-5 1.5s-5 3-7.5 0-5-3-7.5 0z"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 2a8 8 0 1 1 0 16 8 8 0 0 1 0-16zm-1 3v6l5 3 1-1.6-4-2.4V7z"/></symbol>
+    <symbol id="i-trophy" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M7 3h10v2h4v3a5 5 0 0 1-4.6 5 5 5 0 0 1-3.4 2.8V18h3v3H8v-3h3v-2.2A5 5 0 0 1 7.6 13 5 5 0 0 1 3 8V5h4zM5 7v1a3 3 0 0 0 2 2.8V7zm14 0h-2v3.8A3 3 0 0 0 19 8z"/></symbol>
+    <symbol id="i-gift" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M20 7h-2.3A3 3 0 0 0 12 4.4 3 3 0 0 0 6.3 7H4a1 1 0 0 0-1 1v3h8V7h2v4h8V8a1 1 0 0 0-1-1zM9.2 7a1.2 1.2 0 1 1 1.3-1.2V7zm4.3 0V5.8A1.2 1.2 0 1 1 14.8 7zM4 13v7a1 1 0 0 0 1 1h6v-8zm9 0v8h6a1 1 0 0 0 1-1v-7z"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></symbol>
+    <symbol id="i-cloud" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M19.4 10.1A7.5 7.5 0 0 0 5.4 8.3 5.9 5.9 0 0 0 6 20h13a5 5 0 0 0 .4-9.9z"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M8 1h8a3 3 0 0 1 3 3v16a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3V4a3 3 0 0 1 3-3zm0 3v14h8V4zm4 15.5a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/></symbol>
+    <symbol id="i-laptop" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M5 4h14a2 2 0 0 1 2 2v9H3V6a2 2 0 0 1 2-2zm0 2v7h14V6zM1 17h22v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2z"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M17 9V7A5 5 0 0 0 7 7v2H5v13h14V9zM9 7a3 3 0 0 1 6 0v2H9zm3 6a2 2 0 0 1 1 3.7V19h-2v-2.3A2 2 0 0 1 12 13z"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M3 20h18v2H3zM5 11h3v7H5zm5.5-6h3v13h-3zM16 14h3v4h-3z"/></symbol>
+    <symbol id="i-compass" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm4.6 5.4l-2.7 6.5-6.5 2.7 2.7-6.5zM12 10.6a1.4 1.4 0 1 0 0 2.8 1.4 1.4 0 0 0 0-2.8z"/></symbol>
+    <symbol id="i-gem" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M6.5 3h11L22 9l-10 12L2 9zm1.1 2L5 8h3.8l1.5-3zm4.4.2L10.9 8h2.2zm2-.2l1.5 3H19l-2.6-3zM4.9 10l5.3 6.4L8 10zm5.2 0L12 16.7 13.9 10zm6 0l-2.2 6.4 5.3-6.4z"/></symbol>
+    <symbol id="i-dice" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm2.5 2.5a1.75 1.75 0 1 0 0 3.5 1.75 1.75 0 0 0 0-3.5zm9 0a1.75 1.75 0 1 0 0 3.5 1.75 1.75 0 0 0 0-3.5zm-4.5 4.75a1.75 1.75 0 1 0 0 3.5 1.75 1.75 0 0 0 0-3.5zm-4.5 4.75a1.75 1.75 0 1 0 0 3.5 1.75 1.75 0 0 0 0-3.5zm9 0a1.75 1.75 0 1 0 0 3.5 1.75 1.75 0 0 0 0-3.5z"/></symbol>
+    <symbol id="i-question" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 15.5h-2v-2h2zm1.9-7.3l-.9.9c-.8.8-1 1.4-1 2.4h-2v-.5c0-1.2.4-2.1 1.3-3l1.2-1.2a1.7 1.7 0 1 0-2.9-1.2H8.7a3.4 3.4 0 1 1 6.2 2.6z"/></symbol>
+    <symbol id="i-scale" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M11 2h2v3h6l3 7.5a3.5 3.5 0 0 1-7 0L17.7 7H13v12h4v2H7v-2h4V7H6.3L9 12.5a3.5 3.5 0 0 1-7 0L5 5h6zM5.5 8.5L3.8 12h3.4zm13 0L16.8 12h3.4z"/></symbol>
+    <symbol id="i-toolbox" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M9 3h6a2 2 0 0 1 2 2v2h4a1 1 0 0 1 1 1v4H2V8a1 1 0 0 1 1-1h4V5a2 2 0 0 1 2-2zm0 2v2h6V5zM2 14h8v2h4v-2h8v5a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z"/></symbol>
+    <symbol id="i-arrow-up" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 4l7 7h-4.5v9h-5v-9H5z"/></symbol>
+    <symbol id="i-inbox" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M5 3h14l2 9v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7zm1.6 2l-1.4 6H9a3 3 0 0 0 6 0h3.8l-1.4-6z"/></symbol>
+    <symbol id="i-mic" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 2a3.5 3.5 0 0 1 3.5 3.5v6a3.5 3.5 0 0 1-7 0v-6A3.5 3.5 0 0 1 12 2zM5 11h2a5 5 0 0 0 10 0h2a7 7 0 0 1-6 6.9V21h-2v-3.1A7 7 0 0 1 5 11z"/></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M10.6 13.4a1 1 0 0 1 0-1.4l3.5-3.5a1 1 0 1 1 1.4 1.4L12 13.4a1 1 0 0 1-1.4 0zM7 17a3 3 0 0 1 0-4.2l2.1-2.1-1.4-1.4-2.1 2.1a5 5 0 0 0 7 7l2.1-2.1-1.4-1.4-2.1 2.1A3 3 0 0 1 7 17zm11.4-11.4a5 5 0 0 0-7 0L9.3 7.7l1.4 1.4 2.1-2.1a3 3 0 0 1 4.2 4.2l-2.1 2.1 1.4 1.4 2.1-2.1a5 5 0 0 0 0-7z"/></symbol>
+    <symbol id="i-feather" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M20.2 3.8C16 2.4 9.6 4.5 6.5 9.6c-1.3 2.2-1.9 4.7-1.9 7.1L2 19.3 3.4 20.7l2.6-2.6c2.4 0 4.9-.6 7.1-1.9 2.3-1.4 4.2-3.5 5.3-5.8H14l5-2.2c.6-1.4 1-2.9 1.2-4.4z"/></symbol>
+    <symbol id="i-thumb-up" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M2 10h4v11H2zm6 11h9.2a2 2 0 0 0 2-1.6l1.6-7.4A2 2 0 0 0 18.8 9.6H14l.9-4.3A1.9 1.9 0 0 0 11.6 4L8 9z"/></symbol>
+    <symbol id="i-repeat-alt" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M7 7h10v3l4-4-4-4v3H5v6h2zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2z"/></symbol>
+    <symbol id="i-user-plus" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M10 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9zm0 2c-3.6 0-8 1.8-8 5v2h12.3A6 6 0 0 1 14 14.4c-1.2-.3-2.6-.4-4-.4zm9-1v3h3v2h-3v3h-2v-3h-3v-2h3v-3z"/></symbol>
+    <symbol id="i-trend-up" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M3 17.6L9.2 11.4l4 4L19.6 9H16V7h7v7h-2v-3.6l-7.8 7.8-4-4L4.4 19z"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.14v13.72a1 1 0 0 0 1.52.85l10.79-6.86a1 1 0 0 0 0-1.7L9.52 4.29A1 1 0 0 0 8 5.14z"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></symbol>
+    <symbol id="i-prev" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></symbol>
+    <symbol id="i-next" viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></symbol>
+    <symbol id="i-shuffle" viewBox="0 0 24 24"><path d="M10.59 9.17 5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></symbol>
+    <symbol id="i-repeat" viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></symbol>
+    <symbol id="i-repeat-one" viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4zm-4-2V9h-1l-2 1v1h1.5v4H13z"/></symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24"><path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3zm-4.4 15.55-.1.1-.1-.1C7.14 14.24 4 11.39 4 8.5 4 6.5 5.5 5 7.5 5c1.54 0 3.04.99 3.57 2.36h1.87C13.46 5.99 14.96 5 16.5 5c2 0 3.5 1.5 3.5 3.5 0 2.89-3.14 5.74-7.9 10.05z"/></symbol>
+    <symbol id="i-heart-fill" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></symbol>
+    <symbol id="i-volume-high" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></symbol>
+    <symbol id="i-volume-low" viewBox="0 0 24 24"><path d="M18.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM5 9v6h4l5 5V4L9 9H5z"/></symbol>
+    <symbol id="i-volume-mute" viewBox="0 0 24 24"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3 3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4 9.91 6.09 12 8.18V4z"/></symbol>
+    <symbol id="i-lyrics" viewBox="0 0 24 24"><path d="M3 5h18v2H3zm0 4h12v2H3zm0 4h18v2H3zm0 4h12v2H3zm15-1.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM20.5 9v8h-1.6V9z"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.31.06-.62.06-.94s-.02-.63-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.62l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54A.48.48 0 0 0 13.92 2h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.48.48 0 0 0-.59.22L2.73 8.47c-.12.21-.07.48.12.62l2.03 1.58c-.05.31-.08.64-.08.94s.02.63.07.94l-2.03 1.58a.49.49 0 0 0-.12.62l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.48.48 0 0 0-.12-.62l-2.01-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24"><path d="M3 5h4v4H3V5zm6 1h12v2H9V6zM3 10h4v4H3v-4zm6 1h12v2H9v-2zm-6 4h4v4H3v-4zm6 1h12v2H9v-2z"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M16 3v2h-1v6l2 3v2h-4.2v5h-1.6v-5H7v-2l2-3V5H8V3h8z"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M12 3 2 11.5h3V21h5.5v-6h3v6H19v-9.5h3L12 3z"/></symbol>
+    <symbol id="i-library" viewBox="0 0 24 24"><path d="M4 3h2v18H4V3zm4 0h2v18H8V3zm4.2.6 1.9-.6 5.6 17.4-1.9.6-5.6-17.4z"/></symbol>
+    <symbol id="i-queue" viewBox="0 0 24 24"><path d="M3 6h12v2H3V6zm0 4h12v2H3v-2zm0 4h8v2H3v-2zm14-4v6.27A2.5 2.5 0 1 0 18.5 19V12H22v-2h-5z"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12.3 2a9.7 9.7 0 1 0 9.7 11.6A7.7 7.7 0 0 1 12.3 2z"/></symbol>
+    <symbol id="i-play-next" viewBox="0 0 24 24"><path d="M3 10h11v2H3v-2zm0-4h11v2H3V6zm0 8h7v2H3v-2zm13-1v8l6-4-6-4z"/></symbol>
+    <symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 2h6v2h-1v5.2l5.6 9.4A2.2 2.2 0 0 1 17.7 22H6.3a2.2 2.2 0 0 1-1.9-3.4L10 9.2V4H9V2zm3 8.2L9.2 15h5.6L12 10.2zM8 17l-1.7 3h11.4L16 17H8z"/></symbol>
+    <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 2.6l4.7 4.7-1.4 1.4L13 6.4V15h-2V6.4L8.7 8.7 7.3 7.3 12 2.6zM5 10h3v2H6v8h12v-8h-2v-2h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V11a1 1 0 0 1 1-1z"/></symbol>
+    <symbol id="i-radio" viewBox="0 0 24 24"><path d="M12 10.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM7.76 7.76l1.41 1.41a4 4 0 0 0 0 5.66l-1.41 1.41a6 6 0 0 1 0-8.48zm8.48 0a6 6 0 0 1 0 8.48l-1.41-1.41a4 4 0 0 0 0-5.66l1.41-1.41zM4.93 4.93l1.41 1.41a8 8 0 0 0 0 11.32l-1.41 1.41a10 10 0 0 1 0-14.14zm14.14 0a10 10 0 0 1 0 14.14l-1.41-1.41a8 8 0 0 0 0-11.32l1.41-1.41z"/></symbol>
+    <symbol id="i-person" viewBox="0 0 24 24"><path d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9zm0 2c-4.4 0-8 2.2-8 5v2h16v-2c0-2.8-3.6-5-8-5z"/></symbol>
+    <symbol id="i-drag" viewBox="0 0 24 24"><path d="M4 8h16v2H4V8zm0 6h16v2H4v-2z"/></symbol>
+    <symbol id="i-mail" viewBox="0 0 24 24"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></symbol>
+    <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46A11.8 11.8 0 0 0 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78 3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z"/></symbol>
+    <symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 3a9 9 0 0 0 0 18c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></symbol>
+  </svg>
+
+  <a class="skip-link" href="#searchInput">Saltar al contenido</a>
+  <p id="announcer" class="sr-only" aria-live="polite" aria-atomic="true"></p>
+  <div class="app">
+    <!-- Barra superior -->
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="Volver a Liquid Bullet">
+        <img class="brand-logo" src="logo.svg" alt="" width="36" height="36">
+        <span class="brand-name">Liquid<span>Lab</span></span>
+      </a>
+      <div class="topbar-actions">
+      <a class="btn lab-back" href="./" aria-label="Volver a Liquid Bullet"><svg class="icon" aria-hidden="true"><use href="#i-back"></use></svg><span>Volver a Liquid</span></a>
+      <span id="offlinePill" class="offline-pill" role="status" hidden>
+        <svg class="icon" aria-hidden="true"><use href="#i-cloud-off"></use></svg> Sin conexión
+      </span>
+      <button id="wallBtn" class="wall-btn" type="button" aria-label="Cambiar el fondo de pantalla" title="Otro fondo">
+        <img id="wallBtnImg" src="wallpapers/icons/01.jpg" alt="" width="36" height="36">
+      </button>
+      <button id="cuentaBtn" class="icon-btn cuenta-btn" type="button" aria-label="Iniciar sesión o crear cuenta" title="Iniciar sesión">
+        <svg class="icon" aria-hidden="true"><use href="#i-person"></use></svg>
+      </button>
+      <button id="settingsBtn" class="icon-btn settings-btn" type="button" aria-label="Configuración" title="Configuración">
+        <svg class="icon" aria-hidden="true"><use href="#i-settings"></use></svg>
+        <span class="settings-btn-label">Ajustes</span>
+      </button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <!-- Canción actual -->
+      <section class="now-playing" aria-labelledby="npTitle">
+        <span class="np-grab" aria-hidden="true"></span>
+        <button id="npClose" class="icon-btn np-close" type="button" aria-label="Cerrar Sonando" title="Cerrar">
+          <svg class="icon" aria-hidden="true"><use href="#i-chevron"></use></svg>
+        </button>
+        <div class="cover-wrap">
+          <img id="cover" class="cover" alt="Carátula" width="300" height="300">
+        </div>
+
+        <div class="np-info">
+          <div class="np-text">
+            <button id="npContext" class="np-eyebrow np-context" type="button" title="Ir a lo que suena">Cargando biblioteca…</button>
+            <h1 id="npTitle" class="np-title">Liquid Bullet</h1>
+            <p id="npArtist" class="np-artist">Música que se derrite en tus oídos.</p>
+            <p id="npAlbum" class="np-album"></p>
+          </div>
+          <div class="np-buttons">
+            <button id="npAddBtn" class="icon-btn fav-btn-lg" type="button" aria-label="Añadir a una playlist" title="Añadir a una playlist" disabled>
+              <svg class="icon" aria-hidden="true"><use href="#i-playlist-add"></use></svg>
+            </button>
+            <button id="npShareBtn" class="icon-btn fav-btn-lg" type="button" aria-label="Compartir canción" title="Compartir canción" disabled>
+              <svg class="icon" aria-hidden="true"><use href="#i-share"></use></svg>
+            </button>
+            <button id="npFavBtn" class="icon-btn fav-btn fav-btn-lg" type="button" aria-pressed="false" aria-label="Añadir a favoritos" disabled>
+              <svg class="icon" aria-hidden="true"><use href="#i-heart"></use></svg>
+            </button>
+          </div>
+        </div>
+
+        <canvas id="visualizer" class="visualizer" aria-hidden="true"></canvas>
+
+        <div class="np-tools">
+          <label class="switch" title="Mezcla automática entre canciones">
+            <input id="djToggle" type="checkbox" role="switch">
+            <span class="switch-track" aria-hidden="true"></span>
+            <span class="switch-label">Transiciones DJ</span>
+          </label>
+          <label class="dj-fade">
+            <span class="sr-only">Duración de la mezcla</span>
+            <select id="djFade" aria-label="Duración de la mezcla">
+              <option value="3">3 s</option>
+              <option value="6">6 s</option>
+              <option value="9">9 s</option>
+              <option value="12">12 s</option>
+            </select>
+          </label>
+        </div>
+
+        <details id="lyricsPanel" class="lyrics" open>
+          <summary>Letra <span id="lyricsBadge" class="badge" hidden>Sincronizada</span></summary>
+          <div id="lyricsBody" class="lyrics-body">
+            <p class="lyrics-empty">Elige una canción para ver su letra.</p>
+          </div>
+        </details>
+
+        <!-- Acerca del artista que suena -->
+        <div id="npAbout" class="np-about" hidden></div>
+
+        <!-- Atajo de contacto: ideas, mensajes o reportar errores -->
+        <a class="contact-link" href="mailto:officiallukamon@gmail.com?subject=Liquid%20Bullet%3A%20ideas%2C%20contacto%20o%20errores">
+          <svg class="icon" aria-hidden="true"><use href="#i-mail"></use></svg>
+          <span class="contact-text">
+            <span class="contact-title">¿Ideas o algún error?</span>
+            <span class="contact-mail">officiallukamon@gmail.com</span>
+          </span>
+        </a>
+      </section>
+
+      <!-- Biblioteca -->
+      <section class="library" aria-label="Biblioteca">
+        <div class="library-head">
+          <div class="search">
+            <svg class="icon" aria-hidden="true"><use href="#i-search"></use></svg>
+            <label for="searchInput" class="sr-only">Buscar canciones</label>
+            <input id="searchInput" type="search" placeholder="¿Qué quieres escuchar?" autocomplete="off" spellcheck="false" maxlength="120" enterkeyhint="search">
+          </div>
+          <div id="searchPanel" class="search-panel" hidden></div>
+          <div class="tabs" role="tablist" aria-label="Secciones">
+            <button class="tab is-active" type="button" role="tab" aria-controls="libraryView" data-view="home" aria-selected="true">Inicio</button>
+            <button class="tab" type="button" role="tab" aria-controls="libraryView" data-view="library" aria-selected="false">
+              Biblioteca <span id="libCount" class="count">0</span>
+            </button>
+            <button class="tab" type="button" role="tab" aria-controls="libraryView" data-view="playlists" aria-selected="false">
+              Playlists <span id="plCount" class="count">0</span>
+            </button>
+            <button class="tab" type="button" role="tab" aria-controls="libraryView" data-view="artists" aria-selected="false">Artistas</button>
+            <button class="tab" type="button" role="tab" aria-controls="libraryView" data-view="favorites" aria-selected="false">
+              Favoritas <span id="favCount" class="count">0</span>
+            </button>
+            <button class="tab" type="button" role="tab" aria-controls="libraryView" data-view="stats" aria-selected="false">Stats</button>
+            <button class="tab tab-lab" type="button" role="tab" aria-controls="libraryView" data-view="lab" aria-selected="false">
+              <svg class="icon" aria-hidden="true"><use href="#i-flask"></use></svg> Lab
+            </button>
+          </div>
+        </div>
+
+        <section id="recentRow" class="recent-row" aria-label="Escuchadas hace poco" hidden></section>
+        <div id="libraryView" class="library-view" role="tabpanel" aria-label="Contenido de la sección">
+        <div id="viewHead" class="view-head"></div>
+        <div id="filterChips" class="chips" role="toolbar" aria-label="Filtros" hidden></div>
+        <p id="listInfo" class="list-info" aria-live="polite"></p>
+        <div id="searchPlaylists" class="search-playlists" hidden></div>
+        <div id="homePanel" class="home-panel" hidden></div>
+        <div id="playlistGrid" class="pl-wrap" hidden></div>
+        <div id="statsPanel" class="stats" hidden></div>
+        <header class="lab-hero" aria-labelledby="labHeroTitle">
+          <p class="lab-hero-eyebrow">Liquid Lab</p>
+          <h1 id="labHeroTitle" class="lab-hero-title">Tu laboratorio de mezclas</h1>
+          <p class="lab-hero-text">Combina estilos, artistas y canciones, y ajusta cuánto quieres descubrir. Lo que guardes aparece en tu Liquid Bullet como una playlist más, y «Escuchar» te lleva a Liquid con la mezcla sonando.</p>
+        </header>
+        <div id="labPanel" class="lab" hidden></div>
+        <ul id="trackList" class="track-list"></ul>
+        <nav id="alphaRail" class="alpha-rail" aria-label="Índice alfabético" hidden></nav>
+        </div>
+        <input id="importInput" type="file" accept="application/json,.json,.m3u,.m3u8,.txt,text/plain,audio/x-mpegurl" hidden>
+      </section>
+    </main>
+
+    <!-- Reproductor -->
+    <footer class="player" aria-label="Controles del reproductor">
+      <div class="player-track">
+        <img id="miniCover" class="mini-cover" alt="" width="52" height="52">
+        <div class="mini-text">
+          <p id="miniTitle" class="mini-title">Sin reproducción</p>
+          <p id="miniArtist" class="mini-artist">—</p>
+        </div>
+      </div>
+
+      <div class="player-center">
+        <div class="controls">
+          <button id="shuffleBtn" class="icon-btn mode-btn" type="button" aria-pressed="false" aria-label="Aleatorio" title="Aleatorio (S)">
+            <svg class="icon" aria-hidden="true"><use href="#i-shuffle"></use></svg>
+          </button>
+          <button id="prevBtn" class="icon-btn" type="button" aria-label="Canción anterior" title="Anterior (P)">
+            <svg class="icon" aria-hidden="true"><use href="#i-prev"></use></svg>
+          </button>
+          <button id="playBtn" class="icon-btn play-btn" type="button" aria-label="Reproducir" title="Reproducir / Pausa (Espacio)">
+            <svg class="icon" aria-hidden="true"><use href="#i-play"></use></svg>
+          </button>
+          <button id="nextBtn" class="icon-btn" type="button" aria-label="Canción siguiente" title="Siguiente (N)">
+            <svg class="icon" aria-hidden="true"><use href="#i-next"></use></svg>
+          </button>
+          <button id="repeatBtn" class="icon-btn mode-btn" type="button" aria-label="Repetir: desactivado" title="Repetir: desactivado (R)">
+            <svg class="icon" aria-hidden="true"><use href="#i-repeat"></use></svg>
+          </button>
+        </div>
+
+        <div class="progress-row">
+          <span id="currentTime" class="time">0:00</span>
+          <div class="progress-wrap">
+            <input id="progress" class="range progress" type="range" min="0" max="100" step="any" value="0" aria-label="Progreso de la canción">
+          </div>
+          <span id="totalTime" class="time">0:00</span>
+        </div>
+      </div>
+
+      <div class="player-volume">
+        <button id="djBtn" class="icon-btn dj-btn" type="button" aria-pressed="false" aria-label="Transiciones DJ" title="Transiciones DJ (D)">DJ</button>
+        <button id="queueBtn" class="icon-btn" type="button" aria-label="A continuación" title="A continuación (Q)">
+          <svg class="icon" aria-hidden="true"><use href="#i-queue"></use></svg>
+        </button>
+        <button id="sleepBtn" class="icon-btn sleep-btn" type="button" aria-pressed="false" aria-label="Temporizador de apagado" title="Temporizador de apagado (T)">
+          <svg class="icon" aria-hidden="true"><use href="#i-moon"></use></svg>
+          <span id="sleepBadge" class="sleep-badge" hidden></span>
+        </button>
+        <button id="castBtn" class="icon-btn" type="button" aria-label="Enviar a otro dispositivo (Chromecast, AirPlay)" title="Enviar a otro dispositivo" hidden>
+          <svg class="icon" aria-hidden="true"><use href="#i-cast"></use></svg>
+        </button>
+        <button id="lyricsBtn" class="icon-btn" type="button" aria-label="Ver letra" title="Ver letra (L)">
+          <svg class="icon" aria-hidden="true"><use href="#i-lyrics"></use></svg>
+        </button>
+        <button id="muteBtn" class="icon-btn" type="button" aria-label="Silenciar" title="Silenciar (M)">
+          <svg class="icon" aria-hidden="true"><use href="#i-volume-high"></use></svg>
+        </button>
+        <input id="volume" class="range volume" type="range" min="0" max="1" step="0.01" value="0.8" aria-label="Volumen">
+      </div>
+
+      <!-- Navegación inferior (móvil) -->
+      <nav id="bottomNav" class="bottom-nav" aria-label="Navegación">
+        <button class="nav-btn" type="button" data-nav="home">
+          <svg class="icon" aria-hidden="true"><use href="#i-home"></use></svg><span>Inicio</span>
+        </button>
+        <button class="nav-btn" type="button" data-nav="search">
+          <svg class="icon" aria-hidden="true"><use href="#i-search"></use></svg><span>Buscar</span>
+        </button>
+        <button class="nav-btn" type="button" data-nav="library">
+          <svg class="icon" aria-hidden="true"><use href="#i-library"></use></svg><span>Biblioteca</span>
+        </button>
+        <button class="nav-btn" type="button" data-nav="playlists">
+          <svg class="icon" aria-hidden="true"><use href="#i-grid"></use></svg><span>Playlists</span>
+        </button>
+        <button class="nav-btn" type="button" data-nav="lab">
+          <svg class="icon" aria-hidden="true"><use href="#i-flask"></use></svg><span>Lab</span>
+        </button>
+      </nav>
+    </footer>
+  </div>
+
+  <!-- Crear o editar una playlist propia -->
+  <dialog id="plDialog" class="sheet" aria-labelledby="plDialogTitle">
+    <form method="dialog" class="sheet-body">
+      <h2 id="plDialogTitle" class="sheet-title">Nueva playlist</h2>
+      <label class="field">
+        <span class="field-label">Nombre</span>
+        <input id="plName" type="text" maxlength="60" required autocomplete="off" placeholder="Mi playlist">
+      </label>
+      <fieldset class="field">
+        <legend class="field-label">Portada</legend>
+        <div id="plPortadas" class="choice-grid portada-grid"></div>
+      </fieldset>
+      <fieldset class="field">
+        <legend class="field-label">Icono</legend>
+        <div id="plEmojis" class="choice-grid"></div>
+      </fieldset>
+      <fieldset class="field">
+        <legend class="field-label">Color</legend>
+        <div id="plColors" class="choice-grid"></div>
+      </fieldset>
+      <p class="sheet-note">Se guarda solo en este navegador. Para que no se pierda, descarga una copia de seguridad desde Playlists.</p>
+      <div class="sheet-actions">
+        <button class="btn" type="button" value="cancel" data-dialog-cancel>Cancelar</button>
+        <button class="btn btn-primary" type="submit" value="ok">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Añadir una canción a una playlist propia -->
+  <dialog id="addDialog" class="sheet" aria-labelledby="addTitle">
+    <div class="sheet-body">
+      <h2 id="addTitle" class="sheet-title">Añadir a playlist</h2>
+      <p id="addTrackName" class="sheet-text"></p>
+      <div class="sheet-quick">
+        <button id="addPlayNext" class="btn" type="button">
+          <svg class="icon" aria-hidden="true"><use href="#i-play-next"></use></svg> Reproducir a continuación
+        </button>
+        <button id="addQueueEnd" class="btn" type="button">
+          <svg class="icon" aria-hidden="true"><use href="#i-queue"></use></svg> Al final de la cola
+        </button>
+        <button id="addArtist" class="btn" type="button">
+          <svg class="icon" aria-hidden="true"><use href="#i-person"></use></svg> Ir al artista
+        </button>
+        <button id="addRadio" class="btn" type="button">
+          <svg class="icon" aria-hidden="true"><use href="#i-radio"></use></svg> Iniciar radio
+        </button>
+        <button id="addShare" class="btn" type="button">
+          <svg class="icon" aria-hidden="true"><use href="#i-share"></use></svg> Compartir canción
+        </button>
+        <button id="addDislike" class="btn" type="button">
+          <svg class="icon" aria-hidden="true"><use href="#i-thumb-down"></use></svg> <span>No me gusta (no recomendar)</span>
+        </button>
+      </div>
+      <ul id="addList" class="add-list"></ul>
+      <div class="sheet-actions">
+        <button class="btn" type="button" data-close>Cerrar</button>
+        <button id="addNew" class="btn btn-primary" type="button">＋ Nueva playlist</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Cola de reproducción -->
+  <dialog id="queueDialog" class="sheet" aria-labelledby="queueTitle">
+    <div class="sheet-body">
+      <div class="queue-head">
+        <h2 id="queueTitle" class="sheet-title">A continuación</h2>
+        <button id="queueEdit" class="btn btn-ghost" type="button" aria-pressed="false">Editar</button>
+      </div>
+      <p id="queueInfo" class="sheet-text"></p>
+      <ol id="queueList" class="queue-list"></ol>
+      <div id="queueFoot" class="queue-foot">
+        <button class="queue-foot-btn" type="button" data-q="shuffle"><svg class="icon" aria-hidden="true"><use href="#i-shuffle"></use></svg><span>Aleatorio</span></button>
+        <button class="queue-foot-btn" type="button" data-q="repeat"><svg class="icon" aria-hidden="true"><use href="#i-repeat"></use></svg><span>Repetir</span></button>
+        <button class="queue-foot-btn" type="button" data-q="sleep"><svg class="icon" aria-hidden="true"><use href="#i-moon"></use></svg><span>Temporizador</span></button>
+        <button class="queue-foot-btn" type="button" data-q="save"><svg class="icon" aria-hidden="true"><use href="#i-playlist-add"></use></svg><span>Guardar</span></button>
+      </div>
+      <div class="sheet-actions">
+        <button class="btn" type="button" data-close>Cerrar</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Papelera: playlists propias borradas (30 días) -->
+  <dialog id="trashDialog" class="sheet" aria-labelledby="trashTitle">
+    <div class="sheet-body">
+      <h2 id="trashTitle" class="sheet-title">Papelera</h2>
+      <p class="sheet-text">Toca una playlist para recuperarla.</p>
+      <ul id="trashList" class="trash-list"></ul>
+      <div class="sheet-actions">
+        <button class="btn" type="button" data-close>Cerrar</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Compartir: tarjeta con la portada para Historias o Estados, y el enlace -->
+  <dialog id="shareDialog" class="sheet share-sheet" aria-labelledby="shareTitle">
+    <div class="sheet-body">
+      <h2 id="shareTitle" class="sheet-title">Compartir</h2>
+      <canvas id="shareCanvas" class="share-canvas" width="720" height="1280" role="img" aria-label="Vista previa de la tarjeta para compartir"></canvas>
+      <div id="shareColors" class="share-colors" aria-label="Color de fondo"></div>
+      <div class="share-actions">
+        <button id="shareImage" class="btn btn-primary" type="button">Compartir imagen</button>
+        <button id="shareLinkBtn" class="btn" type="button">Compartir enlace</button>
+        <button id="shareCopy" class="btn" type="button">Copiar enlace</button>
+      </div>
+      <div class="sheet-actions">
+        <button class="btn" type="button" data-close>Cerrar</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Temporizador de apagado -->
+  <dialog id="sleepDialog" class="sheet" aria-labelledby="sleepTitle">
+    <div class="sheet-body">
+      <h2 id="sleepTitle" class="sheet-title"><svg class="icon" aria-hidden="true"><use href="#i-moon"></use></svg> Temporizador</h2>
+      <p id="sleepStatus" class="sheet-text"></p>
+      <div id="sleepOptions" class="sleep-options">
+        <button class="btn" type="button" data-sleep="15">15 min</button>
+        <button class="btn" type="button" data-sleep="30">30 min</button>
+        <button class="btn" type="button" data-sleep="45">45 min</button>
+        <button class="btn" type="button" data-sleep="60">1 hora</button>
+        <button class="btn" type="button" data-sleep="90">1 h 30</button>
+        <button class="btn" type="button" data-sleep="-1">Al terminar la canción</button>
+        <button class="btn" type="button" data-sleep="0">Desactivado</button>
+      </div>
+      <p class="sheet-note">El volumen baja poco a poco en los últimos segundos antes de pausar.</p>
+      <div class="sheet-actions">
+        <button class="btn" type="button" data-close>Cerrar</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Configuración -->
+  <dialog id="settingsDialog" class="sheet settings" aria-labelledby="settingsTitle">
+    <form method="dialog" class="sheet-body">
+      <div class="settings-head">
+        <h2 id="settingsTitle" class="sheet-title"><svg class="icon" aria-hidden="true"><use href="#i-settings"></use></svg> Configuración</h2>
+        <button class="icon-btn" type="submit" value="close" aria-label="Cerrar">
+          <svg class="icon" aria-hidden="true"><use href="#i-close"></use></svg>
+        </button>
+      </div>
+
+      <section class="settings-group settings-cuenta" aria-labelledby="setCuentaTitle">
+        <h3 id="setCuentaTitle" class="settings-group-title">Tu cuenta</h3>
+        <div id="cuentaAjuste" class="cuenta-ajuste"></div>
+      </section>
+
+      <section class="settings-group" aria-labelledby="setUltraTitle">
+        <h3 id="setUltraTitle" class="settings-group-title">Rendimiento</h3>
+        <label class="setting switch">
+          <span class="setting-text">
+            <span class="setting-name">Modo ultraligero</span>
+            <span class="setting-hint">Lo más rápido posible: sin vidrio, sombras, animaciones, fondo, visualizador, miniaturas en las listas (no se descargan), vibración ni letras tipográficas descargadas; Inicio más corto y portada pequeña. Ideal para teléfonos lentos o con poca batería. Tus ajustes de apariencia se guardan y vuelven al desactivarlo.</span>
+          </span>
+          <input id="ultraToggle" type="checkbox" role="switch">
+          <span class="switch-track" aria-hidden="true"></span>
+        </label>
+      </section>
+
+      <section class="settings-group" aria-labelledby="setLookTitle">
+        <h3 id="setLookTitle" class="settings-group-title">Apariencia</h3>
+        <label class="setting">
+          <span class="setting-text"><span class="setting-name">Tema</span></span>
+          <select id="themeSelect" class="setting-select">
+            <option value="chrome">Surrealista</option>
+            <option value="minimal">Minimalista</option>
+            <option value="yem">Yem</option>
+            <option value="ebano">Ébano</option>
+          </select>
+        </label>
+        <label class="setting">
+          <span class="setting-text">
+            <span class="setting-name">Fuente</span>
+            <span class="setting-hint">Las canciones y las letras siempre usan una letra clásica.</span>
+          </span>
+          <select id="fontSelect" class="setting-select">
+            <option value="street">Callejera</option>
+            <option value="graffiti">Grafiti</option>
+            <option value="classic">Clásica</option>
+          </select>
+        </label>
+        <label class="setting">
+          <span class="setting-text">
+            <span class="setting-name">Tamaño del texto</span>
+            <span class="setting-hint">«Del sistema» sigue el tamaño de letra de tu móvil.</span>
+          </span>
+          <select id="textSizeSelect" class="setting-select">
+            <option value="system">Del sistema</option>
+            <option value="small">Pequeño</option>
+            <option value="normal">Normal</option>
+            <option value="large">Grande</option>
+            <option value="xl">Muy grande</option>
+          </select>
+        </label>
+        <label class="setting">
+          <span class="setting-text"><span class="setting-name">Playlists</span></span>
+          <select id="plViewSelect" class="setting-select">
+            <option value="grid">Cuadrícula</option>
+            <option value="list">Lista</option>
+          </select>
+        </label>
+        <label class="setting switch">
+          <span class="setting-text">
+            <span class="setting-name">Animaciones</span>
+            <span class="setting-hint">Rebotes al tocar y transiciones entre vistas.</span>
+          </span>
+          <input id="motionToggle" type="checkbox" role="switch">
+          <span class="switch-track" aria-hidden="true"></span>
+        </label>
+        <label class="setting switch" id="hapticsRow">
+          <span class="setting-text">
+            <span class="setting-name">Vibración</span>
+            <span id="hapticsHint" class="setting-hint">Al dar «Me gusta», reproducir o mover la barra.</span>
+          </span>
+          <input id="hapticsToggle" type="checkbox" role="switch">
+          <span class="switch-track" aria-hidden="true"></span>
+        </label>
+      </section>
+
+      <section class="settings-group" aria-labelledby="setWallTitle">
+        <h3 id="setWallTitle" class="settings-group-title">Fondo de pantalla</h3>
+        <label class="setting">
+          <span class="setting-text"><span class="setting-name">Modo</span></span>
+          <select id="wallMode" class="setting-select">
+            <option value="song">Cambia con cada canción</option>
+            <option value="open">Uno al azar al abrir</option>
+            <option value="fixed">El que elijas</option>
+            <option value="off">Sin fondo (escena original)</option>
+          </select>
+        </label>
+        <div id="wallGrid" class="wall-grid" role="radiogroup" aria-label="Elegir fondo"></div>
+        <label class="setting switch">
+          <span class="setting-text">
+            <span class="setting-name">Fondo con vida</span>
+            <span class="setting-hint">Se mueve despacio, late con la música y deja flotar mini iconos.</span>
+          </span>
+          <input id="wallAlive" type="checkbox" role="switch">
+          <span class="switch-track" aria-hidden="true"></span>
+        </label>
+      </section>
+
+      <section class="settings-group" aria-labelledby="setAppTitle">
+        <h3 id="setAppTitle" class="settings-group-title">App en tu teléfono</h3>
+        <p id="installNote" class="sheet-note">Instala Liquid Bullet como una app: icono propio, pantalla completa, abre al instante y sigue sonando con la pantalla apagada.</p>
+        <button id="installBtn" class="btn" type="button" hidden>Instalar Liquid Bullet</button>
+        <ol id="installSteps" class="install-steps" hidden></ol>
+      </section>
+
+      <section class="settings-group" aria-labelledby="setHiddenTitle">
+        <h3 id="setHiddenTitle" class="settings-group-title">Contenido oculto</h3>
+        <p class="sheet-note">Para ocultar una playlist, ábrela y toca el ojo tachado. Sigue existiendo (sus canciones están en la Biblioteca), solo deja de verse en Playlists, Inicio, Buscar y Lab.</p>
+        <p id="hiddenEmpty" class="sheet-note">No tienes playlists ocultas.</p>
+        <ul id="hiddenList" class="hidden-list"></ul>
+        <button id="hiddenShowAll" class="btn" type="button" hidden>Mostrar todas</button>
+      </section>
+
+      <section class="settings-group" aria-labelledby="setDownTitle">
+        <h3 id="setDownTitle" class="settings-group-title">Descargas y espacio</h3>
+        <p id="storageInfo" class="sheet-note">Calculando…</p>
+        <label class="setting switch">
+          <span class="setting-text">
+            <span class="setting-name">Descargar favoritas</span>
+            <span class="setting-hint">Cada canción que marques con el corazón se guarda para escucharla sin conexión (no con ahorro de datos).</span>
+          </span>
+          <input id="autoFavToggle" type="checkbox" role="switch">
+          <span class="switch-track" aria-hidden="true"></span>
+        </label>
+        <button id="clearDownloads" class="btn" type="button" hidden>Borrar todas las descargas</button>
+      </section>
+
+      <section class="settings-group" aria-labelledby="setHelpTitle">
+        <h3 id="setHelpTitle" class="settings-group-title">Ayuda</h3>
+        <button id="tourAgain" class="btn" type="button">Ver el tutorial otra vez</button>
+        <details id="whatsNew" class="privacy-note">
+          <summary>Novedades de esta versión</summary>
+          <div id="whatsNewBody" class="update-notes"></div>
+        </details>
+        <a class="btn" href="mailto:officiallukamon@gmail.com?subject=Liquid%20Bullet%3A%20ideas%2C%20contacto%20o%20errores">
+          <svg class="icon" aria-hidden="true"><use href="#i-mail"></use></svg> Escribir a officiallukamon@gmail.com
+        </a>
+        <p class="sheet-note">Ideas, mensajes o errores que encuentres: escribe a ese correo.</p>
+        <p id="deviceInfo" class="sheet-note"></p>
+        <a id="errorReport" class="btn" hidden>
+          <svg class="icon" aria-hidden="true"><use href="#i-mail"></use></svg> <span>Enviar informe de errores</span>
+        </a>
+        <details class="privacy-note">
+          <summary>Privacidad: qué se guarda y dónde</summary>
+          <p class="sheet-note">Tus favoritas, playlists, historial, Stats, búsquedas y ajustes se guardan <strong>solo en este navegador</strong> mientras no inicies sesión (la cuenta es opcional). Si borras los datos del sitio, se pierden: haz copias desde Playlists → Descargar copia.</p>
+          <p class="sheet-note">La app solo se conecta a los servidores de la música (Cloudflare R2), a LRCLIB para buscar letras (envía título, artista y duración) y a Google Fonts para las letras tipográficas. No hay publicidad ni analítica.</p>
+          <p class="sheet-note"><strong>Si inicias sesión</strong> (opcional), tus favoritas, playlists, escucha y ajustes se guardan en el almacenamiento privado de Liquid Bullet en Cloudflare, comprimidos y separados por cuenta, para tenerlos en todos tus dispositivos. Tu contraseña se cifra en tu dispositivo y nunca se guarda ni se envía en claro. Los códigos llegan desde liquidbulletofficial@gmail.com (pueden caer en Spam). Puedes cerrar sesión y borrar lo de este dispositivo cuando quieras.</p>
+        </details>
+      </section>
+
+      <section class="settings-group" aria-labelledby="setSoundTitle">
+        <h3 id="setSoundTitle" class="settings-group-title">Sonido · Ecualizador</h3>
+        <label class="setting">
+          <span class="setting-text">
+            <span class="setting-name">Velocidad</span>
+            <span class="setting-hint">Sin cambiar el tono. Teclado: Mayús + , y Mayús + .</span>
+          </span>
+          <select id="speedSelect" class="setting-select">
+            <option value="0.75">0,75×</option>
+            <option value="1">Normal</option>
+            <option value="1.1">1,1×</option>
+            <option value="1.25">1,25×</option>
+            <option value="1.5">1,5×</option>
+          </select>
+        </label>
+        <label class="setting switch">
+          <span class="setting-text">
+            <span class="setting-name">Fundido al pausar</span>
+            <span class="setting-hint">El sonido baja y sube suave en vez de cortarse (no en iPhone).</span>
+          </span>
+          <input id="softPauseToggle" type="checkbox" role="switch">
+          <span class="switch-track" aria-hidden="true"></span>
+        </label>
+        <label class="setting">
+          <span class="setting-text"><span class="setting-name">Perfil</span></span>
+          <select id="eqPreset" class="setting-select"></select>
+        </label>
+        <div id="eqBands" class="eq-bands"></div>
+        <p id="eqNote" class="sheet-note"></p>
+      </section>
+    </form>
+  </dialog>
+
+  <!-- Tutorial de bienvenida: sale la primera vez y no vuelve (Ajustes → Ver el tutorial) -->
+  <dialog id="tourDialog" class="tour" aria-labelledby="tourTitle" aria-describedby="tourText">
+    <div class="tour-body">
+      <div class="tour-head">
+        <span id="tourIcon" class="tour-icon" aria-hidden="true"></span>
+        <span id="tourCount" class="tour-count"></span>
+        <button id="tourSkip" class="btn btn-ghost tour-skip" type="button">Saltar</button>
+      </div>
+      <h2 id="tourTitle" class="tour-title"></h2>
+      <p id="tourText" class="tour-text"></p>
+      <div class="tour-foot">
+        <div id="tourDots" class="tour-dots" aria-hidden="true"></div>
+        <div class="tour-actions">
+          <button id="tourPrev" class="btn" type="button">Atrás</button>
+          <button id="tourNext" class="btn btn-primary" type="button">Siguiente</button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Cuenta (opcional): crear, entrar, recuperar y tu cuenta -->
+  <dialog id="cuentaDialog" class="sheet cuenta-sheet" aria-label="Tu cuenta de Liquid Bullet">
+    <div id="cuentaBody" class="sheet-body cuenta-body"></div>
+  </dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <!-- Aviso de versión nueva: el botón la aplica sin perder la canción -->
+  <div id="updateBanner" class="update-banner" role="alert" hidden>
+    <img class="update-logo" src="icon-192.png" alt="" width="40" height="40">
+    <div class="update-text">
+      <strong>Hay una versión nueva de Liquid Bullet</strong>
+      <span>Actualiza para tener las últimas mejoras. Sigues donde ibas.</span>
+    </div>
+    <div class="update-actions">
+      <button id="updateDetails" class="btn btn-ghost update-details-btn" type="button" aria-expanded="false" aria-controls="updateNotes">¿Qué trae?</button>
+      <button id="updateLater" class="btn btn-ghost" type="button">Luego</button>
+      <button id="updateNow" class="btn btn-primary" type="button">Actualizar</button>
+    </div>
+    <div id="updateNotes" class="update-notes" hidden></div>
+  </div>
+
+  <audio id="audio" preload="metadata"></audio>
+  <audio id="audio2" preload="auto"></audio>
+  <!-- Reproductores para el ecualizador (necesitan CORS en el servidor del audio) -->
+  <audio id="audio3" preload="metadata" crossorigin="anonymous"></audio>
+  <audio id="audio4" preload="auto" crossorigin="anonymous"></audio>
+  <script src="app.js?v=47" defer></script>
+</body>
+</html>

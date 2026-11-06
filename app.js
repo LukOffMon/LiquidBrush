@@ -99,6 +99,43 @@
 
   const LYRICS_API = 'https://lrclib.net/api';
 
+  /* ---------- Dispositivo, sistema y navegador ---------- */
+  // Lo detecta index.html antes de pintar (window.lbDevice). Respaldo mínimo por si faltara.
+  const DEVICE = window.lbDevice || (() => {
+    const ua = navigator.userAgent || '';
+    const apple = /iP(hone|ad|od)/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+    return { os: apple ? 'ios' : /Android/.test(ua) ? 'android' : 'otro', osVersion: 0, apple, browser: 'otro', inapp: '', engine: 'otro',
+      device: /Mobi|iPhone|Android/.test(ua) ? 'phone' : 'desktop', touch: navigator.maxTouchPoints > 0, standalone: false,
+      memory: 0, cores: 0, lowEnd: false, saveData: false, slowNet: false };
+  })();
+  /* ---------- Liquid Lab: sitio aparte (lab.html) ---------- */
+  // Lab ya no es una pestaña de Liquid: tiene su propio sitio con el mismo algoritmo y la misma biblioteca.
+  // Lo que se guarda o se manda a escuchar desde Lab vuelve a Liquid Bullet con una «entrega»
+  // (localStorage, mismo sitio web) que Liquid recoge al abrir.
+  const LAB_MODE = document.documentElement.dataset.mode === 'lab';
+  const LAB_URL = 'lab.html';
+  const LIQUID_URL = './';
+  const LAB_HANDOFF = 'liquidbrush:lab-handoff';
+  const LAB_HANDOFF_TTL = 10 * 60 * 1000;
+  const goToLab = () => location.assign(LAB_URL);
+  // action: 'play' | 'queue' | 'saved' | 'radio'
+  function sendToLiquid(handoff) {
+    try { localStorage.setItem(LAB_HANDOFF, JSON.stringify({ ...handoff, at: Date.now() })); } catch { /* sin almacenamiento */ }
+    location.assign(LIQUID_URL);
+  }
+
+  const OS_NAMES = { ios: 'iPhone (iOS)', ipados: 'iPad (iPadOS)', android: 'Android', windows: 'Windows', macos: 'Mac', chromeos: 'ChromeOS', linux: 'Linux', otro: 'otro sistema' };
+  const BROWSER_NAMES = { safari: 'Safari', chrome: 'Chrome', firefox: 'Firefox', edge: 'Edge', samsung: 'Samsung Internet', opera: 'Opera', inapp: 'navegador interno', otro: 'otro navegador' };
+  const INAPP_NAMES = { instagram: 'Instagram', facebook: 'Facebook', tiktok: 'TikTok', snapchat: 'Snapchat', x: 'X', line: 'LINE', google: 'la app de Google', webview: 'otra app' };
+  // «iPhone (iOS 18) · Safari · app instalada»
+  function deviceSummary() {
+    const version = DEVICE.osVersion ? ` ${Math.floor(DEVICE.osVersion)}` : '';
+    const os = DEVICE.apple ? `${OS_NAMES[DEVICE.os].replace(/\)$/, `${version})`)}` : `${OS_NAMES[DEVICE.os] || DEVICE.os}${version}`;
+    const browser = DEVICE.inapp ? `dentro de ${INAPP_NAMES[DEVICE.inapp] || 'otra app'}` : BROWSER_NAMES[DEVICE.browser] || DEVICE.browser;
+    const extras = [DEVICE.standalone ? 'app instalada' : '', DEVICE.lowEnd ? 'equipo modesto: modo ligero' : '', DEVICE.saveData ? 'ahorro de datos' : ''].filter(Boolean);
+    return [os, browser, ...extras].join(' · ');
+  }
+
   const THEMES = {
     chrome: '#100d1c',
     minimal: '#f4f3f0',
@@ -162,7 +199,7 @@
     currentTrack: null,
     favorites: new Set(),
     // home | library | playlists | artists | favorites | stats | lab, o playlist / artist (uno abierto)
-    view: 'home',
+    view: LAB_MODE ? 'lab' : 'home',
     openPlaylist: null,
     // Artista abierto (vista "artist") y radio en curso
     openArtist: null,
@@ -303,6 +340,7 @@
     plEmojis: $('plEmojis'),
     plColors: $('plColors'),
     plPortadas: $('plPortadas'),
+    deviceInfo: $('deviceInfo'),
     addDialog: $('addDialog'),
     addTrackName: $('addTrackName'),
     addList: $('addList'),
@@ -523,7 +561,7 @@
       // Iconos SVG del sistema (antes emojis: los viejos se traducen al icono equivalente)
       el.classList.remove('has-art');
       const nombre = iconoDePlaylist(icon);
-      el.innerHTML = `<svg class="icon pl-glyph" aria-hidden="true"><use href="#i-${nombre}"></use></svg>`;
+      el.replaceChildren(svgIcon(nombre, 'icon pl-glyph'));
     }
   }
 
@@ -740,7 +778,7 @@
     const slug = (text) => normalize(String(text || '').replace(/\(.*?\)|\[.*?\]/g, ''))
       .replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '');
     const title = slug(track.title) || track.id;
-    return `song:${title}~${slug(mainArtist(track))}`.slice(0, 120);
+    return `song:${title}~${slug(dedupeArtist(track))}`.slice(0, 120);
   }
 
   async function applyTrackData(data, final = false) {
@@ -785,6 +823,8 @@
     if (previousId && getTrack(previousId)) {
       // Llegaron datos nuevos con algo sonando: se conserva la canción y la cola
       state.currentTrack = getTrack(previousId);
+    } else if (LAB_MODE) {
+      // Liquid Lab no tiene reproductor: no carga canción ni toca «Continúa donde lo dejaste»
     } else if (state.tracks.length) {
       if (!resume.restore()) {
         buildQueue((state.tracks.find(isPlayable) || state.tracks[0]).id);
@@ -794,6 +834,39 @@
       els.npContext.textContent = 'Biblioteca vacía';
     }
     openIncomingLink(Boolean(final));
+    receiveFromLab(Boolean(final));
+  }
+
+  // Liquid recoge lo que llegó de Liquid Lab: abre la playlist guardada o pone la mezcla a sonar
+  function receiveFromLab(final) {
+    if (LAB_MODE) return;
+    let handoff = null;
+    try { handoff = JSON.parse(localStorage.getItem(LAB_HANDOFF)); } catch { /* dañada */ }
+    if (!handoff) return;
+    const drop = () => { try { localStorage.removeItem(LAB_HANDOFF); } catch { /* nada */ } };
+    if (!handoff.at || Date.now() - handoff.at > LAB_HANDOFF_TTL) { drop(); return; }
+    const tracks = (Array.isArray(handoff.ids) ? handoff.ids : []).map(getTrack).filter(Boolean);
+    if (handoff.action === 'radio') {
+      drop();
+      if (handoff.artist) startRadio(handoff.artist);
+      return;
+    }
+    // Con la biblioteca guardada puede faltar alguna canción nueva: se espera a la lista fresca
+    if (!tracks.length) { if (final) drop(); return; }
+    drop();
+    const name = String(handoff.name || 'Mezcla de Lab').slice(0, 80);
+    if (handoff.action === 'saved' && handoff.playlist && getPlaylist(`local:${handoff.playlist}`)) {
+      openPlaylist(`local:${handoff.playlist}`);
+      showToast(`Guardada en tus playlists: «${name}».`);
+      return;
+    }
+    if (handoff.action === 'queue' && state.currentTrack && !els.audio.paused) {
+      tracks.forEach((t) => queueTrack(t.id, true, true));
+      showToast(`${songsLabel(tracks.length)} de Lab al final de la cola.`);
+      return;
+    }
+    const start = getTrack(handoff.start) && tracks.some((t) => t.id === handoff.start) ? handoff.start : tracks.find(isPlayable)?.id;
+    if (start) playCollection(tracks, start, name, 'lab:result');
   }
 
   // Recordatorio suave: con playlists propias y sin copia en 30 días (como mucho una vez por semana)
@@ -893,7 +966,15 @@
   })();
   const LIBRARY_IDB_KEY = 'library-cache';
   const LIBRARY_IDB_FLAG = 'liquidbrush:library-idb';
-  const librarySignature = (raw) => `${raw.length}:${hashString(raw)}`;
+  // Huella de la biblioteca para saber si cambió: SHA-1 nativo (unos ms) en vez de recorrer ~2 MB en JS (~85 ms en un móvil medio)
+  async function librarySignature(raw) {
+    try {
+      const digest = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(raw));
+      return `${raw.length}:${[...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('')}`;
+    } catch {
+      return `${raw.length}:${hashString(raw)}`;
+    }
+  }
 
   // Abre al instante con la biblioteca de la última visita y la actualiza en segundo plano
   async function loadTracks() {
@@ -909,7 +990,7 @@
     if (!cached && legacyRaw) {
       try {
         cached = JSON.parse(legacyRaw);
-        cachedSig = librarySignature(legacyRaw);
+        cachedSig = await librarySignature(legacyRaw);
       } catch (error) {
         console.warn('[LiquidBullet] Copia local de la biblioteca dañada; se descarga de nuevo.', error);
       }
@@ -927,7 +1008,7 @@
       if (!Array.isArray(data)) throw new Error('La lista de canciones debe ser un array');
       const rows = data.map(({ source, ...rest }) => (source ? { ...rest, sourceName: source.name } : rest));
       const fresh = JSON.stringify({ rows, catalog: library.catalog });
-      const freshSig = librarySignature(fresh);
+      const freshSig = await librarySignature(fresh);
       const unchanged = freshSig === cachedSig;
       if (!unchanged) await applyTrackData(rows, true);
       else openIncomingLink(true);
@@ -1045,7 +1126,8 @@
   }
 
   // iPhone/iPad (incluido el iPad que se presenta como Mac)
-  const IS_IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  // Todos los navegadores de iPhone/iPad usan WebKit: mismas limitaciones de audio que Safari
+  const IS_IOS = DEVICE.apple;
 
   // Descarga una canción para guardarla en la caché. Si el servidor no envía CORS (p. ej. un bucket
   // de R2 sin política CORS), se guarda una copia "opaca": no se puede leer desde aquí, pero el
@@ -2222,9 +2304,10 @@
         tracks.set(id, (tracks.get(id) || 0) + full * decay);
         if (age <= 30) recentTracks.set(id, (recentTracks.get(id) || 0) + full);
         if (!lastAge.has(id) || lastAge.get(id) > age) lastAge.set(id, age);
-        const artist = artistKeyOf(track);
-        if (artist) artistsToday.set(artist, (artistsToday.get(artist) || 0) + sec);
-        if (age <= 3 && artist) momentum.set(artist, (momentum.get(artist) || 0) + sec * (1 - age / 4));
+        artistKeysOf(track).forEach((artist) => {
+          artistsToday.set(artist, (artistsToday.get(artist) || 0) + sec);
+          if (age <= 3) momentum.set(artist, (momentum.get(artist) || 0) + sec * (1 - age / 4));
+        });
         if (age < 7) weekSeconds += sec;
       });
       Object.entries(entry.g || {}).forEach(([seg, map]) => {
@@ -2251,10 +2334,8 @@
     tracks.forEach((score, id) => {
       const track = getTrack(id);
       if (track.genre) genres.set(track.genre, (genres.get(track.genre) || 0) + score);
-      creditedArtists(track).forEach((name, i) => {
-        const key = normalize(name);
-        if (key) artists.set(key, (artists.get(key) || 0) + score * (i === 0 ? 1 : 0.5));
-      });
+      // Una colaboración es de todos: cada artista acreditado suma lo mismo
+      artistKeysOf(track).forEach((key) => artists.set(key, (artists.get(key) || 0) + score));
     });
     library.follows.forEach((key) => artists.set(key, (artists.get(key) || 0) + 4));
 
@@ -2294,8 +2375,9 @@
   // Cuánto te va a gustar una canción (aprox. de -1 a 3)
   function trackAffinity(track, p = tasteProfile()) {
     if (!track || isDisliked(track.id)) return -9;
-    const artist = artistKeyOf(track);
-    return p.trackN(track.id) * 0.9 + p.artistN(artist) * 0.8 + p.relatedN(artist) * 0.45 +
+    const keys = artistKeysOf(track);
+    const best = (fn) => (keys.length ? Math.max(...keys.map(fn)) : 0);
+    return p.trackN(track.id) * 0.9 + best(p.artistN) * 0.8 + best(p.relatedN) * 0.45 +
       p.genreN(track.genre) * 0.5 - (Number(taste.skips[track.id]) || 0) * 0.25;
   }
 
@@ -2342,7 +2424,19 @@
   }
 
   // Artista principal (sin "ft." ni colaboradores) para agrupar
-  const mainArtist = (track) => {
+  // Primer artista acreditado, con el mismo criterio que el índice de artistas. Antes se cortaba
+  // también en « y », « & » y « x »: «Polo & Pan» quedaba en «Polo» y su canción sin ficha ni radio.
+  const mainArtist = (track) => creditedArtists(track)[0] || '';
+  // Todas las claves de artista de una canción: una colaboración es de todos sus artistas
+  const artistKeysCache = new Map();
+  const artistKeysOf = (track) => {
+    const raw = track?.knownArtist || '';
+    let keys = artistKeysCache.get(raw);
+    if (!keys) { keys = Object.freeze([...new Set(creditedArtists(track).map(normalize).filter(Boolean))]); artistKeysCache.set(raw, keys); }
+    return keys;
+  };
+  // Solo para reconocer copias repetidas de una misma canción (corte amplio, como siempre)
+  const dedupeArtist = (track) => {
     const text = track?.knownArtist || '';
     const named = COMMA_NAMES.find((name) => text.toLowerCase().startsWith(name.toLowerCase()));
     if (named) return named;
@@ -2360,8 +2454,8 @@
           daySeconds += secs;
           result.tracks.set(id, (result.tracks.get(id) || 0) + secs);
           const track = getTrack(id);
-          const artist = mainArtist(track);
-          if (artist) result.artists.set(artist, (result.artists.get(artist) || 0) + secs);
+          // Una colaboración suma para todos sus artistas
+          creditedArtists(track).forEach((artist) => result.artists.set(artist, (result.artists.get(artist) || 0) + secs));
           const genre = track?.genre || 'Sin género';
           result.genres.set(genre, (result.genres.get(genre) || 0) + secs);
         });
@@ -2618,13 +2712,22 @@
   // es parte del nombre de dúos como «Polo & Pan» o «DOMi & JD BECK»
   // Nombres que llevan coma y no son dos artistas
   const COMMA_NAMES = ['Tyler, The Creator', 'Earth, Wind & Fire', 'Crosby, Stills, Nash & Young', 'Crosby, Stills & Nash', 'Black Country, New Road'];
+  const COMMA_NAME_RES = COMMA_NAMES.map((name) => new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'));
+  // Se calcula una vez por texto de artista: Inicio y el algoritmo lo piden miles de veces
+  // (antes creaba 5 expresiones regulares en cada llamada: ~250 ms por pintada de Inicio en un móvil medio)
+  const creditsCache = new Map();
   function creditedArtists(track) {
-    let text = String(track?.knownArtist || '');
-    COMMA_NAMES.forEach((name, i) => { text = text.replace(new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), `⟦${i}⟧`); });
-    return text
+    const raw = String(track?.knownArtist || '');
+    const hit = creditsCache.get(raw);
+    if (hit) return hit;
+    let text = raw;
+    COMMA_NAME_RES.forEach((re, i) => { text = text.replace(re, `⟦${i}⟧`); });
+    const names = Object.freeze(text
       .split(/\s*(?:,|\bfeat\.?|\bft\.?|\bfeaturing\b)\s*/i)
       .map((name) => name.replace(/⟦(\d+)⟧/g, (m, i) => COMMA_NAMES[i]).trim())
-      .filter((name) => name.length > 1);
+      .filter((name) => name.length > 1));
+    creditsCache.set(raw, names);
+    return names;
   }
 
   // Índice de artistas: canciones, estilos y con quién colaboran
@@ -2928,7 +3031,7 @@
       card.dataset.labAction = 'recipe';
       card.dataset.value = recipe.id;
       const ico = makeEl('span', 'lab-recipe-icon');
-      ico.innerHTML = `<svg class="icon" aria-hidden="true"><use href="#i-${recipe.icon}"></use></svg>`;
+      ico.replaceChildren(svgIcon(recipe.icon));
       card.append(ico, makeEl('span', 'lab-recipe-name', recipe.name), makeEl('span', 'lab-recipe-hint', recipe.hint));
       recipeGrid.append(card);
     });
@@ -3025,11 +3128,14 @@
       const result = labSection(lab.resultName ? `Receta · ${lab.resultName}` : 'Tu mezcla',
         `${songsLabel(lab.result.length)} · ${formatTotal(total)} · ${known} conocidas, ${lab.result.length - known} nuevas`);
       const bar = makeEl('div', 'lab-result-actions');
-      const play = markPlayable(labButton('btn btn-primary', 'play', 'Reproducir la mezcla', 'play', 'Reproducir'), 'lab:result', 'la mezcla');
+      // En Liquid Lab los botones llevan la mezcla a Liquid Bullet (ahí suena y ahí se guarda)
+      const play = LAB_MODE
+        ? labButton('btn btn-primary', 'play', 'Escuchar la mezcla en Liquid Bullet', 'play', 'Escuchar en Liquid')
+        : markPlayable(labButton('btn btn-primary', 'play', 'Reproducir la mezcla', 'play', 'Reproducir'), 'lab:result', 'la mezcla');
       bar.append(
         play,
-        labButton('btn', 'queue', 'Añadir la mezcla a la cola', 'queue', 'A la cola'),
-        labButton('btn', 'save', 'Guardar como playlist', 'playlist-add', 'Guardar')
+        labButton('btn', 'queue', LAB_MODE ? 'Añadir la mezcla a la cola de Liquid Bullet' : 'Añadir la mezcla a la cola', 'queue', 'A la cola'),
+        labButton('btn', 'save', LAB_MODE ? 'Guardar como playlist en tu Liquid Bullet' : 'Guardar como playlist', 'playlist-add', LAB_MODE ? 'Guardar en Liquid' : 'Guardar')
       );
       const listEl = makeEl('ol', 'lab-result');
       lab.result.forEach((track) => {
@@ -3101,6 +3207,11 @@
   function handleLabAction(target) {
     const action = target.dataset.labAction;
     const value = target.dataset.value;
+    // En Liquid Lab no se reproduce aquí: la mezcla viaja a Liquid Bullet
+    if (LAB_MODE && ['play', 'play-from', 'queue', 'rec-play', 'save'].includes(action)) {
+      labToLiquid(action, value);
+      return;
+    }
     const toggle = (list, item) => (list.includes(item) ? list.filter((x) => x !== item) : [...list, item]);
     switch (action) {
       case 'recipe': runRecipe(value); haptic(12); return;
@@ -3154,6 +3265,27 @@
   }
 
   const artistName = (key) => labArtists().get(key)?.name || '';
+
+  function labToLiquid(action, value) {
+    if (action === 'rec-play') {
+      const entry = labArtists().get(value);
+      if (!entry) return;
+      const tracks = spaceOut(weightedOrder(entry.tracks.filter(isPlayable), (t) => recencyFactor(t.id)));
+      if (tracks.length) sendToLiquid({ action: 'play', name: `Lab · Si te gusta ${artistName(lab.likeArtist)}: ${entry.name}`, ids: tracks.map((t) => t.id) });
+      return;
+    }
+    if (!lab.result.length) return;
+    const ids = lab.result.map((t) => t.id);
+    if (action === 'save') {
+      const playlist = { id: newId(), name: labName(), emoji: 'ic:flask', color: PLAYLIST_COLORS[lab.result.length % PLAYLIST_COLORS.length],
+        trackIds: ids, createdAt: Date.now() };
+      library.local.push(playlist);
+      saveLocalPlaylists();
+      sendToLiquid({ action: 'saved', playlist: playlist.id, name: playlist.name, ids });
+      return;
+    }
+    sendToLiquid({ action: action === 'queue' ? 'queue' : 'play', name: labName(), ids, start: action === 'play-from' ? value : '' });
+  }
 
   /* ---------- Vistas: Biblioteca, Playlists y Favoritas ---------- */
   function sortTracks(list) {
@@ -3230,11 +3362,19 @@
     return track.lyricsHay.includes(q);
   }
 
+  // Al seguir escribiendo («gor» → «gori» → «goril…») se busca dentro de lo que ya coincidía,
+  // no en las miles de canciones otra vez
+  let lastExact = { key: '', q: '', result: null };
+  // La lista de partida se rehace en cada tecla: se reconoce por vista, filtros, tamaño y extremos
+  const listKeyOf = (list) => `${state.view}|${state.openPlaylist?.key || state.openPlaylist || ''}|${state.openArtist || ''}|${state.sort}|${state.filter || ''}|${state.genre || ''}|${list.length}|${list[0]?.id}|${list[list.length - 1]?.id}`;
   function searchTracks(list, query) {
     const q = normalize(query);
     if (!q) return list;
     const tokens = q.split(/\s+/).filter(Boolean);
-    const exact = list.filter((track) => tokens.every((token) => haystackOf(track).includes(token)));
+    const key = listKeyOf(list);
+    const narrow = lastExact.key === key && lastExact.result?.length && lastExact.q && q.startsWith(lastExact.q) && !/\s$/.test(lastExact.q);
+    const exact = (narrow ? lastExact.result : list).filter((track) => tokens.every((token) => haystackOf(track).includes(token)));
+    lastExact = { key, q, result: exact };
     const exactIds = new Set(exact.map((t) => t.id));
     // Frases de la letra (4+ letras): se suman al final
     const byLyrics = q.length >= 4 ? list.filter((t) => !exactIds.has(t.id) && lyricsMatch(t, q)) : [];
@@ -3252,6 +3392,25 @@
     return searchTracks(list, state.query);
   }
 
+  // Icono SVG del sprite: se clona de un modelo en vez de usar innerHTML (cada fila de la Biblioteca
+  // lleva varios: al desplazar se analizaban cientos de trozos de HTML)
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+  const iconModels = new Map();
+  function svgIcon(name, className = 'icon') {
+    const key = `${className}|${name}`;
+    let model = iconModels.get(key);
+    if (!model) {
+      model = document.createElementNS(SVG_NS, 'svg');
+      model.setAttribute('class', className);
+      model.setAttribute('aria-hidden', 'true');
+      const use = document.createElementNS(SVG_NS, 'use');
+      use.setAttribute('href', `#i-${name}`);
+      model.append(use);
+      iconModels.set(key, model);
+    }
+    return model.cloneNode(true);
+  }
+
   function makeButton(className, action, label, icon, text = '') {
     const button = document.createElement('button');
     button.type = 'button';
@@ -3259,7 +3418,7 @@
     button.dataset.action = action;
     button.setAttribute('aria-label', label);
     button.title = label;
-    if (icon) button.innerHTML = `<svg class="icon" aria-hidden="true"><use href="#i-${icon}"></use></svg>`;
+    if (icon) button.append(svgIcon(icon));
     if (text) {
       const span = document.createElement('span');
       span.textContent = text;
@@ -3476,7 +3635,7 @@
     card.append(playlistCover(pl, 160), text);
     if (isPinned(pl.key)) {
       const pin = makeEl('span', 'pl-pin');
-      pin.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-pin"></use></svg>';
+      pin.replaceChildren(svgIcon('pin'));
       pin.title = 'Fijada';
       card.append(pin);
     }
@@ -3857,7 +4016,13 @@
     return `${monday.getFullYear()}-${monday.getMonth() + 1}-${monday.getDate()}`;
   };
   const playsOf = (id) => Number(library.plays[id]) || 0;
-  const artistKeyOf = (track) => normalize(mainArtist(track));
+  const artistKeyCache = new Map();
+  const artistKeyOf = (track) => {
+    const raw = track?.knownArtist || '';
+    let key = artistKeyCache.get(raw);
+    if (key === undefined) { key = normalize(mainArtist(track)); artistKeyCache.set(raw, key); }
+    return key;
+  };
   const getArtist = (key) => labArtists().get(key) || null;
   const isFollowing = (key) => library.follows.includes(key);
 
@@ -4018,7 +4183,7 @@
     const art = makeEl('span', 'home-card-art');
     art.append(photoImg(image, 160), makeEl('span', 'home-card-label', title));
     const play = makeEl('span', 'home-card-play');
-    play.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-play"></use></svg>';
+    play.replaceChildren(svgIcon('play'));
     art.append(play);
     const names = [...new Set(tracks.map((t) => mainArtist(t)).filter(Boolean))].slice(0, 3).join(', ');
     card.append(art, makeEl('span', 'home-card-title', sub), makeEl('span', 'home-card-sub', names || songsLabel(tracks.length)));
@@ -4268,7 +4433,7 @@
       makeEl('span', 'home-hero-sub', `${mix.genres.join(' · ')} · ${songsLabel(mix.tracks.length)}`)
     );
     const play = makeEl('span', 'home-hero-play');
-    play.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-play"></use></svg>';
+    play.replaceChildren(svgIcon('play'));
     hero.append(art, text, play);
     return hero;
   }
@@ -4513,38 +4678,63 @@
   }
 
   /* ---------- Acerca del artista (debajo de la letra) ---------- */
+  // Sonando: cada artista de la canción tiene su enlace y su ficha (una colaboración es de todos)
   function updateAbout(track) {
-    const key = track ? artistKeyOf(track) : '';
-    const entry = key ? getArtist(key) : null;
-    els.npAbout.hidden = !entry;
-    els.npArtist.classList.toggle('is-link', Boolean(entry));
-    els.npArtist.dataset.artist = entry ? entry.key : '';
-    if (entry) {
+    const entries = track ? artistKeysOf(track).map(getArtist).filter(Boolean) : [];
+    const main = entries[0] || null;
+    els.npArtist.classList.toggle('is-link', entries.length === 1);
+    els.npArtist.dataset.artist = main ? main.key : '';
+    if (entries.length === 1) {
       els.npArtist.setAttribute('role', 'link');
       els.npArtist.tabIndex = 0;
     } else {
       els.npArtist.removeAttribute('role');
       els.npArtist.removeAttribute('tabindex');
     }
-    if (!entry) return;
-    const plays = artistPlays(entry);
-    const card = makeEl('div', 'about-card');
-    const open = makeEl('button', 'about-open');
-    open.type = 'button';
-    open.dataset.artist = entry.key;
-    const text = makeEl('span', 'about-text');
-    text.append(
-      makeEl('span', 'about-eyebrow', 'Acerca del artista'),
-      makeEl('span', 'about-name', entry.name),
-      makeEl('span', 'about-meta', `${songsLabel(entry.tracks.length)} en Liquid${plays ? ` · ${plays} escucha${plays === 1 ? '' : 's'}` : ''}`)
-    );
-    open.append(photoImg(entry.tracks[0]?.thumb, 56, 'artist-photo'), text);
-    const follow = makeEl('button', `btn follow-btn${isFollowing(entry.key) ? ' is-active' : ''}`, isFollowing(entry.key) ? 'Siguiendo' : 'Seguir');
-    follow.type = 'button';
-    follow.dataset.follow = entry.key;
-    follow.setAttribute('aria-pressed', String(isFollowing(entry.key)));
-    card.append(open, follow);
-    els.npAbout.replaceChildren(card);
+    // Varios artistas: cada nombre es su propio enlace («La Vendicion, La Obsesion, Yeyo…»)
+    if (entries.length > 1) {
+      const parts = [];
+      entries.forEach((entry, i) => {
+        if (i) parts.push(document.createTextNode(', '));
+        const link = makeEl('span', 'np-artist-link', entry.name);
+        link.dataset.artist = entry.key;
+        link.setAttribute('role', 'link');
+        link.tabIndex = 0;
+        link.setAttribute('aria-label', `Ver ${entry.name}`);
+        parts.push(link);
+      });
+      els.npArtist.replaceChildren(...parts);
+    }
+    els.npAbout.hidden = !entries.length;
+    if (!entries.length) return;
+    const multi = entries.length > 1;
+    const cards = entries.map((entry) => {
+      const plays = artistPlays(entry);
+      const card = makeEl('div', 'about-card');
+      const open = makeEl('button', 'about-open');
+      open.type = 'button';
+      open.dataset.artist = entry.key;
+      const text = makeEl('span', 'about-text');
+      // Un artista: como siempre («Acerca del artista» dentro de la ficha). Varios: un título arriba
+      if (!multi) text.append(makeEl('span', 'about-eyebrow', 'Acerca del artista'));
+      text.append(
+        makeEl('span', 'about-name', entry.name),
+        makeEl('span', 'about-meta', `${songsLabel(entry.tracks.length)} en Liquid${plays ? ` · ${plays} escucha${plays === 1 ? '' : 's'}` : ''}`)
+      );
+      // Foto: una canción propia del artista si la tiene (no la colaboración que suena)
+      const own = entry.tracks.find((t) => t.id !== track.id) || entry.tracks[0];
+      open.append(photoImg(own?.thumb, 56, 'artist-photo'), text);
+      const follow = makeEl('button', `btn follow-btn${isFollowing(entry.key) ? ' is-active' : ''}`, isFollowing(entry.key) ? 'Siguiendo' : 'Seguir');
+      follow.type = 'button';
+      follow.dataset.follow = entry.key;
+      follow.setAttribute('aria-pressed', String(isFollowing(entry.key)));
+      follow.setAttribute('aria-label', `${isFollowing(entry.key) ? 'Dejar de seguir' : 'Seguir'} a ${entry.name}`);
+      card.append(open, follow);
+      return card;
+    });
+    els.npAbout.classList.toggle('is-multi', multi);
+    if (multi) els.npAbout.replaceChildren(makeEl('p', 'about-eyebrow about-head', `Acerca de los artistas · ${entries.length}`), ...cards);
+    else els.npAbout.replaceChildren(...cards);
   }
 
   /* ---------- Búsquedas recientes y explorar (al tocar el buscador) ---------- */
@@ -4788,8 +4978,9 @@
         .slice(0, 12)
       : [];
     const artists = q && state.view !== 'artists'
-      ? [...labArtists().values()].filter((a) => normalize(a.name).includes(q))
-        .sort((a, b) => (normalize(b.name).startsWith(q) - normalize(a.name).startsWith(q)) || artistPlays(b) - artistPlays(a) || b.tracks.length - a.tracks.length)
+      // La clave del artista ya es su nombre normalizado: no se normalizan ~1.800 nombres en cada tecla
+      ? [...labArtists().values()].filter((a) => a.key.includes(q))
+        .sort((a, b) => (b.key.startsWith(q) - a.key.startsWith(q)) || artistPlays(b) - artistPlays(a) || b.tracks.length - a.tracks.length)
         .slice(0, 10)
       : [];
     els.searchPlaylists.hidden = !matches.length && !artists.length;
@@ -5037,6 +5228,11 @@
   }
 
   function setView(view, { playlist = null, fromHistory = false } = {}) {
+    if (!LAB_MODE && view === 'lab') { goToLab(); return; }
+    if (LAB_MODE && view !== 'lab') {
+      location.assign(VIEWS.includes(view) && view !== 'home' ? `${LIQUID_URL}?view=${view}` : LIQUID_URL);
+      return;
+    }
     const previous = state.view;
     const previousPlaylist = state.openPlaylist;
     const previousArtist = state.lastArtist;
@@ -5368,7 +5564,7 @@
     artist.textContent = track.knownArtist && tag && state.view !== 'playlist'
       ? `${track.knownArtist} · ${tag}`
       : track.knownArtist || tag || track.artist;
-    artist.insertAdjacentHTML('afterbegin', '<svg class="icon track-offline" aria-hidden="true"><use href="#i-download-done"></use></svg>');
+    artist.prepend(svgIcon('download-done', 'icon track-offline'));
     text.append(title, artist);
 
     main.append(num, img, text);
@@ -5383,7 +5579,7 @@
     fav.type = 'button';
     fav.className = 'icon-btn fav-btn';
     fav.dataset.action = 'fav';
-    fav.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-heart"></use></svg>';
+    fav.replaceChildren(svgIcon('heart'));
     updateFavButton(fav, state.favorites.has(track.id));
     actions.append(fav);
 
@@ -5596,7 +5792,7 @@
       const handle = document.createElement('span');
       handle.className = 'queue-handle';
       handle.setAttribute('aria-hidden', 'true');
-      handle.innerHTML = '<svg class="icon"><use href="#i-drag"></use></svg>';
+      handle.replaceChildren(svgIcon('drag'));
       li.prepend(handle);
     }
     if (index > state.queueIndex) {
@@ -5605,7 +5801,7 @@
       remove.className = 'icon-btn queue-remove';
       remove.dataset.remove = String(index);
       remove.setAttribute('aria-label', `Quitar ${track.title} de la cola`);
-      remove.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-close"></use></svg>';
+      remove.replaceChildren(svgIcon('close'));
       li.append(remove);
     } else {
       li.classList.add('is-current');
@@ -5802,7 +5998,7 @@
     // Se guarda a menudo pero sin escribir en cada timeupdate (cada 4 s, o al instante si force)
     save(force = false) {
       const track = state.currentTrack;
-      if (!track) return;
+      if (!track || LAB_MODE) return;
       const now = Date.now();
       if (!force && now - this.lastSaved < 4000) return;
       this.lastSaved = now;
@@ -5814,12 +6010,14 @@
     // el navegador está libre, no en cada cambio de canción
     queueTimer: 0,
     saveQueue() {
-      if (this.queueTimer) return;
+      if (this.queueTimer || LAB_MODE) return;
       const write = () => { this.queueTimer = 0; this.flushQueue(); };
       this.queueTimer = window.requestIdleCallback ? requestIdleCallback(write, { timeout: 2000 }) : setTimeout(write, 500);
       this.queueIdle = Boolean(window.requestIdleCallback);
     },
     flushQueue() {
+      // Liquid Lab no tiene cola: no debe pisar la de Liquid Bullet al cerrarse
+      if (LAB_MODE) return;
       if (this.queueTimer) {
         if (this.queueIdle) cancelIdleCallback(this.queueTimer); else clearTimeout(this.queueTimer);
         this.queueTimer = 0;
@@ -7067,6 +7265,7 @@
   }
 
   function setupMediaSessionHandlers() {
+    if (LAB_MODE) return;
     if (!('mediaSession' in navigator)) return;
     const handlers = {
       play: () => play(),
@@ -7267,7 +7466,10 @@
         case 'share-playlist': sharePlaylist(pl); break;
         case 'go-view': setView(target.dataset.value); break;
         case 'open-artist': openArtist(target.dataset.value); break;
-        case 'radio-artist': startRadio(target.dataset.value); break;
+        case 'radio-artist':
+          if (LAB_MODE) sendToLiquid({ action: 'radio', artist: target.dataset.value });
+          else startRadio(target.dataset.value);
+          break;
         case 'follow-artist': toggleFollow(target.dataset.value); break;
         case 'more-artists': home.artistsShown += ARTISTS_PAGE; renderList(); break;
         case 'home-play': {
@@ -7395,10 +7597,14 @@
     els.npAddBtn.addEventListener('click', () => {
       if (state.currentTrack) openAddDialog(state.currentTrack.id);
     });
-    const openNowArtist = () => { if (els.npArtist.dataset.artist) openArtist(els.npArtist.dataset.artist); };
+    // Con varios artistas cada nombre abre el suyo; con uno, todo el texto
+    const openNowArtist = (event) => {
+      const key = event.target.closest('[data-artist]')?.dataset.artist || '';
+      if (key && (event.target.closest('.np-artist-link') || els.npArtist.classList.contains('is-link'))) openArtist(key);
+    };
     els.npArtist.addEventListener('click', openNowArtist);
     els.npArtist.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openNowArtist(); }
+      if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openNowArtist(event); }
     });
     els.npAbout.addEventListener('click', (event) => {
       const follow = event.target.closest('[data-follow]');
@@ -7574,12 +7780,14 @@
         setView('library');
         return;
       }
-      // Con miles de canciones se espera a que pares de escribir (90 ms)
+      // Con miles de canciones se espera a que pares de escribir: más en equipos modestos y teléfonos,
+      // para no pintar la lista entera con cada letra
       clearTimeout(searchFrame);
+      const pause = state.tracks.length <= 800 ? 0 : DEVICE.lowEnd ? 220 : DEVICE.device === 'desktop' ? 90 : 140;
       searchFrame = setTimeout(() => {
         searchFrame = null;
         requestAnimationFrame(renderList);
-      }, state.tracks.length > 800 ? 90 : 0);
+      }, pause);
     });
 
     // Lab
@@ -8014,6 +8222,7 @@
 
     // Atajos de teclado
     document.addEventListener('keydown', (event) => {
+      if (LAB_MODE) return;
       if (event.ctrlKey || event.metaKey || event.altKey) return;
       if (document.querySelector('dialog[open]')) return;
       const target = event.target;
@@ -8380,15 +8589,41 @@
     let deferred = null;
     const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches
       || window.matchMedia('(display-mode: minimal-ui)').matches || navigator.standalone === true;
-    const isAndroid = /Android/i.test(navigator.userAgent);
+    const isAndroid = DEVICE.os === 'android';
     const info = storage.get(KEYS.install, null) || { visits: 0, hinted: false };
 
     function steps() {
-      if (IS_IOS) {
+      if (DEVICE.inapp) {
         return [
-          'Toca Compartir (el cuadrado con la flecha ↑): en Safari está abajo; en Chrome, arriba a la derecha.',
+          `Estás dentro de ${INAPP_NAMES[DEVICE.inapp] || 'otra app'}: desde aquí no se puede instalar.`,
+          IS_IOS ? 'Toca ⋯ o el icono de brújula y elige «Abrir en Safari».' : 'Toca ⋮ y elige «Abrir en Chrome» (o en tu navegador).',
+          'Ahí sigue los pasos de instalar.'
+        ];
+      }
+      if (IS_IOS) {
+        const share = DEVICE.browser === 'safari'
+          ? (DEVICE.device === 'tablet' ? 'Toca Compartir (el cuadrado con la flecha ↑), arriba a la derecha.' : 'Toca Compartir (el cuadrado con la flecha ↑), abajo en el centro.')
+          : DEVICE.browser === 'chrome' ? 'Toca Compartir (el cuadrado con la flecha ↑), arriba a la derecha junto a la dirección.'
+            : DEVICE.browser === 'firefox' ? 'Toca el menú ≡ (abajo a la derecha) y luego Compartir.'
+              : 'Toca Compartir (el cuadrado con la flecha ↑) en el menú del navegador.';
+        return [
+          share,
           'Desliza y elige «Añadir a pantalla de inicio».',
           'Pulsa «Añadir» y abre Liquid Bullet desde su icono nuevo.'
+        ];
+      }
+      if (DEVICE.browser === 'samsung') {
+        return [
+          'Toca el menú ≡ (abajo a la derecha).',
+          'Elige «Añadir página a» → «Pantalla de inicio».',
+          'Confirma y abre Liquid Bullet desde su icono nuevo.'
+        ];
+      }
+      if (DEVICE.browser === 'firefox' && isAndroid) {
+        return [
+          'Toca el menú ⋮ (arriba o abajo a la derecha).',
+          'Elige «Instalar» o «Añadir a pantalla de inicio».',
+          'Confirma y abre Liquid Bullet desde su icono nuevo.'
         ];
       }
       return [
@@ -9777,7 +10012,7 @@
       if (pedido) {
         setTimeout(() => abrir(sesion ? 'cuenta' : pedido === 'alta' ? 'alta-1' : 'entrar'), 600);
         try { history.replaceState(null, '', location.pathname + location.hash); } catch { /* sin historial */ }
-      } else if (!sesion && !storage.get(K.ofrecida, false)) {
+      } else if (!LAB_MODE && !sesion && !storage.get(K.ofrecida, false)) {
         // Lo primero al abrir tras la actualización: la cuenta (se puede rechazar y todo sigue igual)
         setTimeout(() => abrir('bienvenida'), 700);
       }
@@ -9816,7 +10051,7 @@
         text: () => 'Playlists por estilo hechas con toda la biblioteca, las tuyas (botón ＋ de cada canción) y las automáticas: «Escuchadas hace poco» y «Tus más escuchadas». Mantén pulsada una para fijarla arriba.',
         target: () => (isPhone() ? '.nav-btn[data-nav="playlists"]' : '.tab[data-view="playlists"]') },
       { icon: 'flask', title: 'Lab',
-        text: () => 'Combina estilos y artistas y Lab te arma una mezcla a medida. En «Si te gusta…» eliges un artista y te recomienda a quién escuchar después.',
+        text: () => 'Lab es el laboratorio de mezclas y tiene su propio sitio: combina estilos y artistas y te arma una mezcla a medida. Lo que guardes ahí vuelve a Liquid como una playlist más.',
         target: () => (isPhone() ? '.nav-btn[data-nav="lab"]' : '.tab[data-view="lab"]') },
       { icon: 'queue', title: 'El reproductor',
         text: () => 'Transiciones DJ entre canciones, «A continuación» para ver y ordenar la cola, temporizador de apagado y letras sincronizadas. Cada playlist se puede descargar para escucharla sin conexión.',
@@ -9844,7 +10079,7 @@
 
     function render() {
       const data = STEPS[step];
-      els.tourIcon.innerHTML = `<svg class="icon" aria-hidden="true"><use href="#i-${data.icon}"></use></svg>`;
+      els.tourIcon.replaceChildren(svgIcon(data.icon));
       els.tourTitle.textContent = data.title;
       els.tourText.textContent = data.text();
       els.tourCount.textContent = `${step + 1} de ${STEPS.length}`;
@@ -9895,7 +10130,7 @@
       });
       // Primera visita: se muestra cuando ya cargó la app (y nunca más)
       // Si va primero la cuenta (primera vez tras la actualización), el tutorial sale al cerrarla
-      if (!seen() && !cuenta.vaPrimero()) setTimeout(open, 900);
+      if (!LAB_MODE && !seen() && !cuenta.vaPrimero()) setTimeout(open, 900);
     }
 
     return { init, open };
@@ -9909,7 +10144,7 @@
     const active = searching ? 'search'
       : state.view === 'home' ? 'home'
       : state.view === 'playlists' || state.view === 'playlist' ? 'playlists'
-      : state.view === 'lab' || state.view === 'stats' ? 'lab' : 'library';
+      : state.view === 'lab' ? 'lab' : 'library';
     els.bottomNav.querySelectorAll('.nav-btn').forEach((button) => {
       const on = button.dataset.nav === active;
       button.classList.toggle('is-active', on);
@@ -9997,6 +10232,7 @@
         '',
         ...list.map((e) => `${e.t} · ${e.m} (${e.s}) ${e.v}`),
         '',
+        `Dispositivo: ${deviceSummary()}`,
         `Navegador: ${navigator.userAgent}`,
         `Pantalla: ${window.innerWidth}×${window.innerHeight} · tema ${document.documentElement.dataset.theme}`
       ].join('\n');
@@ -10061,8 +10297,8 @@
     library.pins = Array.isArray(savedPins) ? savedPins.filter((k) => typeof k === 'string') : [];
     const savedHidden = storage.get(KEYS.hidden, []);
     library.hidden = Array.isArray(savedHidden) ? savedHidden.filter((k) => typeof k === 'string') : [];
-    // Como en Spotify, la app abre siempre en Inicio
-    state.view = 'home';
+    // Como en Spotify, la app abre siempre en Inicio (Liquid Lab, siempre en Lab)
+    state.view = LAB_MODE ? 'lab' : 'home';
     const savedFollows = storage.get(KEYS.follows, []);
     library.follows = Array.isArray(savedFollows) ? savedFollows.filter((k) => typeof k === 'string') : [];
     const savedSearches = storage.get(KEYS.searches, []);
@@ -10090,12 +10326,43 @@
 
   // Equipos modestos o "ahorro de datos": escena surrealista estática
   function detectLiteMode() {
-    const cores = navigator.hardwareConcurrency || 8;
-    const memory = navigator.deviceMemory || 8;
-    const saveData = navigator.connection?.saveData === true;
-    // iPhone y iPad informan pocos núcleos pero mueven el vidrio sin problema
-    autoLite = (cores <= 4 && !IS_IOS) || memory <= 2 || saveData;
+    // Lo decide la detección del dispositivo (index.html): iPhone y iPad nunca entran aquí por sus núcleos
+    autoLite = DEVICE.lowEnd || DEVICE.saveData || DEVICE.slowNet;
     if (autoLite) document.documentElement.classList.add('lite');
+  }
+
+  // Abierta dentro de Instagram, TikTok, Facebook…: la música se corta al salir de esa app, no se puede
+  // instalar y lo guardado puede borrarse. Se ofrece abrirla en el navegador (una vez por sesión).
+  function inappNotice() {
+    if (!DEVICE.inapp) return;
+    try { if (sessionStorage.getItem('liquidbrush:inapp-visto')) return; } catch { /* sin acceso */ }
+    const app = INAPP_NAMES[DEVICE.inapp] || 'otra app';
+    const url = location.href;
+    const bar = makeEl('div', 'inapp-bar');
+    bar.setAttribute('role', 'region');
+    bar.setAttribute('aria-label', 'Abrir en el navegador');
+    const text = makeEl('p', 'inapp-text');
+    text.append(makeEl('b', '', `Estás dentro de ${app}.`), document.createTextNode(` La música se corta al salir y no se puede instalar. Ábrela en ${IS_IOS ? 'Safari' : 'tu navegador'} para que suene bien.`));
+    const actions = makeEl('div', 'inapp-actions');
+    const open = makeEl('a', 'btn btn-primary', IS_IOS ? 'Abrir en Safari' : 'Abrir en el navegador');
+    // iOS 17+: x-safari-https abre Safari desde los navegadores internos. Android: un intent abre el navegador
+    open.href = IS_IOS ? `x-safari-${url}` : `intent://${url.replace(/^https?:\/\//, '')}#Intent;scheme=https;S.browser_fallback_url=${encodeURIComponent(url)};end`;
+    const copy = makeEl('button', 'btn', 'Copiar enlace');
+    copy.type = 'button';
+    copy.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(url); showToast(`Enlace copiado: pégalo en ${IS_IOS ? 'Safari' : 'tu navegador'}.`); } catch { showToast(url); }
+    });
+    const close = makeEl('button', 'icon-btn inapp-close');
+    close.type = 'button';
+    close.setAttribute('aria-label', 'Cerrar el aviso');
+    close.append(svgIcon('close'));
+    close.addEventListener('click', () => {
+      bar.remove();
+      try { sessionStorage.setItem('liquidbrush:inapp-visto', '1'); } catch { /* sin acceso */ }
+    });
+    actions.append(open, copy);
+    bar.append(text, actions, close);
+    document.body.append(bar);
   }
 
   function init() {
@@ -10141,6 +10408,8 @@
     cuenta.init();
     tour.init();
     install.init();
+    inappNotice();
+    if (els.deviceInfo) els.deviceInfo.textContent = `Tu dispositivo: ${deviceSummary()}. La app se adapta sola a él.`;
     document.querySelectorAll('.settings-group-title').forEach((title) => title.prepend(sticker(title.textContent)));
     updateNav();
     updateOnlineStatus();

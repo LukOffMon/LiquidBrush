@@ -6682,3 +6682,214 @@ textarea {
   outline: 3px solid var(--accent);
   outline-offset: 2px;
 }
+
+/* Acerca del artista: una ficha por cada artista de la colaboración */
+.np-about.is-multi {
+  display: grid;
+  gap: 8px;
+}
+
+.about-head {
+  margin: 0 0 2px 4px;
+}
+
+.np-artist-link {
+  cursor: pointer;
+  border-radius: 4px;
+  text-decoration: underline transparent;
+  text-underline-offset: 3px;
+  transition: text-decoration-color 0.2s, color 0.2s;
+}
+
+.np-artist-link:hover,
+.np-artist-link:focus-visible {
+  color: var(--text);
+  text-decoration-color: currentColor;
+  outline: none;
+}
+
+/* =========================================================
+   Fluidez: el vidrio (backdrop-filter) solo en las superficies grandes
+   Cada fila de la Biblioteca llevaba sus botones desenfocados, y cada tarjeta de Inicio
+   su etiqueta: cientos de desenfoques dentro de un panel que ya está desenfocado.
+   Se nota al desplazar en móviles; a la vista es prácticamente igual.
+   ========================================================= */
+:root:not(.lite) .library .icon-btn:not(.play-btn),
+:root:not(.lite) .library .pl-card,
+:root:not(.lite) .library .home-tile,
+:root:not(.lite) .library .home-card-label,
+:root:not(.lite) .library .chip:not(.is-active),
+:root:not(.lite) .library .stat-tile,
+:root:not(.lite) .library .lab-rec,
+:root:not(.lite) .library .btn:not(.btn-primary):not(.btn-ghost) {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* Aviso: abierta dentro de Instagram, TikTok, Facebook… */
+.inapp-bar {
+  position: fixed;
+  z-index: 40;
+  top: calc(8px + env(safe-area-inset-top));
+  left: 50%;
+  width: min(calc(100% - 24px), 480px);
+  transform: translateX(-50%);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px 8px;
+  padding: 14px 14px 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--bg);
+  color: var(--text);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+}
+
+.inapp-text {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.inapp-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.inapp-close {
+  grid-row: 1;
+  grid-column: 2;
+  align-self: start;
+}
+
+/* iPhone/iPad: el volumen solo se cambia con los botones (iOS ignora el volumen de la web) */
+[data-os="ios"] .player .volume,
+[data-os="ipados"] .player .volume {
+  display: none;
+}
+
+/* =========================================================
+   Adaptación a pantallas pequeñas (comprobado de 320 a 1440 px)
+   ========================================================= */
+/* Lab → Recetas: las columnas no podían encoger por debajo de «Descubrimiento» y la página
+   se desplazaba de lado a 360 px (el ancho de muchos Android) */
+@media (max-width: 520px) {
+  .lab-recipes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.lab-recipe { min-width: 0; }
+
+.lab-recipe-name,
+.lab-recipe-hint {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* 320 px (iPhone SE, Android pequeños): la barra superior se salía 5 px */
+.brand {
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+.brand-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 360px) {
+  .topbar { gap: 8px; }
+  .topbar-actions { gap: 4px; }
+  .brand { gap: 6px; }
+  .brand-logo { width: 30px; height: 30px; }
+  [data-theme] .brand-name { font-size: 1.05rem; }
+}
+
+@media (max-width: 340px) {
+  .bottom-nav .nav-btn span { font-size: 0.66rem; letter-spacing: 0; }
+}
+
+/* =========================================================
+   Liquid Lab (lab.html): sitio aparte, sin reproductor ni navegación de Liquid
+   ========================================================= */
+[data-mode="lab"] .now-playing,
+[data-mode="lab"] .player,
+[data-mode="lab"] .bottom-nav,
+[data-mode="lab"] .search,
+[data-mode="lab"] .tabs,
+[data-mode="lab"] #recentRow,
+[data-mode="lab"] #filterChips,
+[data-mode="lab"] #alphaRail,
+[data-mode="lab"] #trackList,
+[data-mode="lab"] #listInfo,
+[data-mode="lab"] #viewHead,
+[data-mode="lab"] .search-panel,
+[data-mode="lab"] .search-playlists,
+[data-mode="lab"] #cuentaBtn {
+  display: none !important;
+}
+
+[data-mode="lab"] .layout,
+[data-mode="lab"] body .layout {
+  grid-template-columns: minmax(0, 1fr) !important;
+  max-width: 980px;
+  padding-bottom: calc(40px + env(safe-area-inset-bottom));
+}
+
+.lab-hero { display: none; }
+
+[data-mode="lab"] .lab-hero {
+  display: block;
+  padding: 18px 8px 8px;
+}
+
+.lab-hero-eyebrow {
+  margin: 0 0 6px;
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.lab-hero-title {
+  margin: 0 0 10px;
+  font-family: var(--brand-font, inherit);
+  font-size: clamp(1.7rem, 6vw, 2.6rem);
+  line-height: 1.05;
+}
+
+.lab-hero-text {
+  max-width: 62ch;
+  margin: 0;
+  color: var(--text-muted);
+  font-family: var(--song-font);
+  letter-spacing: normal;
+  text-transform: none;
+  line-height: 1.5;
+}
+
+/* Liquid Lab en el teléfono: recetas a una columna (a dos, las palabras largas se partían) */
+@media (max-width: 460px) {
+  [data-mode="lab"] .lab-recipes { grid-template-columns: minmax(0, 1fr); }
+}
+
+.lab-back { display: none; }
+
+[data-mode="lab"] .lab-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+[data-mode="lab"] .lab-back .icon { width: 18px; height: 18px; }
+
+@media (max-width: 520px) {
+  [data-mode="lab"] .lab-back span { display: none; }
+  [data-mode="lab"] .lab-back { width: 40px; height: 40px; padding: 0; justify-content: center; }
+}

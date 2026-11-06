@@ -343,3 +343,143 @@ test('playlists propias: se elige una portada de covers/propias y las de base nu
   await page.goto('./?view=playlists');
   await expect(page.locator('img.pl-cover[src*="covers/propias/propia-03"]').first()).toBeVisible();
 });
+
+test('colaboraciones: la canción es de todos sus artistas y Sonando muestra una ficha por artista', async ({ page }) => {
+  await page.goto('./');
+  await expect(page.locator('#libCount')).not.toHaveText('0');
+  await page.fill('#searchInput', 'LADYHOY');
+  await page.locator('.track', { hasText: 'LADYHOY' }).first().locator('.track-main').click();
+  const cards = page.locator('#npAbout .about-card');
+  await expect(cards).toHaveCount(4);
+  await expect(page.locator('#npAbout')).toContainText('Acerca de los artistas');
+  for (const name of ['La Vendicion', 'La Obsesion', 'Yeyo', 'Doony Graff']) {
+    await expect(page.locator('#npAbout .about-name', { hasText: name })).toHaveCount(1);
+  }
+  // Cada nombre de arriba es su propio enlace
+  await expect(page.locator('#npArtist .np-artist-link')).toHaveCount(4);
+  // Seguir a uno no sigue a los demás
+  await cards.nth(1).locator('.follow-btn').dispatchEvent('click');
+  await expect(cards.nth(1).locator('.follow-btn')).toHaveText('Siguiendo');
+  await expect(cards.nth(2).locator('.follow-btn')).toHaveText('Seguir');
+  // La canción aparece en la página de cada artista (no solo del primero)
+  await page.locator('#npAbout .about-open').nth(2).dispatchEvent('click');
+  await expect(page.locator('.track', { hasText: 'LADYHOY' }).first()).toBeAttached();
+});
+
+test('artistas con «&», «y» o «x» en el nombre no se cortan', async ({ page }) => {
+  await page.goto('./');
+  await expect(page.locator('#libCount')).not.toHaveText('0');
+  await page.fill('#searchInput', 'Polo Pan');
+  await page.locator('.track', { hasText: 'Polo & Pan' }).first().locator('.track-main').click();
+  await expect(page.locator('#npAbout .about-name')).toHaveText('Polo & Pan');
+});
+
+test.describe('detección de dispositivo, sistema y navegador', () => {
+  test('iPhone con Safari: iOS, WebKit y pasos de instalar para Safari', async ({ browser }) => {
+    const ctx = await browser.newContext({
+      userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Mobile/15E148 Safari/604.1',
+      viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true
+    });
+    const page = await ctx.newPage();
+    await page.addInitScript(() => { localStorage.setItem('liquidbrush:tour', 'true'); localStorage.setItem('liquidbrush:cuenta-ofrecida', 'true'); });
+    await page.route(/r2\.dev|lrclib\.net/, (route) => route.abort());
+    await page.goto('./');
+    const html = page.locator('html');
+    await expect(html).toHaveAttribute('data-os', 'ios');
+    await expect(html).toHaveAttribute('data-browser', 'safari');
+    await expect(html).toHaveAttribute('data-device', 'phone');
+    await expect(html).toHaveClass(/is-ios/);
+    expect(await page.evaluate(() => window.lbDevice.osVersion)).toBeCloseTo(18.01);
+    await page.locator('#settingsBtn').click();
+    await expect(page.locator('#deviceInfo')).toContainText('iPhone (iOS 18) · Safari');
+    await expect(page.locator('#installSteps')).toContainText('abajo en el centro');
+    await ctx.close();
+  });
+
+  test('Android dentro de Instagram: avisa y ofrece abrir en el navegador', async ({ browser }) => {
+    const ctx = await browser.newContext({
+      userAgent: 'Mozilla/5.0 (Linux; Android 14; Pixel 7 Build/UQ1A; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/129.0 Mobile Safari/537.36 Instagram 350.0.0.0.0 Android',
+      viewport: { width: 412, height: 915 }, isMobile: true, hasTouch: true
+    });
+    const page = await ctx.newPage();
+    await page.addInitScript(() => { localStorage.setItem('liquidbrush:tour', 'true'); localStorage.setItem('liquidbrush:cuenta-ofrecida', 'true'); });
+    await page.route(/r2\.dev|lrclib\.net/, (route) => route.abort());
+    await page.goto('./');
+    await expect(page.locator('html')).toHaveAttribute('data-os', 'android');
+    await expect(page.locator('html')).toHaveClass(/is-inapp/);
+    const bar = page.locator('.inapp-bar');
+    await expect(bar).toContainText('Instagram');
+    await expect(bar.locator('a')).toHaveAttribute('href', /^intent:\/\//);
+    await bar.locator('.inapp-close').click();
+    await expect(bar).toHaveCount(0);
+    await page.reload();
+    await expect(page.locator('.inapp-bar')).toHaveCount(0);
+    await ctx.close();
+  });
+
+  test('sin desplazamiento lateral a 320 y 360 px (Inicio, Lab y Stats)', async ({ browser }) => {
+    for (const width of [320, 360]) {
+      const ctx = await browser.newContext({ viewport: { width, height: 700 }, isMobile: true, hasTouch: true });
+      const page = await ctx.newPage();
+      await page.addInitScript(() => { localStorage.setItem('liquidbrush:tour', 'true'); localStorage.setItem('liquidbrush:cuenta-ofrecida', 'true'); });
+      await page.route(/r2\.dev|lrclib\.net/, (route) => route.abort());
+      await page.goto('./');
+      await expect(page.locator('#libCount')).not.toHaveText('0');
+      for (const view of ['home', 'lab', 'stats']) {
+        await page.evaluate((v) => document.querySelector(`.nav-btn[data-nav="${v}"], .tab[data-view="${v}"]`)?.click(), view);
+        await page.waitForTimeout(300);
+        expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), `${view} a ${width} px`).toBeLessThanOrEqual(0);
+      }
+      await ctx.close();
+    }
+  });
+});
+
+test.describe('Liquid Lab: sitio aparte', () => {
+  test('tocar Lab en Liquid lleva a lab.html, sin reproductor', async ({ page }) => {
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.evaluate(() => document.querySelector('.nav-btn[data-nav="lab"], .tab[data-view="lab"]').click());
+    await expect(page).toHaveURL(/lab\.html$/);
+    await expect(page.locator('html')).toHaveAttribute('data-mode', 'lab');
+    await expect(page.locator('.lab-hero')).toBeVisible();
+    await expect(page.locator('[data-lab-action="recipe"]').first()).toBeVisible();
+    await expect(page.locator('.player')).toBeHidden();
+    await expect(page.locator('.bottom-nav')).toBeHidden();
+    await expect(page.locator('#cuentaDialog')).toBeHidden();
+    // El acceso directo de la app instalada también
+    await page.goto('./?view=lab');
+    await expect(page).toHaveURL(/lab\.html$/);
+  });
+
+  test('«Guardar en Liquid» crea la playlist y vuelve a Liquid con ella abierta', async ({ page }) => {
+    await page.goto('./lab.html');
+    await page.locator('[data-lab-action="recipe"][data-value="variety"]').click();
+    await expect(page.locator('.lab-result:not(.lab-seeds) .lab-track')).toHaveCount(60);
+    await page.locator('[data-lab-action="save"]').click();
+    await expect(page).not.toHaveURL(/lab\.html/);
+    await expect(page.locator('html')).not.toHaveAttribute('data-mode', 'lab');
+    await expect(page.locator('#viewHead')).toContainText('Lab');
+    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('liquidbrush:playlists') || '[]'));
+    expect(saved).toHaveLength(1);
+    expect(saved[0].trackIds).toHaveLength(60);
+    expect(await page.evaluate(() => localStorage.getItem('liquidbrush:lab-handoff'))).toBeNull();
+  });
+
+  test('«Escuchar en Liquid» vuelve a Liquid con la mezcla en la cola, y Lab no pisa «Continúa donde lo dejaste»', async ({ page }) => {
+    await page.goto('./?view=library');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.locator('.track').nth(5).locator('.track-main').click();
+    await expect.poll(() => page.evaluate(() => (localStorage.getItem('liquidbrush:resume-queue') || '').length)).toBeGreaterThan(0);
+    const before = await page.evaluate(() => localStorage.getItem('liquidbrush:resume-queue'));
+    await page.goto('./lab.html');
+    await page.locator('[data-lab-action="recipe"][data-value="variety"]').click();
+    // Lab abierto y cerrado sin tocar nada de la cola de Liquid
+    expect(await page.evaluate(() => localStorage.getItem('liquidbrush:resume-queue'))).toBe(before);
+    await page.locator('[data-lab-action="play"]').click();
+    await expect(page).not.toHaveURL(/lab\.html/);
+    await expect(page.locator('#npContext')).toContainText('Lab');
+    await page.locator('body').press('q');
+    await expect(page.locator('#queueDialog [data-id]')).toHaveCount(60);
+  });
+});
