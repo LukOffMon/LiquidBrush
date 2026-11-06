@@ -740,7 +740,7 @@
     const slug = (text) => normalize(String(text || '').replace(/\(.*?\)|\[.*?\]/g, ''))
       .replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '');
     const title = slug(track.title) || track.id;
-    return `song:${title}~${slug(mainArtist(track))}`.slice(0, 120);
+    return `song:${title}~${slug(dedupeArtist(track))}`.slice(0, 120);
   }
 
   async function applyTrackData(data, final = false) {
@@ -2222,9 +2222,10 @@
         tracks.set(id, (tracks.get(id) || 0) + full * decay);
         if (age <= 30) recentTracks.set(id, (recentTracks.get(id) || 0) + full);
         if (!lastAge.has(id) || lastAge.get(id) > age) lastAge.set(id, age);
-        const artist = artistKeyOf(track);
-        if (artist) artistsToday.set(artist, (artistsToday.get(artist) || 0) + sec);
-        if (age <= 3 && artist) momentum.set(artist, (momentum.get(artist) || 0) + sec * (1 - age / 4));
+        artistKeysOf(track).forEach((artist) => {
+          artistsToday.set(artist, (artistsToday.get(artist) || 0) + sec);
+          if (age <= 3) momentum.set(artist, (momentum.get(artist) || 0) + sec * (1 - age / 4));
+        });
         if (age < 7) weekSeconds += sec;
       });
       Object.entries(entry.g || {}).forEach(([seg, map]) => {
@@ -2251,10 +2252,8 @@
     tracks.forEach((score, id) => {
       const track = getTrack(id);
       if (track.genre) genres.set(track.genre, (genres.get(track.genre) || 0) + score);
-      creditedArtists(track).forEach((name, i) => {
-        const key = normalize(name);
-        if (key) artists.set(key, (artists.get(key) || 0) + score * (i === 0 ? 1 : 0.5));
-      });
+      // Una colaboración es de todos: cada artista acreditado suma lo mismo
+      artistKeysOf(track).forEach((key) => artists.set(key, (artists.get(key) || 0) + score));
     });
     library.follows.forEach((key) => artists.set(key, (artists.get(key) || 0) + 4));
 
@@ -2294,8 +2293,9 @@
   // Cuánto te va a gustar una canción (aprox. de -1 a 3)
   function trackAffinity(track, p = tasteProfile()) {
     if (!track || isDisliked(track.id)) return -9;
-    const artist = artistKeyOf(track);
-    return p.trackN(track.id) * 0.9 + p.artistN(artist) * 0.8 + p.relatedN(artist) * 0.45 +
+    const keys = artistKeysOf(track);
+    const best = (fn) => (keys.length ? Math.max(...keys.map(fn)) : 0);
+    return p.trackN(track.id) * 0.9 + best(p.artistN) * 0.8 + best(p.relatedN) * 0.45 +
       p.genreN(track.genre) * 0.5 - (Number(taste.skips[track.id]) || 0) * 0.25;
   }
 
@@ -2342,7 +2342,13 @@
   }
 
   // Artista principal (sin "ft." ni colaboradores) para agrupar
-  const mainArtist = (track) => {
+  // Primer artista acreditado, con el mismo criterio que el índice de artistas. Antes se cortaba
+  // también en « y », « & » y « x »: «Polo & Pan» quedaba en «Polo» y su canción sin ficha ni radio.
+  const mainArtist = (track) => creditedArtists(track)[0] || '';
+  // Todas las claves de artista de una canción: una colaboración es de todos sus artistas
+  const artistKeysOf = (track) => [...new Set(creditedArtists(track).map(normalize).filter(Boolean))];
+  // Solo para reconocer copias repetidas de una misma canción (corte amplio, como siempre)
+  const dedupeArtist = (track) => {
     const text = track?.knownArtist || '';
     const named = COMMA_NAMES.find((name) => text.toLowerCase().startsWith(name.toLowerCase()));
     if (named) return named;
@@ -2360,8 +2366,8 @@
           daySeconds += secs;
           result.tracks.set(id, (result.tracks.get(id) || 0) + secs);
           const track = getTrack(id);
-          const artist = mainArtist(track);
-          if (artist) result.artists.set(artist, (result.artists.get(artist) || 0) + secs);
+          // Una colaboración suma para todos sus artistas
+          creditedArtists(track).forEach((artist) => result.artists.set(artist, (result.artists.get(artist) || 0) + secs));
           const genre = track?.genre || 'Sin género';
           result.genres.set(genre, (result.genres.get(genre) || 0) + secs);
         });
@@ -4513,38 +4519,63 @@
   }
 
   /* ---------- Acerca del artista (debajo de la letra) ---------- */
+  // Sonando: cada artista de la canción tiene su enlace y su ficha (una colaboración es de todos)
   function updateAbout(track) {
-    const key = track ? artistKeyOf(track) : '';
-    const entry = key ? getArtist(key) : null;
-    els.npAbout.hidden = !entry;
-    els.npArtist.classList.toggle('is-link', Boolean(entry));
-    els.npArtist.dataset.artist = entry ? entry.key : '';
-    if (entry) {
+    const entries = track ? artistKeysOf(track).map(getArtist).filter(Boolean) : [];
+    const main = entries[0] || null;
+    els.npArtist.classList.toggle('is-link', entries.length === 1);
+    els.npArtist.dataset.artist = main ? main.key : '';
+    if (entries.length === 1) {
       els.npArtist.setAttribute('role', 'link');
       els.npArtist.tabIndex = 0;
     } else {
       els.npArtist.removeAttribute('role');
       els.npArtist.removeAttribute('tabindex');
     }
-    if (!entry) return;
-    const plays = artistPlays(entry);
-    const card = makeEl('div', 'about-card');
-    const open = makeEl('button', 'about-open');
-    open.type = 'button';
-    open.dataset.artist = entry.key;
-    const text = makeEl('span', 'about-text');
-    text.append(
-      makeEl('span', 'about-eyebrow', 'Acerca del artista'),
-      makeEl('span', 'about-name', entry.name),
-      makeEl('span', 'about-meta', `${songsLabel(entry.tracks.length)} en Liquid${plays ? ` · ${plays} escucha${plays === 1 ? '' : 's'}` : ''}`)
-    );
-    open.append(photoImg(entry.tracks[0]?.thumb, 56, 'artist-photo'), text);
-    const follow = makeEl('button', `btn follow-btn${isFollowing(entry.key) ? ' is-active' : ''}`, isFollowing(entry.key) ? 'Siguiendo' : 'Seguir');
-    follow.type = 'button';
-    follow.dataset.follow = entry.key;
-    follow.setAttribute('aria-pressed', String(isFollowing(entry.key)));
-    card.append(open, follow);
-    els.npAbout.replaceChildren(card);
+    // Varios artistas: cada nombre es su propio enlace («La Vendicion, La Obsesion, Yeyo…»)
+    if (entries.length > 1) {
+      const parts = [];
+      entries.forEach((entry, i) => {
+        if (i) parts.push(document.createTextNode(', '));
+        const link = makeEl('span', 'np-artist-link', entry.name);
+        link.dataset.artist = entry.key;
+        link.setAttribute('role', 'link');
+        link.tabIndex = 0;
+        link.setAttribute('aria-label', `Ver ${entry.name}`);
+        parts.push(link);
+      });
+      els.npArtist.replaceChildren(...parts);
+    }
+    els.npAbout.hidden = !entries.length;
+    if (!entries.length) return;
+    const multi = entries.length > 1;
+    const cards = entries.map((entry) => {
+      const plays = artistPlays(entry);
+      const card = makeEl('div', 'about-card');
+      const open = makeEl('button', 'about-open');
+      open.type = 'button';
+      open.dataset.artist = entry.key;
+      const text = makeEl('span', 'about-text');
+      // Un artista: como siempre («Acerca del artista» dentro de la ficha). Varios: un título arriba
+      if (!multi) text.append(makeEl('span', 'about-eyebrow', 'Acerca del artista'));
+      text.append(
+        makeEl('span', 'about-name', entry.name),
+        makeEl('span', 'about-meta', `${songsLabel(entry.tracks.length)} en Liquid${plays ? ` · ${plays} escucha${plays === 1 ? '' : 's'}` : ''}`)
+      );
+      // Foto: una canción propia del artista si la tiene (no la colaboración que suena)
+      const own = entry.tracks.find((t) => t.id !== track.id) || entry.tracks[0];
+      open.append(photoImg(own?.thumb, 56, 'artist-photo'), text);
+      const follow = makeEl('button', `btn follow-btn${isFollowing(entry.key) ? ' is-active' : ''}`, isFollowing(entry.key) ? 'Siguiendo' : 'Seguir');
+      follow.type = 'button';
+      follow.dataset.follow = entry.key;
+      follow.setAttribute('aria-pressed', String(isFollowing(entry.key)));
+      follow.setAttribute('aria-label', `${isFollowing(entry.key) ? 'Dejar de seguir' : 'Seguir'} a ${entry.name}`);
+      card.append(open, follow);
+      return card;
+    });
+    els.npAbout.classList.toggle('is-multi', multi);
+    if (multi) els.npAbout.replaceChildren(makeEl('p', 'about-eyebrow about-head', `Acerca de los artistas · ${entries.length}`), ...cards);
+    else els.npAbout.replaceChildren(...cards);
   }
 
   /* ---------- Búsquedas recientes y explorar (al tocar el buscador) ---------- */
@@ -7395,10 +7426,14 @@
     els.npAddBtn.addEventListener('click', () => {
       if (state.currentTrack) openAddDialog(state.currentTrack.id);
     });
-    const openNowArtist = () => { if (els.npArtist.dataset.artist) openArtist(els.npArtist.dataset.artist); };
+    // Con varios artistas cada nombre abre el suyo; con uno, todo el texto
+    const openNowArtist = (event) => {
+      const key = event.target.closest('[data-artist]')?.dataset.artist || '';
+      if (key && (event.target.closest('.np-artist-link') || els.npArtist.classList.contains('is-link'))) openArtist(key);
+    };
     els.npArtist.addEventListener('click', openNowArtist);
     els.npArtist.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openNowArtist(); }
+      if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openNowArtist(event); }
     });
     els.npAbout.addEventListener('click', (event) => {
       const follow = event.target.closest('[data-follow]');

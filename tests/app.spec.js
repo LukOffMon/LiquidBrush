@@ -343,3 +343,33 @@ test('playlists propias: se elige una portada de covers/propias y las de base nu
   await page.goto('./?view=playlists');
   await expect(page.locator('img.pl-cover[src*="covers/propias/propia-03"]').first()).toBeVisible();
 });
+
+test('colaboraciones: la canción es de todos sus artistas y Sonando muestra una ficha por artista', async ({ page }) => {
+  await page.goto('./');
+  await expect(page.locator('#libCount')).not.toHaveText('0');
+  await page.fill('#searchInput', 'LADYHOY');
+  await page.locator('.track', { hasText: 'LADYHOY' }).first().locator('.track-main').click();
+  const cards = page.locator('#npAbout .about-card');
+  await expect(cards).toHaveCount(4);
+  await expect(page.locator('#npAbout')).toContainText('Acerca de los artistas');
+  for (const name of ['La Vendicion', 'La Obsesion', 'Yeyo', 'Doony Graff']) {
+    await expect(page.locator('#npAbout .about-name', { hasText: name })).toHaveCount(1);
+  }
+  // Cada nombre de arriba es su propio enlace
+  await expect(page.locator('#npArtist .np-artist-link')).toHaveCount(4);
+  // Seguir a uno no sigue a los demás
+  await cards.nth(1).locator('.follow-btn').dispatchEvent('click');
+  await expect(cards.nth(1).locator('.follow-btn')).toHaveText('Siguiendo');
+  await expect(cards.nth(2).locator('.follow-btn')).toHaveText('Seguir');
+  // La canción aparece en la página de cada artista (no solo del primero)
+  await page.locator('#npAbout .about-open').nth(2).dispatchEvent('click');
+  await expect(page.locator('.track', { hasText: 'LADYHOY' }).first()).toBeAttached();
+});
+
+test('artistas con «&», «y» o «x» en el nombre no se cortan', async ({ page }) => {
+  await page.goto('./');
+  await expect(page.locator('#libCount')).not.toHaveText('0');
+  await page.fill('#searchInput', 'Polo Pan');
+  await page.locator('.track', { hasText: 'Polo & Pan' }).first().locator('.track-main').click();
+  await expect(page.locator('#npAbout .about-name')).toHaveText('Polo & Pan');
+});

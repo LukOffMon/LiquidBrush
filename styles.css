@@ -6682,3 +6682,28 @@ textarea {
   outline: 3px solid var(--accent);
   outline-offset: 2px;
 }
+
+/* Acerca del artista: una ficha por cada artista de la colaboración */
+.np-about.is-multi {
+  display: grid;
+  gap: 8px;
+}
+
+.about-head {
+  margin: 0 0 2px 4px;
+}
+
+.np-artist-link {
+  cursor: pointer;
+  border-radius: 4px;
+  text-decoration: underline transparent;
+  text-underline-offset: 3px;
+  transition: text-decoration-color 0.2s, color 0.2s;
+}
+
+.np-artist-link:hover,
+.np-artist-link:focus-visible {
+  color: var(--text);
+  text-decoration-color: currentColor;
+  outline: none;
+}

@@ -1,6 +1,17 @@
 {
   "releases": [
     {
+      "version": "v54",
+      "date": "noviembre 2026",
+      "title": "Las colaboraciones son de todos sus artistas",
+      "items": [
+        "En Sonando, una canción con varios artistas muestra una ficha por cada uno en «Acerca de los artistas», cada una con su botón Seguir.",
+        "Arriba, cada nombre es su propio enlace: toca el que quieras para ir a su página.",
+        "La canción cuenta para todos sus artistas: aparece en la página de cada uno, suma a sus escuchas en Stats y pesa igual en tus mixes y recomendaciones.",
+        "Artistas con «&», «y» o «x» en el nombre (Polo & Pan, Karen y Los Remedios, TOMORROW X TOGETHER…) ya no se cortan: vuelven a tener ficha, página y radio."
+      ]
+    },
+    {
       "version": "v53",
       "date": "noviembre 2026",
       "title": "Portadas para tus playlists",
