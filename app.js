@@ -302,6 +302,7 @@
     plName: $('plName'),
     plEmojis: $('plEmojis'),
     plColors: $('plColors'),
+    plPortadas: $('plPortadas'),
     addDialog: $('addDialog'),
     addTrackName: $('addTrackName'),
     addList: $('addList'),
@@ -1323,6 +1324,34 @@
   const PLAYLIST_EMOJIS = ['ic:disc', 'ic:headphones', 'ic:flame', 'ic:moon', 'ic:bubbles', 'ic:heart', 'ic:spark', 'ic:star', 'ic:bolt',
     'ic:cherry', 'ic:eye', 'ic:wave', 'ic:flask', 'ic:note', 'ic:radio', 'ic:palette', 'ic:mic', 'ic:gem',
     ...WALLPAPERS.map((w) => `art:${w.id}`)];
+  // Portadas para las playlists que crea cada persona (covers/propias/). Solo se eligen en
+  // Nueva playlist / Editar playlist: nunca se asignan a las playlists de base ni a las automáticas.
+  const PORTADAS_PROPIAS = [
+    { id: '01', name: 'Cromo encapuchado' },
+    { id: '02', name: 'Ola que mira' },
+    { id: '03', name: 'Tigres de luz' },
+    { id: '04', name: 'Dragón del desierto' },
+    { id: '05', name: 'Leopardo y destellos' },
+    { id: '06', name: 'Collage dorado' },
+    { id: '07', name: 'Cabeza de madera' },
+    { id: '08', name: 'Silueta de tigre' },
+    { id: '09', name: 'Caballeros de taberna' },
+    { id: '10', name: 'Lluvia verde' },
+    { id: '11', name: 'Cuerno ácido' }
+  ];
+  const portadaValida = (id) => (PORTADAS_PROPIAS.some((p) => p.id === id) ? id : '');
+  const portadaSrc = (id, small = false) => `covers/propias/propia-${id}${small ? '-sm' : ''}.jpg`;
+  // Icono pequeño de una playlist propia: su portada si la tiene; si no, su icono
+  function setLocalGlyph(el, p) {
+    const portada = portadaValida(p.portada);
+    if (!portada) { setPlaylistIcon(el, p.emoji); return; }
+    const img = document.createElement('img');
+    img.src = portadaSrc(portada, true);
+    img.alt = '';
+    img.loading = 'lazy';
+    el.classList.add('has-art');
+    el.replaceChildren(img);
+  }
   const PLAYLIST_COLORS = ['#8a93a6', '#ff7ad9', '#7ef9ff', '#ffe27a', '#7a5cff', '#ff5f6d', '#3ddc97', '#ff9f43'];
   const RECENT_LIMIT = 50;
   const TOP_LIMIT = 30;
@@ -1383,7 +1412,9 @@
   function localPlaylists() {
     return library.local.map((p) => ({
       key: `local:${p.id}`, kind: 'local', id: p.id, name: p.name,
-      emoji: p.emoji, color: p.color, trackIds: p.trackIds
+      emoji: p.emoji, color: p.color, trackIds: p.trackIds,
+      portada: portadaValida(p.portada),
+      ...(portadaValida(p.portada) ? { cover: { type: 'image', src: portadaSrc(p.portada) } } : {})
     }));
   }
 
@@ -1514,6 +1545,25 @@
     els.plName.value = existing?.name || '';
     const emoji = existing?.emoji || PLAYLIST_EMOJIS[Math.floor(Math.random() * PLAYLIST_EMOJIS.length)];
     const color = existing?.color || PLAYLIST_COLORS[Math.floor(Math.random() * PLAYLIST_COLORS.length)];
+    const portada = portadaValida(existing?.portada);
+    fillChoices(els.plPortadas, 'plPortada', ['', ...PORTADAS_PROPIAS.map((p) => p.id)], portada, (face, value) => {
+      face.classList.add('portada-face');
+      if (!value) {
+        face.classList.add('is-none');
+        face.textContent = 'Sin portada';
+        face.title = 'Sin portada: mosaico con las portadas de sus canciones';
+        return;
+      }
+      const name = PORTADAS_PROPIAS.find((p) => p.id === value)?.name || '';
+      const img = document.createElement('img');
+      img.src = portadaSrc(value, true);
+      img.alt = name;
+      img.loading = 'lazy';
+      img.width = 64;
+      img.height = 64;
+      face.title = name;
+      face.append(img);
+    });
     fillChoices(els.plEmojis, 'plEmoji', PLAYLIST_EMOJIS, emoji, (face, value) => setPlaylistIcon(face, value));
     fillChoices(els.plColors, 'plColor', PLAYLIST_COLORS, color, (face, value) => {
       face.style.background = value;
@@ -1525,7 +1575,8 @@
     return {
       name,
       emoji: els.plDialog.querySelector('input[name="plEmoji"]:checked')?.value || emoji,
-      color: els.plDialog.querySelector('input[name="plColor"]:checked')?.value || color
+      color: els.plDialog.querySelector('input[name="plColor"]:checked')?.value || color,
+      portada: portadaValida(els.plDialog.querySelector('input[name="plPortada"]:checked')?.value || '')
     };
   }
 
@@ -1573,7 +1624,7 @@
       const days = Math.max(0, TRASH_DAYS - Math.floor((Date.now() - p.deletedAt) / 86400000));
       const button = makeButton('btn trash-restore', 'restore', `Recuperar ${p.name}`, '', p.name);
       const glifo = makeEl('span', 'trash-icon');
-      setPlaylistIcon(glifo, p.emoji);
+      setLocalGlyph(glifo, p);
       button.prepend(glifo);
       button.dataset.id = p.id;
       li.append(button, makeEl('span', 'sheet-note', `${songsLabel(p.trackIds.length)} · se borra del todo en ${days} día${days === 1 ? '' : 's'}`));
@@ -1604,6 +1655,7 @@
       name: `${pl.name} (${pl.kind === 'local' ? 'copia' : 'mía'})`.slice(0, 60),
       emoji: iconoGuardable(pl.emoji),
       color: pl.color || PLAYLIST_COLORS[Math.floor(Math.random() * PLAYLIST_COLORS.length)],
+      portada: pl.kind === 'local' ? portadaValida(pl.portada) : '',
       trackIds: playlistTracksOf(pl).map((t) => t.id),
       createdAt: Date.now()
     };
@@ -1694,7 +1746,7 @@
         const emoji = document.createElement('span');
         emoji.className = 'add-emoji';
         emoji.style.background = p.color;
-        setPlaylistIcon(emoji, p.emoji);
+        setLocalGlyph(emoji, p);
         const name = document.createElement('span');
         name.className = 'add-name';
         name.textContent = p.name;
@@ -1796,6 +1848,7 @@
           name: p.name.slice(0, 60),
           emoji: iconoGuardable(typeof p.emoji === 'string' ? p.emoji.slice(0, 16) : ''),
           color: /^#[0-9a-f]{6}$/i.test(p.color) ? p.color : PLAYLIST_COLORS[0],
+          portada: portadaValida(String(p.portada || '')),
           trackIds: p.trackIds.map(String),
           createdAt: p.createdAt || Date.now()
         });
@@ -9384,7 +9437,8 @@
       hi: { leer: () => library.hidden.slice(), conocida: () => true, aplicar: (c) => { library.hidden = c; storage.set(KEYS.hidden, c); } }
     };
 
-    const huellaPl = (p) => `${p.name}|${p.emoji || ''}|${p.color || ''}|${p.trackIds.join(',')}`;
+    // La portada propia se suma solo si hay: las huellas de las playlists sin portada no cambian
+    const huellaPl = (p) => `${p.name}|${p.emoji || ''}|${p.color || ''}|${p.trackIds.join(',')}${p.portada ? `|f:${p.portada}` : ''}`;
 
     function difPlaylists(meta) {
       const t = minAhora();
@@ -9399,7 +9453,7 @@
     }
 
     function plACompacta(p, meta) {
-      return { i: p.id, n: p.name, e: p.emoji || '', c: p.color || '', k: p.trackIds.map(aCorto), t: meta[p.id]?.t || 0, cr: p.createdAt || 0 };
+      return { i: p.id, n: p.name, e: p.emoji || '', c: p.color || '', f: portadaValida(p.portada), k: p.trackIds.map(aCorto), t: meta[p.id]?.t || 0, cr: p.createdAt || 0 };
     }
 
     function mezclarPlaylists(metaPl, remotas) {
@@ -9421,6 +9475,7 @@
       library.local = lista.filter((p) => !p.x).map((p) => {
         const previa = locales.get(p.i) || {};
         const pl = { ...previa, id: p.i, name: p.n, emoji: iconoGuardable(p.e || previa.emoji), color: p.c || previa.color || '#8a93a6',
+          portada: typeof p.f === 'string' ? portadaValida(p.f) : portadaValida(previa.portada),
           trackIds: (p.k || []).map(aLargo).filter(Boolean), createdAt: p.cr || previa.createdAt || Date.now() };
         metaPl[p.i] = { h: String(hashString(huellaPl(pl))), t: p.t || 0 };
         return pl;

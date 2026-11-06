@@ -67,6 +67,9 @@ def check_catalog():
         cover = pl.get('cover') if isinstance(pl, dict) else None
         if isinstance(cover, str) and cover.startswith('covers/') and not (ROOT / cover).exists():
             errors.append(f'catalog.json: no existe la portada {cover}')
+        src = cover.get('src') if isinstance(cover, dict) else cover
+        if isinstance(src, str) and 'covers/propias/' in src:
+            errors.append(f'catalog.json: «{pl.get("name")}» usa {src}, una portada reservada a las playlists de cada persona')
     load_json(ROOT / 'tracks.json')
 
 

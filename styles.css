@@ -6645,3 +6645,40 @@ textarea {
     gap: 8px;
   }
 }
+
+/* Portadas para tus playlists (Nueva playlist / Editar playlist → Portada) */
+.portada-grid {
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  gap: 8px;
+}
+
+.choice-face.portada-face {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 12px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: center;
+  padding: 0;
+}
+
+.choice-face.portada-face img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.choice-face.portada-face.is-none {
+  padding: 6px;
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  color: var(--muted, var(--text));
+}
+
+.choice input:checked + .choice-face.portada-face {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}

@@ -69,7 +69,7 @@ Al abrir la app vuelve a poner la última canción que sonaba, en el segundo exa
 
 - **Biblioteca**: todas las canciones, con orden configurable (playlists, título, artista, duración).
 - **Playlists**: las de Liquid Bullet (las del catálogo o, sin catálogo, una por cada `album`), **Mis playlists** y las automáticas *Escuchadas hace poco* y *Tus más escuchadas*.
-- **Mis playlists** se crean en la app (nombre, icono y color) con el botón + de cada canción. Se guardan **solo en ese navegador** (localStorage): si se borra la caché o los datos del sitio, se pierden. Se puede descargar o importar una copia de seguridad en JSON.
+- **Mis playlists** se crean en la app (nombre, **portada**, icono y color). Las 11 portadas de [`covers/propias/`](covers/propias/) son solo para las playlists de cada persona: `build_catalog.py` nunca las usa y `check_site.py` falla si el catálogo de base lleva alguna. Para sumar una, guarda `propia-NN.jpg` (600 px) y `propia-NN-sm.jpg` (320 px), añádela a `PORTADAS_PROPIAS` en `app.js` y ejecuta `tools/build_image_library.py` con el botón + de cada canción. Se guardan **solo en ese navegador** (localStorage): si se borra la caché o los datos del sitio, se pierden. Se puede descargar o importar una copia de seguridad en JSON.
 
 ## Inicio, Artistas y radio
 

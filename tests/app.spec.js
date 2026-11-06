@@ -325,3 +325,21 @@ test('la biblioteca va a IndexedDB y la cola de reanudación ocupa poco', async 
   await page.locator('body').press('q');
   await expect(page.locator('#queueDialog [data-id]').first()).toBeVisible();
 });
+
+test('playlists propias: se elige una portada de covers/propias y las de base nunca la usan', async ({ page }) => {
+  await page.goto('./?view=playlists');
+  await expect(page.locator('#libCount')).not.toHaveText('0');
+  // Ninguna playlist de base lleva una portada propia
+  const system = await page.evaluate(async () => (await (await fetch('catalog.json')).json()).playlists.map((p) => p.cover?.src || ''));
+  expect(system.some((src) => src.includes('covers/propias/'))).toBe(false);
+  await expect(page.locator('img.pl-cover[src*="covers/propias/"]')).toHaveCount(0);
+  await page.locator('.pl-card-new').click();
+  await expect(page.locator('#plPortadas .choice')).toHaveCount(12);
+  await page.fill('#plName', 'Mi portada');
+  await page.locator('#plPortadas .choice').nth(3).click();
+  await page.locator('#plDialog button[type="submit"]').click();
+  await expect(page.locator('#plDialog')).toBeHidden();
+  await expect.poll(() => page.evaluate(() => (JSON.parse(localStorage.getItem('liquidbrush:playlists') || '[]')).map((p) => p.portada))).toContain('03');
+  await page.goto('./?view=playlists');
+  await expect(page.locator('img.pl-cover[src*="covers/propias/propia-03"]').first()).toBeVisible();
+});

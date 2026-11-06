@@ -1,6 +1,17 @@
 {
   "releases": [
     {
+      "version": "v53",
+      "date": "noviembre 2026",
+      "title": "Portadas para tus playlists",
+      "items": [
+        "11 portadas nuevas para las playlists que creas tú: al crear o editar una playlist, elige una en «Portada» (o «Sin portada» para el mosaico de sus canciones).",
+        "Son solo para tus playlists: las playlists de Liquid Bullet nunca las usan.",
+        "La portada viaja con tu cuenta y en las copias de seguridad, y se ve también en «Añadir a playlist» y en la Papelera.",
+        "Están en la Biblioteca de imágenes, en su propio apartado: «Portadas para tus playlists»."
+      ]
+    },
+    {
       "version": "v52",
       "date": "noviembre 2026",
       "title": "Más rápida, más ligera y cuentas más seguras",
