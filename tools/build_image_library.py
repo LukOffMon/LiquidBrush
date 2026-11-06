@@ -7,6 +7,7 @@ Cada imagen del proyecto tiene un TIPO, que dice para qué (y solo para qué) se
   icono-cancion     covers/songs/song-NN.jpg (+ -sm.jpg)      icono que llevan las canciones
   fondo             wallpapers/NN.jpg                         fondo de pantalla de la app
   icono-fondo       wallpapers/icons/NN.jpg (+ -thumb.jpg)    botón para elegir el fondo
+  avatar            avatars/avatar-NN.jpg (+ -sm.jpg)         foto de perfil de la cuenta
   icono-app         icon-*.png, apple-touch-icon.png, favicon.png, logo.svg
   compartir         og-image.jpg                              miniatura de los enlaces
   captura           screenshots/*.jpg                         capturas para la tienda/PWA
@@ -27,11 +28,13 @@ TYPES = {
     'portada-playlist': {'name': 'Portadas de playlist', 'folder': 'covers/', 'size': '600 × 600 px + versión -sm de 320 px',
                          'use': 'Solo como portada de su playlist (oficial o automática). Nunca para otra cosa: ni decoración, ni avatares, ni collages.'},
     'icono-cancion': {'name': 'Iconos de canción', 'folder': 'covers/songs/', 'size': '600 × 600 px + versión -sm de 320 px',
-                      'use': 'Solo como icono de su canción: cada canción usa el suyo y se reparten por igual (88–89 canciones por icono). Nunca para otra cosa.'},
+                      'use': 'Solo como icono de su canción: cada canción usa el suyo y se reparten por igual entre todas las canciones. Nunca para otra cosa.'},
     'fondo': {'name': 'Fondos de pantalla', 'folder': 'wallpapers/', 'size': 'vertical, ~1600 px de alto',
               'use': 'Fondo de la app (Ajustes → Fondo). Se puede reutilizar: collage de bienvenida de la cuenta, decoración.'},
     'icono-fondo': {'name': 'Iconos de fondo', 'folder': 'wallpapers/icons/', 'size': 'cuadrado + -thumb',
-                    'use': 'Botón para cambiar de fondo y selector. Se puede reutilizar: avatar de la cuenta, icono de playlists propias, collage de bienvenida.'},
+                    'use': 'Botón para cambiar de fondo y selector. Se puede reutilizar: icono de playlists propias, collage de bienvenida. No como avatar: eso es solo de las fotos de perfil.'},
+    'avatar': {'name': 'Fotos de perfil', 'folder': 'avatars/', 'size': '512 × 512 px + versión -sm de 160 px',
+               'use': 'Solo como foto de perfil de la cuenta, y solo existen en el selector de avatar (crear cuenta y Tu cuenta). Nunca para otra cosa: ni fondos, ni portadas, ni iconos, ni collages.'},
     'icono-app': {'name': 'Iconos de la app', 'folder': '/', 'size': '192, 512 y 180 px',
                   'use': 'Solo como icono de la app instalada, pestaña y logo.'},
     'compartir': {'name': 'Imagen para compartir', 'folder': '/', 'size': '1200 × 630 px',
@@ -93,6 +96,11 @@ def main():
         thumb = f'wallpapers/icons/{path.stem}-thumb.jpg'
         add('icono-fondo', f'wallpapers/icons/{path.name}', thumb if (ROOT / thumb).exists() else None,
             f'Botón del fondo {path.stem}', walls.get(path.stem, f'Icono {path.stem}'))
+    nombres_avatar = ['Sol', 'Rostros', 'Querubín', 'Alien', 'Muñeca', 'Caballero', 'Máscara', 'Hechicera']
+    for i, path in enumerate(sorted((ROOT / 'avatars').glob('avatar-[0-9][0-9].jpg'))):
+        sm = f'avatars/{path.stem}-sm.jpg'
+        add('avatar', f'avatars/{path.name}', sm if (ROOT / sm).exists() else None,
+            f'Foto de perfil {path.stem[-2:]} (selector de avatar)', nombres_avatar[i] if i < len(nombres_avatar) else f'Avatar {path.stem[-2:]}')
     for name, label in [('icon-512.png', 'Icono 512'), ('icon-192.png', 'Icono 192'), ('icon-maskable-512.png', 'Icono adaptable (Android)'),
                         ('apple-touch-icon.png', 'Icono iPhone'), ('favicon.png', 'Favicon'), ('logo.svg', 'Logo')]:
         if (ROOT / name).exists():

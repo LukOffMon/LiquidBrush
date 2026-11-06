@@ -1,6 +1,14 @@
 {
   "releases": [
     {
+      "version": "v50",
+      "date": "noviembre 2026",
+      "title": "Fotos de perfil nuevas",
+      "items": [
+        "Fotos de perfil: 8 imágenes nuevas, solo para el avatar de tu cuenta (Tu cuenta → avatar). Si no eliges una, se muestra tu inicial."
+      ]
+    },
+    {
       "version": "v49",
       "date": "noviembre 2026",
       "title": "Biblioteca revisada canción por canción",

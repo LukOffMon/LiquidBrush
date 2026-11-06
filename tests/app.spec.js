@@ -245,3 +245,21 @@ test('crear cuenta: valida el correo y mide la contraseña', async ({ page }) =>
   await page.locator('.cuenta-cta').click();
   await expect(page.locator('.cuenta-error')).toContainText('10 caracteres');
 });
+
+test('crear cuenta: el avatar ofrece las 8 fotos de perfil y la inicial', async ({ page }) => {
+  await page.goto('./?cuenta=alta');
+  await page.fill('input[name="correo"]', 'hola@gmail.com');
+  await page.locator('.cuenta-cta').click();
+  await page.fill('input[name="clave"]', 'Ola-Turquesa-Lenta-2026');
+  await page.locator('.cuenta-cta').click();
+  const opciones = page.locator('.cuenta-avatares .cuenta-avatar-op');
+  await expect(opciones).toHaveCount(9);
+  const fotos = page.locator('.cuenta-avatares img');
+  await expect(fotos).toHaveCount(8);
+  await expect(fotos.first()).toHaveAttribute('src', /avatars\/avatar-01-sm\.jpg$/);
+  // Todas cargan de verdad
+  await expect.poll(() => fotos.evaluateAll((els) => els.every((el) => el.complete && el.naturalWidth > 0))).toBe(true);
+  await opciones.nth(3).click();
+  await expect(opciones.nth(3)).toHaveAttribute('aria-checked', 'true');
+  await expect(opciones.nth(0)).toHaveAttribute('aria-checked', 'false');
+});

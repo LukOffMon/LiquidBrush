@@ -10,7 +10,7 @@ CREATE TABLE usuarios (
   clave_sal    BLOB    NOT NULL,               -- 16 bytes
   clave_ver    INTEGER NOT NULL DEFAULT 1,     -- versión del esquema de hash
   nombre       TEXT,
-  avatar       TEXT,                           -- 'inicial:#ff7ad9' | 'fondo:07'
+  avatar       TEXT,                           -- 'inicial:#ff7ad9' | 'foto:01'
   creado       INTEGER NOT NULL,
   actualizado  INTEGER NOT NULL,
   borrar_el    INTEGER                         -- borrado programado (7 días) o NULL
