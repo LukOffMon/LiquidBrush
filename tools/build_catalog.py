@@ -64,7 +64,9 @@ FIXED_COVERS = {
     'cereza-suave': 40,
     'terciopelo-azul': 41,
     'luna-swing': 42,
-    'infierno-rosa': 43
+    'infierno-rosa': 43,
+    'cuenta-atras': 44,
+    'balada-eterna': 45
 }
 
 # Playlists que antes llevaban diseño generado y ahora tienen imagen: siguen ocupando su turno
@@ -246,11 +248,14 @@ PLAYLISTS = [
         'Stereo Madness', 'Guxo', 'Lu Jr', 'LEÏTI', 'D.Valentino', 'Enry-K', 'Teo Lucadamo', 'ukd', 'Gatti',
         'WEST DUBAI', 'mita', 'SAM DAVIES', 'UGLY', 'Icy Vedo', 'Ralphie Choo', 'duna', 'superreservao',
         'Estrellas Del Rap Nacional', 'Nico', 'Semon', "L'haine", 'Fuji', 'Elio Toffana', 'Bb trickz', 'ROSALÍA',
-        'nusar3000', 'rusowsky'
+        'rusowsky'
     ]),
     ('infierno-rosa', 'Infierno Rosa', 'Trap de la calle española, de la PXXR GVNG para acá: Yung Beef y Kaydy Cain.', [
         'Yung Beef', 'Kaydy Cain', 'Omar Montes', 'El Malilla', 'Albany', 'ladiferencia2006', 'Xiyo', 'Quevedo',
         'La Zowi'
+    ]),
+    ('cuenta-atras', 'Cuenta Atrás', 'Club, jersey y remixes con acento español: nusar3000, GIANNI BATISTA, Mushkaa, Natalia Lacunza, NATHY PELUSO y Safety Trance.', [
+        'nusar3000', 'GIANNI BATISTA', 'Mushkaa', '8belial', 'Safety Trance', 'Azuleja'
     ]),
     ('dembow-anejo', 'Dembow Añejo', 'Reggaetón de la vieja escuela y cumbia: Daddy Yankee, Don Omar, Arcángel, Wisin & Yandel y Kumbia Kings.', [
         'Daddy Yankee', 'Don Omar', 'Arcángel', 'Arcangel', 'Wisin & Yandel', 'Yandel', 'Plan B', 'J Alvarez',
@@ -266,7 +271,8 @@ PLAYLISTS = [
         'Pablo Chill-E', 'Young Cister', 'SAIKO', 'Pressure 9X19', 'Aleman', 'Alemán', 'Luigi 21 Plus', 'Slayter',
         'ROA', 'Lil Naay', 'J Abdiel', 'Jay Wheeler', 'Duki', 'YSY A', 'Novato El Flow', 'Boy Wonder CF',
         'Trap Capos', 'FloyyMenor', 'KAROL G', 'Maria Becerra', 'Nicki Nicole', 'Emilia', 'LIT killah', 'Bardero$',
-        'C.R.O', 'Alex Gargolas', 'Lxmb Gold', 'JOSTIN JA', 'KIDDWERO', 'Tokischa'
+        'C.R.O', 'Alex Gargolas', 'Lxmb Gold', 'JOSTIN JA', 'KIDDWERO', 'Tokischa',
+        'Alvaro Diaz', 'Kiddye', 'Félix Vestre'
     ]),
     ('rima-cruda', 'Rima Cruda', 'Rap en español y de EE. UU.: Cruzzi, Charles Ans, Gera MX, Wk, Kendrick Lamar, Drake y Canserbero.', [
         'Cruzzi', 'Charles Ans', 'Gera MX', 'Adan Cruz', 'Milo j', 'Delaossa', 'Choclock', 'Flavio Rodriguez', 'Ka-b',
@@ -322,7 +328,9 @@ PLAYLISTS = [
         'Adanowsky', 'Arawato', 'Chango Menas', 'Comisario Pantera', 'Duck Fizz', 'El Zar', 'Gustavo Castellanos',
         'Isla de Caras', 'Las Ligas Menores', 'babas tutsipop', 'Cisne Elocuente', 'te vi en un planetario',
         'Enjambre', 'Kameleba', 'Sebastian Alvarez', 'Jota Ce', 'iza tkm', 'Alanis Yuki', 'AQUIHAYAQUIHAY',
-        'Juanpa Gordoa', 'Foudeqush', 'LATIN MAFIA', 'CA7RIEL & Paco Amoroso', 'Helado Negro'
+        'Juanpa Gordoa', 'Foudeqush', 'LATIN MAFIA', 'CA7RIEL & Paco Amoroso', 'Helado Negro',
+        'Nsqk', 'Kevin Kaarl', 'Natt Calma', 'RØZ', 'Rebe', 'DannyLux', 'Pablo Alhach', 'Mi Compa el Chino', '1702',
+        'Aldo Peláez'
     ]),
     ('verano-tropical', 'Verano Tropical', 'Cumbia pop e indie bailable: YoSoyMatt, Eva de Marce, Los Eclipses, Disco Bahía, ZTVZ y Karen y Los Remedios.', [
         'YoSoyMatt', 'Eva de Marce', 'Los Eclipses', 'Karen y Los Remedios', 'Disco Bahía', 'ZTVZ', 'LaDí',
@@ -352,6 +360,11 @@ PLAYLISTS = [
         'Frank Sinatra', 'Nat King Cole', 'Nat King Cole Trio', 'Bobby Darin', 'Louis Armstrong', 'Ella Fitzgerald',
         'Dean Martin', 'Natalie Cole'
     ]),
+    ('balada-eterna', 'Balada Eterna', 'Baladas, boleros y románticas de siempre: José José, Luis Miguel, Juan Gabriel, Nelson Ned, Los Tres Caballeros y Tin Tan.', [
+        'José José', 'Luis Miguel', 'Juan Gabriel', 'Nelson Ned', 'Los Tres Caballeros', 'Germán Valdés "Tin Tan"',
+        'Los Solitarios', "Los Freddy's", "Los Baby's", 'La Sonora Santanera', 'Jeanette', 'Alejandro Sanz',
+        'Grupo Santa Cecilia', 'Victor Yturbe "El Piruli"', 'María de Jesús Vázquez'
+    ]),
     ('otono-modal', 'Otoño Modal', 'El universo Nujabes: Nujabes, Shing02, Uyama Hiroto, Force Of Nature, haruka nakamura y Yakkle.', [
         'Nujabes', 'Shing02', 'Uyama Hiroto', 'haruka nakamura', 'Force Of Nature', 'Yakkle', 'TSUTCHIE',
         'Kyo Itachi', 'Ljones', 'Nitsua', 'Pase Rock', 'clammbon', 'Scott Matelic'
@@ -376,7 +389,7 @@ PLAYLISTS = [
         'Frankie Avalon', 'Paul Anka', 'Patti Page', 'Frankie Valli', 'Cass Elliot', 'Ronnie McDowell', 'John Lennon',
         'She & Him', 'Ritchie Valens', '10cc', 'Tommy James & The Shondells', 'George Harrison', 'Jim Croce', 'Bread',
         'Seals and Crofts', 'Todd Rundgren', 'Chicago', 'Gerry Rafferty', 'Lola Marsh', 'The San Francisco TKOs',
-        'Thee Sinseers', 'Los Tranquilos', 'Los Buenos', 'The Cheaters', 'Los Tres Caballeros', 'Thee Sacred Souls',
+        'Thee Sinseers', 'Los Tranquilos', 'Los Buenos', 'The Cheaters', 'Thee Sacred Souls',
         'Wayne Newton'
     ]),
     ('seul-brillante', 'Seúl Brillante', 'K-pop de escenario: ENHYPEN, BTS, Stray Kids, EXO, ATEEZ, NewJeans y TXT.', [

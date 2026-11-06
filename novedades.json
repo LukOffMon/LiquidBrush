@@ -1,6 +1,18 @@
 {
   "releases": [
     {
+      "version": "v51",
+      "date": "noviembre 2026",
+      "title": "Dos playlists nuevas: Cuenta Atrás y Balada Eterna",
+      "items": [
+        "232 canciones nuevas de las entregas miniminiexe y DustAct, con sus nombres y acentos correctos (José José, Guaraná, Limão…). En total, 3.854 canciones en 43 playlists.",
+        "Nueva playlist Cuenta Atrás: el club, el jersey y los remixes de nusar3000 con GIANNI BATISTA, Mushkaa, Natalia Lacunza o NATHY PELUSO. Las de nusar3000 que estaban en Calle Cromo pasan aquí.",
+        "Nueva playlist Balada Eterna: José José (50 canciones), Luis Miguel, Juan Gabriel, Nelson Ned, Tin Tan, Los Solitarios y Los Tres Caballeros, que salen de Vinilo Rosa.",
+        "Lo demás va a la playlist que le toca: void y su gente a Nube Púrpura, rusowsky y compañía a Calle Cromo, y Nsqk, Kevin Kaarl, Natt Calma, DannyLux o Mi Compa el Chino a Alma Latina.",
+        "23 canciones de las entregas que ya estaban en Liquid no se repiten."
+      ]
+    },
+    {
       "version": "v50",
       "date": "noviembre 2026",
       "title": "Fotos de perfil nuevas",

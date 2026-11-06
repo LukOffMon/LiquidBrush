@@ -1,60 +1,62 @@
 # Todas las playlists y sus canciones
 
-Listado completo tras la revisión de noviembre de 2026: 3917 canciones en 41 playlists. Por artista, de más a menos canciones. Lo genera `tools/build_catalog.py` a partir de la tabla `PLAYLISTS`; los cambios y sus motivos están en [revision-playlists.md](revision-playlists.md).
+Listado completo tras la revisión de noviembre de 2026 y las entregas miniminiexe y DustAct: 3854 canciones en 43 playlists. Por artista, de más a menos canciones. Sale de `catalog.json`, que genera `tools/build_catalog.py` a partir de la tabla `PLAYLISTS`; los cambios y sus motivos están en [revision-playlists.md](revision-playlists.md).
 
 | Playlist | Canciones | Qué es |
 | --- | ---: | --- |
-| [Cuarto Pastel](#cuarto-pastel) | 209 | Bedroom pop y pop soñador: The Marías, PinkPantheress, Clairo, Malcolm Todd, beabadoobee y TV Girl. |
-| [Londres Rosa](#londres-rosa) | 52 | Pop británico de purpurina y corazón roto: Harry Styles, Suki Waterhouse y Lily Allen. |
-| [Seda Nocturna](#seda-nocturna) | 196 | R&B y pop de madrugada: Steve Lacy, The Weeknd, Frank Ocean, SZA, Doja Cat y Kali Uchis. |
-| [Ácido Lento](#acido-lento) | 217 | Psicodelia e indie que flota: Tame Impala, Mild High Club, Crumb, The Strokes, Gorillaz y Foster The People. |
+| [Cuarto Pastel](#cuarto-pastel) | 202 | Bedroom pop y pop soñador: The Marías, PinkPantheress, Clairo, Malcolm Todd, beabadoobee y TV Girl. |
+| [Londres Rosa](#londres-rosa) | 50 | Pop británico de purpurina y corazón roto: Harry Styles, Suki Waterhouse y Lily Allen. |
+| [Seda Nocturna](#seda-nocturna) | 197 | R&B y pop de madrugada: Steve Lacy, The Weeknd, Frank Ocean, SZA, Doja Cat y Kali Uchis. |
+| [Ácido Lento](#acido-lento) | 213 | Psicodelia e indie que flota: Tame Impala, Mild High Club, Crumb, The Strokes, Gorillaz y Foster The People. |
 | [Sol Sintético](#sol-sintetico) | 74 | Psicodelia de sintetizador y pop cósmico: MGMT, Empire Of The Sun y Djo. |
-| [Ola Tibia](#ola-tibia) | 111 | Indie de garaje soleado y bedroom psych: Inner Wave, Hot Flash Heat Wave, Yot Club y Jordana. |
-| [Cereza Suave](#cereza-suave) | 50 | Soft rock y sunshine pop de sonrisa ladeada: Paul Cherry, Dent May y JW Francis. |
-| [Riviera Francesa](#riviera-francesa) | 64 | French touch y nu-disco de verano: Polo & Pan, L'Impératrice, Parcels, Metronomy, Miel De Montagne y Myd. |
-| [Lluvia Lenta](#lluvia-lenta) | 265 | Melancolía de guitarra y niebla: Mac DeMarco, Radiohead, The Smiths, Jeff Buckley y Cigarettes After Sex. |
+| [Ola Tibia](#ola-tibia) | 99 | Indie de garaje soleado y bedroom psych: Inner Wave, Hot Flash Heat Wave, Yot Club y Jordana. |
+| [Cereza Suave](#cereza-suave) | 38 | Soft rock y sunshine pop de sonrisa ladeada: Paul Cherry, Dent May y JW Francis. |
+| [Riviera Francesa](#riviera-francesa) | 61 | French touch y nu-disco de verano: Polo & Pan, L'Impératrice, Parcels, Metronomy, Miel De Montagne y Myd. |
+| [Lluvia Lenta](#lluvia-lenta) | 264 | Melancolía de guitarra y niebla: Mac DeMarco, Radiohead, The Smiths, Jeff Buckley y Cigarettes After Sex. |
 | [Velo Sónico](#velo-sonico) | 47 | Shoegaze y dream pop de reverb infinita: Cocteau Twins, Slowdive, my bloody valentine, Mazzy Star, Tamaryn y Part Time. |
-| [Señal Rota](#senal-rota) | 65 | Hyperpop, digicore y emo de internet: Jane Remover, underscores, kmoe, celai, guitarbf y punchy. |
-| [Ghost Case](#tekk-fantasma) | 102 | Hardtekk, jumpstyle y slowed de madrugada: STØMPWRLD, ythotkk, SAIBOTAJE, Snow Strippers, DJ ZUP RAlii y akkiemi. |
+| [Señal Rota](#senal-rota) | 55 | Hyperpop, digicore y emo de internet: Jane Remover, underscores, kmoe, celai, guitarbf y punchy. |
+| [Ghost Case](#tekk-fantasma) | 92 | Hardtekk, jumpstyle y slowed de madrugada: STØMPWRLD, ythotkk, SAIBOTAJE, Snow Strippers, DJ ZUP RAlii y akkiemi. |
 | [Chicle Tóxico](#chicle-toxico) | 20 | Nightcore, jersey y bimbo sped up: Luci4, Jxrsey, Isaac Reign, Miss Papaya, LyteSpeed y Aidan Swank. |
-| [Corazón Roto](#corazon-roto) | 144 | Emo y scenecore de internet: pupsies, Punkinloveee, h4rtbrkr, Boy Fantasy, Beach Bunny en bajón y Cuntsniffer. |
-| [Vampiro Digital](#vampiro-digital) | 59 | Emo gótico y cloud oscuro: morgue, blair, backw666s, lungskull, wifiskeleton e Im gonna die alone. |
-| [Ola Fría](#ola-fria) | 84 | Post-punk ruso, coldwave, doomer y pop ruso: Kino, Intelligency, Crystal Castles, Soft Blade, NEMIGA y SEREBRO. |
+| [Corazón Roto](#corazon-roto) | 114 | Emo y scenecore de internet: pupsies, Punkinloveee, h4rtbrkr, Boy Fantasy, Beach Bunny en bajón y Cuntsniffer. |
+| [Vampiro Digital](#vampiro-digital) | 46 | Emo gótico y cloud oscuro: morgue, blair, backw666s, lungskull, wifiskeleton e Im gonna die alone. |
+| [Ola Fría](#ola-fria) | 80 | Post-punk ruso, coldwave, doomer y pop ruso: Kino, Intelligency, Crystal Castles, Soft Blade, NEMIGA y SEREBRO. |
 | [Neón Eterno](#neon-eterno) | 113 | Synth pop de los 80, eurodance de los 90 y pista de los 2000: Depeche Mode, Haddaway, Daft Punk, Gwen Stefani y Nelly Furtado. |
 | [Brillo Disco](#brillo-disco) | 89 | Disco, funk y soul para la pista: Michael Jackson, Bee Gees, Earth, Wind & Fire, Prince y Stevie Wonder. |
-| [Perreo Nocturno](#perreo-nocturno) | 174 | Neoperreo, dembow mexa y club latino: DENNA LA PORRI, Doony Graff, Yeyo, Jose Alatorre, MJ Nebreda y funk brasileño. |
-| [Barrio Sur](#barrio-sur) | 69 | Trap romántico y cumbia rkt de Argentina: One Flyt, JCKC, tomas metrikf, Sosa 66s y T4CHO. |
-| [Calle Cromo](#calle-cromo) | 64 | La nueva escuela española: Stereo Madness, Guxo, Lu Jr, LEÏTI, Enry-K, Ralphie Choo y superreservao. |
+| [Perreo Nocturno](#perreo-nocturno) | 137 | Neoperreo, dembow mexa y club latino: DENNA LA PORRI, Doony Graff, Yeyo, Jose Alatorre, MJ Nebreda y funk brasileño. |
+| [Barrio Sur](#barrio-sur) | 45 | Trap romántico y cumbia rkt de Argentina: One Flyt, JCKC, tomas metrikf, Sosa 66s y T4CHO. |
+| [Calle Cromo](#calle-cromo) | 74 | La nueva escuela española: Stereo Madness, Guxo, Lu Jr, LEÏTI, Enry-K, Ralphie Choo y superreservao. |
 | [Infierno Rosa](#infierno-rosa) | 57 | Trap de la calle española, de la PXXR GVNG para acá: Yung Beef y Kaydy Cain. |
+| [Cuenta Atrás](#cuenta-atras) | 36 | Club, jersey y remixes con acento español: nusar3000, GIANNI BATISTA, Mushkaa, Natalia Lacunza, NATHY PELUSO y Safety Trance. |
 | [Dembow Añejo](#dembow-anejo) | 61 | Reggaetón de la vieja escuela y cumbia: Daddy Yankee, Don Omar, Arcángel, Wisin & Yandel y Kumbia Kings. |
-| [Trap Lunar](#trap-lunar) | 65 | Trap latino para la madrugada: Yan Block, Omar Courtz, Bad Bunny, Duki, Myke Towers y Bryant Myers. |
-| [Rima Cruda](#rima-cruda) | 141 | Rap en español y de EE. UU.: Cruzzi, Charles Ans, Gera MX, Wk, Kendrick Lamar, Drake y Canserbero. |
-| [Verso Azul](#verso-azul) | 77 | Jazz rap y boom bap con alma: Marcus D, Cise Star, Kero One, Jazz Liberatorz, Mountain Brothers y Witness. |
-| [Nube Púrpura](#nube-purpura) | 84 | Cloud rap, plugg y underground: LUCKI, Lelo, void, empireofyu, Xavier Wulf, Trefuego y Yung Lean. |
+| [Trap Lunar](#trap-lunar) | 66 | Trap latino para la madrugada: Yan Block, Omar Courtz, Bad Bunny, Duki, Myke Towers y Bryant Myers. |
+| [Rima Cruda](#rima-cruda) | 139 | Rap en español y de EE. UU.: Cruzzi, Charles Ans, Gera MX, Wk, Kendrick Lamar, Drake y Canserbero. |
+| [Verso Azul](#verso-azul) | 67 | Jazz rap y boom bap con alma: Marcus D, Cise Star, Kero One, Jazz Liberatorz, Mountain Brothers y Witness. |
+| [Nube Púrpura](#nube-purpura) | 120 | Cloud rap, plugg y underground: LUCKI, Lelo, void, empireofyu, Xavier Wulf, Trefuego y Yung Lean. |
 | [Trueno Clásico](#trueno-clasico) | 116 | Rock de colección y metal: Deep Purple, AC/DC, Led Zeppelin, Queen, Metallica y Pink Floyd. |
 | [Niebla Pesada](#niebla-pesada) | 49 | Deftones de principio a fin: Around the Fur, White Pony, Diamond Eyes, Koi No Yokan y Ohms, del nu metal al shoegaze pesado. |
 | [Ciudad Furia](#ciudad-furia) | 104 | Rock en español de culto: Soda Stereo, Serú Girán, Los Bunkers, Cerati, Enanitos Verdes, Café Tacvba y Los Prisioneros. |
 | [Alma Latina](#alma-latina) | 125 | Indie y alternativo latino: Mon Laferte, Zoé, Natalia Lafourcade, LATIN MAFIA, CA7RIEL & Paco Amoroso y Buscabulla. |
-| [Verano Tropical](#verano-tropical) | 78 | Cumbia pop e indie bailable: YoSoyMatt, Eva de Marce, Los Eclipses, Disco Bahía, ZTVZ y Karen y Los Remedios. |
-| [Humo Dorado](#humo-dorado) | 108 | Jazz, fusión y soul: Chet Baker, Etta James, Billie Holiday, Amy Winehouse, Thundercat y Sade. |
+| [Verano Tropical](#verano-tropical) | 59 | Cumbia pop e indie bailable: YoSoyMatt, Eva de Marce, Los Eclipses, Disco Bahía, ZTVZ y Karen y Los Remedios. |
+| [Humo Dorado](#humo-dorado) | 104 | Jazz, fusión y soul: Chet Baker, Etta James, Billie Holiday, Amy Winehouse, Thundercat y Sade. |
 | [Terciopelo Azul](#terciopelo-azul) | 110 | Damas del jazz vocal a media luz: Julie London, Nancy Wilson, Dinah Washington y Blossom Dearie. |
-| [Luna Swing](#luna-swing) | 118 | Crooners y swing de salón: Frank Sinatra, Nat King Cole, Bobby Darin, Louis Armstrong y Ella Fitzgerald. |
-| [Otoño Modal](#otono-modal) | 60 | El universo Nujabes: Nujabes, Shing02, Uyama Hiroto, Force Of Nature, haruka nakamura y Yakkle. |
-| [Café Lento](#cafe-lento) | 35 | Jazzhop y beats para la mañana: Boho Fau & Elevated Soul, Emapea, Okvsho, Mndsgn, Teebs y edbl. |
-| [Beat Nipón](#beat-nipon) | 27 | Beats y jazz japonés de hoy: STUTS, tajima hal, Shingo Sekiguchi, Toshiki Soejima, mabanua y DJ Mitsu The Beats. |
-| [Vinilo Rosa](#vinilo-rosa) | 90 | Pop, doo-wop y soul de los 50 a los 70: Tom Jones, Brenda Lee, The Ronettes, Carpenters y The Beatles. |
+| [Luna Swing](#luna-swing) | 116 | Crooners y swing de salón: Frank Sinatra, Nat King Cole, Bobby Darin, Louis Armstrong y Ella Fitzgerald. |
+| [Balada Eterna](#balada-eterna) | 82 | Baladas, boleros y románticas de siempre: José José, Luis Miguel, Juan Gabriel, Nelson Ned, Los Tres Caballeros y Tin Tan. |
+| [Otoño Modal](#otono-modal) | 55 | El universo Nujabes: Nujabes, Shing02, Uyama Hiroto, Force Of Nature, haruka nakamura y Yakkle. |
+| [Café Lento](#cafe-lento) | 27 | Jazzhop y beats para la mañana: Boho Fau & Elevated Soul, Emapea, Okvsho, Mndsgn, Teebs y edbl. |
+| [Beat Nipón](#beat-nipon) | 20 | Beats y jazz japonés de hoy: STUTS, tajima hal, Shingo Sekiguchi, Toshiki Soejima, mabanua y DJ Mitsu The Beats. |
+| [Vinilo Rosa](#vinilo-rosa) | 89 | Pop, doo-wop y soul de los 50 a los 70: Tom Jones, Brenda Lee, The Ronettes, Carpenters y The Beatles. |
 | [Seúl Brillante](#seul-brillante) | 95 | K-pop de escenario: ENHYPEN, BTS, Stray Kids, EXO, ATEEZ, NewJeans y TXT. |
-| [Tokio Eléctrico](#tokio-electrico) | 49 | J-rock, kawaii metal y city pop: BABYMETAL, Hanabie, ATARASHII GAKKO! y Masayoshi Takanaka. |
+| [Tokio Eléctrico](#tokio-electrico) | 47 | J-rock, kawaii metal y city pop: BABYMETAL, Hanabie, ATARASHII GAKKO! y Masayoshi Takanaka. |
 
 <a id="cuarto-pastel"></a>
-## Cuarto Pastel (209)
+## Cuarto Pastel (202)
 
 _Bedroom pop y pop soñador: The Marías, PinkPantheress, Clairo, Malcolm Todd, beabadoobee y TV Girl._
 
 - **Beach Bunny** (41): Prom Queen · Cloud 9 · Sports · April · 6 Weeks · Colorblind · Painkiller · Cuffing Season · Gone · Ms. California · Boys · Good Girls (Don’t Get Used) · Oxygen · Year of the Optimist · Vertigo · Dream Boy · Chasm · Entropy · Adulting · Big Pink Bubble · Weeds · Love Sick · Pixie Cut · Blame Game · Promises · Tunnel Vision · Deadweight · Nice Guys · Mr. Predictable · Eventually · Goodbye Summer :( · February · July · Call Me Baby · Shoegazer · Oozin · Waves · Greetings from California · Ghost · Intro · Deja Vu
-- **The Marías** (38): Fog as a Bullet · Just a Feeling · No One Noticed · Cariño · Spin Me Around · Ay No Puedo · Real Life · Un Millón · Care For You · All I Really Want Is You · Heavy · Back To Me · Nobody New · Sienna · Lejos de Ti · Hush · Over the Moon · Paranoia · Only in My Dreams · Run Your Mouth · I Don't Know You · Little by Little · Love You Anyway · Jupiter · Ruthless · Hold It Together · To Say Hello · Basta Ya · ABQ · Out for the Night - Live · Superclean · Clueless · ...baby one more time · I Like It · Loverboy · bop it up! · Déjate Llevar · DÁKITI – Spotify Singles
+- **The Marías** (37): Fog as a Bullet · Just a Feeling · No One Noticed · Cariño · Spin Me Around · Ay No Puedo · Real Life · Un Millón · Care For You · All I Really Want Is You · Heavy · Back To Me · Nobody New · Sienna · Lejos de Ti · Hush · Over the Moon · Paranoia · Only in My Dreams · Run Your Mouth · I Don't Know You · Little by Little · Love You Anyway · Jupiter · Ruthless · Hold It Together · To Say Hello · Basta Ya · ABQ · Out for the Night - Live · Superclean · Clueless · ...baby one more time · Loverboy · bop it up! · Déjate Llevar · DÁKITI – Spotify Singles
 - **PinkPantheress** (11): Tonight · All My Friends Know · Stars · The aisle · Break It Off - Bonus · Illegal · Pain · Stateside · Just for Me · Girl Like Me · Passion
-- **54 Ultra** (10): What More Can I Do · Should I Let This Go? · Upside Down · I Won't Go · Halo · Does He Know It · Sunday · Talk 2 Me · Heaven Knows · Where Are You
+- **54 Ultra** (9): What More Can I Do · Should I Let This Go? · Upside Down · I Won't Go · Halo · Does He Know It · Talk 2 Me · Heaven Knows · Where Are You
 - **TV Girl** (8): It Almost Worked · Not Allowed · Cigarettes out the Window · Blue Hair · The Blonde · Louise · Lovers Rock · Loving Machine
 - **Clairo** (6): 4EVER · How - demo · Flaming Hot Cheetos · Juna · Pretty Girl · Amoeba
 - **Cuco** (6): Amor de Siempre · Lava Lamp · Neon Baby · Lover Is a Day · Lo Que Siento · Piel Canela
@@ -85,19 +87,14 @@ _Bedroom pop y pop soñador: The Marías, PinkPantheress, Clairo, Malcolm Todd, 
 - **Hank Heaven, Beach Bunny** (1): Beloved (feat. Beach Bunny)
 - **PLAYROOM** (1): Patient
 - **Neggy Gemmy** (1): Mysterious Girl
-- **g hao** (1): Experiment 002
 - **SAISO CUPID, Matt Swain** (1): at two
 - **beabadoobee, Laufey** (1): A Night To Remember
 - **Sunrise Academy** (1): Dinner Date
 - **Remy Bond** (1): Summer Song
-- **Molina** (1): I am your house
 - **Temachii** (1): may you never forget me
-- **VARIATION** (1): Stuck In Heaven
 - **Malcolm Todd, Omar Apollo** (1): Bleed (feat. Omar Apollo)
 - **Eyedress, Pearl & The Oysters, Dent May** (1): How It All Starts (feat. Dent May & Pearl and the Oysters)
 - **TV Girl, George Clanton, Jordana** (1): Butterflies
-- **Eyedress, Paul Cherry** (1): Dancing with My Demons
-- **Eyedress, The Drums, Paul Cherry** (1): DINNER TIME
 - **Princess Chelsea** (1): I Love My Boyfriend
 - **Mattyeux, Videoclub** (1): VHS - sped up version
 - **Mattyeux, Princess Chelsea, Videoclub** (1): Sometimes
@@ -125,12 +122,12 @@ _Bedroom pop y pop soñador: The Marías, PinkPantheress, Clairo, Malcolm Todd, 
 - **Cuco, The Marías** (1): Si Me Voy (with The Marías)
 
 <a id="londres-rosa"></a>
-## Londres Rosa (52)
+## Londres Rosa (50)
 
 _Pop británico de purpurina y corazón roto: Harry Styles, Suki Waterhouse y Lily Allen._
 
 - **Harry Styles** (25): Coming Up Roses · As It Was · American Girls · Watermelon Sugar · Aperture · Sign of the Times · Carla's Song · Adore You · Late Night Talking · Dance No More · Matilda · Pop · Falling · The Waiting Game · Fine Line · Music For a Sushi Restaurant · Golden · Taste Back · Satellite · Girl Crush - Recorded at Metropolis Studios, London · Lights Up · Little Freak · Cherry · Are You Listening Yet? · Daylight
-- **Suki Waterhouse** (22): Weirdo · Moves · To Love · Notting Hill · 18 · OMG · Back in Love · On This Love · My Fun · Girl That I Am · When I Get Drunk (I Want You Boy) · Model, Actress, Whatever · Brutally · Jukebox · Nostalgia · Think Twice · Johanna · Tiny Raisin · Devil I Know · Could've Been A Star · Dream Woman · Good Looking
+- **Suki Waterhouse** (20): Weirdo · Moves · To Love · 18 · OMG · Back in Love · On This Love · My Fun · Girl That I Am · When I Get Drunk (I Want You Boy) · Model, Actress, Whatever · Brutally · Nostalgia · Think Twice · Johanna · Tiny Raisin · Devil I Know · Could've Been A Star · Dream Woman · Good Looking
 - **Lous and The Yakuza, Suki Waterhouse** (1): Close my eyes
 - **Ashe, Suki Waterhouse** (1): Pushing Daisies
 - **Damiano David, Suki Waterhouse** (1): The Bruise (feat. Suki Waterhouse)
@@ -138,7 +135,7 @@ _Pop británico de purpurina y corazón roto: Harry Styles, Suki Waterhouse y Li
 - **Lily Allen** (1): Smile
 
 <a id="seda-nocturna"></a>
-## Seda Nocturna (196)
+## Seda Nocturna (197)
 
 _R&B y pop de madrugada: Steve Lacy, The Weeknd, Frank Ocean, SZA, Doja Cat y Kali Uchis._
 
@@ -234,9 +231,10 @@ _R&B y pop de madrugada: Steve Lacy, The Weeknd, Frank Ocean, SZA, Doja Cat y Ka
 - **Selena Gomez, benny blanco, The Marías** (1): Ojos Tristes (with The Marías)
 - **Tainy, Young Miko, The Marías** (1): mañana
 - **benny blanco, The Marías** (1): Memoria De Paz (feat. The Marías)
+- **Tainy, Bad Bunny** (1): MOJABI GHOST
 
 <a id="acido-lento"></a>
-## Ácido Lento (217)
+## Ácido Lento (213)
 
 _Psicodelia e indie que flota: Tame Impala, Mild High Club, Crumb, The Strokes, Gorillaz y Foster The People._
 
@@ -247,25 +245,25 @@ _Psicodelia e indie que flota: Tame Impala, Mild High Club, Crumb, The Strokes, 
 - **Oliver Tree** (7): Alien Boy · Life Goes On · I'm Gone · Hurt · Miracle Man · Again & Again · Jerk
 - **The Strokes** (6): Lonely in the Future · Selfless · Dine N'Dash · Ode To The Mets · Someday · The Adults Are Talking
 - **No Vacation** (6): Yam Yam · Dræm Girl · You're Not with Me · Estrangers · Lovefool · Waltzing Back
-- **Harmless** (6): Nacho's · Bridges · Cool Kids · Lonely Summer · Ashes · Laika
 - **Mild High Club** (5): Skiptracing · Note to Self · Kokopelli · Windowpane · Homage
 - **Not For Radio** (5): Kitten · Ache · Living Room · Puddles · Vueltas
-- **Mark Whalen** (4): Dance Like It's Saturday Night · All the Time · Oh Susan · Why Can't I Grow a Mustache?
+- **Harmless** (5): Nacho's · Cool Kids · Lonely Summer · Ashes · Laika
 - **Divino Niño** (4): Foam · Melty Caramelo · Quiero · Plastic Love
 - **Crumb** (4): Locket · Ghostride · Plants · Ice Melt
 - **late night drive home** (4): Nostalgic Love Rock · Euphoria · Awkward Conversations · Stress Relief
 - **The Rare Occasions** (4): Backwards · You Weren't Meant to See That · Origami · Notion
 - **Los Retros** (4): Moon Ride · Amtrak · Someone To Spend Time With · Friends
 - **Hector Gachan** (3): Nice Guy · Really Something · Untitled '91
+- **Mark Whalen** (3): Dance Like It's Saturday Night · All the Time · Oh Susan
 - **Banes World** (3): You Say I'm in Love · Still Lovely · Drowsy
 - **Roar** (3): Duck Or Ape · I Can't Handle Change · Poor Grammar
-- **Vansire** (3): Metamodernity · Synth Man · From the Subway Train - Extended Version
 - **Justice, Tame Impala** (2): One Night/All Night · Neverender
 - **Gorillaz** (2): On Melancholy Hill · Rhinestone Eyes
 - **Air** (2): Sexy Boy · Highschool Lover
 - **Luna Luna** (2): For You · Time
 - **Michael Seyer** (2): I Can't Dance · Show Me How You Feel (Eros)
 - **The Symposium** (2): The Physical Attractions · Streems
+- **Vansire** (2): Metamodernity · Synth Man
 - **The Drums** (2): What You Were · Money
 - **Dominic Fike** (2): misses · Babydoll
 - **Panchiko** (2): D>E>A>T>H>M>E>T>A>L · Laputa
@@ -318,7 +316,6 @@ _Psicodelia e indie que flota: Tame Impala, Mild High Club, Crumb, The Strokes, 
 - **Monogem** (1): Paraíso
 - **Orca** (1): Certain Feelings
 - **Sports** (1): You Are the Right One
-- **Golf Trip** (1): Soul Brother
 - **daste.** (1): SOBER
 - **Sunshine Boysclub** (1): Right Out The Window
 - **The Space Ocean** (1): 15
@@ -354,13 +351,13 @@ _Psicodelia de sintetizador y pop cósmico: MGMT, Empire Of The Sun y Djo._
 - **Djo, triple j** (1): Gasoline - triple j Like A Version
 
 <a id="ola-tibia"></a>
-## Ola Tibia (111)
+## Ola Tibia (99)
 
 _Indie de garaje soleado y bedroom psych: Inner Wave, Hot Flash Heat Wave, Yot Club y Jordana._
 
-- **Inner Wave** (46): Fever · Take 3 · 1 4 2 · One in a Million · Diamond Eyes · Rose · Interstellar Me · Mushroom · 88 · Mystery · Eclipse · Schemin · Bower · SWEET · June · ginger · FAR AWAY · Solar · starfox · 2031 · PUSH · on the spot · O · WOLFIE · BIG FOOT · 50 · pretty · MADRE · Ccbw · Six Am · CHILD · PULL · Balto · Oof · Estrella · consider it · i heard it in a dream · Cold Feet · Song 3 · I Almost Lost This · Pseudo · Jerry · Blacklight · King's Cup · Eyes Without A Face · American Spirits
-- **Hot Flash Heat Wave** (26): Gutter Girl · Sky So Blue · Trust · Glo Ride · Hesitation · Raindrop · Vampires · Bathroom Song · Head in the Clouds · Dog · Lilies · Grudge · Homecoming · Lonely Times · Everybody's Goth These Days · Where I'm @ · Malibu · Blue · Freefall · Floating · Bay Boys · Gold Years · Details · m o t i o n s · So Many People · Slam Dance
+- **Inner Wave** (42): Fever · Take 3 · 1 4 2 · One in a Million · Diamond Eyes · Rose · Interstellar Me · Mushroom · 88 · Mystery · Eclipse · Schemin · Bower · SWEET · June · ginger · FAR AWAY · Solar · starfox · 2031 · PUSH · on the spot · WOLFIE · BIG FOOT · pretty · MADRE · Ccbw · Six Am · CHILD · PULL · Balto · Oof · Estrella · consider it · i heard it in a dream · Cold Feet · Song 3 · Pseudo · Jerry · Blacklight · Eyes Without A Face · American Spirits
 - **Yot Club** (23): japan · no way ! · Fly Out West - Single Version · Landlord · Comfort Zone · down bad · Dog Song · Human Nature · Spiral Stairs · Go Away · The Bay · jaded · Go Slow · u dont kno me · Channel 4 · Too Far Gone · Heatwave · Projecting - Alt-Version · saveurprogress? · Make It Easy · mr. rager · priorities · YKWIM
+- **Hot Flash Heat Wave** (21): Gutter Girl · Sky So Blue · Trust · Glo Ride · Hesitation · Raindrop · Vampires · Bathroom Song · Head in the Clouds · Dog · Grudge · Homecoming · Lonely Times · Where I'm @ · Freefall · Floating · Bay Boys · Gold Years · m o t i o n s · So Many People · Slam Dance
 - **Jordana, TV Girl** (4): Summer's Over · Jump the Turnstile · Sweet to Dream · Better in the Dark
 - **april june, Yot Club** (1): stuck on you
 - **Yot Club, spill tab** (1): LAUREN
@@ -370,34 +367,29 @@ _Indie de garaje soleado y bedroom psych: Inner Wave, Hot Flash Heat Wave, Yot C
 - **Blood Cultures, Jordana** (1): Set it on Fire (Jordana's Version)
 - **Orchid Mantis, Jordana** (1): my forever
 - **Jordana, Inner Wave** (1): Baby
-- **Inner Wave, Huron John** (1): Fever : Huron John
-- **Schoolgirl Byebye, Inner Wave** (1): Automatic
-- **Jordana, Paul Cherry** (1): My Idol - demo
 - **Michi** (1): Night Moves
 
 <a id="cereza-suave"></a>
-## Cereza Suave (50)
+## Cereza Suave (38)
 
 _Soft rock y sunshine pop de sonrisa ladeada: Paul Cherry, Dent May y JW Francis._
 
-- **Dent May** (17): I Remember... · Born Too Late · Meet Me in the Garden · The Big One · Eastover Wives · I Don't Like You (But I Love You) · Face Down In The Gutter Of Your Love · I Want To Believe · Why I Came To California · I-55 · Hello Cruel World · I'm an Alcoholic · Here We Go Again · One Call, That's All · I Could Use A Miracle · Crying Laughing · Picture On A Screen
-- **Paul Cherry** (17): Like Yesterday · Your Letter · Hey Girl · Between Me and Chicago · Our Night · So Easy · Back On The Music! · Triumph, Love, Humanity · This High · Butterfly Beach · Minute · It Happens All The Time · The Addicts · Hello Again · Moving Through Circles · Don't You Wish · Hey There, Brother
-- **JW Francis, Paul Cherry** (3): That Time · Row Row · I Love You 2
+- **Dent May** (14): I Remember... · Born Too Late · Meet Me in the Garden · The Big One · Eastover Wives · Face Down In The Gutter Of Your Love · Why I Came To California · Hello Cruel World · I'm an Alcoholic · Here We Go Again · One Call, That's All · I Could Use A Miracle · Crying Laughing · Picture On A Screen
+- **Paul Cherry** (12): Like Yesterday · Your Letter · Hey Girl · Between Me and Chicago · Our Night · So Easy · Back On The Music! · Minute · It Happens All The Time · Hello Again · Moving Through Circles · Don't You Wish
 - **Paul Cherry, Kate Bollinger** (2): OBO · Playroom
 - **Ghouljaboy, Dent May** (1): CONVICT LOVE HYDROCELL
 - **Tahiti 80, Dent May** (1): All I Need Is a Rock
 - **The Undercover Dream Lovers, Dent May** (1): Soon Enough
 - **Dent May, Pearl & The Oysters** (1): Time Flies When You're Having Fun
 - **Dent May, Frankie Cosmos** (1): Across The Multiverse
-- **Dent May, Jordana** (1): Coasting On Fumes
-- **bob junior, Hot Flash Heat Wave** (1): Red
 - **Kendra Morris, Paul Cherry** (1): Flat Tire - Dub Mix
 - **Paul Cherry, 落日飛車 Sunset Rollercoaster** (1): No News No Blues
+- **JW Francis, Paul Cherry** (1): That Time
 - **Paul Cherry, Noah Barker** (1): Riding Through the Pixelated Forest
 - **bob junior, Paul Cherry** (1): baby, I do
 
 <a id="riviera-francesa"></a>
-## Riviera Francesa (64)
+## Riviera Francesa (61)
 
 _French touch y nu-disco de verano: Polo & Pan, L'Impératrice, Parcels, Metronomy, Miel De Montagne y Myd._
 
@@ -406,9 +398,9 @@ _French touch y nu-disco de verano: Polo & Pan, L'Impératrice, Parcels, Metrono
 - **Miel De Montagne** (4): J'y peux rien · Permis b bébé · Pourquoi pas · Relax le plexus
 - **Metronomy** (4): The Look · The Light · Reservoir · Lying Low
 - **Paradis** (3): Hémisphère · Je m'ennuie · Sur Une Chanson En Français
-- **Lewis OfMan** (3): Las Bañistas · Un amour au super u · Rainy Party
 - **Lewis OfMan, Alicia te quiero** (2): Siesta Freestyle · Siesta Freestyle - Frisco version
 - **Bleu Toucan** (2): Kiwi · Hanoï café
+- **Lewis OfMan** (2): Las Bañistas · Rainy Party
 - **Flavien Berger** (2): microsono · Brutalisme
 - **Clea Vincent** (2): Samba · Jmy attendais pas
 - **NEIL FRANCES** (2): Falling for You · Some Kind of Static
@@ -424,7 +416,6 @@ _French touch y nu-disco de verano: Polo & Pan, L'Impératrice, Parcels, Metrono
 - **Papooz** (1): Theatrical State of Mind
 - **L'Impératrice, Isaac Delusion** (1): Sonate Pacifique
 - **Darius, WAYNE SNOW** (1): EQUILIBRIUM
-- **Mou** (1): Ça va le faire
 - **warner case, Jean Tonique** (1): i miss new york
 - **Alastair Lane, VONFELT** (1): Bon Voyage
 - **Miel De Montagne, Jacques** (1): Le Tuto
@@ -436,15 +427,14 @@ _French touch y nu-disco de verano: Polo & Pan, L'Impératrice, Parcels, Metrono
 - **Else** (1): Ambre
 - **Pitto** (1): You
 - **Eme Sarav** (1): Give It Up 2 Me
-- **Marine Neuilly** (1): Confetti
 - **Darius, Duñe** (1): FEELS RIGHT
 
 <a id="lluvia-lenta"></a>
-## Lluvia Lenta (265)
+## Lluvia Lenta (264)
 
 _Melancolía de guitarra y niebla: Mac DeMarco, Radiohead, The Smiths, Jeff Buckley y Cigarettes After Sex._
 
-- **Mac DeMarco** (63): Watching Him Fade Away · 20191009 I Like Her · My Kind of Woman · Another One · On The Square · 20201203 · Still Beating · Preoccupied · Salad Days · Without Me · One More Love Song · Blue Boy · Finally Alone · On the Level · Dreaming · Passing Out Pieces · 20200229 2 · Phantom · The Stars Keep On Calling My Name · 20200819 She Get The Gold Star · The Way You'd Love Her · Sweeter · 20200820 Turn My TV On · Don Juan · Punishment · She's Really All I Need · 20191012 Fooled By Love · I've Been Waiting for Her · Special K · Cooking Up Something Good · Nobody · Terror · 20260321 · All Of Our Yesterdays · Shining · Go Easy · Ode to Viceroy · Let Her Go · Nightmare · Freaking Out the Neighborhood · No Other Heart · Heart To Heart · Treat Her Better · For the First Time · Moonlight on the River · A Heart Like Hers · A Heart Like Hers - Demo · Another One - Demo #1 · Another One - Demo #2 · At Ron's Bris · B^) · I've Been Waiting for Her - Demo · No Other Heart - Demo · Just To Put Me Down - Demo · Prem + Pickle · Reggie's First Date · Rick's New Haircut #1 · Rick's New Haircut #2 · The Way You'd Love Her - Demo · Without Me - Demo · Zhe Doan #1 · Zhe Doan #2 · Chamber Of Reflection
+- **Mac DeMarco** (62): Watching Him Fade Away · 20191009 I Like Her · My Kind of Woman · Another One · On The Square · 20201203 · Still Beating · Preoccupied · Salad Days · Without Me · One More Love Song · Blue Boy · Finally Alone · On the Level · Dreaming · Passing Out Pieces · 20200229 2 · Phantom · The Stars Keep On Calling My Name · 20200819 She Get The Gold Star · The Way You'd Love Her · Sweeter · 20200820 Turn My TV On · Don Juan · Punishment · She's Really All I Need · 20191012 Fooled By Love · I've Been Waiting for Her · Special K · Cooking Up Something Good · Nobody · Terror · 20260321 · All Of Our Yesterdays · Shining · Go Easy · Ode to Viceroy · Let Her Go · Nightmare · Freaking Out the Neighborhood · No Other Heart · Heart To Heart · Treat Her Better · For the First Time · Moonlight on the River · A Heart Like Hers · A Heart Like Hers - Demo · Another One - Demo #1 · Another One - Demo #2 · At Ron's Bris · I've Been Waiting for Her - Demo · No Other Heart - Demo · Just To Put Me Down - Demo · Prem + Pickle · Reggie's First Date · Rick's New Haircut #1 · Rick's New Haircut #2 · The Way You'd Love Her - Demo · Without Me - Demo · Zhe Doan #1 · Zhe Doan #2 · Chamber Of Reflection
 - **Radiohead** (49): Creep · Let Down · Fake Plastic Trees · Jigsaw Falling Into Place · Motion Picture Soundtrack · No Surprises · High and Dry · All I Need · Everything In Its Right Place · Karma Police · Street Spirit (Fade Out) · Weird Fishes / Arpeggi · How to Disappear Completely · Exit Music (For A Film) · Just · Man of War · Paranoid Android · Black Star · Reckoner · Go Slowly · Subterranean Homesick Alien · (Nice Dream) · House Of Cards · There, There · Pyramid Song · True Love Waits · Lift · 2 + 2 = 5 · India Rubber · Knives Out · Spectre · Present Tense · A Wolf At the Door · Talk Show Host · You And Whose Army · Decks Dark · Lotus Flower · Idioteque · Blow Out · Glass Eyes · Sail To The Moon · Optimistic · You · Daydreaming · Last Flowers · Where I End and You Begin · Thinking About You · I Might Be Wrong · Codex
 - **Mitski** (26): Washing Machine Heart · My Love Mine All Mine · I Bet on Losing Dogs · First Love/Late Spring · I Want You · Pink in the Night · Once More to See You · Francis Forever · Liquid Smooth · Nobody · Goodbye, My Danish Sweetheart · If I Leave · Brand New City · Me and My Husband · I Don't Smoke · Crack Baby · Abbey · A Pearl · Your Best American Girl · Last Words of a Shooting Star · Remember My Name · I'll Change for You · A Burning Hill · I Will · I'm Your Man · Where's My Phone?
 - **bôa** (16): get there · Walk With Me · Twilight · wasted · Frozen · Elephant · angry · Whiplash · Drinking · Beautiful & Broken · believe me · Let Me Go · Rain · a girl · Crawling · Duvet
@@ -520,16 +510,14 @@ _Shoegaze y dream pop de reverb infinita: Cocteau Twins, Slowdive, my bloody val
 - **BUBBLE TEA AND CIGARETTES** (1): Room 907
 
 <a id="senal-rota"></a>
-## Señal Rota (65)
+## Señal Rota (55)
 
 _Hyperpop, digicore y emo de internet: Jane Remover, underscores, kmoe, celai, guitarbf y punchy._
 
 - **Jane Remover** (28): Beauty Sleep · How to Teleport · Dancing with your eyes closed · Music Baby · Professional Vengeance · movies for guys · So What · Backseat Girl · Flash in the Pan · angels in camo · your clothes · Magic I Want U · Experimental Skin · Fling · Dream Sequence · Census Designated · search party · Experimental Skin / How to Teleport (leroy Remix) · Holding a Leech · misplace · Royal Blue Walls · seventeen · Idling Somewhere · pretender · woodside gardens 16 december 2012 · goldfish · 52 blue mondays · Cage Girl
-- **celai** (6): shatter... war torn bastard · quits · enough · krawl · witches · locksmith
-- **punchy** (3): Untreated Scars · what you lookin at · Behind the Curtains
 - **morgue vault** (2): decrepit · myspace
+- **celai** (2): shatter... war torn bastard · enough
 - **schizocat** (2): skin · kiss me and shut up
-- **guitarbf** (2): crybaby · something feels off
 - **juno** (1): angel
 - **AKRIILA, Jane Remover** (1): suave (feat. Jane Remover)
 - **kmoe, Jane Remover, juno** (1): wide eyes
@@ -542,26 +530,24 @@ _Hyperpop, digicore y emo de internet: Jane Remover, underscores, kmoe, celai, g
 - **Jane Remover, kmoe, juno** (1): back off!!!
 - **That Kid, Jane Remover** (1): Calvin Klein (feat. Jane Remover)
 - **Frost Children, Danny Brown, Jane Remover** (1): Shake It Like A - Jane Remover Remix
-- **wizardjit** (1): other .way
 - **ankle** (1): save yourself
 - **aubri!** (1): safari
 - **kiheir** (1): campus crush
 - **Junshi, Gomi** (1): ᏋᏒᎧᎶᏋ ᏝᎧᏉᏋ ᎮᎧᏖᎥᎧᏁ
-- **⎍⧮⫽⩘⧅⦔⨬⧇⩕⥉⦾⫰⧪⦑⧛⨳** (1): late
-- **Anxiety, poser** (1): talk to me one more time
 - ***67, im gone** (1): wish me away
-- **guitarbf, casper's pishogue** (1): shes a 10 but shes psycho
+- **punchy** (1): Behind the Curtains
 - **Piggybank112** (1): cigarette
+- **AKRIILA** (1): superficial
+- **AKRIILA, LATIN MAFIA** (1): mal comunicada
 
 <a id="tekk-fantasma"></a>
-## Ghost Case (102)
+## Ghost Case (92)
 
 _Hardtekk, jumpstyle y slowed de madrugada: STØMPWRLD, ythotkk, SAIBOTAJE, Snow Strippers, DJ ZUP RAlii y akkiemi._
 
 - **ythotkk** (5): GUT GLEICH 0 · CHILLEN SUMMER · INCIDENT · DOPPLER · LOWCUT
 - **akkiemi** (5): truth yandere^^ - super slowed · truth yandere^^ - ultra mega slowed · I'm a stalker - super slowed · truth yandere^^ · sick n sick - mega slowed
 - **STØMPWRLD** (3): ICH VERACHTE - SLOWED · ICH VERACHTE · Tricky Disco (Hardstyle x Jumpstyle) - super slowed
-- **SAIBOTAJE** (3): Vanilla · Taking Drugs · NIGHTMARE - Super Slowed
 - **DJ ZUP RAlii** (3): Модель (Model) - sped up · нравится чувствовать · Удушье (Suffocation) - Ultra Slowed
 - **latex fruit** (3): #voyuitwaaien - slowed · dj play this song - slowed · dj play this song。。。 6050ce63e4bce6764cb34cac51fb44d1。。。
 - **ilyhiryu** (3): jumpstyle bootleg · 1992.avi · bootleg_mov
@@ -574,7 +560,6 @@ _Hardtekk, jumpstyle y slowed de madrugada: STØMPWRLD, ythotkk, SAIBOTAJE, Snow
 - **STØMPWRLD, Resonant** (1): JOINING FORCES - SLOWED
 - **dxnkwer** (1): CUTE - Slowed
 - **angelhard** (1): HARD MOVEMENT
-- **dopamine.** (1): Dark Triad
 - **ZXVABEAT** (1): LARPTEKK
 - **shck** (1): HRT-Best Part Bass Boosted
 - **ASKL hon, SoulFusi** (1): J-Bootleg
@@ -583,7 +568,6 @@ _Hardtekk, jumpstyle y slowed de madrugada: STØMPWRLD, ythotkk, SAIBOTAJE, Snow
 - **Blaulicht 112, Maras, YXMI** (1): Besorg's mir (HARDTEKK) - SLOWED
 - **LXXVEME, ccrymun** (1): dr3mc0r3exp Slowed
 - **akkiemi, akkiemii** (1): paranoia - sped up
-- **xn88ax, 11eter, Frostekk** (1): RIFTWALK
 - **YXMI** (1): MAXILLA
 - **Resonant, STØMPWRLD, UPTEMPO** (1): JOINING FORCES - UPTEMPO REMIX SPED UP
 - **rukzi** (1): 我們都有感情 - 新版本
@@ -592,24 +576,20 @@ _Hardtekk, jumpstyle y slowed de madrugada: STØMPWRLD, ythotkk, SAIBOTAJE, Snow
 - **Slixshøt** (1): PARANOID
 - **Der Aztekke** (1): JEALOUS (HARDTEKK) - SLOWED
 - **grindgwap** (1): HIDE.
+- **SAIBOTAJE** (1): Taking Drugs
 - **EL$E** (1): ASCENDANT - Super Slowed
-- **DJ UNIVXRSEL** (1): Kanden
-- **kerosyn** (1): ATMOS
 - **Tanin Jazz** (1): Виртуальная любовь
 - **Aiden Music** (1): Jump - JumpStyle TikTok
 - **Maretu** (1): Magical Doctor
 - **Akula** (1): Мало
-- **HEXXO** (1): GAT1T0_STYL3RZ
 - **Didi Early Rave** (1): BRING IT - Live
 - **Dutch Disorder** (1): Heroine
-- **skalpas** (1): Bring It Fine
 - **Vampyx** (1): Kiss me <3
 - **ZWE1HVNDXR, yatashigang** (1): LOVELY BASTARDS
 - **meowscles, igorekowo :3** (1): PRIVET PRIVET 2009 ST
 - **dj 1lusha** (1): Х_х 2
 - **Ivan Giannovani** (1): Bruno Power
 - **dj trippie flameboy** (1): o_OMG!
-- **play it twice** (1): Bring It Fine - Slowed
 - **Dj Svevsx** (1): jumpstyle (1)
 - **Marc Acardipane, Dayerteq** (1): Return to Zero Beztebya - Original Speed Reverb Instr.
 - **vyrval** (1): пограничная личность ♡
@@ -631,7 +611,6 @@ _Hardtekk, jumpstyle y slowed de madrugada: STØMPWRLD, ythotkk, SAIBOTAJE, Snow
 - **rusino, Hatsune Miku** (1): Looping the Rooms
 - **Snow Strippers, Lil Uzi Vert** (1): It's A Dream (feat. Lil Uzi Vert)
 - **Remika, ovg!** (1): they don't love you more than i love you
-- **leafonia** (1): its like im not even here - instrumental slowed
 - **chrmbchrmb** (1): matrix (bl studio loop)
 - **Stady** (1): Brooklynbloodpop! x Vacation bible school
 - **Deezo** (1): DIY
@@ -664,27 +643,24 @@ _Nightcore, jersey y bimbo sped up: Luci4, Jxrsey, Isaac Reign, Miss Papaya, Lyt
 - **Barcellos Marcia** (1): Wait For Me
 
 <a id="corazon-roto"></a>
-## Corazón Roto (144)
+## Corazón Roto (114)
 
 _Emo y scenecore de internet: pupsies, Punkinloveee, h4rtbrkr, Boy Fantasy, Beach Bunny en bajón y Cuntsniffer._
 
-- **pupsies** (34): misery. · my femcel life · REMEMBER · knife 2 school · Bedtime Stories · still need your help · do you love me · pretty angel! · OMFG · pragmatic · save me · abnormal · i don't wanna live like this anymore · BLADE · stepping stone stepping stone stepping stone · whatever you want · IDGAF IF ITS GONNA END LIKE THIS · scars · why didn't you stop me · LOSING SLEEP · soultied · klutz!!!!!! · sunshine beach ★ · the attention seekers suicide note · dumb girl · lost prayer · lash out · its nice to have fun sometimes! · this body cannot be mine · loved you · is it really that nice though · maybe i'll just quit · misunderstooddd · take ur medication
-- **h4rtbrkr** (12): evo2004 · youre so pretty and im just a loser · I Hate You · still in love · eat yr heart · falling for it · you suck and i think you should probably die · what the fuck · c u girl · Together Forever · riotgrrrlll · juliet
+- **pupsies** (22): misery. · my femcel life · knife 2 school · do you love me · pretty angel! · OMFG · pragmatic · save me · abnormal · i don't wanna live like this anymore · BLADE · stepping stone stepping stone stepping stone · whatever you want · why didn't you stop me · LOSING SLEEP · soultied · klutz!!!!!! · the attention seekers suicide note · dumb girl · lash out · this body cannot be mine · maybe i'll just quit
+- **h4rtbrkr** (9): evo2004 · youre so pretty and im just a loser · I Hate You · still in love · eat yr heart · you suck and i think you should probably die · what the fuck · Together Forever · juliet
 - **Cuntsniffer** (7): You Left Your Hoodie In My Chest Cavity · People Just Burned To Death · Polka-Dots & Postcards · There’s a murder in Madison Hills · lipstick on the keyboard · It's Not Funny When I'm The Joke · I'm Not Really A Smart Person
 - **Punkinloveee** (5): Why did you murder me · Fright Night · Regret · Crucifix on Me · plastic
-- **h4teboy** (5): Hate Me · Why2 · Bomb Has Been Planted · Can't Stop Crying · Tired of You
+- **h4teboy** (4): Hate Me · Why2 · Bomb Has Been Planted · Can't Stop Crying
 - **overtonight** (4): elephant cage · trick or treat · i've been so sober · SHUT UP
-- **pichuu** (3): strawberry ˚.⋆ · i think im dumb (˶°ㅁ°) !! · bruised knees xP
 - **odihu** (3): life is just a chore!!! :'( · i start to regret it now · i wish i was perfect
-- **pupsies, loony** (3): FEW SMALL PROBLEMS · LOBOTOMY · VICIOUS
 - **mthu** (3): it’s like i’m not even here · it’s like i’m not even here - slowed · pitiful
 - **i wanna be a jack-o-lantern, six days after christmas** (3): it's what you do · deer in headlights · tell me
 - **Fried By Fluoride** (3): Overrated · The Love I Lost · Too Far Gone
 - **Boy Fantasy, g0r3c0r3** (2): I H3ART Y0U · P4RTY G1RL
 - **Rebzyyx** (2): jealousy · Painforever
-- **dolldamage** (2): online presence · wanna hurt u
 - **Boy Fantasy** (2): I FEEL ALRIGHT / STILL WON'T TEXT ME · HEROIN GIRL
-- **kofun** (2): mu · think about you
+- **pupsies, loony** (2): LOBOTOMY · VICIOUS
 - **s0rrow** (2): unhappy · stalk ur socials
 - **shambles** (2): happier · i love u so much
 - **retardead** (2): Loser · Degenerate
@@ -693,19 +669,18 @@ _Emo y scenecore de internet: pupsies, Punkinloveee, h4rtbrkr, Boy Fantasy, Beac
 - **Crustsox** (2): YELLER · Not Worth Your Time
 - **ShyBully** (2): Shy · Tattoo
 - **odihu, bloodsekai** (1): strike a pose!
-- **lexycat** (1): lollipop
+- **pichuu** (1): i think im dumb (˶°ㅁ°) !!
 - **thai body dump** (1): i thot u were an angel
 - **Broken Toy Airplanes** (1): Lucky Number 3
 - **disoc8** (1): suicidal love
 - **flywoah** (1): Ijust
-- **pupsies, deathsuppressant** (1): other people make me sick !!
-- **1stress, pupsies** (1): I STILL LOVE YOU
 - **pupsies, Pröz** (1): idek u like that!
 - **pupsies, iamsodead** (1): tell me
 - **tnfmb, pupsies** (1): take me away
 - **voidvoice717, emosl4t696** (1): specialsadism
 - **Lida, Tenderlybae** (1): Грустный реп
 - **s0nder** (1): Solitude
+- **kofun** (1): think about you
 - **twentythree** (1): Queen St
 - **Parting Gift** (1): I'd do anything
 - **Clarion** (1): Hello Juliet
@@ -713,77 +688,63 @@ _Emo y scenecore de internet: pupsies, Punkinloveee, h4rtbrkr, Boy Fantasy, Beac
 - **Mistvale** (1): I honestly want you to kill yourself
 - **crayon** (1): i know you're sleeping
 - **coldwntr** (1): meant 2 be
-- **Belowground** (1): Suicide Note
-- **Mistvale, kaysnoto** (1): Bed Rotting on a Friday
 - **Anhero** (1): Tell Me Why
 - **Lil Watermark** (1): moe r. on
-- **redize, Sandysaddog** (1): hey, i love you
 - **kaysnoto, kaysnoto throwaways, wirt** (1): silent girl
-- **h4teboy, ddlion** (1): I Was Bored
 - **Anhero, DethTech** (1): For The Hell Of It
 - **kaysnoto, overtonight** (1): sorry i killed her.
 - **Loser64** (1): egirl195
-- **redize** (1): heartbreaker
 - **laydownrot, lateatmidnite** (1): ditch
 - **Stxlkin** (1): so bitter - super slowed
 - **Mars Argo** (1): Using You
 
 <a id="vampiro-digital"></a>
-## Vampiro Digital (59)
+## Vampiro Digital (46)
 
 _Emo gótico y cloud oscuro: morgue, blair, backw666s, lungskull, wifiskeleton e Im gonna die alone._
 
 - **morgue** (6): knotted heart · hopeless · angel · leaveamsg - slowed · leaveamsg · ashtray
-- **zombiwebz** (6): wasting away · 2033 · scattered thoughts in a very scattered mind · no point in talking if no one is listening so i just stay silent lol · ugly face · im so blue for you
 - **blair** (4): cuter as a vampyre · teeth · blame it on the weather · teeth - slowed
+- **zombiwebz** (4): wasting away · no point in talking if no one is listening so i just stay silent lol · ugly face · im so blue for you
 - **korpsebunny** (3): cuter as a corpse · im #obsessed w u lol · i hate myself
-- **backw666s** (3): still the same · come thru · kiss
 - **iamsodead, pupsies** (2): boyfriend · luv&lean
 - **duskydemise** (2): bedrott · rhetorical
 - **duskydemise archive, duskydemise** (2): bedrott - sped up · bedrott - slowed
-- **never goodbye** (2): i dont like me either · I dont like me eitherr
+- **backw666s** (2): come thru · kiss
 - **lungskull** (2): met you at the party · me 2
 - **wifiskeleton, witchbox** (2): 53 nights · corridor
-- **bloodsekai** (1): let me be with u
-- **bloodsekai, pupsies** (1): losing my magical mind
-- **duskydemise, aatsu** (1): dawn
 - **wifiskeleton, i wanna be a jack-o-lantern** (1): Nope your too late i already died
 - **xolu** (1): How It Go
+- **never goodbye** (1): i dont like me either
 - **Im gonna die alone, imar** (1): ninety nine
-- **oinkasf, karphloz** (1): 2016
 - **keepsecrets, witchbox** (1): mi amor
 - **fxdedthemm** (1): I'm sick
 - **Im gonna die alone, curseaugust** (1): falling for u
 - **Yen** (1): Go home
 - **Blackblood3d** (1): Trash ass goth track (normal speed)
-- **Nishatentachi** (1): My Thoughts As I Ruin My Life
-- **hurtsick, Cxryn** (1): let me in to your solitude.
 - **kiraso, loninstonin** (1): salad days
 - **axxturel** (1): Deserve It
 - **kaisexistence** (1): you hurt me and i still havent healed
-- **rlax** (1): 190
-- **knwbttr, gutskira** (1): nothing ever lasts.
 - **blair, backw666s** (1): ovrsensitive
 - **morgue, revivle** (1): addict
-- **Quincy Divine** (1): Signs
 - **lieu** (1): drain
 - **osquinn** (1): i dont want that many friends in the first place
 - **icedancer, payphobia, alfie** (1): stuff
 
 <a id="ola-fria"></a>
-## Ola Fría (84)
+## Ola Fría (80)
 
 _Post-punk ruso, coldwave, doomer y pop ruso: Kino, Intelligency, Crystal Castles, Soft Blade, NEMIGA y SEREBRO._
 
-- **Intelligency** (9): Malitva Belaruskaja · Immigrant · August · Narciss · Technojazz · Outlaw · Молодость · Into the Summer · Места Не Было Для Любви
+- **Intelligency** (8): Malitva Belaruskaja · August · Narciss · Technojazz · Outlaw · Молодость · Места Не Было Для Любви · Immigrant
 - **Перемотка** (4): Старое кино · Встречная · Здравствуй · Как тебя покорить
-- **Sexy Sushi, Rebeka Warrior, Mitch Silver** (3): L'Idole Des Connes · Sex Appeal · À bien regarder, Rachida
 - **Дайте танк (!)** (2): Утро · Люди
 - **Gradusy** (2): Режиссер · Научиться бы не париться
 - **Антоха МС** (2): Бросай табак · Ритм сердца
 - **ONDA ANDAR** (2): type london · cachalot
 - **Kino** (2): Спокойная ночь · Пачка сигарет
 - **Crystal Castles** (2): Crimewave · Vanished
+- **Sexy Sushi, Rebeka Warrior, Mitch Silver** (2): Sex Appeal · À bien regarder, Rachida
 - **Luna** (2): Грустный Дэнс · Пули
 - **Soft Blade** (2): Yugoslavskiy Groove · Zerkalo
 - **edwuard** (1): BEZ TEBYA
@@ -791,7 +752,6 @@ _Post-punk ruso, coldwave, doomer y pop ruso: Kino, Intelligency, Crystal Castle
 - **Molchat Doma** (1): Судно (Борис Рыжий)
 - **Катя Лель** (1): Мой мармеладный
 - **plenka** (1): When You Find Me - Bonus Track
-- **cg** (1): August - Best Part
 - **MIGAS** (1): Конфетка
 - **ZXNITH** (1): with u
 - **Сова** (1): Первый снег
@@ -836,7 +796,6 @@ _Post-punk ruso, coldwave, doomer y pop ruso: Kino, Intelligency, Crystal Castle
 - **angel vox** (1): Возвращайся
 - **Aircraft** (1): My Baby's Got to Go - Super Slowed
 - **егорbez** (1): kah
-- **NEMIGA** (1): Рукава
 - **Czxxze** (1): Fearless - Instrumental
 
 <a id="neon-eterno"></a>
@@ -971,19 +930,15 @@ _Disco, funk y soul para la pista: Michael Jackson, Bee Gees, Earth, Wind & Fire
 - **Michael Angelo** (1): Nubian Queen
 
 <a id="perreo-nocturno"></a>
-## Perreo Nocturno (174)
+## Perreo Nocturno (137)
 
 _Neoperreo, dembow mexa y club latino: DENNA LA PORRI, Doony Graff, Yeyo, Jose Alatorre, MJ Nebreda y funk brasileño._
 
 - **Jose Alatorre** (9): cuando lo haciamos · bicho eterno · candyOperreo · parece que ya no me quieres · losdelmomento.com · anonima · aprovechame · a la hora que llego · se subio alatorre
-- **Doony Graff, Ezya** (9): Monica · supercogelona · swag · HONDA · MARIHUANA · Vecinita · te quiero mucho · PANAMIUR · tu canción mas pegada es la mia menos topada
-- **Doony Graff** (8): Todo me vale verga · BELIKONA · NEZAYORK · goku ssj 1000000000000000000000000000000000000000000000000000000000000000 · Pekoro · Mija · RIP Mr. Pomel · Sereno Moreno
 - **Yeyo** (7): Diferente · Bendecido · lo mejor siempre SE DEMORA · amor, cómo ESTÁS??? · Maldad · 4rab3 · Tentación
-- **DENNA LA PORRI, Uzielito Mix** (2): PRINCIPEZZA · BYE BYE
+- **Doony Graff, Ezya** (5): Monica · supercogelona · swag · HONDA · MARIHUANA
+- **Doony Graff** (4): Todo me vale verga · NEZAYORK · goku ssj 1000000000000000000000000000000000000000000000000000000000000000 · Mija
 - **Midfug** (2): Perreowave · Vas y vienes
-- **Ruzzo Doblezz, Ezya** (2): Butaka · Latosa
-- **La Vendicion, La Obsesion, Yeyo, Doony Graff** (2): LADYHOY · TENGA PA Q SE ENTRETENGA
-- **DENNA LA PORRI, Legorreta** (2): BOMBA · SUEÑO
 - **Sayuri & Sopholov, Fuentes Prod** (2): No Hay Nah · Muñecas Del Estado
 - **DENNA LA PORRI, Moodjaas** (1): SOLA
 - **El Bogueto, Yung Beef** (1): Cuando No Era Cantante
@@ -992,7 +947,6 @@ _Neoperreo, dembow mexa y club latino: DENNA LA PORRI, Doony Graff, Yeyo, Jose A
 - **Kauxx** (1): Flautista De Hamelin
 - **MC Sam, ZK Beats, MV Beats** (1): No Movimento
 - **Macaia, CapMc, Akaya, Pump Killa, DasVielas** (1): Alvo
-- **Aln MC** (1): Gloss
 - **Je Tupinikin** (1): Serena
 - **DJ Cozy, $aiyajin Sosa, Aln MC** (1): Vou Morar no Peba
 - **VULGO, Viva o Baile, Lukkas** (1): Dança Gatinha, Dança
@@ -1002,25 +956,19 @@ _Neoperreo, dembow mexa y club latino: DENNA LA PORRI, Doony Graff, Yeyo, Jose A
 - **3BallMTY, América Sierra, Smoky** (1): Beso Al Aire (feat. América Sierra & Smoky)
 - **3BallMTY, América Sierra, El Bebeto** (1): Inténtalo (feat. América Sierra & El Bebeto)
 - **Onemillionkisses, Vic Gunn, britneygore** (1): ESCANDALOZZZ
-- **Nasty Vato, Novato El Flow, YOUNG MAFIA** (1): DESPLIEGUE
-- **Fr1zi, LoveUikari** (1): RIBETERA
 - **xosa, DANIEL TELLEZ** (1): MACHiN DE PESoS
 - **Alu Mix, Jose Alatorre** (1): Nostalgia .0018 Efimero
 - **Ruzzo Doblezz, Fuentes Prod** (1): SPTM Ya Me Enkule
 - **yngdean, Angel AM** (1): CHENTE
 - **JAYSEE** (1): Obscuros Sentimientos
 - **Deep Nao, JAYSEE, GSAD** (1): Testigos
-- **GSAD** (1): S3xy Fantasia
 - **JAYSEE, Deep Nao, GSAD** (1): Una Noche
 - **GSAD, JAYSEE** (1): Old Fashion
 - **hennessyyy, ghost3r** (1): mátame
-- **Zalzuki** (1): Antídoto 80085
 - **GSAD, CR Montz** (1): UnderStars
 - **la intimidad, Umi Not Human, Kusi!!** (1): Bellaka
 - **Yeyo, SINAKA** (1): Welcome To My Crib
-- **8.am, Ruzzo Doblezz, Tennessee Beats** (1): Canina
 - **Ikoniko, uzprod** (1): AKOLATRONIC
-- **Ruzzo Doblezz, Fuentes Prod, Novato El Flow, Nasty Vato, Dulzón** (1): ZAZAZA
 - **Ivy Wavy, Emex, Tunenegoga, Leinvd, xosa, Tuere Chorito, Flak00g, Naxssy, Jose Dolche** (1): El Cantón 1
 - **Ruzzo Doblezz, 8.am, wavyboy.exe, Tunenegoga** (1): ALZA LA MANO
 - **Dahel, Doony Graff, Cesar H** (1): Dos Amigas
@@ -1029,17 +977,17 @@ _Neoperreo, dembow mexa y club latino: DENNA LA PORRI, Doony Graff, Yeyo, Jose A
 - **Tuere Chorito, Melvyn Blas, Dj Keen Mx** (1): Lacrosso
 - **Uzielito Mix, Ivy Wavy, Emex** (1): Lento y Bajate
 - **Mamx, BVBBA DVBS** (1): CUMBIATRONIC
-- **Ikoniko, Fuentes Prod, Novato El Flow** (1): Pretty Putty
 - **El Bogueto, Anuel AA, Fuerza Regida, Yung Beef** (1): Cuando No Era Cantante RMX - Remix
 - **DJ ROOTS, CAMO, JEY** (1): BABY (Feat. CAMO, JEY)
-- **Tramposos** (1): Benditos
 - **Nana Nina, Free Software** (1): m robas un bso
 - **FLVCKKA** (1): So what we get drunk - Extended Version
+- **Ruzzo Doblezz, Ezya** (1): Latosa
 - **Chzter, Tzunami** (1): DIME K SOY TU BB
 - **xosa, Legorreta** (1): BIENVENiDOS a LA PERRERA
 - **Joss ML, Enayy** (1): 2012
 - **Amber Yezel** (1): BRUJERÍA
 - **Yeyo, Doony Graff** (1): Fancy
+- **La Vendicion, La Obsesion, Yeyo, Doony Graff** (1): LADYHOY
 - **La Obsesion, Doony Graff, Yeyo** (1): Mameleee
 - **Doony Graff, Ezya, Fntwxy** (1): MTY
 - **La Vendicion, La Obsesion, Yeyo, Novato El Flow, Doony Graff, Viglezz** (1): YA NO SIENTO NADA
@@ -1047,17 +995,14 @@ _Neoperreo, dembow mexa y club latino: DENNA LA PORRI, Doony Graff, Yeyo, Jose A
 - **La Obsesion, Novato El Flow, Doony Graff, Yeyo, Fuentes Prod, Ezya** (1): Ponertela
 - **Alu Mix, Doony Graff, Ezya** (1): Ñero Session 17
 - **La Obsesion, Yeyo, Malo, Doony Graff, Novato El Flow, Josa El Menor, Vic Gunn, Viglezz** (1): Esclavaremix2 (feat. Novato El Flow, Josa El Menor, Vic Gunn & Viglezz)
-- **La Obsesion, Doony Graff, Vic Gunn, Novato El Flow, Yeyo, Nasty Vato, Viglezz, Onemillionkisses** (1): RedyPaMorir
 - **Onemillionkisses, Doony Graff** (1): clase azul
 - **Cachirula, LOOJAN, Viglezz, Fantawy** (1): Para lxs dos
 - **KuromichizZz, LoveUikari** (1): GATITA KITTY KITTY
 - **Chzter, Mikebøi** (1): BUBALU
 - **xosa, Tennessee Beats** (1): BiSCOCHOLOGO
 - **lila sky, CRRDR** (1): dreamy muñequita
-- **Los+RibeteroZ, Fr1zi, LoveUikari, ElevenKD** (1): Date Grasa
 - **la intimidad, paxheko, Umi Not Human, Glaede, Yered!!** (1): tentacion
 - **Chzter, Tzunami, Doony Graff** (1): ENTE VIRTUAL
-- **Ruzzo Doblezz, TBX** (1): Dicaprio
 - **xosa, akal** (1): MARAViLLA
 - **El Bogueto, Yeyo, Doony Graff** (1): PERREO DE BOGUETODOONYYEYO
 - **Fr1zi, LoveUikari, ElevenKD** (1): LA POLICÍA
@@ -1065,30 +1010,19 @@ _Neoperreo, dembow mexa y club latino: DENNA LA PORRI, Doony Graff, Yeyo, Jose A
 - **Dj Jester, DENNA LA PORRI** (1): Nena con Nena
 - **La Obsesion, Yeyo, Doony Graff, Novato El Flow** (1): La Obsesión
 - **MXLVIXJE, Lxmb Gold, JOSTIN JA, morenoguapo** (1): Estaba por llamarte
-- **Tennessee Beats, bbbartex, xosa, Jossed** (1): Marroneo
 - **Nana Nina, Gamboa** (1): My White Kitty
-- **Cherry Chola, Chico Sonido** (1): The Pink Room
 - **3delincuentes** (1): NOLECREO!MIAU
-- **MJ Nebreda, Nick León** (1): Bubalú
 - **Sajiva, Neyka** (1): NENE
 - **cybernene, Doony Graff** (1): MONEY MAKER
-- **La Obsesion, Doony Graff, Nasty Vato, Novato El Flow, Viglezz** (1): #OBSSECHUGG
 - **Cachirula, LOOJAN, Doony Graff** (1): Chaka
 - **Doony Graff, Ezya, Josa El Menor** (1): sucias
-- **La Obsesion, Doony Graff, Yeyo, Bby Gangsta, Onemillionkisses** (1): xxxTravagancia
-- **La Obsesion, Yeyo, Doony Graff, Novato El Flow, Josa El Menor, Vic Gunn, Malo, Viglezz** (1): Dos16 (feat. Josa El Menor, Vic Gunn, Malo & Viglezz)
 - **Somos Frijoleros, Doony Graff, Ezya, Toy Selectah** (1): Here We Kum
 - **Kevis & Maykyy, Doony Graff** (1): TODOS SERIOS
-- **Ikoniko, Doony Graff, Fuentes Prod** (1): SABOR FERRARI
 - **Onemillionkisses, Doony Graff, Viglezz** (1): HONG CHONG
 - **SINAKA, Doony Graff** (1): PRENDO UNO
-- **Purpple K, xosa, Doony Graff** (1): Low Low
-- **Sa!koro, Doony Graff** (1): guerrilla
-- **Vic Gunn, Doony Graff, Ezya** (1): Griselda
 - **Jose Alatorre, Josa El Menor, Viglezz** (1): tu eres lo q pido
 - **Nana Nina** (1): recordé y me enojé
 - **La Mafia del Amor, Pipo Beatz** (1): Xapiadora
-- **JAYSEE, Msvnto** (1): Es una adicción
 - **hennessyyy, kennedy kappone** (1): santería
 - **Jose Alatorre, Ruzzo Doblezz** (1): descontrol
 - **Jose Alatorre, Josa El Menor, TBX, Ikoniko** (1): bbylover
@@ -1097,58 +1031,52 @@ _Neoperreo, dembow mexa y club latino: DENNA LA PORRI, Doony Graff, Yeyo, Jose A
 - **La Obsesion, Yeyo, Novato El Flow, Viglezz** (1): Chichabeba
 - **Yng Lvcas, Yeyo, Lexy walter, Young Gallo** (1): PARTY (feat. Young Gallo)
 - **Yeyo, Ezya** (1): AMEYAL
-- **La Obsesion, fafabian** (1): Pollito83Exclusive
 - **Cachirula, LOOJAN** (1): Dime si recuerdas
-- **La Obsesion, Nasty Vato, Vic Gunn, Doony Graff, Fuentes Prod** (1): RAMPAMPAMPAM
 - **Veronica, Delaquix** (1): o si mejor te olvidO?
 - **Nasty Vato, Fuentes Prod** (1): KAMIKAZE
 - **DENNA LA PORRI, Legorreta, elakkka** (1): DESVELADAS
+- **DENNA LA PORRI, Uzielito Mix** (1): BYE BYE
 - **DENNA LA PORRI, Kinto Piso, BrunOG** (1): DANZA BELLAKA
 - **DENNA LA PORRI, elakkka, La Dembow Gang** (1): PEKORITAS MIX
 - **Kinto Piso, DENNA LA PORRI** (1): Te demoras? Llámame
 - **DENNA LA PORRI, elakkka, Grozero** (1): MARRANA
 - **Sayuri & Sopholov, Ezya** (1): 01-800
-- **La Zanta Xit** (1): Que La Música No Pare
-- **TBX, DENNA LA PORRI** (1): OYE MORENO
+- **DENNA LA PORRI, Legorreta** (1): SUEÑO
 - **Jessvel Peyret, Jose Alatorre** (1): noche fría
 - **xosa** (1): CACHORRiTA
 - **LoveUikari** (1): PROFEKO
 - **Ya Ice Dilan, Rey Tony, Helabusador, JipMusic Global, Dj Honda** (1): Dichavate
+- **Dinamarca, emmi** (1): mate banana
+- **Dinamarca, Natt Calma** (1): Sapiosexual
 
 <a id="barrio-sur"></a>
-## Barrio Sur (69)
+## Barrio Sur (45)
 
 _Trap romántico y cumbia rkt de Argentina: One Flyt, JCKC, tomas metrikf, Sosa 66s y T4CHO._
 
-- **One Flyt** (10): 03:27 · mi peor pecado · Kenpazdescansen · onelove · Los Pies en la Tierra · SI YO FUERA EL MOMO · No Sé Si Te Pregunté · Paris Hilton · DELIVERY · Lunes
-- **One Flyt, Vasti Yan** (4): kemujer · bloqueame a todas · ese wacho de verdad te hace bien · si estas con otro me muero
-- **Sosa 66s** (4): Mi peor vicio · Princesa · Paciencia · Alas
+- **Sosa 66s** (3): Mi peor vicio · Princesa · Paciencia
 - **One Flyt, JCKC** (3): sin mi reina · decime que queres · wacha de la UBA
+- **One Flyt, Vasti Yan** (2): kemujer · ese wacho de verdad te hace bien
 - **Malandro** (2): Un Señor · Bla, Bla, Bla
 - **tomas metrikf** (2): la_pochi.wav · Bocanada de Amor
-- **One Flyt, Ventu Beats** (2): El primer día · #plataysoledad
-- **T4CHO** (2): por ser como sos. · Viaje de 10 minutos
-- **Cerounno, Vinyltracker** (2): En donde estoy · MVP
 - **tomas metrikf, JCKC** (2): mesa para dos · lo escribí cuando estaba con vos
-- **Franky Style** (2): Nieve En El Blunt · Baby
+- **One Flyt** (2): Paris Hilton · DELIVERY
 - **Ema, Sosa 66s, Evan Bitz** (1): Magia
 - **Ilsmokee** (1): Déjame Solo
 - **Troubless, Irivrte** (1): Love
-- **Cerounno, Vinyltracker, Jonas Sanche** (1): Aprendo, perdono, olvido
+- **T4CHO** (1): por ser como sos.
 - **Deyco** (1): Alas Rotas
 - **Nazareno gutierrez** (1): Malavida
 - **Carrion GodBle$$, Saske** (1): True Love
 - **T&K** (1): Habrá
 - **008RACCA** (1): SEXTO SENTIDO
+- **Cerounno, Vinyltracker** (1): En donde estoy
 - **One Flyt, T4CHO** (1): no quiero mil mujeres
-- **Gabryel** (1): OKUPA
-- **Lizorzo** (1): Domingo
 - **Klens** (1): Recuerdo
-- **Troubless, Dj Secio** (1): - Bonus Track
 - **Cheim** (1): tu esencia.
+- **Franky Style** (1): Nieve En El Blunt
 - **Niño Condor** (1): 12:16
 - **Tian vck, El Esca** (1): Chamuyos No
-- **Troubless, Dj Secio, J3UNO** (1): Fuego (Da Roots)
 - **One Flyt, tomas metrikf, JCKC** (1): chomba de polo
 - **Mugshot, Shatty, Mauro Vise 青** (1): Tell Me
 - **One Flyt, PAZZ** (1): tonta
@@ -1158,60 +1086,64 @@ _Trap romántico y cumbia rkt de Argentina: One Flyt, JCKC, tomas metrikf, Sosa 
 - **MECHAYRXMEO** (1): PILA DE SECUENCIAS
 - **Natán** (1): me engualichaste
 - **GZ, SOYAM** (1): NO HAY CASO
-- **JCKC, One Flyt** (1): una banda
 - **One Flyt, c n d, Fede Guelmos** (1): no me pidas explicaciones
 - **JCKC, One Flyt, Rocio González** (1): + te odio a vos
 - **One Flyt, Ventu Beats, Vasti Yan** (1): si mañana me muero
-- **One Flyt, Ema, Ventu Beats** (1): que dificil me la haces
-- **wrld one, One Flyt, Lisan** (1): TE AMO TODA
-- **CORBA, One Flyt** (1): No Quiero Nada Sin Vos
+- **One Flyt, Ventu Beats** (1): #plataysoledad
 
 <a id="calle-cromo"></a>
-## Calle Cromo (64)
+## Calle Cromo (74)
 
 _La nueva escuela española: Stereo Madness, Guxo, Lu Jr, LEÏTI, Enry-K, Ralphie Choo y superreservao._
 
-- **Stereo Madness** (8): Cocaína y Cristal · Calor, Como Loca · Botines Blancos · Medicine Pa La Flu · Pesadilla En El Club · B.A.I.L.A.R · Chica Cósmica · Fiebre
-- **nusar3000, GIANNI BATISTA** (8): MOTA · JUGO · nosesitukieres · REFRIGERANTE · GUARANÁ · FRANGO · PIZZA PLANET · compay51
-- **nusar3000** (4): NASKAR · LEVANTE · ALCANCÍA · TAUSERT
-- **Lu Jr** (4): Mal de ti · Redflag · Cobarde · Criminal
-- **Guxo** (2): Stefano Ricci · 0'0
+- **rusowsky** (19): malibU · So So · no t dejas ver · 4 Daisy · q bonito · pikito · + suave · LOTO · barquito - bonus track · esa carita · ALTAGAMA · B.I.L.L. · malibU x pink + pink - Live from NPR's Tiny Desk · micro · +1 · Disorder Waves · No Se · bamboo · OKRO
+- **Lu Jr** (2): Mal de ti · Cobarde
 - **LEÏTI** (2): Terrorista · X5
 - **Teo Lucadamo** (2): Tengo Un Amor · Con Esta Cara, Con Este Pelo
+- **Stereo Madness** (2): Medicine Pa La Flu · B.A.I.L.A.R
+- **Ralphie Choo** (2): TENTACION · lamento de una supernova
+- **rusowsky, Ralphie Choo** (2): Dolores · BBY ROMEO
+- **TRISTÁN!, rusowsky** (2): CELL · Verónica
+- **mori, rusowsky** (2): olas · Star
 - **ROSALÍA** (1): PIENSO EN TU MIRÁ - Cap.3: Celos
 - **rusowsky, Dinamarca** (1): mwah :3
 - **Bb trickz, Chapo 240** (1): Algo bien
-- **Enry-K** (1): 8 DIOPTRíAS
-- **Semon** (1): Sin querernos
-- **L'haine** (1): KIM
 - **Fuji** (1): un tiempo
 - **Guxo, lagrimas** (1): Mi Luz
 - **Elio Toffana, Aqeel** (1): Caballito de Mar (feat. Aqeel)
 - **Bb trickz, Fusil Ametrallalo** (1): las mías son peluche
-- **nusar3000, Pj Sin Suela** (1): BENDECIDO
-- **nusar3000, Azuleja** (1): SHEFTEK
-- **nusar3000, Israel Fernández** (1): ROSA DE JERICÓ
 - **Stereo Madness, Guxo** (1): Pura
+- **Guxo** (1): Stefano Ricci
 - **rusowsky, DRUMMIE, Barry B** (1): bla bla bla
-- **D.Valentino** (1): instante
-- **Enry-K, CARLA** (1): BUMBUMBUM
-- **ukd, badthing** (1): 99ers
-- **Gatti, Koboss Beats, Ilyam** (1): CON NADIE//VVS
 - **Guxo, shyne** (1): Mi Amor / Un Tro de Vaina
 - **WEST DUBAI** (1): BBY NUNCA TUVE MIEDO AL AMOR
-- **mita** (1): envidia de mi
-- **SAM DAVIES, LEÏTI, iseekarlo** (1): Cuenta a 0
 - **Enry-K, Cráneo** (1): CIENTÍFICO
 - **superreservao, Stereo Madness** (1): azulado
 - **UGLY, Chef C** (1): B.B.B
-- **Guxo, Logal, eestsyde.xo** (1): Glock Rosa
 - **Icy Vedo** (1): NATURALEZA
-- **Ralphie Choo** (1): TENTACION
 - **duna** (1): kascov
 - **Enry-K, LEÏTI** (1): Hajime Sorayama
 - **superreservao** (1): anarqueen
 - **Estrellas Del Rap Nacional, Bella Kanela** (1): Mc Bella Kanela
 - **Nico** (1): EL ADIVINO
+- **rusowsky, LATIN MAFIA** (1): neo roneo
+- **Judeline, rusowsky** (1): Heavenly
+- **Ralphie Choo, rusowsky** (1): GATA
+- **rusowsky, Saramalacara** (1): brujita
+- **Çantamarta, rusowsky** (1): Liit
+- **rusowsky, Las Ketchup** (1): Johnny Glamour
+- **DELLAFUENTE, Ralphie Choo, rusowsky** (1): El camino
+- **rusowsky, Ravyn Lenae** (1): pink + pink
+- **rusowsky, DELLAFUENTE** (1): electric bby
+- **D3llano, Ralphie Choo, rusowsky** (1): Hugo Gloss
+- **rusowsky, Bb trickz** (1): uwu ^^
+- **rusowsky, TRISTÁN!** (1): GOOFY
+- **L'haine, rusowsky** (1): LILO
+- **TAICHU, rusowsky** (1): PAYDAY
+- **Ralphie Choo, rusowsky, PEDRAXE, mori, Clutchill** (1): VALENTINO (feat. mori & Clutchill)
+- **Hnos Munoz, rusowsky** (1): Solo Voy Voy
+- **rusowsky, dani dicostas** (1): Dónde estás (Rusowsky remix)
+- **Najwa, rusowsky** (1): Esta tarde vi llover
 
 <a id="infierno-rosa"></a>
 ## Infierno Rosa (57)
@@ -1261,6 +1193,28 @@ _Trap de la calle española, de la PXXR GVNG para acá: Yung Beef y Kaydy Cain._
 - **Xiyo, Fernandezz, Doony Graff, Yeyo, Ezya** (1): Perfecta
 - **ladiferencia2006, Doony Graff, Novato El Flow, QueHicisteBella** (1): Llamame
 - **Pipo Beatz, Xiyo, Fernandezz, 8belial, Yeyo, Doony Graff** (1): Ella
+
+<a id="cuenta-atras"></a>
+## Cuenta Atrás (36)
+
+_Club, jersey y remixes con acento español: nusar3000, GIANNI BATISTA, Mushkaa, Natalia Lacunza, NATHY PELUSO y Safety Trance._
+
+- **nusar3000, GIANNI BATISTA** (11): nosesitukieres · GUARANÁ · FRANGO · PIZZA PLANET · MOTA · PAMPAM · CRYSTAL · ZAFIRO · JUGO · JAGUAR · ANANA
+- **nusar3000** (10): TAUSERT · ALEJANDRIA · HYUNDAI · PÊSSEGO · DESPECHÁ - Jersey Club Remix3000 · TAKATA · LEVANTE · NASKAR · MORANGO · LIMÃO
+- **Natalia Lacunza, nusar3000** (2): SIMELLAMA - nusar3000 Remix · LAPLATA - nusar3000 Remix
+- **nusar3000, Azuleja** (1): SHEFTEK
+- **8belial, nusar3000** (1): BEBEBE
+- **Mushkaa, Julieta, akaluigi, Bexnil, roots, nusar3000** (1): Vaya Liada
+- **NATHY PELUSO, nusar3000** (1): REAL - NUSAR3000 REMIX
+- **SALOMON SESSIONS, DELLAFUENTE, nusar3000** (1): 3caras_158bpm_eminor
+- **AMORE, nusar3000** (1): fuensanta3000 - nusar3000 remix
+- **nusar3000, Mushkaa** (1): MUSHKAR3000
+- **Major Lazer, Skillibeng, Diplo, nusar3000, BEAM, America Foster** (1): RoTATe wiTh aMeRiCa FOsTeR, sKiLLiBeNg aNd bEAM - nusar3000 Remix
+- **Safety Trance, nusar3000, Kinara** (1): duro
+- **AMORE, mori, nusar3000, Megansito el Guapo** (1): ¡fuensanta! - mori, nusar3000 & Megansito el Guapo remix
+- **nusar3000, Israel Fernández** (1): ROSA DE JERICÓ
+- **SIMONA, nusar3000** (1): TRIGAL NUSAR3000 167 BPM
+- **Lua de Santana, nusar3000** (1): iLUSÃO II
 
 <a id="dembow-anejo"></a>
 ## Dembow Añejo (61)
@@ -1315,13 +1269,12 @@ _Reggaetón de la vieja escuela y cumbia: Daddy Yankee, Don Omar, Arcángel, Wis
 - **Yaga & Mackie, Arcángel, De La Ghetto** (1): Aparentemente
 
 <a id="trap-lunar"></a>
-## Trap Lunar (65)
+## Trap Lunar (66)
 
 _Trap latino para la madrugada: Yan Block, Omar Courtz, Bad Bunny, Duki, Myke Towers y Bryant Myers._
 
 - **Yan Block** (3): Vacile · Media Hora · 5'3
 - **Yan Block, Panda Black** (2): Talento · 444
-- **Novato El Flow, Fuentes Prod** (2): Dolce Queen · CHICHAGIRL
 - **Slayter, Yan Block, NTG** (1): secuestro
 - **ROA** (1): ME GUSTAS CC
 - **Pablo Chill-E, Ñengo Flow, Jere Klein** (1): Bastardo (feat. Ñengo Flow & Jere Klein)
@@ -1335,7 +1288,6 @@ _Trap latino para la madrugada: Yan Block, Omar Courtz, Bad Bunny, Duki, Myke To
 - **J Abdiel, De La Rose, Yan Block, iZaak, Jay Wheeler** (1): WYA REMIX RED
 - **Rauw Alejandro, Pharrell Williams** (1): Committed
 - **Bad Bunny, The Marías** (1): Otro Atardecer
-- **KIDDWERO, Brun$4vr <3** (1): KeTeAzoTeE
 - **Dulzón, Fuentes Prod, Novato El Flow, Nasty Vato** (1): Pastel 1
 - **KIDDWERO, Brun$4vr<3** (1): nAkOyMakUarRo
 - **Pablo Chill-E, Yung Beef** (1): Singapur (feat. Yung Beef)
@@ -1375,14 +1327,18 @@ _Trap latino para la madrugada: Yan Block, Omar Courtz, Bad Bunny, Duki, Myke To
 - **YSY A, Bhavi, DrefQuila** (1): TUUUYO
 - **YSY A, Bhavi, Milo j** (1): FLECHAZO EN EL CENTRO
 - **Alemán, Rels B** (1): Mírame Ma
-- **KIDDWERO** (1): LaNEtAdElPlaneTa(Prod.Cod3x)
 - **Novato El Flow, Rory Swan, dj Preciozo** (1): Dejate ver
 - **Luigi 21 Plus, Ñengo Flow** (1): Los Favoritos
+- **Novato El Flow, Fuentes Prod** (1): Dolce Queen
 - **Lil Naay** (1): UNA BABY EN SANTIAGO
 - **Novato El Flow, Ezya** (1): Especialista
+- **Aitana, Nicki Nicole, rusowsky** (1): Formentera - rusowsky rmx
+- **Félix Vestre** (1): PERDIÉNDOME EN EL MOOD
+- **Kiddye** (1): MAMI NO TE MIENTAS
+- **Alvaro Diaz** (1): Reina Pepiada
 
 <a id="rima-cruda"></a>
-## Rima Cruda (141)
+## Rima Cruda (139)
 
 _Rap en español y de EE. UU.: Cruzzi, Charles Ans, Gera MX, Wk, Kendrick Lamar, Drake y Canserbero._
 
@@ -1430,13 +1386,11 @@ _Rap en español y de EE. UU.: Cruzzi, Charles Ans, Gera MX, Wk, Kendrick Lamar,
 - **Mac Miller, Empire Of The Sun** (1): The Spins
 - **Rels B, Kaydy Cain** (1): Culpable
 - **Ka-b** (1): A escondidas
-- **Cruzzi, La Pantera** (1): G WAGON
 - **Cruzzi, Sholo Truth** (1): Te Enamoraste de un G
 - **Cruzzi, Dawaira** (1): Majalulo
 - **C. Tangana** (1): Mala Mujer
 - **C. Tangana, Mc Binn** (1): Pa' Llamar Tu Atención (feat. Mc Binn)
 - **C. Tangana, ROSALÍA** (1): Antes de Morirme - feat. ROSALÍA
-- **Shamanes Crew** (1): Madre Tierra
 - **Trueno, Taiu, tatool, Yesan 雪山** (1): 2.0.1.9
 - **Trueno, Nicki Nicole, Bizarrap, Taiu, tatool** (1): Mamichula - con Nicki Nicole
 - **Bhavi, Seven Kayne, Milo j, Tiago PZK, KHEA, Neo Pistea** (1): BESAME (feat. Tiago PZK, Khea & Neo Pistea) - Remix
@@ -1453,7 +1407,6 @@ _Rap en español y de EE. UU.: Cruzzi, Charles Ans, Gera MX, Wk, Kendrick Lamar,
 - **Micro TDH** (1): Confianza
 - **Rels B, Itchy & Buco Sounds** (1): Mary Jane
 - **Logan Hate** (1): Dur an Ki
-- **Mime 871, Latin Geisha** (1): El Abismo Mira En Ti
 - **Mike Lamadrid, Prodbenji** (1): Ella es un 10
 - **Robot95, Neto Peña** (1): Por Ti Estoy Loco
 - **Bizor, Bolishe One** (1): El Hilo Rojo
@@ -1475,25 +1428,23 @@ _Rap en español y de EE. UU.: Cruzzi, Charles Ans, Gera MX, Wk, Kendrick Lamar,
 - **Mac Miller** (1): Blue World
 - **Kendrick Lamar** (1): PRIDE.
 - **N.E.R.D** (1): Bobby James
+- **C. Tangana, rusowsky** (1): Bien:( (feat. Rusowsky)
 
 <a id="verso-azul"></a>
-## Verso Azul (77)
+## Verso Azul (67)
 
 _Jazz rap y boom bap con alma: Marcus D, Cise Star, Kero One, Jazz Liberatorz, Mountain Brothers y Witness._
 
 - **Jazz Liberatorz** (10): Music In My Mind Part 2 · Ease My Mind - Feat. Tre Hardson, Fat Lip & Omni · That's Reality · Always Something · I Am Hip Hop - Feat. Asheru · When The Clock Ticks - Feat. J. Sands · What's Real - Feat. Emanon · Cool Down - Feat. Raashan Ahmad · Breathing Pleasure - Feat. Rico · Blue Avenue
-- **Kero One** (10): Keep It Alive! · Musical Journey Instro (Instrumental) · It's a New Day · Keep It Alive Jazz Remix (12" Only Jazz Remix) · Ain't That Somethin? · Give Thanks Instro (Instrumental) · The Cycle Repeats · Deep Space Instro (Bonus Track) · In All the Wrong Places · Musical Journey
 - **3582** (8): Vanessa from Venezuela · The E · Loser Type · MC² · Late Night · I Would Change · Bad As They Come · The Living Soul
-- **Witness** (7): Hope Springs Eternal · Sunburn · Cheap Date (Dive Bar Blend) · Letters to Jun(E) · Watercolors · Intermission · The Final Samba
+- **Kero One** (8): Keep It Alive! · Musical Journey Instro (Instrumental) · It's a New Day · Keep It Alive Jazz Remix (12" Only Jazz Remix) · Give Thanks Instro (Instrumental) · The Cycle Repeats · In All the Wrong Places · Musical Journey
+- **Witness** (5): Hope Springs Eternal · Sunburn · Cheap Date (Dive Bar Blend) · Letters to Jun(E) · The Final Samba
 - **Example** (5): The Strive · Recollect · 7-26-96 · E.T.A · Slow Motion
-- **Mountain Brothers** (2): Paperchase · Dig It
 - **Marcus D, Cise Star** (2): Greater Purpose · Earth Angel
 - **Marcus D** (2): Like Home (Interlude) · Titania
 - **The Globetroddas** (2): Down Wit Us · Love
-- **Dela** (2): We Will All B Free · La Bonne Attitude
-- **J. Rawls** (2): Errday 99 · Falling
 - **Glad2Mecha, Ill Treats** (2): Too Much · Morning Traffic
-- **14, Shing02** (1): Real With You (feat. Shing02)
+- **Mountain Brothers** (1): Paperchase
 - **Marcus D, Cise Star, Substantial, Funky DL** (1): Night on the Town
 - **14, Cise Star, Fayya** (1): Dreamland
 - **Witness, Dan Collins** (1): Don't Take It Wrong (2015)
@@ -1503,11 +1454,11 @@ _Jazz rap y boom bap con alma: Marcus D, Cise Star, Kero One, Jazz Liberatorz, M
 - **Kero One, Azure** (1): Jazzhop
 - **Glad2Mecha, Ill Treats, Psycho Les** (1): So Many Styles
 - **Marcus D, Funky DL** (1): Don't Hold Ya Breath
-- **Thes One** (1): Be Strong
+- **Dela** (1): La Bonne Attitude
+- **J. Rawls** (1): Errday 99
 - **Mathematik** (1): Plastic
 - **Peebs The Prophet** (1): Dead Calm
 - **Glad2Mecha, Ill Treats, Realistic** (1): Represent
-- **Lady Paradox, Pat D** (1): I Wanna Feel Days
 - **Bush Babees, Nicole Johnson** (1): Gravity
 - **Kero One, Niamaj** (1): Give Thanks (feat. Niamaj)
 - **Glad2Mecha, Alil Dab, Jit** (1): Raw Material
@@ -1518,24 +1469,28 @@ _Jazz rap y boom bap con alma: Marcus D, Cise Star, Kero One, Jazz Liberatorz, M
 - **Cru** (1): Just Another Case
 
 <a id="nube-purpura"></a>
-## Nube Púrpura (84)
+## Nube Púrpura (120)
 
 _Cloud rap, plugg y underground: LUCKI, Lelo, void, empireofyu, Xavier Wulf, Trefuego y Yung Lean._
 
+- **void, Repair Lonely** (12): Blast Off · Lamb Truck · What U Mean · Heartbreaks · Did It Again · Graveyard · Gray Zone · ON ALERT · Not The Same · Wait Up · Back Trappin' · Louie Everything
+- **void, BABY BOI** (9): WHAT U NEED · NYC · NO SLEEP · GET YO ASS ON · GUAP · BLESSED · HIGHER · ANTISOCIAL · WHOLE LOTTA GUNS
 - **LUCKI** (7): Geeked · At Night · Starstruck · Options · Sunset · Almost Back · Leave Her
 - **ProdWithFlavor** (6): Incredible - Root of All · Out of Reach (Geeked and Blessed) · Your Dreams · My Way · Abandon Planet · 300 Every Sip
+- **void, mezatl** (6): PAINTING THE PICTURE · MONEY FOREVER · REAL DOG · HANGING WITH ALIENS · EXTORTION · PRACTICE
 - **Lelo** (5): Limbless · Main Event · Yoppenheimer · Bathing Ape · Hughes
-- **khxznq** (4): Fairytales · Made My Day - Remix · Dropped Out · Miss Me
+- **void, empireofyu** (4): DIFFERENT · SUMMERTIME · CITY 2 CITY · STAR
 - **Trefuego** (4): FOREAL · Pretty Little Thief · BLADE FREESTYLE · All Roads Lead to Rome
 - **Sematary, Ghost Mountain** (3): World's A Fuck · Funeral · Bunny Suit
+- **khxznq** (3): Fairytales · Made My Day - Remix · Miss Me
 - **Xavier Wulf** (3): Hollow Be Thy Squad · Smoke · Black Cloud
-- **reptilianshrine** (2): How It Go · Cop Killer
-- **void, empireofyu** (2): SUMMERTIME · DIFFERENT
+- **void** (3): 24 Songs · Wok · Cult Classic
 - **Spaceli Vietnam, LUCKI** (2): By Any Means · Black Heart
-- **Khalil** (2): M0ONSL1DE · Must B Nice
 - **Kuhsigh** (2): 2 MUCH DOPE · T UP
 - **BashfortheWorld** (2): Aztec Baby · Bash Romo
 - **QUANTRELL** (2): YES MAAM · CASH FLOW
+- **void, Druskhi** (2): Say Please · TAP OUT
+- **void, OZN** (2): New Taste · Levitate
 - **void, ta2cute, empireofyu** (1): Bando
 - **Sharkey, Lucki** (1): Sessions
 - **Zachariehs** (1): Asleep In Space
@@ -1547,11 +1502,10 @@ _Cloud rap, plugg y underground: LUCKI, Lelo, void, empireofyu, Xavier Wulf, Tre
 - **VVS $., Shirocky** (1): 2-9-0-0
 - **22francc** (1): alfredo
 - **Barretta** (1): douji feva
-- **dreaming., numb the pain, rehab** (1): my hatred kept me alive (till death 4)
 - **Ejmonix** (1): Cobain
 - **KYSLINGO** (1): The Law of Recognition
 - **empireofyu** (1): city 2 city
-- **void** (1): 24 Songs
+- **Khalil** (1): M0ONSL1DE
 - **LandonBeck, Santi P** (1): Bottom
 - **Manny Laurenko, J Dlux** (1): Pluto, Montana
 - **FLVSHY, LUCKI** (1): Goku
@@ -1563,17 +1517,23 @@ _Cloud rap, plugg y underground: LUCKI, Lelo, void, empireofyu, Xavier Wulf, Tre
 - **Xavier Wulf, BONES** (1): Morning Dew
 - **C Choppa, LUCKI** (1): Callin You
 - **CHASETHEMONEY** (1): Don't Get
-- **GHOSTYY** (1): Do You Want (remix)
 - **ssjishmael** (1): Bloated**
 - **Big Tonka Cuh** (1): 100 Bands
 - **sativa** (1): 90210
 - **Lil Maru** (1): On The Block
 - **kush** (1): Undercover
-- **neptune, tuneski** (1): Moon
 - **feelinmyself, Xiillos** (1): Just One Not 2
 - **Paulie Leparik** (1): Middy Titty - Slowed + Reverb
 - **Yung Lean** (1): Ginseng Strip 2002
 - **Freddie Dredd** (1): Weather
+- **void, mikeeysmind, mezatl** (1): TILL THE SUN GOES DOWN
+- **void, ciaffa** (1): Celeste
+- **bbygirl, void, ta2cute, empireofyu** (1): bando - sped up + reverb
+- **void, mikeeysmind, storm00831, ech0** (1): SAY GANG
+- **void, mezatl, OZN** (1): Check It
+- **mikeeysmind, DEATHRXW, void, wang.mp3** (1): Timeless x Menace
+- **void, Repair Lonely, TRIMINAL** (1): On My Mind
+- **void, astral** (1): LIE / LOSE YOU
 
 <a id="trueno-clasico"></a>
 ## Trueno Clásico (116)
@@ -1660,14 +1620,13 @@ _Rock en español de culto: Soda Stereo, Serú Girán, Los Bunkers, Cerati, Enan
 - **Café Tacvba** (3): Quiero Ver · Eres · Como te extraño mi amor
 - **Charly García** (2): Dos Cero Uno · Promesas Sobre El Bidet
 - **Surfistas Del Sistema** (2): Todo me recuerda a vos · Te Miro Para Ver Si Me Ves Mirarte
+- **Los Vaguens** (2): Penurias · Los Amantes
 - **Andrés Calamaro** (2): Loco · Flaca
 - **Pescado Rabioso** (2): Cementerio Club · Las Habladurias del Mundo
 - **Glup!** (2): Freebola · Enamorado De Ti
 - **Hombres G** (2): Devuélveme a mi chica · Te quiero
 - **Almendra** (1): A Estos Hombres Tristes
 - **Bandalos Chinos, Adanowsky** (1): Departamento
-- **Rob, Jack Lahana, Bandalos Chinos** (1): 1 %
-- **Los Vaguens** (1): Penurias
 - **Los Pericos** (1): Pupilas Lejanas
 - **Los Cafres** (1): Tus Ojos
 - **Chico Trujillo, Jorge Serrano** (1): Motivo Real
@@ -1699,21 +1658,23 @@ _Rock en español de culto: Soda Stereo, Serú Girán, Los Bunkers, Cerati, Enan
 
 _Indie y alternativo latino: Mon Laferte, Zoé, Natalia Lafourcade, LATIN MAFIA, CA7RIEL & Paco Amoroso y Buscabulla._
 
-- **Cisne Elocuente** (18): Vuélvete a Mí · Gema · Joven · Habla Disléxica · Sola · Luz Cegadora · Plano Verde Paisaje · Iluminado · Ganapán · Manantial · Vicosurf · Flor Del Mar · 49 Días · Abismo De Amor · Hardware · Cae Hasta Mi · Justo En La Mitad · Cid
-- **Cisne Elocuente, Julio César Lucero** (5): Arrebol · Austral · Composé · Rhode · Orbe
+- **Cisne Elocuente** (11): Gema · Joven · Habla Disléxica · Sola · Plano Verde Paisaje · Ganapán · Manantial · Flor Del Mar · Hardware · Cae Hasta Mi · Cid
+- **Enjambre** (5): Visita · Cámara De Faltas - Noches de Salón · Elemento - Noches de Salón · El Vacío - Noches de Salón · Vinculo
 - **Mon Laferte** (5): Si Tú Me Quisieras · Amor Completo · El Diablo · Tu Falta De Querer · Algo Es Mejor
-- **babas tutsipop** (4): coral · todo lo que pasa · suave acento · tu liga del pelo
 - **CLUBZ** (4): Templos · Popscuro · Épocas · Palmeras
 - **CA7RIEL & Paco Amoroso** (3): MI DIOSA · COSAS RICAS · Ola Mina Xd
 - **Chicano Batman** (3): Black Lipstick · Cycles of Existential Rhyme · I know It
 - **Zoé** (3): Azul · Love · Arrullo De Estrellas
 - **Buscabulla** (3): Ta Que Tiembla · Nydia · NTE
 - **Diamante Eléctrico** (3): Suéltame, Bogotá · Oro · Rotos
+- **babas tutsipop** (2): coral · todo lo que pasa
 - **iza tkm** (2): dormiré sin ti · cuídame de mi
 - **Jósean Log** (2): Beso · Chachachá
 - **Little Jesus** (2): La Magia · Azul
+- **Daniel, Me Estás Matando** (2): Que Se Siente Que Me Gustes Tanto · Gracias
 - **Siddhartha** (2): 00:00 · Brújula
 - **La Vida Bohème** (2): Flamingo · La Vida Mejor
+- **Alanis Yuki** (2): Dimelo · Trokita blin’
 - **El Zar** (1): La Declaración
 - **Duck Fizz** (1): Donde estas
 - **Gustavo Castellanos** (1): Pasos en el sol
@@ -1721,13 +1682,12 @@ _Indie y alternativo latino: Mon Laferte, Zoé, Natalia Lafourcade, LATIN MAFIA,
 - **Comisario Pantera** (1): Lo Que Nadie Supo Dar
 - **Adanowsky, Adan Jodorowsky** (1): Amor Sin Fin
 - **Las Ligas Menores** (1): A 1200 Km
-- **Isla de Caras** (1): Despacio
 - **Chango Menas** (1): Días Negros
 - **Kameleba** (1): A Punto de Caer
 - **Sebastian Alvarez** (1): Dont Tell A Lie
 - **Jota Ce** (1): TUS BESOS
 - **Adanowsky** (1): Amor De Día Y Noche
-- **Enjambre** (1): Visita
+- **Cisne Elocuente, Julio César Lucero** (1): Austral
 - **te vi en un planetario** (1): te odio
 - **LATIN MAFIA, Omar Apollo** (1): Hecho para ti
 - **Foudeqush, Ludwig Göransson** (1): Con La Brisa
@@ -1743,10 +1703,8 @@ _Indie y alternativo latino: Mon Laferte, Zoé, Natalia Lafourcade, LATIN MAFIA,
 - **Mon Laferte, Juanes** (1): Amárrame
 - **Julieta Venegas** (1): Lento
 - **Carla Morrison** (1): Eres Tú
-- **Daniel, Me Estás Matando** (1): Que Se Siente Que Me Gustes Tanto
 - **Jasper** (1): Oscuridad
 - **Ed Maverick** (1): Fuentes de Ortiz
-- **Vanessa Zamora, DAMALEONA** (1): Malas Amistades
 - **Ximena Sariñana** (1): Que Tiene
 - **Teo , Jaden Smith** (1): Uno Dos (feat. Jaden Smith)
 - **Little Jesus, Elsa y Elmar, Ximena Sariñana** (1): TQM
@@ -1763,8 +1721,6 @@ _Indie y alternativo latino: Mon Laferte, Zoé, Natalia Lafourcade, LATIN MAFIA,
 - **Los Espiritus** (1): La Crecida
 - **Silvana Estrada** (1): Te Guardo
 - **Elsa y Elmar, Jósean Log, Daniel, Me Estás Matando** (1): Grecia
-- **Helado Negro** (1): There Must Be a Song Like You
-- **424** (1): Gala
 - **Protistas** (1): En Mis Genes
 - **Caloncho** (1): Brillo Mio
 - **MKRNI** (1): Inercia
@@ -1773,51 +1729,53 @@ _Indie y alternativo latino: Mon Laferte, Zoé, Natalia Lafourcade, LATIN MAFIA,
 - **Teleradio Donoso** (1): Eras Mi Persona Favorita
 - **Rey Pila** (1): Drooling
 - **Reyno** (1): Nunca Me Dejes
-- **Tita** (1): Si Tú Estás Bien
 - **Los Wálters** (1): Toca Madera
 - **Conociendo Rusia** (1): Quiero Que Me Llames
 - **iza tkm, Berdu** (1): soñando despierta
-- **Alanis Yuki** (1): Dimelo
+- **Aldo Peláez** (1): LAS NOCHES
+- **Nsqk, Julieta Venegas** (1): Estar Así Siempre
+- **LATIN MAFIA, Fred again..** (1): Te Estoy Correteando
+- **Mi Compa el Chino** (1): SLOW
+- **Nsqk, Kevin Kaarl** (1): Circo
+- **Rebe, AMORE** (1): Sobre tu ventana
+- **DannyLux** (1): HOUSE OF LUX
+- **Mi Compa el Chino, Hillkidd** (1): 1MILLONPUESTO
+- **Pablo Alhach** (1): Raro
+- **RØZ, Natt Calma, Mau Moctezuma** (1): CORA DE HIELO
+- **RØZ, Natt Calma** (1): la vuelta
+- **1702, Mi Compa el Chino** (1): do you mind if we dance forever?
 
 <a id="verano-tropical"></a>
-## Verano Tropical (78)
+## Verano Tropical (59)
 
 _Cumbia pop e indie bailable: YoSoyMatt, Eva de Marce, Los Eclipses, Disco Bahía, ZTVZ y Karen y Los Remedios._
 
-- **PANTERA BLUE** (5): Lágrima · Ese AURA · AMÉ · Una fiesta de dos · Sofía y yo
 - **Los Eclipses, Eva de Marce, Dan Solo** (5): Claroscuro · Elodie · La Cumbia de los Corazones Rotos · Nada Más · Temperatura
-- **Plastical People** (3): Destino errante · Perfect Love · Moverás tus pies
-- **le venado** (3): Weird Fishes · Sed De Sangre · Mailob
+- **PANTERA BLUE** (3): Lágrima · Una fiesta de dos · AMÉ
 - **YoSoyMatt** (3): Jupiter · Antón Lizardo · BocaRosa
-- **ZTVZ** (3): Una Noche Más · Báilame Así · 24 horas
+- **ZTVZ** (3): Una Noche Más · 24 horas · Delincuente
 - **YoSoyMatt, French Braids, Eva de Marce** (3): Aurora Dijo Adiós · Discoman · El Sabor del Viejo Mar
-- **Disco Bahía** (3): Necedad · Pacífico · Marbrisa
-- **Tati Falco** (3): Haydee · Los Estimados · Selva y mar
-- **LaDí** (2): noche fina · Apt. 2
+- **Plastical People** (2): Destino errante · Moverás tus pies
 - **Weste** (2): Las Olas · Jamas
-- **vonnside** (2): hue · www
-- **Real Cumbia Activa RCA** (2): La Isla En El Sol, Pt. 1 · La Isla En El Sol, Pt. 2
+- **Disco Bahía** (2): Necedad · Pacífico
+- **le venado** (2): Sed De Sangre · Mailob
 - **Mermelada de Pepino** (1): Reviéntame
 - **Vita Set, Antonia Navarro** (1): Romance De Fin De Semana
 - **Los Amigos Invisibles** (1): Viviré para Ti
 - **Bobui** (1): Piscis
-- **Daniel Craft** (1): Suéltate
 - **NAFTA** (1): Quiero Verte
 - **Young Tender** (1): Me Gustas
-- **Vita Set** (1): Si No Hay Con Quién Bailar
 - **Patricio Alvarado** (1): Candoca
 - **UNIVERSE** (1): Salchipapa
-- **UnDOMENICO** (1): Descombinado
 - **Gondwana** (1): Dime
 - **YoSoyMatt, Eva de Marce, Polocorp** (1): La Niña del Volcán (Polocorp Remix)
 - **YoSoyMatt, Eva de Marce, French Braids** (1): Sr. Tigre - French Braids Rework
 - **YoSoyMatt, Polocorp, Eva de Marce** (1): Amor Entre Mujer
 - **Soultade, Kiki** (1): él, tú y yo
+- **vonnside** (1): hue
 - **Chloé Silva** (1): Fantasmas En Mi Cama
 - **YoSoyMatt, French Braids, Los Miranda** (1): Bella
 - **CERO39, Eva de Marce, Iusef** (1): Sal de Mar
-- **Acid Coco** (1): Soñando
-- **MIEL** (1): Centro
 - **Tenda** (1): Trip
 - **Todo El Verano, La Femme D´Argent** (1): Te Pienso Todo el Tiempo
 - **YoSoyMatt, Eva de Marce** (1): Mi Pequeño Bosque
@@ -1827,30 +1785,28 @@ _Cumbia pop e indie bailable: YoSoyMatt, Eva de Marce, Los Eclipses, Disco Bahí
 - **Jaycc** (1): Colombia
 - **Eva de Marce, Jiony** (1): Rúmbala - Jiony Remix
 - **Tutankhamun** (1): Coltrane
-- **Perro Salchicha** (1): Como Pompa
-- **Shmiks, J Güero** (1): Lucy y El Tigre (J Güero Remix)
+- **Real Cumbia Activa RCA** (1): La Isla En El Sol, Pt. 2
+- **LaDí** (1): Apt. 2
 - **Karen y Los Remedios, Eva de Marce, Isaac Soto** (1): Háblame de ti
-- **Emally Villa** (1): BABY YO
-- **Elia y Elizabeth, RELATIN, Kartell** (1): Ponte Bajo El Sol - Kartell Remix
 - **French Braids, Dom McAllister** (1): Shady
+- **Tati Falco** (1): Selva y mar
 - **Disco Bahía, Coco Santos, Noah Pino Palo** (1): Bahía
-- **Epilogio** (1): Los Perros Van Al Cielo
 - **Soultade** (1): Juno
+- **Mori, Soultade** (1): Solo Contigo
 
 <a id="humo-dorado"></a>
-## Humo Dorado (108)
+## Humo Dorado (104)
 
 _Jazz, fusión y soul: Chet Baker, Etta James, Billie Holiday, Amy Winehouse, Thundercat y Sade._
 
 - **Sade** (5): Smooth Operator - Single Version · Paradise · No Ordinary Love · Kiss of Life · Like a Tattoo
 - **Antônio Carlos Jobim, Frank Sinatra** (5): The Girl From Ipanema · Drinking Water (Aqua de Beber) · Someone To Light Up My Life · How Insensitive (Insensatez) · Change Partners
-- **Laufey** (5): Like the Movies · Fragile · Falling Behind · Where or When · Promise
 - **Frank Sark** (4): Bring Me to You Morena · Every Time I Close My Eyes · I'll Be Your Home · Amor Mio
 - **Chet Baker** (4): I Fall In Love Too Easily · Time After Time - Vocal Version · My Funny Valentine · It's Always You - Vocal Version
+- **Laufey** (4): Like the Movies · Fragile · Falling Behind · Promise
 - **Irene Kral** (3): I Like You, You're Nice · Lazy Afternoon · Comes Love
 - **berlioz** (3): ascension · hot slow · indigo dream
 - **Etta James** (2): At Last · I'd Rather Go Blind
-- **Tommy Dorsey, Frank Sinatra** (2): Fools Rush In (Where Angels Fear To Tread) - Restored 2024 · Polka Dots And Moonbeams - Restored 2024
 - **Billie Holiday** (2): Autumn In New York · I'll Be Seeing You
 - **Etta Jones** (2): If I Had You · Till There Was You
 - **The Mills Brothers** (2): Nevertheless (I'm In Love With You) - 1958 version · You Always Hurt The One You Love - 1958 version
@@ -1860,13 +1816,13 @@ _Jazz, fusión y soul: Chet Baker, Etta James, Billie Holiday, Amy Winehouse, Th
 - **Celeste, Gotts Street Park** (2): Both Sides Of The Moon · Lately
 - **Olivia Dean** (2): So Easy (To Fall In Love) · Nice To Each Other
 - **Thundercat** (2): Them Changes · Funny Thing
-- **Cortex** (2): Prélude à Go Round · Devil's Dance
 - **Thundercat, Tame Impala** (1): No More Lies
 - **Peggy Lee** (1): Fever
 - **Catherine Russell** (1): Did I Remember
 - **Al Bowlly** (1): You're as Pretty as a Picture
 - **Stan Getz, João Gilberto, Astrud Gilberto, Antônio Carlos Jobim** (1): The Girl From Ipanema - Single Version
 - **Henry Mancini** (1): Lujon
+- **Tommy Dorsey, Frank Sinatra** (1): Polka Dots And Moonbeams - Restored 2024
 - **Sarah Vaughan** (1): Misty
 - **Anita O'Day** (1): I Could Write A Book
 - **Ava Gardner** (1): How Am I to Know
@@ -1903,7 +1859,6 @@ _Jazz, fusión y soul: Chet Baker, Etta James, Billie Holiday, Amy Winehouse, Th
 - **Siberia** (1): Ocean of Jazz
 - **Patchwork Inc., Wyatt Waddell** (1): Last Forever
 - **Macabre Plaza** (1): A Bird's Last Look
-- **Ebony Loren** (1): All In My Head
 - **Hank Levy** (1): Whiplash
 - **Durand Jones & The Indications, Durand Jones, Aaron Frazer** (1): Sea Gets Hotter
 - **Aurora Ave.** (1): Skipping Stones
@@ -1914,6 +1869,7 @@ _Jazz, fusión y soul: Chet Baker, Etta James, Billie Holiday, Amy Winehouse, Th
 - **Ebony Loren, Jason LaPierre** (1): Meet You Again - Reimagined
 - **Rob Araujo** (1): Nineteen
 - **Stan Getz** (1): The Girl From Ipanema
+- **Cortex** (1): Prélude à Go Round
 - **Amy Winehouse** (1): Back To Black
 - **Laufey, Philharmonia Orchestra** (1): Let You Break My Heart Again
 
@@ -1936,13 +1892,13 @@ _Damas del jazz vocal a media luz: Julie London, Nancy Wilson, Dinah Washington 
 - **Clyde Otis, Max Richter, Dinah Washington, Louisa Fuller, Natalia Bonner, John Metcalfe, Philip Sheppard, Chris Worsey** (1): This Bitter Earth / On The Nature Of Daylight
 
 <a id="luna-swing"></a>
-## Luna Swing (118)
+## Luna Swing (116)
 
 _Crooners y swing de salón: Frank Sinatra, Nat King Cole, Bobby Darin, Louis Armstrong y Ella Fitzgerald._
 
 - **Bobby Darin** (27): Beyond the Sea · Dream Lover · Splish Splash · Call Me Irresponsible - 2001 Remaster · I'm Beginning To See The Light - 2001 Digital Remaster · Things · Clementine · Hello, Dolly! - 2001 Remaster · A Nightingale Sang In Berkeley Square - 2001 Digital Remaster · Softly as in a Early Morning Sunrise · Artificial Flowers · Sunday In New York - 2001 Remaster · Some of These Days · Queen of the Hop · I Can't Give You Anything but Love · 18 Yellow Roses - Remastered · All By Myself - 2001 Digital Remaster · You Must Have Been a Beautiful Baby · Long Ago and Far Away · I'm Sitting On Top Of The World · Lazy River · That's the Way Love Is · Simple Song Of Freedom - Live / Single Version/Mono · Multiplication · Just Friends · Make Someone Happy - Remastered 2004 · Always - 2001 Digital Remaster
-- **Frank Sinatra** (26): Strangers In The Night · My Funny Valentine · The Way You Look Tonight · Theme From New York, New York - 2008 Remastered · Nice 'n' Easy - Remastered 1999 · Love Is Here To Stay - Remastered 1998 · Summer Wind · I've Got You Under My Skin - Remastered 1998 · I've Got A Crush On You - Remastered · My Way · That's Life · The World We Knew (Over And Over) · When You're Smiling (The Whole World Smiles With You) - 1999 Remastered · You Make Me Feel So Young - Remastered 1998 · Young At Heart · It Had To Be You · Come Fly With Me - Remastered 1998 · Dancing In The Dark - 1998 Remastered · The Lady Is A Tramp - Remastered 1998 · Autumn Leaves - Remastered 1999 · My Way Of Life · Blue Moon - 1999 Remastered · Days Of Wine And Roses · I Love You - Remastered · Moon River · Learnin' The Blues
-- **Nat King Cole** (21): L-O-V-E · Unforgettable · When I Fall In Love - Remastered 1999 · Smile - Mono / 1954 Version / Remastered 1992 · (I Love You) For Sentimental Reasons · Stardust · Nature Boy · Mona Lisa · Almost Like Being In Love - Remastered · Sweet Lorraine · Pretend · Orange Colored Sky - As Heard on “Fallout” (Series) · There Will Never Be Another You · Quizas, Quizas, Quizas (Perhaps, Perhaps, Perhaps) · Too Young · The Party's Over · Let's Fall In Love · Red Sails In The Sunset · Around The World - Remastered · Blame It On My Youth - Remastered 1999 · The More I See You
+- **Frank Sinatra** (25): Strangers In The Night · My Funny Valentine · The Way You Look Tonight · Theme From New York, New York - 2008 Remastered · Nice 'n' Easy - Remastered 1999 · Love Is Here To Stay - Remastered 1998 · Summer Wind · I've Got You Under My Skin - Remastered 1998 · I've Got A Crush On You - Remastered · My Way · That's Life · The World We Knew (Over And Over) · When You're Smiling (The Whole World Smiles With You) - 1999 Remastered · You Make Me Feel So Young - Remastered 1998 · Young At Heart · It Had To Be You · Come Fly With Me - Remastered 1998 · Dancing In The Dark - 1998 Remastered · The Lady Is A Tramp - Remastered 1998 · Autumn Leaves - Remastered 1999 · My Way Of Life · Blue Moon - 1999 Remastered · Days Of Wine And Roses · Moon River · Learnin' The Blues
+- **Nat King Cole** (20): L-O-V-E · Unforgettable · When I Fall In Love - Remastered 1999 · Smile - Mono / 1954 Version / Remastered 1992 · (I Love You) For Sentimental Reasons · Stardust · Nature Boy · Mona Lisa · Almost Like Being In Love - Remastered · Sweet Lorraine · Pretend · Orange Colored Sky - As Heard on “Fallout” (Series) · There Will Never Be Another You · Quizas, Quizas, Quizas (Perhaps, Perhaps, Perhaps) · Too Young · The Party's Over · Let's Fall In Love · Red Sails In The Sunset · Blame It On My Youth - Remastered 1999 · The More I See You
 - **Ella Fitzgerald, Louis Armstrong** (11): Cheek To Cheek · Summertime · They Can't Take That Away From Me · Autumn In New York · Oops! · These Foolish Things (Remind Me Of You) · Stars Fell On Alabama · Let's Call The Whole Thing Off · A Foggy Day · Can't We Be Friends? · Gee, Baby, Ain't I Good To You?
 - **Louis Armstrong** (10): What A Wonderful World · Mack the Knife · La vie en rose · Dream A Little Dream Of Me · A Kiss To Build A Dream On - Single Version · It's Been A Long, Long Time · We Have All The Time In The World - Remastered 2003 · The Skeleton In The Closet - Single Version · Blueberry Hill · I Only Have Eyes For You
 - **Nat King Cole Trio** (3): I Miss You So - Remastered · Who Do You Know In Heaven (That Made You The Angel You Are) · Blue And Sentimental - 1947 Version
@@ -1959,25 +1915,45 @@ _Crooners y swing de salón: Frank Sinatra, Nat King Cole, Bobby Darin, Louis Ar
 - **Natalie Cole, Nat King Cole** (1): Acércate Más
 - **Frank Sinatra, Nancy Sinatra** (1): Somethin' Stupid
 
+<a id="balada-eterna"></a>
+## Balada Eterna (82)
+
+_Baladas, boleros y románticas de siempre: José José, Luis Miguel, Juan Gabriel, Nelson Ned, Los Tres Caballeros y Tin Tan._
+
+- **José José** (50): Me Vas a Echar de Menos · El Amar y el Querer · Almohada · Vamos a Darnos Tiempo · El Triste · Él (Him) · Gavilán o Paloma · Quiero Perderme Contigo · Preso · Seré · Lo Dudo · Eso Nomás · Gotas de Fuego · Piel de Azúcar · El Amor Acaba · La Nave del Olvido · Lo Que No Fue No Será · Si Me Dejas Ahora · He Renunciado a Ti - Remasterizado · ¿Y Qué? · No Me Digas Que Te Vas · Pruébame · ¿Y Quién Puede Ser? · Cuando Vayas Conmigo · Me Basta · Volcán · 40 y 20 · Lágrimas · Mi Vida · Payaso · Amnesia · Buenos Días, Amor · Desesperado · Lo Pasado, Pasado · Mujeriego · Lo Que Quedó de Mí · Amor, Amor · O Tú o Yo · Tú Ganas · Una Mañana · Mientras Llueve · Tú Me Estás Volviendo Loco · Disimula · Cirano · Gracias · Amar Sin Ser Amado · ¿Qué Hay de Malo en Ser Extraños? · Ya No Pienso en Ti - Spotify Singles · Será · Cariño
+- **Los Tres Caballeros** (5): Abrázame · Me Odio · Demasiado Tarde · Noche No Te Vayas · Regálame Esta Noche
+- **Germán Valdés "Tin Tan"** (5): Bonita · Palabras Calladas · La Gloria Eres Tú · Contigo en la Distancia · Contigo
+- **Luis Miguel** (4): La Media Vuelta · Usted · Culpable O No - Miénteme Como Siempre · Tengo Todo Excepto a Ti
+- **Los Solitarios** (4): Nunca digas · Pensar · Ya se va · Mi amor es para ti
+- **La Sonora Santanera** (2): Perfume de Gardenias · Perfume de Gardenia
+- **Nelson Ned** (2): Quien Eres Tu? · Me Pasé De La Cuenta
+- **Jeanette** (2): Soy rebelde · Sol de Verano
+- **Los Freddy's** (2): Tu inolvidable sonrisa - Con banda · El cariño que perdí - Con banda
+- **Grupo Santa Cecilia** (1): Sólo Otra Vez
+- **Los Baby's** (1): Como sufro
+- **Juan Gabriel** (1): Querida
+- **Victor Yturbe "El Piruli"** (1): Yo Lo Comprendo
+- **Alejandro Sanz** (1): Amiga mía
+- **María de Jesús Vázquez** (1): Osito de felpa
+
 <a id="otono-modal"></a>
-## Otoño Modal (60)
+## Otoño Modal (55)
 
 _El universo Nujabes: Nujabes, Shing02, Uyama Hiroto, Force Of Nature, haruka nakamura y Yakkle._
 
 - **Nujabes** (12): reflection eternal · Counting Stars · The Final View · Still Talking to You · Spiral · Letter from Yokosuka · Kumomi · tsurugi no mai · Color of Autumn · Beat laments the world · flowers · Luv (sic) pt2
-- **Ljones** (6): Soul Below · ArtOfficial Strawberries · Mango Kimono · Jazz Technician · Introductions · Autumn Groove
-- **Yakkle** (5): Air · Metabolism · Stronger · BIG BLUE · Sea of Souls
+- **Ljones** (4): Soul Below · Mango Kimono · Introductions · Autumn Groove
 - **Force Of Nature** (4): just forget · vagrancy · mist · Bol-Ster
 - **TSUTCHIE** (4): raw material · mists · pretending to... · thank you
 - **Shing02** (3): Luv (sic.) Modal Soul Remix · Spring Delight · Luv (sic)
 - **Kyo Itachi** (3): Love Mugen (RIP Nujabes) · Clouds (RIP Nujabes) · Intense Vibration
+- **Yakkle** (3): Air · BIG BLUE · Sea of Souls
 - **Uyama Hiroto** (3): 81 autumn · 81Summer · Yin And Yang
 - **Shing02, Yakkle** (2): 初恋 (F1RST S1GHT) INSTRUMENTAL - Instrumental · 初恋 (F1RST S1GHT)
 - **Yakkle, Shing02** (2): Champ Magnétique · 愛密集 - Instrumental
 - **Shing02, Marcus D** (2): Parallel Universe · Airporter
 - **Nitsua** (2): slow light on a feather · Morning Horizon
 - **haruka nakamura, Nujabes** (2): let go (feat. Nujabes) · Lamp (feat. Nujabes)
-- **Yakkle, Shing02, DnZ** (1): Big City Lights (Here I Come) [feat. Shing02 & DnZ]
 - **Shing02, Uyama Hiroto** (1): Prime Audio
 - **Shing02, Jack The Rip** (1): In the Mood
 - **Shing02, Jack The Rip, Yakkle** (1): Back On Track - Yakkle Remix
@@ -1989,13 +1965,12 @@ _El universo Nujabes: Nujabes, Shing02, Uyama Hiroto, Force Of Nature, haruka na
 - **Scott Matelic** (1): To Impress the Empress
 
 <a id="cafe-lento"></a>
-## Café Lento (35)
+## Café Lento (27)
 
 _Jazzhop y beats para la mañana: Boho Fau & Elevated Soul, Emapea, Okvsho, Mndsgn, Teebs y edbl._
 
-- **Boho Fau & Elevated Soul** (8): Really, Truly · Coffee House Swingin' f. Nile River · Caffeine · Swinger Swagger · Cafe Au Lait · Open Mic · Vibin' · Sweet Tea
+- **Boho Fau & Elevated Soul** (4): Caffeine · Swinger Swagger · Open Mic · Sweet Tea
 - **Emapea** (3): Laka · Jazzy · Good Old Days
-- **Professor Creepshow** (1): Life Is Meant 2 Be Hard
 - **Oliver Crosby, Kristoffer Eikrem** (1): Too Soon
 - **Blazo** (1): Natural Green
 - **Okvsho** (1): Morning Jazz
@@ -2008,27 +1983,22 @@ _Jazzhop y beats para la mañana: Boho Fau & Elevated Soul, Emapea, Okvsho, Mnds
 - **Mndsgn, Sofie Royer** (1): Abeja
 - **edbl, Kazuki Isogai, JPRK** (1): Worldwide
 - **Telemakus** (1): Fluttering
-- **Medasin** (1): Up and Down
-- **Rikinish** (1): Beautiful Life
 - **FloFilz, Matt Wilde, Toshiki Soejima** (1): Atélier
 - **TOMC** (1): Stories & Studies
 - **Iam6teen** (1): June
 - **Sinj Clarke** (1): Yves
 - **BROCKBEATS** (1): balance
-- **Lionmilk** (1): fantasy
 - **Green Assassin Dollar** (1): Elnino
 - **Sweet William** (1): Please Think Twice
 - **A.O.** (1): Morning Bird - Instrumental
 
 <a id="beat-nipon"></a>
-## Beat Nipón (27)
+## Beat Nipón (20)
 
 _Beats y jazz japonés de hoy: STUTS, tajima hal, Shingo Sekiguchi, Toshiki Soejima, mabanua y DJ Mitsu The Beats._
 
 - **DJ Mitsu The Beats** (3): A Little Piano · Lost in Oblivion · Rostrum
 - **tajima hal** (3): honestly · For a While · Hello Again
-- **Shingo Sekiguchi** (2): Elevator Lover · North Wing
-- **Night Tempo** (2): Digital Detox · End Point
 - **MIDICRONICA** (1): san francisco
 - **MIDICRONICA, GORO KUMAI** (1): rust (feat. Kumai Goro)
 - **DJ Mitsu The Beats, STUTS** (1): Stack Wave (feat. STUTS)
@@ -2036,19 +2006,16 @@ _Beats y jazz japonés de hoy: STUTS, tajima hal, Shingo Sekiguchi, Toshiki Soej
 - **EVISBEATS** (1): ゆれる - Instrumental-
 - **mabanua** (1): So Real (Instrumental)
 - **STUTS** (1): Conflicted
-- **Toshiki Soejima, Takuya Kuroda, edbl** (1): Resonance
-- **JJJ** (1): #02 untitled
-- **MEITEI** (1): Heiwa
 - **Toshiki Soejima, edbl** (1): Cove
+- **Night Tempo** (1): End Point
+- **Shingo Sekiguchi** (1): North Wing
 - **16FLIP** (1): Beat Diary 917
 - **YOUR SONG IS GOOD, VIDEOTAPEMUSIC** (1): We're Not To Blame
-- **Bajune Tobeta** (1): Clair de lune
 - **Shingo Sekiguchi, Paul Grant** (1): Raincoat (Paul Grant Remix)
 - **DJ FRIP a.k.a. BeatLab** (1): Awesome City
-- **Modal.s** (1): Introducing! My Self
 
 <a id="vinilo-rosa"></a>
-## Vinilo Rosa (90)
+## Vinilo Rosa (89)
 
 _Pop, doo-wop y soul de los 50 a los 70: Tom Jones, Brenda Lee, The Ronettes, Carpenters y The Beatles._
 
@@ -2104,7 +2071,6 @@ _Pop, doo-wop y soul de los 50 a los 70: Tom Jones, Brenda Lee, The Ronettes, Ca
 - **Lola Marsh** (1): Something Stupid (From "Better Call Saul")
 - **Chicago** (1): If You Leave Me Now
 - **The Cheaters** (1): Suzanne
-- **Los Tres Caballeros** (1): Abrázame
 - **Los Tranquilos** (1): Amores Pasajeros
 - **The San Francisco TKOs** (1): Ooh Baby Baby
 - **Los Buenos** (1): Cuando Esto Y Contigo
@@ -2152,17 +2118,17 @@ _K-pop de escenario: ENHYPEN, BTS, Stray Kids, EXO, ATEEZ, NewJeans y TXT._
 - **JAEHYUN, d.ear** (1): Try Again
 
 <a id="tokio-electrico"></a>
-## Tokio Eléctrico (49)
+## Tokio Eléctrico (47)
 
 _J-rock, kawaii metal y city pop: BABYMETAL, Hanabie, ATARASHII GAKKO! y Masayoshi Takanaka._
 
 - **Masayoshi Takanaka** (24): トーキョーレギー · BRASILIAN SKIES · I REMEMBER YOU · OH! TENGO SUERTE · BELEZA PULA · READY TO FLY · BREEZIN' · 憧れのセーシェル諸島 · E. S. P. · NIGHTS · SEVEN GOBLINS · 蜃気楼の島へ · GOOD (BAD?) OLD DAYS · I REMEMBER CLIFFORD · ALONE · サヨナラ・・・・・・FUJIさん · SUNDROPS · 伊豆甘夏納豆売り · RAINBOW · バードアイランド急行 · MALIBU · SWEET AGNES · THE MOON ROSE · PALM STREET
 - **花冷え。** (5): Reiwa dating apps generation · We love sweets · O･TA･KUラブリー伝説 · NEET GAME · お先に失礼します。
 - **BABYMETAL** (4): Gimme Chocolate!! · Headbangeeeeerrrrr!!!!! · BxMxC · Arkadia
-- **Broken By The Scream** (3): 恋は乙女の泣きどころ · アイハキミノモノ · Kanjou Cross Counter - RiC mix
-- **KAQRIYOTERROR** (2): Pity pantomime · Nyo
+- **Broken By The Scream** (2): 恋は乙女の泣きどころ · Kanjou Cross Counter - RiC mix
 - **DOOPEES** (1): SOME DAY, THAT PLACE IN TIME
 - **Makoto Matsushita** (1): September Rain - 2018 Remaster
+- **KAQRIYOTERROR** (1): Nyo
 - **the peggies** (1): BABY!
 - **ATARASHII GAKKO!** (1): OTONABLUE
 - **BABYMETAL, Tom Morello** (1): METALI!! (feat. Tom Morello)
