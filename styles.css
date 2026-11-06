@@ -6598,3 +6598,50 @@ textarea {
 .cuenta-conoce-card .icon { width: 22px; height: 22px; color: var(--accent); }
 .cuenta-ok .icon { width: 14px; height: 14px; vertical-align: -2px; }
 .cuenta-clave .icon-btn .icon { width: 20px; height: 20px; }
+
+/* =========================================================
+   Correcciones de la auditoría (noviembre de 2026)
+   ========================================================= */
+/* La barra superior era vidrio al 72 %: el texto de Inicio se leía a través al desplazarse */
+:root:not(.lite) .topbar {
+  background-color: color-mix(in srgb, var(--glass-tint, var(--bg)) 93%, transparent);
+}
+
+/* El aviso flotante se leía mal sobre las tarjetas (fondo al 82 %) */
+:root:not(.lite) .toast {
+  background: color-mix(in srgb, var(--text) 96%, transparent);
+}
+
+.toast {
+  line-height: 1.35;
+}
+
+@media (max-width: 860px) {
+  /* El mini-reproductor, opaco: título y artista sin el contenido de debajo asomando */
+  body:not(.np-open) .app .player {
+    background-color: var(--bg);
+  }
+
+  /* En el móvil el aviso va justo encima del reproductor, sin tapar el centro de Inicio */
+  .toast {
+    font-size: 0.875rem;
+    padding: 9px 16px;
+  }
+}
+
+/* En teléfonos el botón «Ajustes» se cortaba por el borde derecho: solo el engranaje */
+@media (max-width: 520px) {
+  .settings-btn {
+    width: 40px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .settings-btn-label {
+    display: none;
+  }
+
+  .topbar-actions {
+    gap: 8px;
+  }
+}

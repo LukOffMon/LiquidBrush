@@ -857,22 +857,67 @@
     (unheard ? navigator.setAppBadge(unheard) : navigator.clearAppBadge()).catch(() => {});
   }
 
+  /* Almacén grande en IndexedDB para la copia de la biblioteca (~2 MB). En localStorage ocupaba
+     casi la mitad de los ~5 MB de Safari y su JSON.parse frenaba el arranque. */
+  const bigStore = (() => {
+    let opening = null;
+    function open() {
+      if (!opening) {
+        opening = new Promise((resolve, reject) => {
+          if (!window.indexedDB) { reject(new Error('sin IndexedDB')); return; }
+          const request = indexedDB.open('liquidbrush', 1);
+          request.onupgradeneeded = () => request.result.createObjectStore('kv');
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+          request.onblocked = () => reject(new Error('IndexedDB bloqueada'));
+        });
+        opening.catch(() => { opening = null; });
+      }
+      return opening;
+    }
+    async function run(mode, action) {
+      const db = await open();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('kv', mode);
+        const request = action(tx.objectStore('kv'));
+        tx.oncomplete = () => resolve(request.result);
+        tx.onerror = () => reject(tx.error);
+        tx.onabort = () => reject(tx.error || new Error('IndexedDB: transacción cancelada'));
+      });
+    }
+    return {
+      get: (key) => run('readonly', (store) => store.get(key)),
+      set: (key, value) => run('readwrite', (store) => store.put(value, key))
+    };
+  })();
+  const LIBRARY_IDB_KEY = 'library-cache';
+  const LIBRARY_IDB_FLAG = 'liquidbrush:library-idb';
+  const librarySignature = (raw) => `${raw.length}:${hashString(raw)}`;
+
   // Abre al instante con la biblioteca de la última visita y la actualiza en segundo plano
   async function loadTracks() {
-    let cachedRaw = null;
-    try { cachedRaw = localStorage.getItem(KEYS.libraryCache); } catch { /* sin localStorage */ }
-    let shown = false;
-    if (cachedRaw) {
+    let cached = null;
+    let cachedSig = '';
+    try {
+      cached = await bigStore.get(LIBRARY_IDB_KEY);
+      cachedSig = cached?.sig || '';
+    } catch { /* sin IndexedDB: se usa localStorage como antes */ }
+    // Copia antigua en localStorage (versiones anteriores o navegador sin IndexedDB)
+    let legacyRaw = null;
+    try { legacyRaw = localStorage.getItem(KEYS.libraryCache); } catch { /* sin localStorage */ }
+    if (!cached && legacyRaw) {
       try {
-        const cached = JSON.parse(cachedRaw);
-        if (Array.isArray(cached.rows) && cached.rows.length) {
-          library.catalog = cached.catalog || null;
-          await applyTrackData(cached.rows);
-          shown = true;
-        }
+        cached = JSON.parse(legacyRaw);
+        cachedSig = librarySignature(legacyRaw);
       } catch (error) {
         console.warn('[LiquidBullet] Copia local de la biblioteca dañada; se descarga de nuevo.', error);
       }
+    }
+    let shown = false;
+    if (cached && Array.isArray(cached.rows) && cached.rows.length) {
+      library.catalog = cached.catalog || null;
+      await applyTrackData(cached.rows);
+      shown = true;
     }
     if (!shown) els.listInfo.textContent = 'Cargando canciones…';
 
@@ -881,12 +926,29 @@
       if (!Array.isArray(data)) throw new Error('La lista de canciones debe ser un array');
       const rows = data.map(({ source, ...rest }) => (source ? { ...rest, sourceName: source.name } : rest));
       const fresh = JSON.stringify({ rows, catalog: library.catalog });
-      if (fresh === cachedRaw) { openIncomingLink(true); return; }
-      await applyTrackData(rows, true);
-      // Sin espacio se liberan letras antiguas; si aun así no cabe, se descargará la próxima vez
-      for (let attempt = 0; attempt < 2; attempt++) {
-        try { localStorage.setItem(KEYS.libraryCache, fresh); break; } catch (error) {
-          if (!isQuotaError(error) || !freeStorage(KEYS.libraryCache, 0)) break;
+      const freshSig = librarySignature(fresh);
+      const unchanged = freshSig === cachedSig;
+      if (!unchanged) await applyTrackData(rows, true);
+      else openIncomingLink(true);
+      // Se guarda en IndexedDB; al lograrlo se borra la copia de localStorage (libera ~2 MB)
+      let savedInIdb = unchanged && Boolean(cached?.sig);
+      if (!savedInIdb) {
+        try {
+          await bigStore.set(LIBRARY_IDB_KEY, { sig: freshSig, rows, catalog: library.catalog });
+          savedInIdb = true;
+        } catch { /* sin IndexedDB o sin espacio */ }
+      }
+      if (savedInIdb) {
+        try {
+          localStorage.setItem(LIBRARY_IDB_FLAG, '1');
+          if (legacyRaw !== null) localStorage.removeItem(KEYS.libraryCache);
+        } catch { /* sin localStorage */ }
+      } else if (!unchanged) {
+        // Sin IndexedDB: como antes. Sin espacio se liberan letras antiguas; si no cabe, se descargará la próxima vez
+        for (let attempt = 0; attempt < 2; attempt++) {
+          try { localStorage.setItem(KEYS.libraryCache, fresh); break; } catch (error) {
+            if (!isQuotaError(error) || !freeStorage(KEYS.libraryCache, 0)) break;
+          }
         }
       }
     } catch (error) {
@@ -4056,12 +4118,9 @@
       .filter((row) => row.similar.length >= 3);
   }
 
+  // Mismos tramos que la daylist (daySegment): el saludo y «Tu … de madrugada» nunca se contradicen
   function greeting() {
-    const h = new Date().getHours();
-    if (h < 6) return 'Buenas noches';
-    if (h < 13) return 'Buenos días';
-    if (h < 20) return 'Buenas tardes';
-    return 'Buenas noches';
+    return ['Feliz madrugada', 'Buenos días', 'Buenas tardes', 'Buenas noches'][daySegment()];
   }
 
   function homeHeader(p) {
@@ -4252,7 +4311,9 @@
         card.setAttribute('aria-label', `Radio de ${entry.name}`);
         const photo = makeEl('span', 'artist-photo-wrap');
         photo.append(photoImg(entry.tracks[0]?.thumb, 96, 'artist-photo'), makeEl('span', 'radio-badge', 'RADIO'));
-        card.append(photo, makeEl('span', 'artist-name', entry.name), makeEl('span', 'artist-meta', 'Y artistas parecidos'));
+        const next = similarArtists(entry.key, 2).map((other) => other.name).filter(Boolean);
+        card.append(photo, makeEl('span', 'artist-name', entry.name),
+          makeEl('span', 'artist-meta', next.length ? `Con ${next.join(' y ')}` : 'Y artistas parecidos'));
         return card;
       }), 'is-artists'));
     }
@@ -5654,6 +5715,35 @@
   }
 
   /* ---------- Reanudar: última canción y segundo exacto (solo en este navegador) ---------- */
+  // Ids cortos para guardar la cola: «brush3:101-200-…-c0bf5f» → «brush3:c0bf5f». Si dos canciones
+  // compartieran huella (casi imposible) o el id no tiene esa forma, se guarda el id completo con «~».
+  const queueCodec = (() => {
+    let maps = null;
+    const shortOf = (id) => {
+      const m = /^([^:]+):.*-([0-9a-f]{6})$/.exec(String(id));
+      return m ? `${m[1]}:${m[2]}` : null;
+    };
+    function build() {
+      if (maps && maps.n === state.tracks.length) return maps;
+      const toShort = new Map();
+      const toLong = new Map();
+      const clash = new Set();
+      state.tracks.forEach((t) => {
+        const c = shortOf(t.id);
+        if (!c) return;
+        if (toLong.has(c) && toLong.get(c) !== t.id) clash.add(c);
+        else toLong.set(c, t.id);
+      });
+      toLong.forEach((long, c) => { if (!clash.has(c)) toShort.set(long, c); });
+      maps = { n: state.tracks.length, toShort, toLong };
+      return maps;
+    }
+    return {
+      encode: (id) => build().toShort.get(id) || `~${id}`,
+      decode: (c) => (String(c).startsWith('~') ? String(c).slice(1) : build().toLong.get(c) || null)
+    };
+  })();
+
   const resume = {
     lastSaved: 0,
     // Se guarda a menudo pero sin escribir en cada timeupdate (cada 4 s, o al instante si force)
@@ -5681,7 +5771,13 @@
         if (this.queueIdle) cancelIdleCallback(this.queueTimer); else clearTimeout(this.queueTimer);
         this.queueTimer = 0;
       }
-      storage.set(KEYS.resumeQueue, { queue: state.queue, base: state.baseQueue, context: state.queueContext, source: state.playSource || '' });
+      // Compacta (v2): ids cortos y el orden original como posiciones dentro de la cola.
+      // Antes se guardaban las dos listas con ids largos: ~480 KB con la biblioteca entera en cola.
+      const queue = state.queue;
+      const position = new Map(queue.map((id, i) => [id, i]));
+      const sameOrder = state.baseQueue.length === queue.length && state.baseQueue.every((id, i) => id === queue[i]);
+      const base = sameOrder ? null : state.baseQueue.map((id) => (position.has(id) ? position.get(id) : queueCodec.encode(id)));
+      storage.set(KEYS.resumeQueue, { v: 2, q: queue.map(queueCodec.encode).join(','), b: base, context: state.queueContext, source: state.playSource || '' });
     },
     // Al abrir la app vuelve a poner la última canción en su segundo y con su cola; false si no hay nada
     restore() {
@@ -5690,9 +5786,15 @@
       if (!track) return false;
       const valid = (ids) => (Array.isArray(ids) ? ids.filter((id) => state.trackMap.has(id)) : []);
       const stored = storage.get(KEYS.resumeQueue, null);
-      const queue = valid(stored?.queue);
+      let rawQueue = stored?.queue;
+      let rawBase = stored?.base;
+      if (stored?.v === 2 && typeof stored.q === 'string') {
+        rawQueue = stored.q ? stored.q.split(',').map(queueCodec.decode) : [];
+        rawBase = Array.isArray(stored.b) ? stored.b.map((x) => (typeof x === 'number' ? rawQueue[x] : queueCodec.decode(x))) : rawQueue;
+      }
+      const queue = valid(rawQueue);
       if (queue.includes(track.id)) {
-        const base = valid(stored.base);
+        const base = valid(rawBase);
         state.baseQueue = base.length ? base : queue.slice();
         state.queue = queue;
         state.queueIndex = queue.indexOf(track.id);
@@ -5766,15 +5868,20 @@
     // Al abrir la app (sin reproducir) la letra se busca un poco después para no frenar el arranque
     // Al saltar canciones seguidas solo se pide la letra de la que se queda (evita el 429 de LRCLIB)
     clearTimeout(lyricsDelay);
+    lyricsPendingFor = null;
     if (autoplay) {
       if (track.lyrics || lyricsCache.has(track.id)) showLyricsFor(track);
       else {
         renderLyrics('', 'Buscando la letra…');
         lyricsDelay = setTimeout(() => { if (state.currentTrack === track) showLyricsFor(track); }, 700);
       }
+    } else if (track.lyrics || lyricsCache.has(track.id)) {
+      showLyricsFor(track);
     } else {
+      // Sin reproducir no se pide nada a LRCLIB (ni datos ni la canción a un tercero):
+      // la letra se busca al darle a reproducir o al abrir el panel de la letra
       renderLyrics('', 'Toca reproducir y la letra aparecerá aquí.');
-      lyricsDelay = setTimeout(() => { if (state.currentTrack === track) showLyricsFor(track); }, 3000);
+      lyricsPendingFor = track;
     }
     highlightCurrent();
     syncPlayButtons();
@@ -5789,6 +5896,7 @@
   }
 
   async function play({ quiet = false } = {}) {
+    flushPendingLyrics();
     state.userPaused = false;
     state.wantsPlay = true;
     if (!state.currentTrack) {
@@ -6220,6 +6328,14 @@
     lyricsCache.set(track.id, text);
     if (storage.set(KEYS.lyricsPrefix + track.id, text)) lyricsIndex.touch(track.id);
     return text;
+  }
+
+  // Letra que quedó por buscar al abrir la app sin reproducir
+  let lyricsPendingFor = null;
+  function flushPendingLyrics() {
+    const track = lyricsPendingFor;
+    lyricsPendingFor = null;
+    if (track && state.currentTrack === track) showLyricsFor(track);
   }
 
   function showLyricsFor(track) {
@@ -7480,7 +7596,10 @@
     });
     els.lyricsPanel.addEventListener('toggle', () => {
       els.lyricsBtn.classList.toggle('is-active', els.lyricsPanel.open);
-      if (els.lyricsPanel.open) syncLyrics(els.audio.currentTime, true);
+      if (els.lyricsPanel.open) {
+        flushPendingLyrics();
+        syncLyrics(els.audio.currentTime, true);
+      }
     });
 
     // Tema
@@ -8556,6 +8675,9 @@
       </div>${paso ? `<div class="cuenta-pasos" aria-label="${esc(paso)}">${paso}</div>` : ''}`;
     const pasos = (actual, total) => Array.from({ length: total }, (_, i) => `<span class="${i < actual ? 'is-on' : ''}"></span>`).join('');
     const errorBox = '<p class="cuenta-error" role="alert" aria-live="assertive" hidden></p>';
+    // Los códigos salen de una cuenta de Gmail: muchas veces llegan a Spam o Promociones. Se avisa antes de enviarlos.
+    const avisoSpam = (texto = 'Te enviaremos un código de 6 dígitos') =>
+      `<p class="cuenta-aviso">${ico('mail')} ${texto} desde <b>${CORREO_REMITENTE}</b>. <b>Si no aparece en un minuto, revisa Spam o Promociones</b> y márcalo como <i>No es spam</i>.</p>`;
     const botonPrincipal = (texto, accion) => `<button type="submit" class="btn btn-primary cuenta-cta" data-cuenta="${accion}"><span class="cuenta-cta-text">${texto}</span><span class="cuenta-cta-barra" aria-hidden="true"></span></button>`;
 
     // Collage de la bienvenida con los fondos de la app (las portadas de playlist son solo para playlists)
@@ -8597,6 +8719,7 @@
               <input name="correo" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" required value="${esc(d.correo || '')}" autofocus>
             </label>
             <p class="cuenta-sugerencia" hidden></p>
+            ${avisoSpam('Al final te enviaremos un código de 6 dígitos para confirmar tu correo')}
             ${errorBox}
             ${botonPrincipal('Siguiente', 'enviar')}
           </form>`;
@@ -8629,6 +8752,7 @@
             </div>
             <label class="cuenta-check"><input type="checkbox" name="privacidad" required> <span>Acepto que mis favoritas, playlists, escucha y ajustes se guarden en el almacenamiento privado de Liquid Bullet. Puedo descargarlos o borrarlos cuando quiera.</span></label>
             <div class="cuenta-robot" aria-live="polite"></div>
+            ${avisoSpam()}
             ${errorBox}
             ${botonPrincipal('Crear y enviar código', 'enviar')}
           </form>`;
@@ -8670,6 +8794,7 @@
           <div class="cuenta-robot"></div>
           ${errorBox}
           ${botonPrincipal('Entrar', 'enviar')}
+          <p class="cuenta-aviso">${ico('mail')} ¿Creaste la cuenta y nunca te llegó el código, o vas a recuperar la contraseña? Los correos salen de <b>${CORREO_REMITENTE}</b> y <b>pueden llegar a Spam o Promociones</b>: revisa ahí antes de pedir otro.</p>
           <div class="cuenta-fila">
             <button type="button" class="btn btn-ghost cuenta-link" data-cuenta="ir" data-ir="recuperar">¿Olvidaste tu contraseña?</button>
             <button type="button" class="btn btn-ghost cuenta-link" data-cuenta="ir" data-ir="alta-1">Crear cuenta</button>
@@ -8684,6 +8809,7 @@
             <input name="correo" type="email" inputmode="email" autocomplete="username" autocapitalize="off" spellcheck="false" required value="${esc(d.correo || storage.get(K.ultimoCorreo, '') || '')}" autofocus>
           </label>
           <div class="cuenta-robot"></div>
+          ${avisoSpam()}
           ${errorBox}
           ${botonPrincipal('Enviar código', 'enviar')}
         </form>`,
@@ -9077,7 +9203,7 @@
         case 'sin-cuenta':
           storage.set(K.ofrecida, true);
           cerrar();
-          showToast('Sigues sin cuenta. Puedes entrar cuando quieras desde Ajustes.');
+          showToast('Sin cuenta. Puedes entrar cuando quieras desde Ajustes.');
           break;
         case 'ver-clave': {
           const input = target.parentElement.querySelector('input');
@@ -9576,8 +9702,8 @@
       ui.dialog.addEventListener('close', () => {
         limpiarTemporizadores();
         storage.set(K.ofrecida, true);
-        // Primera visita: después de la cuenta, el tutorial
-        if (!storage.get(KEYS.tour, false)) setTimeout(() => tour.open(), 400);
+        // El tutorial ya no sale encadenado justo después de la cuenta (eran dos ventanas seguidas
+        // antes de oír nada): aparece en la próxima visita y siempre está en Ajustes → Ayuda
       });
       ui.dialog.addEventListener('click', (e) => { if (e.target === ui.dialog) cerrar(); });
       document.getElementById('cuentaBtn')?.addEventListener('click', () => abrir());
@@ -9937,7 +10063,9 @@
     navHistory.init();
     npSheet.init();
     // Mientras llega la biblioteca (primera visita), filas de esqueleto en vez de un hueco
-    if (!storage.get(KEYS.libraryCache, null)) {
+    let hasLibraryCopy = false;
+    try { hasLibraryCopy = localStorage.getItem(LIBRARY_IDB_FLAG) === '1' || localStorage.getItem(KEYS.libraryCache) !== null; } catch { /* sin acceso */ }
+    if (!hasLibraryCopy) {
       els.trackList.replaceChildren(...Array.from({ length: 8 }, () => {
         const li = makeEl('li', 'track-skeleton');
         li.setAttribute('aria-hidden', 'true');

@@ -148,6 +148,11 @@ function silentWav(seconds = 30, rate = 8000) {
   return Buffer.concat([header, data]);
 }
 
+test.describe('reproducción con audio simulado', () => {
+  // El service worker pide el audio por su cuenta y page.route no ve esas peticiones:
+  // sin bloquearlo, el test dependía de la red real a R2 (fallaba a veces sin conexión)
+  test.use({ serviceWorkers: 'block' });
+
 test('los botones de reproducir de la playlist y del reproductor cambian a la vez', async ({ page }) => {
   const wav = silentWav();
   await page.route(/r2\.dev/, (route) => route.fulfill({ status: 200, contentType: 'audio/wav', body: wav }));
@@ -165,6 +170,7 @@ test('los botones de reproducir de la playlist y del reproductor cambian a la ve
   await viewPlay.click();
   await expect(page.locator('#playBtn use')).toHaveAttribute('href', '#i-pause');
   await expect(viewPlay.locator('use')).toHaveAttribute('href', '#i-pause');
+});
 });
 
 test('Inicio trae daylist, selección rápida y mixes', async ({ page }) => {
@@ -262,4 +268,60 @@ test('crear cuenta: el avatar ofrece las 8 fotos de perfil y la inicial', async 
   await opciones.nth(3).click();
   await expect(opciones.nth(3)).toHaveAttribute('aria-checked', 'true');
   await expect(opciones.nth(0)).toHaveAttribute('aria-checked', 'false');
+});
+
+test('cuenta: avisa de Spam antes de enviar el código (alta, entrar y recuperar)', async ({ page }) => {
+  await page.goto('./?cuenta=alta');
+  await expect(page.locator('[data-form="alta-correo"] .cuenta-aviso')).toContainText('Spam');
+  await page.locator('[data-cuenta="ir"][data-ir="bienvenida"]').click();
+  await page.locator('[data-cuenta="ir"][data-ir="entrar"]').click();
+  await expect(page.locator('[data-form="entrar"] .cuenta-aviso')).toContainText('Spam');
+  await page.locator('[data-cuenta="ir"][data-ir="recuperar"]').click();
+  await expect(page.locator('[data-form="recuperar"] .cuenta-aviso')).toContainText('Spam');
+});
+
+test('primera visita: al cerrar la cuenta no se encadena el tutorial', async ({ page }) => {
+  await page.addInitScript(() => {
+    sessionStorage.setItem('prueba-cuenta-nueva', '1');
+    if (!sessionStorage.getItem('ya-cargo')) {
+      localStorage.removeItem('liquidbrush:cuenta-ofrecida');
+      localStorage.removeItem('liquidbrush:tour');
+      sessionStorage.setItem('ya-cargo', '1');
+    }
+  });
+  await page.goto('./');
+  await expect(page.locator('#cuentaDialog')).toBeVisible();
+  await page.locator('[data-cuenta="sin-cuenta"]').click();
+  await expect(page.locator('#cuentaDialog')).toBeHidden();
+  await page.waitForTimeout(1200);
+  await expect(page.locator('#tourDialog')).toBeHidden();
+});
+
+test('sin reproducir no se pide la letra a LRCLIB', async ({ page }) => {
+  const lyricRequests = [];
+  page.on('request', (request) => { if (/lrclib\.net/.test(request.url())) lyricRequests.push(request.url()); });
+  await page.goto('./');
+  await expect(page.locator('#libCount')).not.toHaveText('0');
+  await page.waitForTimeout(4000);
+  expect(lyricRequests).toEqual([]);
+});
+
+test('la biblioteca va a IndexedDB y la cola de reanudación ocupa poco', async ({ page }) => {
+  await page.goto('./?view=library');
+  await expect(page.locator('#libCount')).not.toHaveText('0');
+  await page.locator('.track').nth(10).locator('.track-main').click();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('liquidbrush:library-idb'))).toBe('1');
+  await expect.poll(() => page.evaluate(() => (localStorage.getItem('liquidbrush:resume-queue') || '').length)).toBeGreaterThan(0);
+  const sizes = await page.evaluate(() => ({
+    legacy: localStorage.getItem('liquidbrush:library-cache'),
+    queue: (localStorage.getItem('liquidbrush:resume-queue') || '').length
+  }));
+  expect(sizes.legacy).toBeNull();
+  expect(sizes.queue).toBeLessThan(120000);
+  // Al volver a abrir, la canción y su cola siguen ahí
+  const current = await page.locator('#miniTitle').textContent();
+  await page.reload();
+  await expect(page.locator('#miniTitle')).toHaveText(current || '');
+  await page.locator('body').press('q');
+  await expect(page.locator('#queueDialog [data-id]').first()).toBeVisible();
 });

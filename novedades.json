@@ -1,6 +1,21 @@
 {
   "releases": [
     {
+      "version": "v52",
+      "date": "noviembre 2026",
+      "title": "Más rápida, más ligera y cuentas más seguras",
+      "items": [
+        "Al crear cuenta, entrar o recuperar la contraseña, la app avisa antes de enviar el código: llega desde liquidbulletofficial@gmail.com y puede caer en Spam o Promociones.",
+        "La copia de tu biblioteca se guarda en un almacén más grande del navegador: libera unos 2 MB y la app arranca más rápido en teléfonos lentos.",
+        "«Continúa donde lo dejaste» ocupa 10 veces menos espacio.",
+        "La letra ya no se busca en internet hasta que pulsas reproducir o abres la letra.",
+        "La primera vez sale solo la cuenta; el tutorial llega en la siguiente visita (y siempre está en Ajustes → Ayuda).",
+        "En el móvil: el botón de Ajustes ya no se corta, la barra superior y el reproductor no dejan ver el texto de detrás y los avisos se leen mejor.",
+        "Las radios de Inicio dicen con qué artistas siguen, y el saludo coincide con tu daylist.",
+        "Cuentas: cerrar sesión (o cerrar un dispositivo) corta el acceso al instante, y hay menos intentos para adivinar un código."
+      ]
+    },
+    {
       "version": "v51",
       "date": "noviembre 2026",
       "title": "Dos playlists nuevas: Cuenta Atrás y Balada Eterna",

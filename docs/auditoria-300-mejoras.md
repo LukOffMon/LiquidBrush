@@ -2,6 +2,8 @@
 
 Revisión del 6 de noviembre de 2026 sobre `main` (`5989a85`). Abarca todo el repositorio: `index.html`, `app.js` (9.969 líneas), `styles.css` (6.600), `sw.js`, `manifest.webmanifest`, el Worker de `cuentas/`, `tools/`, `tests/`, `s/` (≈4.000 páginas), `review.html`, `imagenes.html`, `404.html`, los datos (`musica/*.json`, `catalog.json`) y los recursos gráficos. El sitio se abrió en Chromium como Pixel 7 y como escritorio de 1440×900.
 
+> **Estado (v52):** hechos los puntos 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 17, 19, 60 (biblioteca), 61, 223 y 224, más el aviso de Spam en alta, entrar y recuperar. El Worker de `cuentas/` necesita `npx wrangler deploy` para que sus cambios lleguen a producción.
+
 Leyenda: 🔥 = alto impacto, hacer primero · ✅ = comprobado en el código o en el navegador (los demás puntos son propuestas).
 
 ---

@@ -7,14 +7,14 @@ import {
 } from './cripto.js';
 import { enviarCorreo, correoCodigo, correoYaRegistrado, correoBienvenida, correoClaveCambiada } from './correo.js';
 
-const VERSION = '1.0.0';
+const VERSION = '1.0.1';
 const MIN = 60;
 const HORA = 3600;
 const DIA = 86400;
 const PASE_SEG = 15 * MIN;          // pase de acceso
 const SESION_SEG = 60 * DIA;        // token de renovación
 const CODIGO_SEG = 10 * MIN;        // validez de un código
-const INTENTOS_CODIGO = 5;
+const INTENTOS_CODIGO = 10;        // intentos por correo y motivo en la ventana de 1 hora (pedir otro código no los repone)
 const ENVIOS_HORA = 5;              // códigos por correo y hora
 const CORREOS_DIA = 400;            // tope propio (Gmail permite ~500)
 const FALLOS_ENTRAR = 5;            // fallos antes de esperar
@@ -164,7 +164,9 @@ async function prepararCodigo(env, correo, motivo, datos = null) {
   await env.DB.prepare(
     'INSERT INTO codigos (correo, motivo, codigo_hash, datos, intentos, enviado, envios, ventana, caduca) ' +
     'VALUES (?1, ?2, ?3, ?4, 0, ?5, ?6, ?7, ?8) ON CONFLICT(correo, motivo) DO UPDATE SET ' +
-    'codigo_hash = excluded.codigo_hash, datos = COALESCE(excluded.datos, codigos.datos), intentos = 0, ' +
+    'codigo_hash = excluded.codigo_hash, datos = COALESCE(excluded.datos, codigos.datos), ' +
+    // Los intentos fallidos solo vuelven a 0 al empezar una ventana nueva: antes cada reenvío daba 5 más (25 por hora)
+    'intentos = CASE WHEN excluded.ventana <> codigos.ventana THEN 0 ELSE codigos.intentos END, ' +
     'enviado = excluded.enviado, envios = excluded.envios, ventana = excluded.ventana, caduca = excluded.caduca'
   ).bind(correo, motivo, hash, datos ?? fila?.datos ?? null, t, envios, nuevaVentana ? t : fila.ventana, t + CODIGO_SEG).run();
   return codigo;
@@ -173,10 +175,11 @@ async function prepararCodigo(env, correo, motivo, datos = null) {
 // Comprueba un código; si es correcto lo consume y devuelve la fila
 async function comprobarCodigo(env, correo, motivo, codigo) {
   if (!/^\d{6}$/.test(String(codigo || ''))) throw new ErrorApi('codigo_incorrecto', 400, { quedan: null });
-  const fila = await env.DB.prepare('SELECT codigo_hash, datos, intentos, caduca FROM codigos WHERE correo = ?1 AND motivo = ?2')
+  const fila = await env.DB.prepare('SELECT codigo_hash, datos, intentos, caduca, ventana FROM codigos WHERE correo = ?1 AND motivo = ?2')
     .bind(correo, motivo).first();
   if (!fila || fila.caduca < ahora()) throw new ErrorApi('codigo_caducado');
-  if (fila.intentos >= INTENTOS_CODIGO) throw new ErrorApi('demasiados_intentos', 429, { esperar: fila.caduca - ahora() });
+  // Agotados los intentos de la hora, ni un código nuevo los repone: se espera a que acabe la ventana
+  if (fila.intentos >= INTENTOS_CODIGO) throw new ErrorApi('demasiados_intentos', 429, { esperar: Math.max(MIN, fila.ventana + HORA - ahora()) });
   const esperado = new Uint8Array(fila.codigo_hash);
   if (!iguales(esperado, await hashCodigo(env.PIMIENTA, codigo, correo, motivo))) {
     await env.DB.prepare('UPDATE codigos SET intentos = intentos + 1 WHERE correo = ?1 AND motivo = ?2').bind(correo, motivo).run();
@@ -213,7 +216,14 @@ async function autenticar(env, request) {
   const pase = (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
   const datos = await leerPase(env.FIRMA, pase);
   if (!datos) throw new ErrorApi('sesion_caducada', 401);
-  return { usuario: deB64url(datos.u), sesion: deB64url(datos.s) };
+  const usuario = deB64url(datos.u);
+  const sesion = deB64url(datos.s);
+  // El pase firmado dura 15 min: sin esta consulta, «Cerrar sesión» o cerrar un dispositivo robado
+  // dejaban leer y escribir los datos hasta que caducaba
+  const viva = await env.DB.prepare('SELECT 1 FROM sesiones WHERE id = ?1 AND usuario = ?2 AND revocada IS NULL AND caduca > ?3')
+    .bind(sesion, usuario, ahora()).first();
+  if (!viva) throw new ErrorApi('sesion_caducada', 401);
+  return { usuario, sesion };
 }
 
 const actividad = (env, usuario, tipo, dispositivo = null) =>
@@ -424,6 +434,28 @@ async function cerrarDispositivo(env, request, idTexto) {
 }
 
 // Datos de música en R2: cuentas/<usuario>/<archivo>, siempre derivado del pase (nunca de la petición)
+// Lee el cuerpo por partes y corta en cuanto pasa del límite (sin Content-Length, arrayBuffer() lo leía entero)
+async function leerHasta(request, limite) {
+  if (!request.body) return new ArrayBuffer(0);
+  const lector = request.body.getReader();
+  const partes = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await lector.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > limite) {
+      await lector.cancel().catch(() => {});
+      throw new ErrorApi('demasiado_grande', 413);
+    }
+    partes.push(value);
+  }
+  const todo = new Uint8Array(total);
+  let pos = 0;
+  for (const parte of partes) { todo.set(parte, pos); pos += parte.byteLength; }
+  return todo.buffer;
+}
+
 async function datos(env, request, archivo) {
   const { usuario } = await autenticar(env, request);
   if (!/^(datos|escucha-\d{4})$/.test(archivo)) throw new ErrorApi('no_encontrado', 404);
@@ -436,8 +468,7 @@ async function datos(env, request, archivo) {
   if (request.method !== 'PUT') throw new ErrorApi('metodo', 405);
   const tam = Number(request.headers.get('Content-Length') || 0);
   if (tam > DATOS_MAX) throw new ErrorApi('demasiado_grande', 413);
-  const cuerpoBytes = await request.arrayBuffer();
-  if (cuerpoBytes.byteLength > DATOS_MAX) throw new ErrorApi('demasiado_grande', 413);
+  const cuerpoBytes = await leerHasta(request, DATOS_MAX);
   const b = new Uint8Array(cuerpoBytes);
   if (b[0] !== 0x1f || b[1] !== 0x8b) throw new ErrorApi('formato', 415);
   const siCoincide = request.headers.get('If-Match');
@@ -467,20 +498,36 @@ async function pruebaCorreo(env, request) {
 }
 
 /* ---------- Limpieza diaria (Cron) ---------- */
+async function borrarArchivos(env, id) {
+  const prefijo = `cuentas/${aB64url(new Uint8Array(id))}/`;
+  let cursor;
+  do {
+    const lista = await env.DATOS.list({ prefix: prefijo, cursor });
+    if (lista.objects.length) await env.DATOS.delete(lista.objects.map((o) => o.key));
+    cursor = lista.truncated ? lista.cursor : undefined;
+  } while (cursor);
+}
+
 async function limpieza(env) {
   const t = ahora();
+  // Antes se borraban en R2 los archivos de 50 cuentas pero en D1 todas las vencidas: desde la 51,
+  // sus datos quedaban en R2 para siempre sin dueño. Ahora solo sale de D1 quien ya no tiene archivos.
   const borrar = await env.DB.prepare('SELECT id FROM usuarios WHERE borrar_el IS NOT NULL AND borrar_el < ?1 LIMIT 50').bind(t).all();
+  const borradas = [];
   for (const { id } of borrar.results) {
-    const prefijo = `cuentas/${aB64url(new Uint8Array(id))}/`;
-    const lista = await env.DATOS.list({ prefix: prefijo });
-    if (lista.objects.length) await env.DATOS.delete(lista.objects.map((o) => o.key));
+    try {
+      await borrarArchivos(env, id);
+      borradas.push(env.DB.prepare('DELETE FROM usuarios WHERE id = ?1').bind(id));
+    } catch (error) {
+      console.error('[limpieza] no se pudieron borrar los archivos de una cuenta', error.message);
+    }
   }
+  if (borradas.length) await env.DB.batch(borradas);
   await env.DB.batch([
     env.DB.prepare('DELETE FROM codigos WHERE caduca < ?1').bind(t - DIA),
     env.DB.prepare('DELETE FROM sesiones WHERE caduca < ?1 OR revocada < ?2').bind(t, t - 30 * DIA),
     env.DB.prepare('DELETE FROM actividad WHERE fecha < ?1').bind(t - 90 * DIA),
     env.DB.prepare('DELETE FROM contadores WHERE caduca < ?1').bind(t),
-    env.DB.prepare('DELETE FROM usuarios WHERE borrar_el IS NOT NULL AND borrar_el < ?1').bind(t),
     env.DB.prepare('PRAGMA optimize')
   ]);
 }
