@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "version": "v55",
+      "date": "noviembre 2026",
+      "title": "Se adapta a tu teléfono y va más fluida",
+      "items": [
+        "Liquid Bullet reconoce tu dispositivo, tu sistema (iPhone, iPad, Android, Windows, Mac…) y tu navegador (Safari, Chrome, Samsung Internet, Firefox, Edge…) y se adapta: pasos de instalar exactos para tu navegador, controles que tu teléfono sí admite y modo ligero automático en equipos modestos.",
+        "Si abres Liquid desde Instagram, TikTok, Facebook u otra app, te avisa de que ahí la música se corta al salir y te deja abrirla en Safari o en tu navegador con un toque.",
+        "Inicio aparece en la mitad de tiempo y el arranque bloquea la pantalla un 30 % menos en un móvil de gama media.",
+        "Buscar mientras escribes es mucho más ligero: busca dentro de los resultados anteriores y espera a que termines la palabra.",
+        "Desplazar la Biblioteca es más suave: cada fila se crea en la mitad de tiempo y el efecto de vidrio ya no se repite en cada botón.",
+        "En pantallas pequeñas (iPhone SE, Android de 360 px) ya no se desplaza la página de lado: la barra superior y las Recetas de Lab caben.",
+        "En Ajustes → Ayuda ves qué dispositivo detectó la app, y los informes de errores lo incluyen."
+      ]
+    },
+    {
       "version": "v54",
       "date": "noviembre 2026",
       "title": "Las colaboraciones son de todos sus artistas",

@@ -2,7 +2,7 @@
 <html lang="es" data-theme="chrome">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://challenges.cloudflare.com 'sha256-2sUInM3bLi+BoQ56EnPv9BsEqEH9ZPYExkpQqnK+nYs='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https:; worker-src 'self'; manifest-src 'self'; frame-src https://challenges.cloudflare.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://challenges.cloudflare.com 'sha256-9TRmdWG2mHi7bhsEvIwvqlasEjH6TPcNyF+KWeexVj8='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https:; worker-src 'self'; manifest-src 'self'; frame-src https://challenges.cloudflare.com; object-src 'none'; base-uri 'self'; form-action 'self'">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="description" content="Liquid Bullet — música que se derrite: tu reproductor web personal, surrealista y cromado.">
   <meta name="theme-color" content="#100d1c">
@@ -46,11 +46,51 @@
   <link rel="dns-prefetch" href="https://pub-0854e4225565462db16fa787cf2ab81c.r2.dev">
   <link rel="dns-prefetch" href="https://pub-864cd199a5e04cb0b5faf77320b1e47b.r2.dev">
   <link rel="dns-prefetch" href="https://lrclib.net">
-  <link rel="stylesheet" href="styles.css?v=40">
+  <link rel="stylesheet" href="styles.css?v=42">
   <script>
     /* Aplica el tema, la fuente y el tamaño de letra guardados antes de pintar (sin parpadeos) */
     (function () {
       var root = document.documentElement;
+      /* Dispositivo, sistema y navegador: se detectan una vez, antes de pintar, y la app se adapta
+         (iPhone y Android no se comportan igual; los navegadores de Instagram o TikTok cortan la música) */
+      try {
+        var ua = navigator.userAgent || '';
+        var touch = navigator.maxTouchPoints > 1;
+        var ipados = /Macintosh/.test(ua) && touch;
+        var os = /iPhone|iPod/.test(ua) ? 'ios' : (/iPad/.test(ua) || ipados) ? 'ipados' : /Android/.test(ua) ? 'android'
+          : /CrOS/.test(ua) ? 'chromeos' : /Windows/.test(ua) ? 'windows' : /Mac OS X|Macintosh/.test(ua) ? 'macos' : /Linux/.test(ua) ? 'linux' : 'otro';
+        var apple = os === 'ios' || os === 'ipados';
+        var version = 0;
+        var vm = apple ? /OS (\d+)[_.](\d+)/.exec(ua) || /Version\/(\d+)\.(\d+)/.exec(ua) : os === 'android' ? /Android (\d+)(?:\.(\d+))?/.exec(ua) : null;
+        if (vm) version = Number(vm[1]) + (Number(vm[2]) || 0) / 100;
+        var inapp = /Instagram/.test(ua) ? 'instagram' : /FBAN|FBAV|FB_IAB|FBIOS/.test(ua) ? 'facebook' : /musical_ly|TikTok|Bytedance|BytedanceWebview/i.test(ua) ? 'tiktok'
+          : /Snapchat/.test(ua) ? 'snapchat' : /Twitter/.test(ua) ? 'x' : /Line\//.test(ua) ? 'line' : /GSA\//.test(ua) ? 'google'
+          : (os === 'android' && /; wv\)/.test(ua)) ? 'webview' : '';
+        var browser = inapp ? 'inapp' : /SamsungBrowser/.test(ua) ? 'samsung' : /EdgA?\/|EdgiOS/.test(ua) ? 'edge' : /OPR\/|OPiOS|Opera/.test(ua) ? 'opera'
+          : /Firefox\/|FxiOS/.test(ua) ? 'firefox' : /CriOS|Chrome\//.test(ua) ? 'chrome' : /Safari\//.test(ua) ? 'safari' : 'otro';
+        var device = os === 'ipados' || (os === 'android' && !/Mobile/.test(ua)) ? 'tablet'
+          : (apple || os === 'android' || /Mobi/.test(ua)) ? 'phone' : 'desktop';
+        var standalone = (window.matchMedia && (matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: minimal-ui)').matches)) || navigator.standalone === true;
+        var memory = navigator.deviceMemory || 0;
+        var cores = navigator.hardwareConcurrency || 0;
+        var connection = navigator.connection || {};
+        /* iPhone y iPad informan pocos núcleos y ninguna memoria, pero mueven el vidrio sin problema */
+        var lowEnd = !apple && ((memory && memory <= 2) || (cores && cores <= 4 && device !== 'desktop'));
+        window.lbDevice = {
+          os: os, osVersion: version, apple: apple, browser: browser, inapp: inapp,
+          engine: apple ? 'webkit' : /Firefox\//.test(ua) ? 'gecko' : /Chrome\//.test(ua) ? 'blink' : /Safari\//.test(ua) ? 'webkit' : 'otro',
+          device: device, touch: touch || (window.matchMedia && matchMedia('(pointer: coarse)').matches), standalone: Boolean(standalone),
+          memory: memory, cores: cores, lowEnd: Boolean(lowEnd), saveData: connection.saveData === true,
+          slowNet: ['slow-2g', '2g'].indexOf(connection.effectiveType) !== -1
+        };
+        root.setAttribute('data-os', os);
+        root.setAttribute('data-browser', browser);
+        root.setAttribute('data-device', device);
+        if (apple) root.classList.add('is-ios');
+        if (inapp) root.classList.add('is-inapp');
+        if (standalone) root.classList.add('is-standalone');
+        if (lowEnd) root.classList.add('is-lowend');
+      } catch (e) { /* sin detección: la app funciona igual */ }
       root.setAttribute('data-font', 'street');
       root.setAttribute('data-text', 'system');
       try {
@@ -803,6 +843,7 @@
           <svg class="icon" aria-hidden="true"><use href="#i-mail"></use></svg> Escribir a officiallukamon@gmail.com
         </a>
         <p class="sheet-note">Ideas, mensajes o errores que encuentres: escribe a ese correo.</p>
+        <p id="deviceInfo" class="sheet-note"></p>
         <a id="errorReport" class="btn" hidden>
           <svg class="icon" aria-hidden="true"><use href="#i-mail"></use></svg> <span>Enviar informe de errores</span>
         </a>
@@ -892,6 +933,6 @@
   <!-- Reproductores para el ecualizador (necesitan CORS en el servidor del audio) -->
   <audio id="audio3" preload="metadata" crossorigin="anonymous"></audio>
   <audio id="audio4" preload="auto" crossorigin="anonymous"></audio>
-  <script src="app.js?v=43" defer></script>
+  <script src="app.js?v=45" defer></script>
 </body>
 </html>

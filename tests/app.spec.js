@@ -373,3 +373,64 @@ test('artistas con «&», «y» o «x» en el nombre no se cortan', async ({ pag
   await page.locator('.track', { hasText: 'Polo & Pan' }).first().locator('.track-main').click();
   await expect(page.locator('#npAbout .about-name')).toHaveText('Polo & Pan');
 });
+
+test.describe('detección de dispositivo, sistema y navegador', () => {
+  test('iPhone con Safari: iOS, WebKit y pasos de instalar para Safari', async ({ browser }) => {
+    const ctx = await browser.newContext({
+      userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Mobile/15E148 Safari/604.1',
+      viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true
+    });
+    const page = await ctx.newPage();
+    await page.addInitScript(() => { localStorage.setItem('liquidbrush:tour', 'true'); localStorage.setItem('liquidbrush:cuenta-ofrecida', 'true'); });
+    await page.route(/r2\.dev|lrclib\.net/, (route) => route.abort());
+    await page.goto('./');
+    const html = page.locator('html');
+    await expect(html).toHaveAttribute('data-os', 'ios');
+    await expect(html).toHaveAttribute('data-browser', 'safari');
+    await expect(html).toHaveAttribute('data-device', 'phone');
+    await expect(html).toHaveClass(/is-ios/);
+    expect(await page.evaluate(() => window.lbDevice.osVersion)).toBeCloseTo(18.01);
+    await page.locator('#settingsBtn').click();
+    await expect(page.locator('#deviceInfo')).toContainText('iPhone (iOS 18) · Safari');
+    await expect(page.locator('#installSteps')).toContainText('abajo en el centro');
+    await ctx.close();
+  });
+
+  test('Android dentro de Instagram: avisa y ofrece abrir en el navegador', async ({ browser }) => {
+    const ctx = await browser.newContext({
+      userAgent: 'Mozilla/5.0 (Linux; Android 14; Pixel 7 Build/UQ1A; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/129.0 Mobile Safari/537.36 Instagram 350.0.0.0.0 Android',
+      viewport: { width: 412, height: 915 }, isMobile: true, hasTouch: true
+    });
+    const page = await ctx.newPage();
+    await page.addInitScript(() => { localStorage.setItem('liquidbrush:tour', 'true'); localStorage.setItem('liquidbrush:cuenta-ofrecida', 'true'); });
+    await page.route(/r2\.dev|lrclib\.net/, (route) => route.abort());
+    await page.goto('./');
+    await expect(page.locator('html')).toHaveAttribute('data-os', 'android');
+    await expect(page.locator('html')).toHaveClass(/is-inapp/);
+    const bar = page.locator('.inapp-bar');
+    await expect(bar).toContainText('Instagram');
+    await expect(bar.locator('a')).toHaveAttribute('href', /^intent:\/\//);
+    await bar.locator('.inapp-close').click();
+    await expect(bar).toHaveCount(0);
+    await page.reload();
+    await expect(page.locator('.inapp-bar')).toHaveCount(0);
+    await ctx.close();
+  });
+
+  test('sin desplazamiento lateral a 320 y 360 px (Inicio, Lab y Stats)', async ({ browser }) => {
+    for (const width of [320, 360]) {
+      const ctx = await browser.newContext({ viewport: { width, height: 700 }, isMobile: true, hasTouch: true });
+      const page = await ctx.newPage();
+      await page.addInitScript(() => { localStorage.setItem('liquidbrush:tour', 'true'); localStorage.setItem('liquidbrush:cuenta-ofrecida', 'true'); });
+      await page.route(/r2\.dev|lrclib\.net/, (route) => route.abort());
+      await page.goto('./');
+      await expect(page.locator('#libCount')).not.toHaveText('0');
+      for (const view of ['home', 'lab', 'stats']) {
+        await page.evaluate((v) => document.querySelector(`.nav-btn[data-nav="${v}"], .tab[data-view="${v}"]`)?.click(), view);
+        await page.waitForTimeout(300);
+        expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), `${view} a ${width} px`).toBeLessThanOrEqual(0);
+      }
+      await ctx.close();
+    }
+  });
+});
