@@ -417,6 +417,40 @@
    "notes": ""
   },
   {
+   "file": "covers/cover-46.jpg",
+   "small": "covers/cover-46-sm.jpg",
+   "type": "portada-playlist",
+   "label": "Portada 46",
+   "usage": "Euforia Ibiza",
+   "notes": ""
+  },
+  {
+   "file": "covers/cover-47.jpg",
+   "small": "covers/cover-47-sm.jpg",
+   "type": "portada-playlist",
+   "label": "Portada 47",
+   "usage": "Fiebre Latina",
+   "notes": ""
+  },
+  {
+   "file": "covers/cover-48.jpg",
+   "small": "covers/cover-48-sm.jpg",
+   "type": "portada-playlist",
+   "label": "Portada 48",
+   "usage": "Reservada: lista para una playlist nueva en una futura entrega de música",
+   "notes": "",
+   "reserved": true
+  },
+  {
+   "file": "covers/cover-49.jpg",
+   "small": "covers/cover-49-sm.jpg",
+   "type": "portada-playlist",
+   "label": "Portada 49",
+   "usage": "Reservada: lista para una playlist nueva en una futura entrega de música",
+   "notes": "",
+   "reserved": true
+  },
+  {
    "file": "covers/propias/propia-01.jpg",
    "small": "covers/propias/propia-01-sm.jpg",
    "type": "portada-propia",
@@ -509,7 +543,7 @@
    "small": "covers/songs/song-01-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 01",
-   "usage": "88 canciones",
+   "usage": "77 canciones",
    "notes": ""
   },
   {
@@ -517,7 +551,7 @@
    "small": "covers/songs/song-02-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 02",
-   "usage": "87 canciones",
+   "usage": "77 canciones",
    "notes": ""
   },
   {
@@ -525,7 +559,7 @@
    "small": "covers/songs/song-03-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 03",
-   "usage": "88 canciones",
+   "usage": "77 canciones",
    "notes": ""
   },
   {
@@ -533,7 +567,7 @@
    "small": "covers/songs/song-04-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 04",
-   "usage": "88 canciones",
+   "usage": "78 canciones",
    "notes": ""
   },
   {
@@ -541,7 +575,7 @@
    "small": "covers/songs/song-05-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 05",
-   "usage": "88 canciones",
+   "usage": "78 canciones",
    "notes": ""
   },
   {
@@ -549,7 +583,7 @@
    "small": "covers/songs/song-06-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 06",
-   "usage": "88 canciones",
+   "usage": "77 canciones",
    "notes": ""
   },
   {
@@ -557,7 +591,7 @@
    "small": "covers/songs/song-07-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 07",
-   "usage": "88 canciones",
+   "usage": "76 canciones",
    "notes": ""
   },
   {
@@ -565,7 +599,7 @@
    "small": "covers/songs/song-08-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 08",
-   "usage": "87 canciones",
+   "usage": "76 canciones",
    "notes": ""
   },
   {
@@ -573,7 +607,7 @@
    "small": "covers/songs/song-09-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 09",
-   "usage": "88 canciones",
+   "usage": "77 canciones",
    "notes": ""
   },
   {
@@ -581,7 +615,7 @@
    "small": "covers/songs/song-10-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 10",
-   "usage": "88 canciones",
+   "usage": "76 canciones",
    "notes": ""
   },
   {
@@ -589,7 +623,7 @@
    "small": "covers/songs/song-11-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 11",
-   "usage": "88 canciones",
+   "usage": "76 canciones",
    "notes": ""
   },
   {
@@ -597,7 +631,7 @@
    "small": "covers/songs/song-12-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 12",
-   "usage": "89 canciones",
+   "usage": "77 canciones",
    "notes": ""
   },
   {
@@ -605,7 +639,7 @@
    "small": "covers/songs/song-13-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 13",
-   "usage": "88 canciones",
+   "usage": "76 canciones",
    "notes": ""
   },
   {
@@ -613,7 +647,7 @@
    "small": "covers/songs/song-14-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 14",
-   "usage": "88 canciones",
+   "usage": "76 canciones",
    "notes": ""
   },
   {
@@ -621,7 +655,7 @@
    "small": "covers/songs/song-15-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 15",
-   "usage": "89 canciones",
+   "usage": "77 canciones",
    "notes": ""
   },
   {
@@ -629,7 +663,7 @@
    "small": "covers/songs/song-16-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 16",
-   "usage": "88 canciones",
+   "usage": "76 canciones",
    "notes": ""
   },
   {
@@ -637,7 +671,7 @@
    "small": "covers/songs/song-17-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 17",
-   "usage": "88 canciones",
+   "usage": "76 canciones",
    "notes": ""
   },
   {
@@ -645,7 +679,7 @@
    "small": "covers/songs/song-18-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 18",
-   "usage": "87 canciones",
+   "usage": "76 canciones",
    "notes": ""
   },
   {
@@ -653,7 +687,7 @@
    "small": "covers/songs/song-19-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 19",
-   "usage": "88 canciones",
+   "usage": "77 canciones",
    "notes": ""
   },
   {
@@ -661,7 +695,7 @@
    "small": "covers/songs/song-20-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 20",
-   "usage": "88 canciones",
+   "usage": "77 canciones",
    "notes": ""
   },
   {
@@ -669,7 +703,7 @@
    "small": "covers/songs/song-21-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 21",
-   "usage": "87 canciones",
+   "usage": "76 canciones",
    "notes": ""
   },
   {
@@ -677,7 +711,7 @@
    "small": "covers/songs/song-22-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 22",
-   "usage": "87 canciones",
+   "usage": "76 canciones",
    "notes": ""
   },
   {
@@ -685,7 +719,7 @@
    "small": "covers/songs/song-23-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 23",
-   "usage": "88 canciones",
+   "usage": "76 canciones",
    "notes": ""
   },
   {
@@ -693,7 +727,7 @@
    "small": "covers/songs/song-24-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 24",
-   "usage": "88 canciones",
+   "usage": "76 canciones",
    "notes": ""
   },
   {
@@ -701,7 +735,7 @@
    "small": "covers/songs/song-25-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 25",
-   "usage": "88 canciones",
+   "usage": "76 canciones",
    "notes": ""
   },
   {
@@ -709,7 +743,7 @@
    "small": "covers/songs/song-26-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 26",
-   "usage": "88 canciones",
+   "usage": "76 canciones",
    "notes": ""
   },
   {
@@ -717,7 +751,7 @@
    "small": "covers/songs/song-27-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 27",
-   "usage": "87 canciones",
+   "usage": "76 canciones",
    "notes": ""
   },
   {
@@ -725,7 +759,7 @@
    "small": "covers/songs/song-28-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 28",
-   "usage": "87 canciones",
+   "usage": "76 canciones",
    "notes": ""
   },
   {
@@ -733,7 +767,7 @@
    "small": "covers/songs/song-29-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 29",
-   "usage": "88 canciones",
+   "usage": "76 canciones",
    "notes": ""
   },
   {
@@ -741,7 +775,7 @@
    "small": "covers/songs/song-30-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 30",
-   "usage": "88 canciones",
+   "usage": "76 canciones",
    "notes": ""
   },
   {
@@ -749,7 +783,7 @@
    "small": "covers/songs/song-31-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 31",
-   "usage": "88 canciones",
+   "usage": "76 canciones",
    "notes": ""
   },
   {
@@ -757,7 +791,7 @@
    "small": "covers/songs/song-32-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 32",
-   "usage": "89 canciones",
+   "usage": "77 canciones",
    "notes": ""
   },
   {
@@ -765,7 +799,7 @@
    "small": "covers/songs/song-33-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 33",
-   "usage": "88 canciones",
+   "usage": "76 canciones",
    "notes": ""
   },
   {
@@ -773,7 +807,7 @@
    "small": "covers/songs/song-34-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 34",
-   "usage": "87 canciones",
+   "usage": "76 canciones",
    "notes": ""
   },
   {
@@ -781,7 +815,7 @@
    "small": "covers/songs/song-35-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 35",
-   "usage": "88 canciones",
+   "usage": "76 canciones",
    "notes": ""
   },
   {
@@ -789,7 +823,7 @@
    "small": "covers/songs/song-36-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 36",
-   "usage": "88 canciones",
+   "usage": "76 canciones",
    "notes": ""
   },
   {
@@ -797,7 +831,7 @@
    "small": "covers/songs/song-37-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 37",
-   "usage": "88 canciones",
+   "usage": "76 canciones",
    "notes": ""
   },
   {
@@ -805,7 +839,7 @@
    "small": "covers/songs/song-38-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 38",
-   "usage": "88 canciones",
+   "usage": "77 canciones",
    "notes": ""
   },
   {
@@ -813,7 +847,7 @@
    "small": "covers/songs/song-39-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 39",
-   "usage": "87 canciones",
+   "usage": "76 canciones",
    "notes": ""
   },
   {
@@ -821,7 +855,7 @@
    "small": "covers/songs/song-40-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 40",
-   "usage": "87 canciones",
+   "usage": "76 canciones",
    "notes": ""
   },
   {
@@ -829,7 +863,7 @@
    "small": "covers/songs/song-41-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 41",
-   "usage": "87 canciones",
+   "usage": "76 canciones",
    "notes": ""
   },
   {
@@ -837,7 +871,7 @@
    "small": "covers/songs/song-42-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 42",
-   "usage": "89 canciones",
+   "usage": "77 canciones",
    "notes": ""
   },
   {
@@ -845,7 +879,7 @@
    "small": "covers/songs/song-43-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 43",
-   "usage": "88 canciones",
+   "usage": "76 canciones",
    "notes": ""
   },
   {
@@ -853,7 +887,71 @@
    "small": "covers/songs/song-44-sm.jpg",
    "type": "icono-cancion",
    "label": "Icono 44",
-   "usage": "88 canciones",
+   "usage": "76 canciones",
+   "notes": ""
+  },
+  {
+   "file": "covers/songs/song-45.jpg",
+   "small": "covers/songs/song-45-sm.jpg",
+   "type": "icono-cancion",
+   "label": "Icono 45",
+   "usage": "76 canciones",
+   "notes": ""
+  },
+  {
+   "file": "covers/songs/song-46.jpg",
+   "small": "covers/songs/song-46-sm.jpg",
+   "type": "icono-cancion",
+   "label": "Icono 46",
+   "usage": "76 canciones",
+   "notes": ""
+  },
+  {
+   "file": "covers/songs/song-47.jpg",
+   "small": "covers/songs/song-47-sm.jpg",
+   "type": "icono-cancion",
+   "label": "Icono 47",
+   "usage": "76 canciones",
+   "notes": ""
+  },
+  {
+   "file": "covers/songs/song-48.jpg",
+   "small": "covers/songs/song-48-sm.jpg",
+   "type": "icono-cancion",
+   "label": "Icono 48",
+   "usage": "76 canciones",
+   "notes": ""
+  },
+  {
+   "file": "covers/songs/song-49.jpg",
+   "small": "covers/songs/song-49-sm.jpg",
+   "type": "icono-cancion",
+   "label": "Icono 49",
+   "usage": "76 canciones",
+   "notes": ""
+  },
+  {
+   "file": "covers/songs/song-50.jpg",
+   "small": "covers/songs/song-50-sm.jpg",
+   "type": "icono-cancion",
+   "label": "Icono 50",
+   "usage": "76 canciones",
+   "notes": ""
+  },
+  {
+   "file": "covers/songs/song-51.jpg",
+   "small": "covers/songs/song-51-sm.jpg",
+   "type": "icono-cancion",
+   "label": "Icono 51",
+   "usage": "76 canciones",
+   "notes": ""
+  },
+  {
+   "file": "covers/songs/song-52.jpg",
+   "small": "covers/songs/song-52-sm.jpg",
+   "type": "icono-cancion",
+   "label": "Icono 52",
+   "usage": "76 canciones",
    "notes": ""
   },
   {

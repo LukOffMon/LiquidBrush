@@ -66,7 +66,9 @@ FIXED_COVERS = {
     'luna-swing': 42,
     'infierno-rosa': 43,
     'cuenta-atras': 44,
-    'balada-eterna': 45
+    'balada-eterna': 45,
+    'euforia-ibiza': 46,
+    'fiebre-latina': 47
 }
 
 # Playlists que antes llevaban diseño generado y ahora tienen imagen: siguen ocupando su turno
@@ -108,10 +110,11 @@ PLAYLISTS = [
     ('seda-nocturna', 'Seda Nocturna', 'R&B y pop de madrugada: Steve Lacy, The Weeknd, Frank Ocean, SZA, Doja Cat y Kali Uchis.', [
         'Steve Lacy', 'Kali Uchis', 'Daniel Caesar', 'Ravyn Lenae', 'The Weeknd', 'Frank Ocean', 'Doja Cat',
         'Rihanna', 'Ariana Grande', 'Demi Lovato', 'SZA', 'PARTYNEXTDOOR', 'Chris Brown', 'Cassie', 'Amaarae',
-        'Montell Fish', 'Joji', 'Labrinth', 'ZAYN', 'Shakira', 'JMSN', 'Tyler', 'Matt Martians', 'WILLOW',
+        'Montell Fish', 'Joji', 'Labrinth', 'ZAYN', 'JMSN', 'Tyler', 'Matt Martians', 'WILLOW',
         'Childish Gambino', 'Kaash Paige', 'Selena Gomez', 'Chappell Roan', 'Billie Eilish', 'Melanie Martinez',
         'Ari Abdul', 'Isabel LaRosa', 'Chris Grey', 'The Kid LAROI', 'Tainy', 'benny blanco', 'Wafia', 'Artemas',
-        'JAWNY', 'FKA twigs', 'Smerz', 'Omar Apollo', 'KAYTRANADA', 'Ambar Lucid', 'Chase Atlantic', 'Ley Soul'
+        'JAWNY', 'FKA twigs', 'Smerz', 'Omar Apollo', 'KAYTRANADA', 'Ambar Lucid', 'Chase Atlantic', 'Ley Soul',
+        'Trinidad Cardona', "VVV [Trippin'you]", 'JEY'
     ]),
     ('acido-lento', 'Ácido Lento', 'Psicodelia e indie que flota: Tame Impala, Mild High Club, Crumb, The Strokes, Gorillaz y Foster The People.', [
         'Tame Impala', 'Gorillaz', 'Justice', 'Theophilus London', 'ZHU', 'The Strokes', 'Chris Rainbow',
@@ -158,12 +161,14 @@ PLAYLISTS = [
         '800 cherries', "Alison's Halo", "Autumn's Grey Solace", 'Mediavolo', 'Strange Boutique', 'spirit blue',
         'Cryogeyser', 'An April March', 'Starflyer 59', 'The Radio Dept.', 'Rumskib', 'LSD and the Search for God',
         "Melody's Echo Chamber", 'Chromatics', "You'll Never Get to Heaven", 'ESPRIT 空想', 'Dean Blunt', 'Night Tapes',
-        'BUBBLE TEA AND CIGARETTES'
+        'BUBBLE TEA AND CIGARETTES',
+        'Aphex Twin'
     ]),
     ('senal-rota', 'Señal Rota', 'Hyperpop, digicore y emo de internet: Jane Remover, underscores, kmoe, celai, guitarbf y punchy.', [
         'Jane Remover', 'kmoe', 'juno', 'underscores', 'That Kid', 'Frost Children', 'AKRIILA', 'celai', 'guitarbf',
         'punchy', 'wizardjit', 'aubri!', 'kiheir', 'schizocat', 'morgue vault', 'Piggybank112', 'ankle', 'Anxiety',
-        'Junshi', '67', '⎍⧮⫽⩘⧅⦔⨬⧇⩕⥉⦾⫰⧪⦑⧛⨳'
+        'Junshi', '67', '⎍⧮⫽⩘⧅⦔⨬⧇⩕⥉⦾⫰⧪⦑⧛⨳',
+        'Arca'
     ]),
     ('tekk-fantasma', 'Ghost Case', 'Hardtekk, jumpstyle y slowed de madrugada: STØMPWRLD, ythotkk, SAIBOTAJE, Snow Strippers, DJ ZUP RAlii y akkiemi.', [
         'STØMPWRLD', 'ythotkk', 'SAIBOTAJE', 'DudePlaya', 'quincke', 'dxnkwer', 'DJ ZUP RAlii', 'angelhard',
@@ -214,11 +219,16 @@ PLAYLISTS = [
         'Twin Tribes', 'The Cure', 'The Romantics', 'Orchestral Manoeuvres In The Dark', 'The Police', 'Blur',
         'Spandau Ballet', 'Alice Deejay', 'Andronicus', 'Michael Gray', 'Crystal Waters', 'Robert Miles',
         'Bob Sinclar', 'Modjo', 'La Bouche', 'Haddaway', 'Ace of Base', 'Mr. President', 'Global Deejays',
-        'Technotronic', 'Scatman John', 'Timbaland', 'David Guetta', 'Kylie Minogue', 'Madonna', 'Eiffel 65',
+        'Technotronic', 'Scatman John', 'Timbaland', 'Kylie Minogue', 'Madonna', 'Eiffel 65',
         'Stardust', 'Darude', 'Stromae', 'Junior Senior', 'will.i.am', 'Flo Rida', 'Black Eyed Peas', 'LMFAO',
-        'SNAP!', 'Culture Beat', 'Calvin Harris', 'Daft Punk', 'Gesaffelstein', 'M83', 'Yeah Yeah Yeahs',
+        'SNAP!', 'Culture Beat', 'Daft Punk', 'Gesaffelstein', 'M83', 'Yeah Yeah Yeahs',
         'Aaron Smith', 'Olivia Newton-John', 'Emmanuel', 'Gloria Estefan', 'The Rah Band', 'F.R. David',
         'The Stone Roses', '1tbsp', 'Nelly Furtado', 'Gwen Stefani', 'Justin Timberlake', 'Estelle'
+    ]),
+    ('euforia-ibiza', 'Euforia Ibiza', 'EDM y pop de festival de los 2010: Calvin Harris, Swedish House Mafia, Galantis, Clean Bandit, Robin Schulz y Jack Ü.', [
+        'Calvin Harris', 'Swedish House Mafia', 'Galantis', 'Mike Posner', 'Seeb', 'Robin Schulz',
+        'Olly Alexander (Years & Years)', 'Years & Years', 'Clean Bandit', 'Jack Ü', 'David Guetta',
+        '99 Souls', 'Kyla', 'DJ Paleface', 'Crazy Cousinz'
     ]),
     ('brillo-disco', 'Brillo Disco', 'Disco, funk y soul para la pista: Michael Jackson, Bee Gees, Earth, Wind & Fire, Prince y Stevie Wonder.', [
         'Michael Jackson', 'Paul McCartney', 'Bee Gees', 'Barry White', 'Earth', 'Kool & The Gang', 'Patrice Rushen',
@@ -226,6 +236,10 @@ PLAYLISTS = [
         'Grover Washington', 'Rod Stewart', 'Player', 'Bob Marley & The Wailers', 'Jamiroquai', 'Baccara', 'Tavares',
         'Gloria Gaynor', 'ABBA', 'Andy Gibb', 'Diana Ross', 'Stevie Wonder', 'Prince', 'Marvin Gaye', 'Al Green',
         'Heatwave', 'Joe Bataan', 'Michael Angelo'
+    ]),
+    ('fiebre-latina', 'Fiebre Latina', 'Pop latino y reggaetón de radio: Shakira, J Balvin, CNCO, Maluma, Prince Royce, Anitta y Danny Ocean.', [
+        'Shakira', 'J Balvin', 'CNCO', 'CD9', 'Maluma', 'Prince Royce', 'Anitta', 'Danny Ocean', 'NATTI NATASHA',
+        'Jesse & Joy', 'Romeo Santos', 'Kim Loaiza'
     ]),
     ('perreo-nocturno', 'Perreo Nocturno', 'Neoperreo, dembow mexa y club latino: DENNA LA PORRI, Doony Graff, Yeyo, Jose Alatorre, MJ Nebreda y funk brasileño.', [
         'La Obsesion', 'Jose Alatorre', 'DENNA LA PORRI', 'Doony Graff', 'Yeyo', 'Sayuri & Sopholov', 'La Vendicion',
@@ -236,7 +250,8 @@ PLAYLISTS = [
         'Tramposos', '3delincuentes', 'Bolishe One', 'FLVCKKA', 'Joss ML', 'Enayy', 'Alicia te quiero', 'MXLVIXJE',
         'morenoguapo', 'Ivan de la Rioja', 'Angelicca', 'la intimidad', 'paxheko', 'Yered!!', 'Dinamarca',
         'Onemillionkisses', 'GSAD', 'Ikoniko', 'Mamx', 'Tuere Chorito', 'Uzielito Mix', 'Ivy Wavy', 'Zalzuki',
-        'yngdean', 'Amber Yezel'
+        'yngdean', 'Amber Yezel',
+        'MC Kevinho'
     ]),
     ('barrio-sur', 'Barrio Sur', 'Trap romántico y cumbia rkt de Argentina: One Flyt, JCKC, tomas metrikf, Sosa 66s y T4CHO.', [
         'One Flyt', 'JCKC', 'tomas metrikf', 'Vasti Yan', 'Sosa 66s', 'T4CHO', 'Cerounno', 'Troubless', 'Malandro',
@@ -248,11 +263,13 @@ PLAYLISTS = [
         'Stereo Madness', 'Guxo', 'Lu Jr', 'LEÏTI', 'D.Valentino', 'Enry-K', 'Teo Lucadamo', 'ukd', 'Gatti',
         'WEST DUBAI', 'mita', 'SAM DAVIES', 'UGLY', 'Icy Vedo', 'Ralphie Choo', 'duna', 'superreservao',
         'Estrellas Del Rap Nacional', 'Nico', 'Semon', "L'haine", 'Fuji', 'Elio Toffana', 'Bb trickz', 'ROSALÍA',
-        'rusowsky'
+        'rusowsky',
+        'Bad Gyal'
     ]),
     ('infierno-rosa', 'Infierno Rosa', 'Trap de la calle española, de la PXXR GVNG para acá: Yung Beef y Kaydy Cain.', [
         'Yung Beef', 'Kaydy Cain', 'Omar Montes', 'El Malilla', 'Albany', 'ladiferencia2006', 'Xiyo', 'Quevedo',
-        'La Zowi'
+        'La Zowi',
+        'Kidd Keo'
     ]),
     ('cuenta-atras', 'Cuenta Atrás', 'Club, jersey y remixes con acento español: nusar3000, GIANNI BATISTA, Mushkaa, Natalia Lacunza, NATHY PELUSO y Safety Trance.', [
         'nusar3000', 'GIANNI BATISTA', 'Mushkaa', '8belial', 'Safety Trance', 'Azuleja'
@@ -261,10 +278,11 @@ PLAYLISTS = [
         'Daddy Yankee', 'Don Omar', 'Arcángel', 'Arcangel', 'Wisin & Yandel', 'Yandel', 'Plan B', 'J Alvarez',
         'Jowell & Randy', 'Tony Dize', 'Angel Y Khriz', 'Héctor "El Father"', 'Randy Nota Loca', 'Ivy Queen',
         'Yaga & Mackie', 'Baby Rasta y Gringo', 'Sammy & Falsetto', 'Ñengo Flow', 'Nengo Flow', 'Zion', 'Alex Rose',
-        'Reykon', 'Maluma', 'Farruko', 'DJ Luian', 'Franco "El Gorilla"', 'A.B. Quintanilla III',
+        'Reykon', 'Farruko', 'DJ Luian', 'Franco "El Gorilla"', 'A.B. Quintanilla III',
         'A.B. Quintanilla III Y Los Kumbia Kings', 'Kumbia Kings', 'Cruz Martinez presenta Los Super Reyes',
         'Impacto Mc', 'Calo', 'Millonario & W. Corona', 'El Pelón del Mikrophone', 'América Sierra', 'Los Telez',
-        'Xandy Almeida', 'Rayo & Toby'
+        'Xandy Almeida', 'Rayo & Toby',
+        'J-King y Maximan'
     ]),
     ('trap-lunar', 'Trap Lunar', 'Trap latino para la madrugada: Yan Block, Omar Courtz, Bad Bunny, Duki, Myke Towers y Bryant Myers.', [
         'Yan Block', 'Omar Courtz', 'Bad Bunny', 'Rauw Alejandro', 'Myke Towers', 'Cris MJ', 'Bryant Myers', 'Jon Z',
@@ -272,7 +290,8 @@ PLAYLISTS = [
         'ROA', 'Lil Naay', 'J Abdiel', 'Jay Wheeler', 'Duki', 'YSY A', 'Novato El Flow', 'Boy Wonder CF',
         'Trap Capos', 'FloyyMenor', 'KAROL G', 'Maria Becerra', 'Nicki Nicole', 'Emilia', 'LIT killah', 'Bardero$',
         'C.R.O', 'Alex Gargolas', 'Lxmb Gold', 'JOSTIN JA', 'KIDDWERO', 'Tokischa',
-        'Alvaro Diaz', 'Kiddye', 'Félix Vestre'
+        'Alvaro Diaz', 'Kiddye', 'Félix Vestre',
+        'Feid', 'iZaak', 'Young Weapon'
     ]),
     ('rima-cruda', 'Rima Cruda', 'Rap en español y de EE. UU.: Cruzzi, Charles Ans, Gera MX, Wk, Kendrick Lamar, Drake y Canserbero.', [
         'Cruzzi', 'Charles Ans', 'Gera MX', 'Adan Cruz', 'Milo j', 'Delaossa', 'Choclock', 'Flavio Rodriguez', 'Ka-b',
@@ -280,7 +299,8 @@ PLAYLISTS = [
         'Bhavi', 'Drake', 'Kendrick Lamar', 'Travis Scott', 'Kanye West', 'XXXTENTACION', 'G-Eazy', 'French Montana',
         'Nafeesisboujee', 'Jordan Adetunji', 'Metro Boomin', 'A AP Ferg', 'Mac Miller', 'Felp 22', 'Shamanes Crew',
         'Robot95', 'Logan Hate', 'Armand Hammer', 'Ana Tijoux', 'Mellow Man Ace', 'Wk', 'Mime 871', 'A.C.O', 'Bizor',
-        'Muelas De Gallo', 'Anestesia', 'Mike Lamadrid', 'Simpson Ahuevo', 'Gonzalo Genek', 'N.E.R.D'
+        'Muelas De Gallo', 'Anestesia', 'Mike Lamadrid', 'Simpson Ahuevo', 'Gonzalo Genek', 'N.E.R.D',
+        'Mr. Knightowl', 'Cartel De Santa', 'Iluminatik', 'Tankeone'
     ]),
     ('verso-azul', 'Verso Azul', 'Jazz rap y boom bap con alma: Marcus D, Cise Star, Kero One, Jazz Liberatorz, Mountain Brothers y Witness.', [
         'Marcus D', 'Cise Star', 'Kero One', 'Jazz Liberatorz', 'Mountain Brothers', 'Witness', '3582', 'Glad2Mecha',
@@ -330,7 +350,8 @@ PLAYLISTS = [
         'Enjambre', 'Kameleba', 'Sebastian Alvarez', 'Jota Ce', 'iza tkm', 'Alanis Yuki', 'AQUIHAYAQUIHAY',
         'Juanpa Gordoa', 'Foudeqush', 'LATIN MAFIA', 'CA7RIEL & Paco Amoroso', 'Helado Negro',
         'Nsqk', 'Kevin Kaarl', 'Natt Calma', 'RØZ', 'Rebe', 'DannyLux', 'Pablo Alhach', 'Mi Compa el Chino', '1702',
-        'Aldo Peláez'
+        'Aldo Peláez',
+        'HUMBE', 'La Gabi', 'Bmontee', 'Youka'
     ]),
     ('verano-tropical', 'Verano Tropical', 'Cumbia pop e indie bailable: YoSoyMatt, Eva de Marce, Los Eclipses, Disco Bahía, ZTVZ y Karen y Los Remedios.', [
         'YoSoyMatt', 'Eva de Marce', 'Los Eclipses', 'Karen y Los Remedios', 'Disco Bahía', 'ZTVZ', 'LaDí',
@@ -363,7 +384,8 @@ PLAYLISTS = [
     ('balada-eterna', 'Balada Eterna', 'Baladas, boleros y románticas de siempre: José José, Luis Miguel, Juan Gabriel, Nelson Ned, Los Tres Caballeros y Tin Tan.', [
         'José José', 'Luis Miguel', 'Juan Gabriel', 'Nelson Ned', 'Los Tres Caballeros', 'Germán Valdés "Tin Tan"',
         'Los Solitarios', "Los Freddy's", "Los Baby's", 'La Sonora Santanera', 'Jeanette', 'Alejandro Sanz',
-        'Grupo Santa Cecilia', 'Victor Yturbe "El Piruli"', 'María de Jesús Vázquez'
+        'Grupo Santa Cecilia', 'Victor Yturbe "El Piruli"', 'María de Jesús Vázquez',
+        'Lalo Rodriguez'
     ]),
     ('otono-modal', 'Otoño Modal', 'El universo Nujabes: Nujabes, Shing02, Uyama Hiroto, Force Of Nature, haruka nakamura y Yakkle.', [
         'Nujabes', 'Shing02', 'Uyama Hiroto', 'haruka nakamura', 'Force Of Nature', 'Yakkle', 'TSUTCHIE',
@@ -555,6 +577,31 @@ def write_share_pages(tracks, playlists, song_cover_of=None):
     return len(pages)
 
 
+# ---------- Música nueva en el parche ----------
+# Cada vez que se suma música, las canciones nuevas (las que no estaban en el catálogo anterior)
+# se apuntan en novedades.json → "nuevaMusica". tools/bump_version.py las pasa a la versión que se
+# publica ("songs"), y la app las lista en el aviso de actualización y en Ajustes → Novedades.
+NOVEDADES = ROOT / 'novedades.json'
+
+
+def note_new_music(unique, previous):
+    known = set((previous or {}).get('genres', {}))
+    if not known or not NOVEDADES.exists():
+        return 0
+    data = json.loads(NOVEDADES.read_text(encoding='utf-8'))
+    pending = [s for s in data.get('nuevaMusica', []) if isinstance(s, dict)]
+    have = {s.get('id') for s in pending}
+    for release in data.get('releases', []):
+        have.update(s.get('id') for s in release.get('songs', []) if isinstance(s, dict))
+    added = [{'id': t['id'], 'artist': t['artist'], 'title': t['title']}
+             for t in unique if t['id'] not in known and t['id'] not in have]
+    if not added:
+        return 0
+    data['nuevaMusica'] = pending + added
+    NOVEDADES.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+    return len(added)
+
+
 def main():
     tracks = load_tracks()
 
@@ -621,6 +668,7 @@ def main():
         elif song_files:
             # Excluida de las playlists (no se ve): un icono fijo según su id
             song_covers[t['id']] = int(hashlib.md5(t['id'].encode()).hexdigest(), 16) % len(song_files)
+    nuevas = note_new_music(unique, previous)
     catalog = {'version': 1, 'genres': genres, 'playlists': out, 'aliases': aliases,
                'songCoverFiles': song_files, 'songCovers': song_covers}
     (ROOT / 'catalog.json').write_text(json.dumps(catalog, ensure_ascii=False, indent=1), encoding='utf-8')
@@ -636,6 +684,8 @@ def main():
     print(f'{len(tracks)} canciones, {len(unique)} únicas, {covered} en {len(out)} playlists')
     for p in out:
         print(f"  {len(p['trackIds']):4d}  {p['name']}  [{p['cover']['type']}]")
+    if nuevas:
+        print(f'Música nueva: {nuevas} canciones apuntadas en novedades.json (nuevaMusica); bump_version.py las pasa al parche')
     if unknown:
         print(f'Artistas sin playlist (van a {names[DEFAULT_PLAYLIST]}): ' + ', '.join(sorted(unknown)))
 

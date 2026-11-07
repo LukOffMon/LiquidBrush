@@ -6214,6 +6214,16 @@ textarea {
 .update-notes ul { margin: 0; padding-left: 18px; }
 .update-notes li { margin: 3px 0; }
 .update-notes .update-date { opacity: .6; font-size: .75rem; }
+/* Música nueva del parche: lista completa, desplazable, cada canción se toca para escucharla */
+.update-music { margin-top: 10px; }
+.update-music-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.update-music-head h5 { margin: 0; font-size: .86rem; }
+.update-music-play { padding: 4px 12px; min-height: 0; font-size: .78rem; }
+.update-music-list { margin: 6px 0 0; padding: 4px 4px 4px 26px; max-height: min(260px, 40dvh); overflow: auto; overscroll-behavior: contain; border-radius: 10px; background: color-mix(in srgb, var(--text, #fff) 5%, transparent); }
+.update-music-list li { margin: 1px 0; overflow-wrap: anywhere; }
+.update-music-song { all: unset; cursor: pointer; display: block; padding: 3px 4px; border-radius: 6px; }
+.update-music-song:hover, .update-music-song:focus-visible { background: color-mix(in srgb, var(--accent) 18%, transparent); }
+.update-music-song:focus-visible { outline: 2px solid var(--accent); }
 
 /* ---------- Inicio: lo que suena se ve (reproducir/pausa sincronizados) ---------- */
 .home-card.is-current .home-card-play { opacity: 1; transform: none; }

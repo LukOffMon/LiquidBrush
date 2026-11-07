@@ -1,4 +1,4 @@
-﻿# Borra del bucket salt las canciones de miniminiexe y DustAct que ya estaban en Liquid (la otra copia sigue).
+﻿# Borra del bucket salt las canciones de miniminiexe, DustAct y Blessme que ya estaban en Liquid (la otra copia sigue).
 # Uso: npx wrangler login (con la cuenta de este bucket) y luego:
 #   powershell -ExecutionPolicy Bypass -File .\liquidsaltdb5.ps1
 param([string]$Bucket = 'liquidsaltdb5')
@@ -25,7 +25,35 @@ $archivos = @(
   'DustAct 101-171/161 - Young Cister, Kreamly - QLOO.mp3',
   'DustAct 101-171/162 - PANTERA BLUE - Una fiesta de dos.mp3',
   'DustAct 101-171/168 - Alanis Yuki - Dimelo.mp3',
-  'DustAct 101-171/170 - iza tkm, Berdu - sonando despierta.mp3'
+  'DustAct 101-171/170 - iza tkm, Berdu - sonando despierta.mp3',
+  'Blessme 001-100/002 - Calvin Harris - Summer.mp3',
+  'Blessme 001-100/009 - Calvin Harris, Ellie Goulding - Outside (feat. Ellie Goulding).mp3',
+  'Blessme 001-100/010 - Coldplay - Adventure of a Lifetime.mp3',
+  'Blessme 001-100/025 - Shakira, Rihanna - Can''t Remember to Forget You (feat. Rihanna).mp3',
+  'Blessme 001-100/027 - C. Tangana - Mala Mujer.mp3',
+  'Blessme 001-100/028 - C. Tangana, ROSALIA - Antes de Morirme - feat. ROSALIA.mp3',
+  'Blessme 001-100/031 - ROSALIA - PIENSO EN TU MIRA - Cap.3 Celos.mp3',
+  'Blessme 001-100/037 - Omar Courtz, De La Rose - Q U E V A S H A C E R H O Y.mp3',
+  'Blessme 001-100/041 - C. Tangana, Mc Binn - Pa'' Llamar Tu Atencion (feat. Mc Binn).mp3',
+  'Blessme 001-100/043 - Young Cister, Kreamly - QLOO.mp3',
+  'Blessme 001-100/045 - Rels B - A Mi.mp3',
+  'Blessme 001-100/058 - rusowsky - malibU.mp3',
+  'Blessme 001-100/062 - Choclock, Cruzzi - Caprese.mp3',
+  'Blessme 001-100/063 - Yung Beef - Si Saliste Remix.mp3',
+  'Blessme 001-100/088 - Childish Gambino - Les.mp3',
+  'Blessme 001-100/090 - Cris MJ, Kali Uchis, JHAYCO - SI NO ES CONTIGO - REMIX.mp3',
+  'Blessme 001-100/092 - girl in red - we fell in love in october.mp3',
+  'Blessme 001-100/099 - DannyLux - HOUSE OF LUX.mp3',
+  'Blessme 001-100/100 - Micro TDH - Confianza.mp3',
+  'Blessme 101-131/104 - Hector El Father , Wisin & Yandel - El Telefono.mp3',
+  'Blessme 101-131/107 - Arcangel - Pa'' Que La Pases Bien.mp3',
+  'Blessme 101-131/109 - Sleeping With Sirens - If I''m James Dean, You''re Audrey Hepburn.mp3',
+  'Blessme 101-131/110 - Pierce The Veil - So Far So Fake.mp3',
+  'Blessme 101-131/111 - Childish Gambino - Heartbeat.mp3',
+  'Blessme 101-131/122 - Plan B - Por Que Te Demoras.mp3',
+  'Blessme 101-131/123 - Tainy, Bad Bunny - MOJABI GHOST.mp3',
+  'Blessme 101-131/127 - Bad Bunny, Jowell & Randy, Nengo Flow - Safaera.mp3',
+  'Blessme 101-131/129 - Tony Dize, Yandel - Permitame.mp3'
 )
 $i = 0
 foreach ($a in $archivos) {

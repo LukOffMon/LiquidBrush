@@ -1,6 +1,535 @@
 {
   "releases": [
     {
+      "version": "v60",
+      "date": "noviembre 2026",
+      "title": "Música nueva: 103 canciones y 2 playlists",
+      "items": [
+        "Llegan 103 canciones nuevas: Calvin Harris, Swedish House Mafia, Shakira, J Balvin, CNCO, ROSALÍA, Duki, Bad Bunny, Rauw Alejandro, Arca, Aphex Twin y muchas más. La lista completa (toca una para escucharla) está en Ajustes → Ayuda → Novedades y, desde esta versión, también en el aviso de cada actualización.",
+        "Playlist nueva: Euforia Ibiza, EDM y pop de festival de los 2010 (Calvin Harris, Swedish House Mafia, Galantis, Clean Bandit, Robin Schulz y Jack Ü).",
+        "Playlist nueva: Fiebre Latina, pop latino y reggaetón de radio (Shakira, J Balvin, CNCO, Maluma, Prince Royce, Anitta y Danny Ocean).",
+        "8 iconos de canción nuevos: algunas canciones estrenan icono para que todos salgan por igual.",
+        "Desde ahora, cada vez que llegue música a Liquid, el aviso de actualización y Novedades muestran todas las canciones nuevas del parche."
+      ],
+      "songs": [
+        {
+          "id": "salt:blessme-001-100-001-calvin-harris-john-newman-blame-feat-joh-2d3946",
+          "artist": "Calvin Harris, John Newman",
+          "title": "Blame (feat. John Newman)"
+        },
+        {
+          "id": "salt:blessme-001-100-003-swedish-house-mafia-john-martin-don-t-yo-c6de5d",
+          "artist": "Swedish House Mafia, John Martin",
+          "title": "Don't You Worry Child (feat. John Martin) - Radio Edit"
+        },
+        {
+          "id": "salt:blessme-001-100-004-galantis-runaway-u-i-mp3-96a96f",
+          "artist": "Galantis",
+          "title": "Runaway (U & I)"
+        },
+        {
+          "id": "salt:blessme-001-100-005-calvin-harris-feel-so-close-radio-edit-m-fcc736",
+          "artist": "Calvin Harris",
+          "title": "Feel So Close - Radio Edit"
+        },
+        {
+          "id": "salt:blessme-001-100-006-mike-posner-seeb-i-took-a-pill-in-ibiza--0f76ca",
+          "artist": "Mike Posner, Seeb",
+          "title": "I Took A Pill In Ibiza - Seeb Remix"
+        },
+        {
+          "id": "salt:blessme-001-100-007-robin-schulz-francesco-yates-sugar-feat--a94f1e",
+          "artist": "Robin Schulz, Francesco Yates",
+          "title": "Sugar (feat. Francesco Yates)"
+        },
+        {
+          "id": "salt:blessme-001-100-008-olly-alexander-years-years-king-mp3-954ed6",
+          "artist": "Olly Alexander (Years & Years)",
+          "title": "King"
+        },
+        {
+          "id": "salt:blessme-001-100-011-clean-bandit-jess-glynne-rather-be-feat--5ea88a",
+          "artist": "Clean Bandit, Jess Glynne",
+          "title": "Rather Be (feat. Jess Glynne)"
+        },
+        {
+          "id": "salt:blessme-001-100-012-jack-u-skrillex-diplo-justin-bieber-wher-6f8619",
+          "artist": "Jack Ü, Skrillex, Diplo, Justin Bieber",
+          "title": "Where Are Ü Now (with Justin Bieber)"
+        },
+        {
+          "id": "salt:blessme-001-100-013-black-eyed-peas-just-cant-get-enough-mp3-d6ca98",
+          "artist": "Black Eyed Peas",
+          "title": "Just Can’t Get Enough"
+        },
+        {
+          "id": "salt:blessme-001-100-014-cnco-tan-facil-mp3-f2f232",
+          "artist": "CNCO",
+          "title": "Tan Fácil"
+        },
+        {
+          "id": "salt:blessme-001-100-015-cnco-yandel-hey-dj-mp3-b3c595",
+          "artist": "CNCO, Yandel",
+          "title": "Hey DJ"
+        },
+        {
+          "id": "salt:blessme-001-100-016-cnco-se-vuelve-loca-mp3-e634e3",
+          "artist": "CNCO",
+          "title": "Se Vuelve Loca"
+        },
+        {
+          "id": "salt:blessme-001-100-017-cnco-para-enamorarte-mp3-ba501c",
+          "artist": "CNCO",
+          "title": "Para Enamorarte"
+        },
+        {
+          "id": "salt:blessme-001-100-018-cd9-no-le-hablen-de-amor-mp3-2b4551",
+          "artist": "CD9",
+          "title": "No le Hablen de Amor"
+        },
+        {
+          "id": "salt:blessme-001-100-019-cd9-lio-en-la-cabeza-mp3-d9ba21",
+          "artist": "CD9",
+          "title": "Lío en la Cabeza"
+        },
+        {
+          "id": "salt:blessme-001-100-020-shakira-maluma-clandestino-mp3-257263",
+          "artist": "Shakira, Maluma",
+          "title": "Clandestino"
+        },
+        {
+          "id": "salt:blessme-001-100-021-prince-royce-el-clavo-mp3-331884",
+          "artist": "Prince Royce",
+          "title": "El Clavo"
+        },
+        {
+          "id": "salt:blessme-001-100-022-anitta-j-balvin-downtown-mp3-946912",
+          "artist": "Anitta, J Balvin",
+          "title": "Downtown"
+        },
+        {
+          "id": "salt:blessme-001-100-023-karol-g-pineapple-mp3-458e7e",
+          "artist": "KAROL G",
+          "title": "Pineapple"
+        },
+        {
+          "id": "salt:blessme-001-100-024-shakira-wyclef-jean-hips-don-t-lie-feat--551442",
+          "artist": "Shakira, Wyclef Jean",
+          "title": "Hips Don't Lie (feat. Wyclef Jean)"
+        },
+        {
+          "id": "salt:blessme-001-100-026-shakira-alejandro-sanz-la-tortura-feat-a-b62120",
+          "artist": "Shakira, Alejandro Sanz",
+          "title": "La Tortura (feat. Alejandro Sanz)"
+        },
+        {
+          "id": "salt:blessme-001-100-029-j-balvin-rosalia-brillo-mp3-485dbe",
+          "artist": "J Balvin, ROSALÍA",
+          "title": "Brillo"
+        },
+        {
+          "id": "salt:blessme-001-100-030-rosalia-malamente-cap-1-augurio-mp3-a03202",
+          "artist": "ROSALÍA",
+          "title": "MALAMENTE - Cap.1: Augurio"
+        },
+        {
+          "id": "salt:blessme-001-100-032-trueno-real-gangsta-love-mp3-07b9c4",
+          "artist": "Trueno",
+          "title": "REAL GANGSTA LOVE"
+        },
+        {
+          "id": "salt:blessme-001-100-033-rels-b-tu-vas-sin-fav-mp3-6c1135",
+          "artist": "Rels B",
+          "title": "TU VAS SIN (fav)"
+        },
+        {
+          "id": "salt:blessme-001-100-034-feid-atl-jacob-luna-mp3-900bc2",
+          "artist": "Feid, ATL Jacob",
+          "title": "LUNA"
+        },
+        {
+          "id": "salt:blessme-001-100-035-c-tangana-farruko-french-montana-mala-mu-355ca8",
+          "artist": "C. Tangana, Farruko, French Montana",
+          "title": "Mala Mujer (feat. Farruko & French Montana) - Remix"
+        },
+        {
+          "id": "salt:blessme-001-100-036-c-tangana-demasiadas-mujeres-mp3-8a9460",
+          "artist": "C. Tangana",
+          "title": "Demasiadas Mujeres"
+        },
+        {
+          "id": "salt:blessme-001-100-038-natti-natasha-bad-bunny-amantes-de-una-n-4ef35b",
+          "artist": "NATTI NATASHA, Bad Bunny",
+          "title": "Amantes de una Noche"
+        },
+        {
+          "id": "salt:blessme-001-100-039-rauw-alejandro-chencho-corleone-el-efect-c4d288",
+          "artist": "Rauw Alejandro, Chencho Corleone",
+          "title": "El Efecto"
+        },
+        {
+          "id": "salt:blessme-001-100-040-j-balvin-bad-bunny-que-pretendes-mp3-57fd45",
+          "artist": "J Balvin, Bad Bunny",
+          "title": "QUE PRETENDES"
+        },
+        {
+          "id": "salt:blessme-001-100-042-kidd-keo-ele-a-el-dominio-serpiente-vene-931238",
+          "artist": "Kidd Keo, Ele A El Dominio",
+          "title": "Serpiente Veneno (feat. Ele A El Dominio)"
+        },
+        {
+          "id": "salt:blessme-001-100-044-bad-gyal-fiebre-prod-king-doudou-mp3-a52641",
+          "artist": "Bad Gyal",
+          "title": "Fiebre - Prod. King DouDou"
+        },
+        {
+          "id": "salt:blessme-001-100-046-danny-ocean-me-rehuso-mp3-dc0527",
+          "artist": "Danny Ocean",
+          "title": "Me Rehúso"
+        },
+        {
+          "id": "salt:blessme-001-100-047-j-balvin-morado-mp3-9334bf",
+          "artist": "J Balvin",
+          "title": "Morado"
+        },
+        {
+          "id": "salt:blessme-001-100-048-mc-kevinho-olha-a-explosao-mp3-219a76",
+          "artist": "MC Kevinho",
+          "title": "Olha a Explosão"
+        },
+        {
+          "id": "salt:blessme-001-100-049-mc-kevinho-o-grave-bater-mp3-f4397c",
+          "artist": "MC Kevinho",
+          "title": "O Grave Bater"
+        },
+        {
+          "id": "salt:blessme-001-100-050-mc-kevinho-tumbalatum-mp3-0ffca5",
+          "artist": "MC Kevinho",
+          "title": "Tumbalatum"
+        },
+        {
+          "id": "salt:blessme-001-100-051-jesse-joy-alejandro-sanz-no-soy-una-de-e-7d3fde",
+          "artist": "Jesse & Joy, Alejandro Sanz",
+          "title": "No soy una de esas (feat. Alejandro Sanz)"
+        },
+        {
+          "id": "salt:blessme-001-100-052-j-balvin-maria-becerra-que-mas-pues-mp3-9ca0c6",
+          "artist": "J Balvin, Maria Becerra",
+          "title": "Qué Más Pues?"
+        },
+        {
+          "id": "salt:blessme-001-100-053-trinidad-cardona-robinson-love-me-back-f-bc46ff",
+          "artist": "Trinidad Cardona, Robinson",
+          "title": "Love Me Back (Fayahh Beat)"
+        },
+        {
+          "id": "salt:blessme-001-100-054-adan-cruz-la-sinclair-no-doubt-pt-2-mp3-537036",
+          "artist": "Adán Cruz, La Sinclair",
+          "title": "No Doubt, Pt. 2"
+        },
+        {
+          "id": "salt:blessme-001-100-055-dominic-fike-kenny-beats-phone-numbers-m-dad0dd",
+          "artist": "Dominic Fike, Kenny Beats",
+          "title": "Phone Numbers"
+        },
+        {
+          "id": "salt:blessme-001-100-056-kyla-dj-paleface-crazy-cousinz-do-you-mi-606d7a",
+          "artist": "Kyla, DJ Paleface, Crazy Cousinz",
+          "title": "Do You Mind - Remix"
+        },
+        {
+          "id": "salt:blessme-001-100-057-nsqk-easykid-bobomensotonto-mp3-71de45",
+          "artist": "Nsqk, Easykid",
+          "title": "BOBOMENSOTONTO"
+        },
+        {
+          "id": "salt:blessme-001-100-059-kim-loaiza-quiere-volver-mp3-d75218",
+          "artist": "Kim Loaiza",
+          "title": "Quiere Volver"
+        },
+        {
+          "id": "salt:blessme-001-100-060-mattei-arcangel-de-la-ghetto-jowell-rand-91951a",
+          "artist": "Mattei, Arcángel, De La Ghetto, Jowell & Randy, DJ Urba",
+          "title": "Pa las girlas (con DJ Urba) - Remix"
+        },
+        {
+          "id": "salt:blessme-001-100-061-cruzzi-rang-rovr-mp3-a5014b",
+          "artist": "Cruzzi",
+          "title": "rang€ rov€r"
+        },
+        {
+          "id": "salt:blessme-001-100-064-latin-mafia-sal-rosa-mp3-1dc81d",
+          "artist": "LATIN MAFIA",
+          "title": "Sal rosa"
+        },
+        {
+          "id": "salt:blessme-001-100-065-young-weapon-baby-jey-no-me-sueltes-mp3-479b6f",
+          "artist": "Young Weapon, Baby Jey",
+          "title": "No Me Sueltes"
+        },
+        {
+          "id": "salt:blessme-001-100-066-juanpa-gordoa-nd-kobi-congelados-mp3-ed738b",
+          "artist": "Juanpa Gordoa, ND Kobi'",
+          "title": "Congelados"
+        },
+        {
+          "id": "salt:blessme-001-100-067-mr-knightowl-thug-love-mp3-f6a0d3",
+          "artist": "Mr. Knightowl",
+          "title": "Thug Love"
+        },
+        {
+          "id": "salt:blessme-001-100-068-mr-knightowl-nasty-bitches-mp3-e29b97",
+          "artist": "Mr. Knightowl",
+          "title": "Nasty Bitches"
+        },
+        {
+          "id": "salt:blessme-001-100-069-mr-knightowl-take-another-hit-mp3-dca0b4",
+          "artist": "Mr. Knightowl",
+          "title": "Take Another Hit"
+        },
+        {
+          "id": "salt:blessme-001-100-070-cartel-de-santa-millonario-burbujas-de-c-7efe70",
+          "artist": "Cartel De Santa, Millonario",
+          "title": "Burbujas de Cristal"
+        },
+        {
+          "id": "salt:blessme-001-100-071-humbe-kintsugi-mp3-4a2533",
+          "artist": "HUMBE",
+          "title": "KINTSUGI"
+        },
+        {
+          "id": "salt:blessme-001-100-072-iluminatik-te-suena-mp3-c5b4de",
+          "artist": "Iluminatik",
+          "title": "Te Suena"
+        },
+        {
+          "id": "salt:blessme-001-100-073-iluminatik-dios-el-diablo-y-yo-mp3-82c4f3",
+          "artist": "Iluminatik",
+          "title": "Dios, El Diablo Y Yo"
+        },
+        {
+          "id": "salt:blessme-001-100-074-iluminatik-inhala-mp3-520a5c",
+          "artist": "Iluminatik",
+          "title": "Inhala"
+        },
+        {
+          "id": "salt:blessme-001-100-075-la-gabi-coco-mp3-693ef0",
+          "artist": "La Gabi",
+          "title": "Coco"
+        },
+        {
+          "id": "salt:blessme-001-100-076-gondwana-sentimiento-original-mp3-5a331f",
+          "artist": "Gondwana",
+          "title": "Sentimiento Original"
+        },
+        {
+          "id": "salt:blessme-001-100-077-bmontee-dejame-solo-pablo-mp3-aea38f",
+          "artist": "Bmontee",
+          "title": "Dejame Solo Pablo"
+        },
+        {
+          "id": "salt:blessme-001-100-078-duki-goteo-mp3-8c5f41",
+          "artist": "Duki",
+          "title": "Goteo"
+        },
+        {
+          "id": "salt:blessme-001-100-079-j-king-y-maximan-cuando-cuando-es-mp3-ef261b",
+          "artist": "J-King y Maximan",
+          "title": "Cuándo, Cuándo Es?"
+        },
+        {
+          "id": "salt:blessme-001-100-080-tankeone-papiros-crox-castellanos-tal-ve-42e7bf",
+          "artist": "Tankeone, Papiros, Crox Castellanos",
+          "title": "Tal Vez No Fue el Lugar"
+        },
+        {
+          "id": "salt:blessme-001-100-081-lalo-rodriguez-ven-devorame-otra-vez-mp3-af5475",
+          "artist": "Lalo Rodriguez",
+          "title": "Ven Devórame Otra Vez"
+        },
+        {
+          "id": "salt:blessme-001-100-082-alvaro-diaz-pln-mp3-69d5c6",
+          "artist": "Alvaro Diaz",
+          "title": "PLN"
+        },
+        {
+          "id": "salt:blessme-001-100-083-rauw-alejandro-alexis-y-fido-baja-pa-aca-7b2796",
+          "artist": "Rauw Alejandro, Alexis y Fido",
+          "title": "Baja Pa' Acá"
+        },
+        {
+          "id": "salt:blessme-001-100-084-cartel-de-santa-la-pelotona-mp3-d078a5",
+          "artist": "Cartel De Santa",
+          "title": "La Pelotona"
+        },
+        {
+          "id": "salt:blessme-001-100-085-el-bogueto-yeri-mua-uzielito-mix-nena-mo-931e59",
+          "artist": "El Bogueto, Yeri Mua, Uzielito Mix",
+          "title": "Nena Moxita"
+        },
+        {
+          "id": "salt:blessme-001-100-086-youka-hm-hm-hm-mp3-b402c4",
+          "artist": "Youka",
+          "title": "Hm Hm hm"
+        },
+        {
+          "id": "salt:blessme-001-100-087-karol-g-oki-doki-mp3-fa4812",
+          "artist": "KAROL G",
+          "title": "OKI DOKI"
+        },
+        {
+          "id": "salt:blessme-001-100-089-arca-rakata-mp3-097c53",
+          "artist": "Arca",
+          "title": "Rakata"
+        },
+        {
+          "id": "salt:blessme-001-100-091-99-souls-the-girl-is-mine-mp3-2d69e7",
+          "artist": "99 Souls",
+          "title": "The Girl Is Mine"
+        },
+        {
+          "id": "salt:blessme-001-100-093-nsqk-el-malilla-miata-mp3-9328fe",
+          "artist": "Nsqk, El Malilla",
+          "title": "MIATA ᕙ(⇀‸↼‶)ᕗ"
+        },
+        {
+          "id": "salt:blessme-001-100-094-partynextdoor-belong-to-the-city-mp3-6db326",
+          "artist": "PARTYNEXTDOOR",
+          "title": "Belong to the City"
+        },
+        {
+          "id": "salt:blessme-001-100-095-big-metra-el-bogueto-el-malilla-vv-brujo-c6fd28",
+          "artist": "Big Metra, El Bogueto, El Malilla, VV Brujo",
+          "title": "Desnudate - Remix"
+        },
+        {
+          "id": "salt:blessme-001-100-096-vvv-trippin-you-rush-mp3-bef88b",
+          "artist": "VVV [Trippin'you]",
+          "title": "Rush"
+        },
+        {
+          "id": "salt:blessme-001-100-097-jey-drug-love-feat-sik-k-prod-gxxd-mp3-7d6fea",
+          "artist": "JEY",
+          "title": "Drug=love (Feat. Sik-K) (PROD. GXXD)"
+        },
+        {
+          "id": "salt:blessme-001-100-098-arca-joya-mp3-6d0452",
+          "artist": "Arca",
+          "title": "Joya"
+        },
+        {
+          "id": "salt:blessme-101-131-101-pressure-9x19-vvs-switch-mp3-7174e8",
+          "artist": "Pressure 9X19",
+          "title": "VVS Switch"
+        },
+        {
+          "id": "salt:blessme-101-131-102-izaak-jhayco-anuel-aa-bby-boo-remix-mp3-068eda",
+          "artist": "iZaak, JHAYCO, Anuel AA",
+          "title": "BBY BOO - REMIX"
+        },
+        {
+          "id": "salt:blessme-101-131-103-maluma-borro-cassette-mp3-9163d1",
+          "artist": "Maluma",
+          "title": "Borro Cassette"
+        },
+        {
+          "id": "salt:blessme-101-131-105-j-balvin-bad-bunny-la-cancion-mp3-71cd20",
+          "artist": "J Balvin, Bad Bunny",
+          "title": "LA CANCIÓN"
+        },
+        {
+          "id": "salt:blessme-101-131-106-j-balvin-ay-vamos-mp3-b1f8a7",
+          "artist": "J Balvin",
+          "title": "Ay Vamos"
+        },
+        {
+          "id": "salt:blessme-101-131-108-sleeping-with-sirens-if-you-can-t-hang-m-46327c",
+          "artist": "Sleeping With Sirens",
+          "title": "If You Can't Hang"
+        },
+        {
+          "id": "salt:blessme-101-131-112-bandido-duki-rei-tiago-pzk-no-me-conocen-0e2eba",
+          "artist": "BANDIDO, Duki, Rei, Tiago PZK",
+          "title": "No Me Conocen (Remix) [con DUKI, Rei & Tiago PZK]"
+        },
+        {
+          "id": "salt:blessme-101-131-113-duki-en-movimiento-mp3-e6fa37",
+          "artist": "Duki",
+          "title": "En Movimiento"
+        },
+        {
+          "id": "salt:blessme-101-131-114-duki-ley-de-atraccion-mp3-dd0008",
+          "artist": "Duki",
+          "title": "Ley de Atracción"
+        },
+        {
+          "id": "salt:blessme-101-131-115-duki-top-5-mp3-dc1091",
+          "artist": "Duki",
+          "title": "TOP 5"
+        },
+        {
+          "id": "salt:blessme-101-131-116-duki-ysy-a-rei-pintao-mp3-2f80f6",
+          "artist": "Duki, YSY A, Rei",
+          "title": "Pintao"
+        },
+        {
+          "id": "salt:blessme-101-131-117-george-harrison-cloud-nine-mp3-37004b",
+          "artist": "George Harrison",
+          "title": "Cloud Nine"
+        },
+        {
+          "id": "salt:blessme-101-131-118-jose-alatorre-dannylux-abu-adora-mp3-f7c0e7",
+          "artist": "Jose Alatorre, DannyLux",
+          "title": "abu$adora"
+        },
+        {
+          "id": "salt:blessme-101-131-119-aphex-twin-xtal-mp3-a82e6c",
+          "artist": "Aphex Twin",
+          "title": "Xtal"
+        },
+        {
+          "id": "salt:blessme-101-131-120-aphex-twin-pulsewidth-mp3-de347d",
+          "artist": "Aphex Twin",
+          "title": "Pulsewidth"
+        },
+        {
+          "id": "salt:blessme-101-131-121-aphex-twin-qkthr-mp3-c0b208",
+          "artist": "Aphex Twin",
+          "title": "QKThr"
+        },
+        {
+          "id": "salt:blessme-101-131-124-maluma-el-perdedor-mp3-b9b547",
+          "artist": "Maluma",
+          "title": "El Perdedor"
+        },
+        {
+          "id": "salt:blessme-101-131-125-yandel-encantadora-mp3-f8ab34",
+          "artist": "Yandel",
+          "title": "Encantadora"
+        },
+        {
+          "id": "salt:blessme-101-131-126-romeo-santos-imitadora-mp3-f40efc",
+          "artist": "Romeo Santos",
+          "title": "Imitadora"
+        },
+        {
+          "id": "salt:blessme-101-131-128-j-balvin-farruko-6-am-mp3-7e20d7",
+          "artist": "J Balvin, Farruko",
+          "title": "6 AM"
+        },
+        {
+          "id": "salt:blessme-101-131-130-rauw-alejandro-desenfocao-mp3-3512f8",
+          "artist": "Rauw Alejandro",
+          "title": "Desenfocao'"
+        },
+        {
+          "id": "salt:blessme-101-131-131-jhayco-j-balvin-bad-bunny-no-me-conoce-r-71e52b",
+          "artist": "JHAYCO, J Balvin, Bad Bunny",
+          "title": "No Me Conoce - Remix"
+        }
+      ]
+    },
+    {
       "version": "v59",
       "date": "noviembre 2026",
       "title": "La música ya no se queda en 0:00 y la pantalla de bloqueo pasa de canción",
