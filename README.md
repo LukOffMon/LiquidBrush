@@ -91,6 +91,21 @@ Liquid funciona como Spotify, pero con tu colección de MP3: todo se calcula en 
 - **A continuación**: botón **Editar** para reordenar arrastrando del asa, y abajo Aleatorio, Repetir y Temporizador.
 - **Portadas**: todas son imágenes. Las playlists usan `covers/cover-NN.jpg` (Escuchadas hace poco y Tus más escuchadas, `cover-27` y `cover-28`; Velo Sónico y Niebla Pesada, `cover-29` y `cover-30`; Vampiro Digital, Chicle Tóxico, Verso Azul, Otoño Modal, Café Lento y Beat Nipón, `cover-31` a `cover-36`; Sol Sintético, Londres Rosa, Ola Tibia, Cereza Suave, Terciopelo Azul, Luna Swing e Infierno Rosa, `cover-37` a `cover-43`; Cuenta Atrás y Balada Eterna, `cover-44` y `cover-45`; Euforia Ibiza y Fiebre Latina, `cover-46` y `cover-47`). `cover-48` y `cover-49` están **reservadas** para las playlists nuevas de futuras entregas de música (la Biblioteca de imágenes las marca así). Cada canción lleva uno de los 52 iconos de [`covers/songs/`](covers/songs/), repartidos al azar y por igual entre las canciones que se ven (76 o 77 por icono; las copias ocultas llevan el icono de su original). `tools/build_catalog.py` guarda el reparto en `catalog.json`: cada canción conserva su icono y las nuevas reciben el menos usado. Para sumar iconos, añade `song-53.jpg` (600 px) y `song-53-sm.jpg` (320 px): al regenerar, algunas canciones pasan a los nuevos para que todos queden parejos. Los enlaces compartidos de canciones usan ese icono como miniatura.
 
+## Torneo de ideas (v61)
+
+Se postularon 22 ideas y se enfrentaron por impacto, originalidad, encaje, viabilidad sin servidor y riesgo; quedaron 11. El torneo completo (puntos, por qué entró cada una y por qué se descartaron las otras 11) está en [`docs/torneo-de-ideas.md`](docs/torneo-de-ideas.md). Las ganadoras:
+
+- **Explora por género** y **Radio de género** (Inicio): un género = una radio sin fin con todos sus estilos.
+- **Ruleta de géneros**: elige un género al azar, con más probabilidad para los que menos escuchas.
+- **Tu canción de hoy**: una al día (la misma todo el día), con su porqué.
+- **Sorpréndeme**: un artista que nunca pusiste, con su radio.
+- **Adivina la canción**: 5 rondas de 10 s con tus canciones; guarda tu mejor marca.
+- **Letra a pantalla completa** (botón junto a «Letra» o tecla K).
+- **Paleta de comandos**: Ctrl/⌘ + K.
+- **Racha y logros**: se calculan con el historial de escucha (`liquidbrush:ideas` guarda solo la ruleta, las sorpresas, el quiz y los logros ya avisados).
+- **Tu mes en Liquid** (Stats): resumen del mes para compartir como imagen.
+- **¿Por qué suena esto?** (Sonando): de dónde viene la canción y qué sabe el algoritmo de ella.
+
 ## Compartir
 
 - Botón **Compartir** (flecha hacia arriba) en el panel Sonando, en cada playlist y en el + de cada canción. Abre una **tarjeta con la portada** (tres fondos a elegir) para compartir como imagen en Historias o Estados, o guardarla, y los botones **Compartir enlace** y **Copiar enlace**.
@@ -248,6 +263,8 @@ python3 -m http.server 8000
 | L | Mostrar / ocultar letra |
 | Q | Cola «A continuación» |
 | T | Temporizador de apagado |
+| K | Letra a pantalla completa |
+| Ctrl/⌘ + K | «Ir a…»: acciones, géneros, playlists, artistas y canciones |
 | / | Buscar |
 | Mayús + ← / → | Canción anterior / siguiente |
 | Mayús + ↑ / ↓ | Subir / bajar volumen |

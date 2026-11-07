@@ -217,6 +217,51 @@ test('géneros: filtran la Biblioteca (con sus estilos) y Lab crea una mezcla po
   expect(genres.every((g) => ['Humo Dorado', 'Terciopelo Azul', 'Luna Swing'].includes(g))).toBe(true);
 });
 
+test('torneo de ideas: géneros, canción de hoy, logros, quiz, paleta, letra grande y porqué', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.goto('./');
+  await expect(page.locator('#libCount')).not.toHaveText('0');
+  // Inicio: racha, canción de hoy, 13 géneros + ruleta y Juega y descubre
+  await expect(page.locator('.home-streak')).toBeVisible();
+  await expect(page.locator('.sotd-card')).toHaveCount(1);
+  await expect(page.locator('.genre-tile')).toHaveCount(14);
+  await expect(page.locator('.game-card')).toHaveCount(3);
+  // La canción de hoy es la misma al volver a pintar Inicio
+  const sotd = await page.locator('.sotd-card').getAttribute('data-value');
+  await page.evaluate(() => { document.querySelector('.tab[data-view="library"]').click(); document.querySelector('.tab[data-view="home"]').click(); });
+  await expect(page.locator('.sotd-card')).toHaveAttribute('data-value', sotd);
+  // «Ver» abre la Biblioteca filtrada por ese género
+  await page.locator('.genre-see[data-value="jazz"]').evaluate((el) => el.click());
+  await expect(page.locator('#filterChips .chip-genero[data-value="jazz"]')).toHaveAttribute('aria-pressed', 'true');
+  await page.evaluate(() => document.querySelector('.tab[data-view="home"]').click());
+  // Logros
+  await page.locator('.game-card[data-action="open-achievements"]').evaluate((el) => el.click());
+  await expect(page.locator('#achievementsDialog .badge-item')).toHaveCount(13);
+  await page.evaluate(() => document.getElementById('achievementsDialog').close());
+  // Adivina la canción: 4 opciones y pasa de ronda al elegir
+  await page.locator('.game-card[data-action="quiz"]').evaluate((el) => el.click());
+  await expect(page.locator('#quizDialog .quiz-option')).toHaveCount(4);
+  await page.locator('#quizDialog .quiz-option').first().click();
+  await expect(page.locator('#quizDialog .sheet-text').first()).toContainText('Ronda 2 de 5');
+  await page.evaluate(() => document.getElementById('quizDialog').close());
+  // Paleta de comandos
+  await page.keyboard.press('ControlOrMeta+k');
+  await expect(page.locator('#paletteDialog')).toBeVisible();
+  await page.keyboard.type('rock y metal');
+  await expect(page.locator('.palette-item').first()).toContainText('Radio de Rock y metal');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#paletteDialog')).toBeHidden();
+  // Letra a pantalla completa y ¿Por qué suena esto?
+  await page.evaluate(() => document.getElementById('karaokeBtn').click());
+  await expect(page.locator('.karaoke')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.karaoke')).toBeHidden();
+  await page.evaluate(() => document.getElementById('whyBtn').click());
+  await expect(page.locator('#whyDialog .why-list li').first()).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
 test('el aleatorio deja al final lo recién escuchado', async ({ page }) => {
   await page.goto('./?view=library');
   await expect(page.locator('#libCount')).not.toHaveText('0');

@@ -1,6 +1,22 @@
 {
   "releases": [
     {
+      "version": "v61",
+      "date": "noviembre 2026",
+      "title": "Géneros y 11 ideas nuevas",
+      "items": [
+        "Filtro por géneros: Pop, Rock y metal, Reggaetón y trap latino, Jazz y swing… (13 géneros que agrupan los 45 estilos) en la Biblioteca, Buscar y Favoritas. En Lab ya puedes mezclar géneros enteros.",
+        "Inicio → Explora por género: toca uno para su radio sin fin, o «Ver» para abrirlo en la Biblioteca.",
+        "Ruleta de géneros: un dado que elige un género al azar, mejor si casi no lo escuchas.",
+        "Tu canción de hoy: una canción al día pensada para ti, con su porqué.",
+        "Juega y descubre: «Sorpréndeme» (un artista de Liquid que nunca pusiste) y «Adivina la canción» (5 rondas de 10 segundos).",
+        "Racha y logros: cuántos días seguidos llevas escuchando y 13 logros por conseguir.",
+        "Tu mes en Liquid (en Stats): tus minutos, tu género y tu podio de artistas, para compartir como imagen.",
+        "Sonando: letra a pantalla completa (tecla K) y «¿Por qué suena esto?», que explica de dónde viene cada canción.",
+        "En el ordenador: Ctrl/⌘ + K abre «Ir a…» para llegar a cualquier acción, género, playlist, artista o canción."
+      ]
+    },
+    {
       "version": "v60",
       "date": "noviembre 2026",
       "title": "Música nueva: 103 canciones y 2 playlists",

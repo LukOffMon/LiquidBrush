@@ -2718,7 +2718,8 @@
 
     const grid = makeEl('div', 'stat-grid');
     grid.append(daily, hours, genres, artists, trend, songs);
-    panel.replaceChildren(tiles, grid);
+    const month = makeButton('btn btn-primary stats-month', 'month-card', 'Tu mes en Liquid', 'chart', 'Tu mes en Liquid');
+    panel.replaceChildren(tiles, month, grid);
     if (!signedIn()) panel.append(makeEl('p', 'pl-note', 'Sin sesión, tus estadísticas se guardan solo en este dispositivo y se pierden si borras los datos del sitio. Para no perderlas, basta con iniciar sesión.'));
   }
 
@@ -4209,7 +4210,8 @@
   // Al llegar al final de una radio se suman más canciones
   function extendRadio() {
     if (!state.radio) return false;
-    const more = radioBatch(state.radio.seed, state.queue.slice(-150)).map((t) => t.id);
+    const more = (state.radio.genre ? genreBatch(state.radio.genre, state.queue.slice(-150))
+      : radioBatch(state.radio.seed, state.queue.slice(-150))).map((t) => t.id);
     if (!more.length) return false;
     state.baseQueue.push(...more);
     state.queue.push(...more);
@@ -4540,11 +4542,727 @@
     return section;
   }
 
+  /* ---------- Torneo de ideas (v61): las 11 ganadoras ----------
+     Ver docs/torneo-de-ideas.md. Todo se calcula en el navegador con tu Biblioteca y tu escucha:
+     1 Explora por género · 2 Radio de género · 3 Ruleta de géneros · 4 Tu canción de hoy ·
+     5 Sorpréndeme · 6 Adivina la canción · 7 Letra a pantalla completa · 8 Paleta de comandos ·
+     9 Racha y logros · 10 Tu mes en Liquid · 11 ¿Por qué suena esto? */
+  const IDEAS_KEY = 'liquidbrush:ideas';
+  const ideasStore = {
+    get() { return storage.get(IDEAS_KEY, {}) || {}; },
+    set(patch) { storage.set(IDEAS_KEY, { ...this.get(), ...patch }); }
+  };
+
+  // Hoja (dialog) genérica para las ideas: título, cuerpo y botones; se cierra con Esc o fuera
+  function ideaSheet(id, title, iconName) {
+    let dialog = document.getElementById(id);
+    if (!dialog) {
+      dialog = document.createElement('dialog');
+      dialog.id = id;
+      dialog.className = 'sheet idea-sheet';
+      dialog.setAttribute('aria-labelledby', `${id}Title`);
+      dialog.addEventListener('click', (event) => {
+        if (event.target === dialog || event.target.closest('[data-close]')) dialog.close();
+      });
+      document.body.append(dialog);
+    }
+    const body = makeEl('div', 'sheet-body');
+    const heading = makeEl('h2', 'sheet-title');
+    heading.id = `${id}Title`;
+    if (iconName) heading.append(svgIcon(iconName), ' ');
+    heading.append(title);
+    body.append(heading);
+    dialog.replaceChildren(body);
+    return { dialog, body };
+  }
+  function sheetActions(...buttons) {
+    const row = makeEl('div', 'sheet-actions');
+    const close = makeEl('button', 'btn', 'Cerrar');
+    close.type = 'button';
+    close.dataset.close = '';
+    row.append(...buttons, close);
+    return row;
+  }
+  function plainButton(className, text, onClick) {
+    const btn = makeEl('button', className, text);
+    btn.type = 'button';
+    btn.addEventListener('click', onClick);
+    return btn;
+  }
+
+  // Segundos escuchados por género amplio (todo el historial o desde una fecha)
+  function secondsByFamily(sinceKey = '') {
+    const styleToFamily = new Map();
+    genreFamilies().forEach((f) => f.styles.forEach((s) => styleToFamily.set(s, f.id)));
+    const out = new Map();
+    Object.entries(listen.log).forEach(([key, entry]) => {
+      if (sinceKey && key < sinceKey) return;
+      Object.entries(entry.s || {}).forEach(([id, secs]) => {
+        const family = styleToFamily.get(getTrack(id)?.genre);
+        if (family) out.set(family, (out.get(family) || 0) + secs);
+      });
+    });
+    return out;
+  }
+
+  /* 1 · 2 · 3: géneros en Inicio, radio de género y ruleta */
+  function genreBatch(familyId, exclude = []) {
+    const family = familyOf(familyId);
+    if (!family) return [];
+    const skip = new Set(exclude);
+    const profile = tasteProfile();
+    const pick = (allowRepeats) => {
+      const used = new Set();
+      const candidates = familyTracks(family).filter((t) => (allowRepeats || !skip.has(t.id)) && isPlayable(t) && !isDisliked(t.id)
+        && !used.has(t.songKey) && used.add(t.songKey));
+      return weightedOrder(candidates, (t) => (1 + Math.max(-0.6, trackAffinity(t, profile)) * 0.6) * (allowRepeats ? 1 : recencyFactor(t.id)))
+        .slice(0, RADIO_BATCH);
+    };
+    let tracks = pick(false);
+    if (tracks.length < 8) tracks = pick(true);
+    return spreadArtists(tracks);
+  }
+
+  function startGenreRadio(familyId, intro = '') {
+    const family = familyOf(familyId);
+    const tracks = family ? genreBatch(familyId) : [];
+    if (!tracks.length) {
+      showToast(navigator.onLine ? 'No hay canciones para esta radio.' : 'Sin conexión: descarga canciones para escuchar la radio.');
+      return;
+    }
+    if (state.shuffle) toggleShuffle();
+    playCollection(tracks, tracks[0].id, `Radio · ${family.name}`, `genre:${familyId}`);
+    state.radio = { genre: familyId };
+    showToast(intro || `Radio de ${family.name}: sigue sola, sin fin, con todos sus estilos.`);
+  }
+
+  // La ruleta prefiere los géneros que menos escuchas (para salir de la burbuja), sin repetir el último
+  function genreRoulette() {
+    const families = genreFamilies().filter((f) => familyTracks(f).length >= 10);
+    if (!families.length) return;
+    const heard = secondsByFamily();
+    const last = ideasStore.get().lastRoulette;
+    const pool = families.filter((f) => f.id !== last);
+    const rand = Math.random;
+    const chosen = weightedOrder(pool, (f) => 1 / (1 + (heard.get(f.id) || 0) / 600), rand)[0] || families[0];
+    ideasStore.set({ lastRoulette: chosen.id, roulettes: (ideasStore.get().roulettes || 0) + 1 });
+    haptic([8, 40, 8, 40, 16]);
+    startGenreRadio(chosen.id, `La ruleta cayó en ${chosen.name}. ¡A escuchar!`);
+  }
+
+  function genreSection(p) {
+    const families = genreFamilies().map((f) => ({ ...f, tracks: familyTracks(f) })).filter((f) => f.tracks.length);
+    if (!families.length) return null;
+    const heard = secondsByFamily();
+    families.sort((a, b) => (heard.get(b.id) || 0) - (heard.get(a.id) || 0) || b.tracks.length - a.tracks.length);
+    const section = homeSection('Explora por género', 'Toca un género para su radio sin fin. «Ver» lo abre filtrado en la Biblioteca.');
+    const grid = makeEl('div', 'genre-grid');
+    const roulette = makeEl('button', 'genre-tile is-roulette');
+    roulette.type = 'button';
+    roulette.dataset.action = 'genre-roulette';
+    roulette.setAttribute('aria-label', 'Ruleta de géneros: una radio de un género al azar');
+    const dice = makeEl('span', 'genre-dice');
+    dice.append(svgIcon('dice'));
+    roulette.append(dice, makeEl('span', 'genre-name', 'Ruleta'), makeEl('span', 'genre-meta', 'Un género al azar'));
+    grid.append(roulette);
+    const playlists = shownPls(systemPlaylists());
+    families.forEach((f) => {
+      const tile = makeEl('div', 'genre-tile');
+      const main = makeEl('button', 'genre-main');
+      main.type = 'button';
+      main.dataset.action = 'genre-radio';
+      main.dataset.value = f.id;
+      main.setAttribute('aria-label', `Radio de ${f.name}`);
+      const covers = makeEl('span', 'genre-covers');
+      f.styles.map((name) => playlists.find((pl) => pl.name === name)).filter(Boolean).slice(0, 3)
+        .forEach((pl) => covers.append(photoImg(coverSrcOf(pl.cover), 64)));
+      main.append(covers, makeEl('span', 'genre-name', f.name), makeEl('span', 'genre-meta', `${f.tracks.length} canciones · ${f.styles.length} estilos`));
+      const see = makeEl('button', 'genre-see', 'Ver');
+      see.type = 'button';
+      see.dataset.action = 'genre-open';
+      see.dataset.value = f.id;
+      see.setAttribute('aria-label', `Ver ${f.name} en la Biblioteca`);
+      tile.append(main, see);
+      grid.append(tile);
+    });
+    section.append(grid);
+    if (p && !p.hasHistory) section.classList.add('is-new');
+    return section;
+  }
+
+  function openGenreInLibrary(familyId) {
+    setView('library');
+    state.genero = familyOf(familyId) ? familyId : '';
+    state.genre = '';
+    renderList();
+  }
+
+  /* 4 · Tu canción de hoy: una sola, distinta cada día, con su porqué */
+  function songOfTheDay(p = tasteProfile()) {
+    const day = dayKey();
+    const saved = ideasStore.get().sotd;
+    if (saved?.day === day && getTrack(saved.id)) return { track: getTrack(saved.id), reason: saved.reason };
+    const pool = state.libraryTracks.filter((t) => isPlayable(t) && !isDisliked(t.id) && !state.favorites.has(t.id)
+      && (!library.plays[t.id] || recencyFactor(t.id) > 0.9));
+    if (!pool.length) return null;
+    const rand = seededRandom(`sotd-${day}`);
+    const ranked = weightedOrder(pool, (t) => Math.max(0.05, 0.3 + p.relatedN(artistKeyOf(t)) + Math.max(0, p.genreN(t.genre)) + (library.plays[t.id] ? 0 : 0.4)), rand);
+    const track = ranked[0];
+    const related = similarArtists(artistKeyOf(track), 12).find((a) => p.artistN(a.key) > 0);
+    const reason = !p.hasHistory
+      ? `Para empezar: ${track.genre || 'una joya de la Biblioteca'}.`
+      : related ? `Porque escuchas a ${related.name}, que se parece.`
+        : p.genreN(track.genre) > 0 ? `Porque te va ${track.genre}.` : 'Para salir un poco de tu burbuja.';
+    ideasStore.set({ sotd: { day, id: track.id, reason } });
+    return { track, reason };
+  }
+
+  function songOfTheDayCard(p) {
+    const pick = songOfTheDay(p);
+    if (!pick) return null;
+    const { track, reason } = pick;
+    const card = makeEl('button', 'sotd-card');
+    card.type = 'button';
+    card.dataset.action = 'sotd-play';
+    card.dataset.value = track.id;
+    card.setAttribute('aria-label', `Tu canción de hoy: ${track.title}, de ${track.artist}. ${reason}`);
+    const text = makeEl('span', 'sotd-text');
+    text.append(
+      makeEl('span', 'sotd-eyebrow', 'Tu canción de hoy'),
+      makeEl('span', 'sotd-title', splitTitle(track.title).main),
+      makeEl('span', 'sotd-artist', track.knownArtist || track.artist),
+      makeEl('span', 'sotd-why', reason)
+    );
+    const play = makeEl('span', 'home-hero-play');
+    play.replaceChildren(svgIcon('play'));
+    card.append(photoImg(track.cover, 96, 'sotd-art'), text, play);
+    return card;
+  }
+
+  /* 5 · Sorpréndeme: un artista de la colección que nunca pusiste, con su radio */
+  function surpriseMe() {
+    const p = tasteProfile();
+    const fresh = [...labArtists().values()].filter((a) => a.tracks.length >= 2 && !artistPlays(a));
+    if (!fresh.length) {
+      showToast('Ya escuchaste a todos los artistas de Liquid. ¡Impresionante!');
+      return;
+    }
+    const entry = weightedOrder(fresh, (a) => 0.2 + Math.max(0, p.relatedN(a.key)) + Math.min(1, a.tracks.length / 10))[0];
+    ideasStore.set({ surprises: (ideasStore.get().surprises || 0) + 1 });
+    startRadio(entry.key);
+    showToast(`Sorpresa: ${entry.name}. Nunca lo habías puesto.`);
+  }
+
+  /* 6 · Adivina la canción: 5 rondas, 10 s de cada una, 4 opciones */
+  const quiz = { round: 0, score: 0, answer: null, audio: null, timer: 0, resume: false };
+
+  function quizPool() {
+    const heard = state.libraryTracks.filter((t) => library.plays[t.id] && isPlayable(t));
+    return heard.length >= 12 ? heard : state.libraryTracks.filter(isPlayable);
+  }
+
+  function stopQuizAudio() {
+    clearTimeout(quiz.timer);
+    if (quiz.audio) {
+      quiz.audio.pause();
+      quiz.audio.removeAttribute('src');
+      quiz.audio.load();
+    }
+  }
+
+  function openQuiz() {
+    if (!navigator.onLine) {
+      showToast('Adivina la canción necesita conexión.');
+      return;
+    }
+    quiz.round = 0;
+    quiz.score = 0;
+    quiz.resume = !els.audio.paused;
+    if (quiz.resume) togglePlay();
+    quizRound();
+  }
+
+  function quizRound() {
+    stopQuizAudio();
+    const { dialog, body } = ideaSheet('quizDialog', 'Adivina la canción', 'question');
+    dialog.onclose = () => { stopQuizAudio(); };
+    if (quiz.round >= 5) {
+      const best = Math.max(quiz.score, ideasStore.get().quizBest || 0);
+      ideasStore.set({ quizBest: best, quizzes: (ideasStore.get().quizzes || 0) + 1 });
+      body.append(
+        makeEl('p', 'quiz-score', `${quiz.score} de 5`),
+        makeEl('p', 'sheet-text', quiz.score === 5 ? '¡Perfecto! Te sabes tu música de memoria.' : quiz.score >= 3 ? '¡Muy bien!' : 'La próxima sale mejor.'),
+        makeEl('p', 'sheet-note', `Tu mejor marca: ${best} de 5.`),
+        sheetActions(plainButton('btn btn-primary', 'Otra partida', openQuiz))
+      );
+      if (!dialog.open) dialog.showModal();
+      checkAchievements();
+      return;
+    }
+    const pool = quizPool();
+    const rand = Math.random;
+    const answer = weightedOrder(pool, () => 1, rand)[0];
+    const others = weightedOrder(pool.filter((t) => t.songKey !== answer.songKey && mainArtist(t) !== mainArtist(answer)), (t) => (t.genre === answer.genre ? 3 : 1), rand);
+    const options = [];
+    others.forEach((t) => { if (options.length < 3 && !options.some((o) => o.songKey === t.songKey)) options.push(t); });
+    options.splice(Math.floor(rand() * 4), 0, answer);
+    quiz.answer = answer;
+    body.append(makeEl('p', 'sheet-text', `Ronda ${quiz.round + 1} de 5 · ${quiz.score} acierto${quiz.score === 1 ? '' : 's'}. Escucha 10 segundos y elige.`));
+    const status = makeEl('p', 'quiz-status', 'Cargando el fragmento…');
+    const list = makeEl('div', 'quiz-options');
+    options.forEach((t) => {
+      const btn = plainButton('btn quiz-option', '', () => {
+        stopQuizAudio();
+        const right = t.songKey === answer.songKey;
+        if (right) quiz.score++;
+        haptic(right ? 20 : [10, 60, 10]);
+        list.querySelectorAll('button').forEach((b) => {
+          b.disabled = true;
+          if (b.dataset.id === answer.id) b.classList.add('is-right');
+        });
+        if (!right) btn.classList.add('is-wrong');
+        status.textContent = right ? '¡Correcto!' : `Era «${answer.title}» de ${answer.artist}.`;
+        quiz.round++;
+        setTimeout(quizRound, 1400);
+      });
+      btn.dataset.id = t.id;
+      btn.append(makeEl('span', 'quiz-title', splitTitle(t.title).main), makeEl('span', 'quiz-artist', t.knownArtist || t.artist));
+      list.append(btn);
+    });
+    const replay = plainButton('btn btn-ghost', 'Volver a oír', () => playQuizClip(status));
+    body.append(status, list, sheetActions(replay));
+    if (!dialog.open) dialog.showModal();
+    playQuizClip(status);
+  }
+
+  function playQuizClip(status) {
+    stopQuizAudio();
+    const audio = quiz.audio || (quiz.audio = new Audio());
+    audio.preload = 'auto';
+    audio.src = quiz.answer.src;
+    const start = () => {
+      const duration = audio.duration && Number.isFinite(audio.duration) ? audio.duration : 120;
+      try { audio.currentTime = Math.min(duration * 0.35, Math.max(0, duration - 12)); } catch { /* sin seek */ }
+      audio.play().then(() => {
+        status.textContent = 'Sonando… (10 s)';
+        quiz.timer = setTimeout(() => { audio.pause(); status.textContent = '¿Cuál es?'; }, 10000);
+      }).catch(() => { status.textContent = 'No se pudo reproducir: toca «Volver a oír».'; });
+    };
+    audio.addEventListener('loadedmetadata', start, { once: true });
+    audio.addEventListener('error', () => { status.textContent = 'Este fragmento no cargó: elige igual o toca «Volver a oír».'; }, { once: true });
+    audio.load();
+  }
+
+  /* 7 · Letra a pantalla completa (karaoke) */
+  const karaoke = { el: null, open: false };
+
+  function openKaraoke() {
+    if (!state.currentTrack) {
+      showToast('Pon una canción para ver su letra en grande.');
+      return;
+    }
+    if (!karaoke.el) {
+      karaoke.el = makeEl('div', 'karaoke');
+      karaoke.el.setAttribute('role', 'dialog');
+      karaoke.el.setAttribute('aria-modal', 'true');
+      karaoke.el.setAttribute('aria-label', 'Letra a pantalla completa');
+      karaoke.el.addEventListener('click', (event) => {
+        if (event.target.closest('[data-karaoke-close]')) closeKaraoke();
+        const line = event.target.closest('[data-time]');
+        if (line) seekTo(Number(line.dataset.time));
+      });
+      document.addEventListener('keydown', (event) => { if (karaoke.open && event.key === 'Escape') closeKaraoke(); });
+      document.body.append(karaoke.el);
+    }
+    karaoke.open = true;
+    karaoke.el.hidden = false;
+    document.body.classList.add('karaoke-open');
+    renderKaraoke(true);
+    karaoke.el.querySelector('[data-karaoke-close]')?.focus();
+  }
+
+  function closeKaraoke() {
+    if (!karaoke.el) return;
+    karaoke.open = false;
+    karaoke.el.hidden = true;
+    document.body.classList.remove('karaoke-open');
+  }
+
+  function renderKaraoke(full = false) {
+    if (!karaoke.open || !karaoke.el) return;
+    const track = state.currentTrack;
+    if (full || karaoke.el.dataset.track !== track?.id) {
+      karaoke.el.dataset.track = track?.id || '';
+      const close = makeEl('button', 'icon-btn karaoke-close');
+      close.type = 'button';
+      close.dataset.karaokeClose = '';
+      close.setAttribute('aria-label', 'Cerrar letra a pantalla completa');
+      close.append(svgIcon('close'));
+      const head = makeEl('div', 'karaoke-head');
+      head.append(photoImg(track?.thumb, 48), makeEl('span', 'karaoke-now', `${track?.title || ''} · ${track?.artist || ''}`), close);
+      const lines = makeEl('div', 'karaoke-lines');
+      if (state.lyrics?.synced) {
+        state.lyrics.lines.forEach((line, i) => {
+          const p = makeEl('p', 'karaoke-line', line.text || '· · ·');
+          p.dataset.index = String(i);
+          p.dataset.time = String(line.time);
+          lines.append(p);
+        });
+      } else {
+        lines.append(makeEl('p', 'karaoke-static', state.lyrics?.text || 'Esta canción no tiene letra (o aún no ha llegado).'));
+      }
+      karaoke.el.replaceChildren(head, lines);
+    }
+    const index = state.activeLyric;
+    const lines = karaoke.el.querySelector('.karaoke-lines');
+    lines?.querySelectorAll('.karaoke-line').forEach((p, i) => {
+      p.classList.toggle('is-active', i === index);
+      p.classList.toggle('is-past', i < index);
+    });
+    const active = lines?.querySelector('.karaoke-line.is-active');
+    if (active) lines.scrollTo({ top: active.offsetTop - lines.clientHeight / 2 + active.clientHeight / 2, behavior: reducedMotion() ? 'auto' : 'smooth' });
+  }
+
+  /* 8 · Paleta de comandos (Ctrl/⌘ + K): todo Liquid desde el teclado */
+  const palette = { items: [], index: 0 };
+
+  function paletteActions() {
+    return [
+      { label: 'Reproducir / pausar', hint: 'Espacio', run: () => togglePlay() },
+      { label: 'Siguiente canción', hint: 'N', run: () => next(true) },
+      { label: 'Aleatorio', hint: 'S', run: () => toggleShuffle() },
+      { label: 'A continuación (cola)', hint: 'Q', run: () => openQueue() },
+      { label: 'Temporizador de apagado', hint: 'T', run: () => els.sleepBtn.click() },
+      { label: 'Letra a pantalla completa', hint: 'K', run: openKaraoke },
+      { label: 'Ruleta de géneros', hint: 'Idea', run: genreRoulette },
+      { label: 'Sorpréndeme', hint: 'Idea', run: surpriseMe },
+      { label: 'Adivina la canción', hint: 'Idea', run: openQuiz },
+      { label: 'Tu canción de hoy', hint: 'Idea', run: () => { const s = songOfTheDay(); if (s) startRadio(artistKeyOf(s.track), s.track); } },
+      { label: 'Racha y logros', hint: 'Idea', run: openAchievements },
+      { label: 'Tu mes en Liquid', hint: 'Idea', run: openMonthCard },
+      { label: '¿Por qué suena esto?', hint: 'Idea', run: explainNowPlaying },
+      { label: 'Ir a Inicio', hint: 'Vista', run: () => setView('home') },
+      { label: 'Ir a la Biblioteca', hint: 'Vista', run: () => setView('library') },
+      { label: 'Ir a Stats', hint: 'Vista', run: () => setView('stats') },
+      { label: 'Abrir Ajustes', hint: 'Vista', run: () => els.settingsBtn?.click() }
+    ];
+  }
+
+  function paletteResults(query) {
+    const q = normalize(query);
+    const actions = paletteActions().filter((a) => !q || normalize(a.label).includes(q));
+    if (!q) return actions;
+    const genres = genreFamilies().filter((f) => normalize(f.name).includes(q))
+      .map((f) => ({ label: `Radio de ${f.name}`, hint: 'Género', run: () => startGenreRadio(f.id) }));
+    const playlists = shownPls([...systemPlaylists(), ...localPlaylists()]).filter((pl) => normalize(pl.name).includes(q)).slice(0, 6)
+      .map((pl) => ({ label: pl.name, hint: 'Playlist', run: () => openPlaylist(pl.key) }));
+    const artists = [...labArtists().values()].filter((a) => a.key.includes(q)).sort((a, b) => b.tracks.length - a.tracks.length).slice(0, 6)
+      .map((a) => ({ label: a.name, hint: 'Artista', run: () => openArtist(a.key) }));
+    const songs = searchTracks(state.libraryTracks, query).slice(0, 8)
+      .map((t) => ({ label: `${t.title} · ${t.artist}`, hint: 'Canción', run: () => playCollection([t, ...radioBatch(artistKeyOf(t), [t.id])], t.id, `Radio · ${t.title}`) }));
+    return [...actions, ...genres, ...playlists, ...artists, ...songs].slice(0, 30);
+  }
+
+  function openPalette() {
+    const { dialog, body } = ideaSheet('paletteDialog', 'Ir a…', 'search');
+    dialog.classList.add('palette-sheet');
+    const input = makeEl('input', 'palette-input');
+    input.type = 'search';
+    input.placeholder = 'Acción, género, playlist, artista o canción…';
+    input.setAttribute('aria-label', 'Buscar una acción o algo para escuchar');
+    input.setAttribute('aria-controls', 'paletteList');
+    const list = makeEl('ul', 'palette-list');
+    list.id = 'paletteList';
+    list.setAttribute('role', 'listbox');
+    const draw = () => {
+      palette.items = paletteResults(input.value);
+      palette.index = Math.min(palette.index, Math.max(0, palette.items.length - 1));
+      list.replaceChildren(...palette.items.map((item, i) => {
+        const li = makeEl('li', `palette-item${i === palette.index ? ' is-active' : ''}`);
+        li.setAttribute('role', 'option');
+        li.setAttribute('aria-selected', String(i === palette.index));
+        li.dataset.index = String(i);
+        li.append(makeEl('span', 'palette-label', item.label), makeEl('span', 'palette-hint', item.hint));
+        return li;
+      }));
+      if (!palette.items.length) list.append(makeEl('li', 'palette-empty', 'Nada coincide.'));
+      list.querySelector('.is-active')?.scrollIntoView({ block: 'nearest' });
+    };
+    const run = (i) => {
+      const item = palette.items[i];
+      if (!item) return;
+      dialog.close();
+      item.run();
+    };
+    input.addEventListener('input', () => { palette.index = 0; draw(); });
+    input.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowDown') { event.preventDefault(); palette.index = Math.min(palette.items.length - 1, palette.index + 1); draw(); }
+      if (event.key === 'ArrowUp') { event.preventDefault(); palette.index = Math.max(0, palette.index - 1); draw(); }
+      if (event.key === 'Enter') { event.preventDefault(); run(palette.index); }
+      if (event.key === 'Escape') { event.preventDefault(); dialog.close(); }
+    });
+    list.addEventListener('click', (event) => {
+      const li = event.target.closest('[data-index]');
+      if (li) run(Number(li.dataset.index));
+    });
+    body.append(input, list, makeEl('p', 'sheet-note', '↑ ↓ para elegir, Intro para abrir, Esc para cerrar. Atajo: Ctrl/⌘ + K.'));
+    palette.index = 0;
+    draw();
+    if (!dialog.open) dialog.showModal();
+    input.focus();
+  }
+
+  /* 9 · Racha y logros (derivados de tu historial: no se guardan aparte) */
+  function listeningStreak() {
+    let streak = 0;
+    const day = new Date();
+    const active = (date) => Object.values(listen.log[dayKey(date)]?.s || {}).reduce((a, b) => a + b, 0) >= 60;
+    if (!active(day)) day.setDate(day.getDate() - 1); // hoy aún cuenta hasta medianoche
+    while (active(day) && streak < 3660) {
+      streak++;
+      day.setDate(day.getDate() - 1);
+    }
+    return streak;
+  }
+
+  function bestStreak() {
+    const keys = Object.keys(listen.log).sort();
+    let best = 0;
+    let run = 0;
+    let prev = null;
+    keys.forEach((key) => {
+      const secs = Object.values(listen.log[key].s || {}).reduce((a, b) => a + b, 0);
+      if (secs < 60) { run = 0; prev = key; return; }
+      const d = new Date(`${key}T12:00:00`);
+      const consecutive = prev && (d - new Date(`${prev}T12:00:00`)) / 86400000 === 1;
+      run = consecutive && run ? run + 1 : 1;
+      best = Math.max(best, run);
+      prev = key;
+    });
+    return best;
+  }
+
+  function achievementList() {
+    const store = ideasStore.get();
+    const best = Math.max(bestStreak(), listeningStreak());
+    const families = secondsByFamily();
+    const tasted = [...families.values()].filter((s) => s >= 60).length;
+    const songs = new Set();
+    let maxDay = 0;
+    let night = false;
+    Object.values(listen.log).forEach((entry) => {
+      Object.keys(entry.s || {}).forEach((id) => songs.add(id));
+      maxDay = Math.max(maxDay, Object.values(entry.s || {}).reduce((a, b) => a + b, 0));
+      if ((entry.h || []).slice(0, 5).some((s) => s >= 60)) night = true;
+    });
+    const total = genreFamilies().length || 13;
+    return [
+      { id: 'first', name: 'Primera gota', text: 'Escuchar tu primer minuto', done: songs.size > 0 },
+      { id: 'streak3', name: 'En racha', text: '3 días seguidos escuchando', done: best >= 3, progress: Math.min(best, 3) / 3 },
+      { id: 'streak7', name: 'Semana líquida', text: '7 días seguidos', done: best >= 7, progress: Math.min(best, 7) / 7 },
+      { id: 'streak30', name: 'Mes sin pausa', text: '30 días seguidos', done: best >= 30, progress: Math.min(best, 30) / 30 },
+      { id: 'genres5', name: 'Explorador', text: 'Escuchar 5 géneros', done: tasted >= 5, progress: Math.min(tasted, 5) / 5 },
+      { id: 'genresAll', name: 'Todoterreno', text: `Escuchar los ${total} géneros`, done: tasted >= total, progress: Math.min(tasted, total) / total },
+      { id: 'songs100', name: 'Cien canciones', text: '100 canciones distintas', done: songs.size >= 100, progress: Math.min(songs.size, 100) / 100 },
+      { id: 'marathon', name: 'Maratón', text: '2 horas en un día', done: maxDay >= 7200, progress: Math.min(maxDay, 7200) / 7200 },
+      { id: 'night', name: 'Noctámbulo', text: 'Escuchar entre las 0 y las 5 h', done: night },
+      { id: 'fav20', name: 'Coleccionista', text: '20 favoritas', done: state.favorites.size >= 20, progress: Math.min(state.favorites.size, 20) / 20 },
+      { id: 'roulette', name: 'Suerte', text: 'Girar la ruleta de géneros', done: (store.roulettes || 0) > 0 },
+      { id: 'surprise', name: 'Sin miedo', text: 'Usar «Sorpréndeme»', done: (store.surprises || 0) > 0 },
+      { id: 'quiz5', name: 'Oído absoluto', text: '5 de 5 en Adivina la canción', done: (store.quizBest || 0) >= 5, progress: (store.quizBest || 0) / 5 }
+    ];
+  }
+
+  // Avisa una sola vez de cada logro nuevo
+  function checkAchievements() {
+    const store = ideasStore.get();
+    const seen = new Set(store.badges || []);
+    const fresh = achievementList().filter((a) => a.done && !seen.has(a.id));
+    if (!fresh.length) return;
+    ideasStore.set({ badges: [...seen, ...fresh.map((a) => a.id)] });
+    // La primera vez (historial previo) no se felicita en cadena: solo el último
+    showToast(`Logro: ${fresh[fresh.length - 1].name}. Míralos en Inicio → racha.`);
+  }
+
+  function streakChip() {
+    const streak = listeningStreak();
+    const done = achievementList().filter((a) => a.done).length;
+    const chip = makeEl('button', 'home-streak');
+    chip.type = 'button';
+    chip.dataset.action = 'open-achievements';
+    chip.append(svgIcon('flame'), `${streak ? `Racha de ${streak} día${streak === 1 ? '' : 's'}` : 'Empieza tu racha'} · ${done} logro${done === 1 ? '' : 's'}`);
+    chip.setAttribute('aria-label', `${chip.textContent}. Ver logros`);
+    return chip;
+  }
+
+  function openAchievements() {
+    const { dialog, body } = ideaSheet('achievementsDialog', 'Racha y logros', 'trophy');
+    const streak = listeningStreak();
+    const list = achievementList();
+    body.append(makeEl('p', 'sheet-text', streak
+      ? `Llevas ${streak} día${streak === 1 ? '' : 's'} seguidos escuchando (tu mejor racha: ${Math.max(bestStreak(), streak)}). Cuenta cada día con al menos un minuto de música.`
+      : 'Escucha al menos un minuto al día para empezar una racha.'));
+    const grid = makeEl('ul', 'badge-grid');
+    list.forEach((a) => {
+      const li = makeEl('li', `badge-item${a.done ? ' is-done' : ''}`);
+      const ico = makeEl('span', 'badge-icon');
+      ico.append(svgIcon(a.done ? 'trophy' : 'lock'));
+      const text = makeEl('span', 'badge-text');
+      text.append(makeEl('span', 'badge-name', a.name), makeEl('span', 'badge-desc', a.text));
+      if (!a.done && a.progress !== undefined) {
+        const bar = makeEl('span', 'badge-bar');
+        bar.style.setProperty('--p', `${Math.round(a.progress * 100)}%`);
+        text.append(bar);
+      }
+      li.append(ico, text);
+      li.setAttribute('aria-label', `${a.name}: ${a.text}. ${a.done ? 'Conseguido' : 'Pendiente'}`);
+      grid.append(li);
+    });
+    body.append(grid, makeEl('p', 'sheet-note', `${list.filter((a) => a.done).length} de ${list.length} logros. Se calculan con tu historial de este dispositivo${signedIn() ? ' y tu cuenta' : ''}.`),
+      sheetActions(plainButton('btn btn-primary', 'Tu mes en Liquid', openMonthCard)));
+    if (!dialog.open) dialog.showModal();
+  }
+
+  /* 10 · Tu mes en Liquid: resumen del mes, para guardarlo o compartirlo como imagen */
+  function monthSummary(offset = 0) {
+    const info = monthInfo(offset);
+    const data = aggregate(info.keys);
+    const families = new Map();
+    const styleToFamily = new Map();
+    genreFamilies().forEach((f) => f.styles.forEach((s) => styleToFamily.set(s, f.name)));
+    data.genres.forEach((secs, style) => {
+      const name = styleToFamily.get(style);
+      if (name) families.set(name, (families.get(name) || 0) + secs);
+    });
+    const topSong = topOf(data.tracks, 1)[0];
+    return {
+      label: info.label,
+      seconds: data.seconds,
+      songs: data.tracks.size,
+      artists: topOf(data.artists, 3).map(([name]) => name),
+      genre: topOf(families, 1)[0]?.[0] || '',
+      song: topSong ? getTrack(topSong[0]) : null
+    };
+  }
+
+  function openMonthCard() {
+    const s = monthSummary(state.view === 'stats' ? state.statsOffset : 0);
+    const { dialog, body } = ideaSheet('monthDialog', `Tu mes en Liquid · ${s.label}`, 'chart');
+    if (s.seconds < 60) {
+      body.append(makeEl('p', 'sheet-text', 'Aún no hay música suficiente este mes. Escucha un rato y vuelve.'), sheetActions());
+      if (!dialog.open) dialog.showModal();
+      return;
+    }
+    const grid = makeEl('div', 'month-grid');
+    const tile = (value, label) => {
+      const t = makeEl('div', 'month-tile');
+      t.append(makeEl('span', 'month-value', value), makeEl('span', 'month-label', label));
+      return t;
+    };
+    grid.append(
+      tile(minutesLabel(s.seconds), 'de música'),
+      tile(String(s.songs), 'canciones distintas'),
+      tile(s.genre || '—', 'tu género'),
+      tile(s.artists[0] || '—', 'tu artista')
+    );
+    body.append(grid);
+    if (s.artists.length > 1) body.append(makeEl('p', 'sheet-text', `Tu podio: ${s.artists.join(' · ')}.`));
+    if (s.song) body.append(makeEl('p', 'sheet-text', `Tu canción: «${s.song.title}» de ${s.song.artist}.`));
+    const share = plainButton('btn btn-primary', 'Compartir como imagen', () => {
+      dialog.close();
+      openShareSheet({
+        kind: `Mi ${s.label} en Liquid`,
+        title: `${minutesLabel(s.seconds)} · ${s.genre || 'Liquid Bullet'}`,
+        subtitle: s.artists.slice(0, 3).join(' · ') || 'Liquid Bullet',
+        image: s.song?.cover || 'icon-512.png',
+        linkTitle: 'Liquid Bullet',
+        text: `Mi ${s.label} en Liquid Bullet: ${minutesLabel(s.seconds)} de música, sobre todo ${s.genre}${s.artists[0] ? ` y ${s.artists[0]}` : ''}.`,
+        url: appBase()
+      });
+    });
+    body.append(sheetActions(share));
+    if (!dialog.open) dialog.showModal();
+  }
+
+  /* 11 · ¿Por qué suena esto? El algoritmo, explicado */
+  function explainNowPlaying() {
+    const track = state.currentTrack;
+    if (!track) {
+      showToast('Pon una canción y te explico por qué suena.');
+      return;
+    }
+    const p = tasteProfile();
+    const reasons = [];
+    const source = state.playSource || '';
+    if (source.startsWith('genre:')) reasons.push(`Es la radio de ${familyOf(source.slice(6))?.name || 'un género'}: todos sus estilos, sin fin.`);
+    else if (source.startsWith('radio:')) reasons.push(`Es la radio de ${getArtist(source.slice(6))?.name || 'un artista'}: sigue con artistas parecidos.`);
+    else if (source.startsWith('home:')) reasons.push(`Viene de «${home.collections.get(source.slice(5))?.title || 'un mix de Inicio'}», hecho con lo que escuchas.`);
+    else if (source.startsWith('lab:')) reasons.push('Es una mezcla tuya de Liquid Lab.');
+    else if (state.queueContext) reasons.push(`${state.queueContext}.`);
+    const plays = library.plays[track.id] || 0;
+    reasons.push(plays ? `La has puesto ${plays} ${plays === 1 ? 'vez' : 'veces'}.` : 'Nunca la habías escuchado: es nueva para ti.');
+    if (state.favorites.has(track.id)) reasons.push('Está en tus favoritas.');
+    const key = artistKeyOf(track);
+    if (p.artistN(key) > 0.3) reasons.push(`${mainArtist(track) || track.artist} es de tus artistas más escuchados.`);
+    else {
+      const near = similarArtists(key, 12).find((a) => p.artistN(a.key) > 0);
+      if (near) reasons.push(`Se parece a ${near.name}, que escuchas.`);
+    }
+    const family = genreFamilies().find((f) => f.styles.includes(track.genre));
+    if (track.genre) reasons.push(`Estilo: ${track.genre}${family ? ` (${family.name})` : ''}${p.genreN(track.genre) > 0.2 ? ', de los que más te van' : ''}.`);
+    if (Number(taste.skips[track.id]) > 0) reasons.push('Ojo: a veces la saltas, así que sale menos.');
+    const { dialog, body } = ideaSheet('whyDialog', '¿Por qué suena esto?', 'question');
+    const head = makeEl('div', 'why-head');
+    head.append(photoImg(track.thumb, 56), makeEl('span', 'why-now', `${track.title} · ${track.artist}`));
+    const list = makeEl('ul', 'why-list');
+    reasons.forEach((r) => list.append(makeEl('li', '', r)));
+    const less = plainButton('btn btn-ghost', 'No me gusta', () => { dialog.close(); toggleDislike(track.id); });
+    body.append(head, list, makeEl('p', 'sheet-note', 'Todo se calcula en tu dispositivo: lo que escuchas, saltas y marcas como favorita.'), sheetActions(less));
+    if (!dialog.open) dialog.showModal();
+  }
+
+  // Botones en Sonando (letra grande y porqué) y atajos de teclado (Ctrl/⌘+K, K)
+  function initIdeas() {
+    const summary = els.lyricsPanel?.querySelector('summary');
+    if (summary && !document.getElementById('karaokeBtn')) {
+      const big = makeEl('button', 'icon-btn lyrics-big-btn');
+      big.id = 'karaokeBtn';
+      big.type = 'button';
+      big.title = 'Letra a pantalla completa (K)';
+      big.setAttribute('aria-label', 'Letra a pantalla completa');
+      big.append(svgIcon('lyrics'));
+      big.addEventListener('click', (event) => { event.preventDefault(); event.stopPropagation(); openKaraoke(); });
+      summary.append(big);
+    }
+    const tools = document.querySelector('.np-tools');
+    if (tools && !document.getElementById('whyBtn')) {
+      const why = makeEl('button', 'btn btn-ghost why-btn');
+      why.id = 'whyBtn';
+      why.type = 'button';
+      why.append(svgIcon('question'), ' ¿Por qué suena esto?');
+      why.addEventListener('click', explainNowPlaying);
+      tools.append(why);
+    }
+    document.addEventListener('keydown', (event) => {
+      if ((event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        if (document.getElementById('paletteDialog')?.open) return;
+        openPalette();
+        return;
+      }
+      if (event.ctrlKey || event.metaKey || event.altKey || event.code !== 'KeyK') return;
+      if (event.target.closest?.('input, textarea, select, [contenteditable="true"]') || document.querySelector('dialog[open]')) return;
+      if (karaoke.open) closeKaraoke();
+      else openKaraoke();
+    });
+    setTimeout(checkAchievements, 8000);
+  }
+
   function renderHome() {
     home.collections.clear();
     const p = tasteProfile();
     const lite = settings.ultra;
-    const parts = [homeHeader(p)];
+    const parts = [homeHeader(p), streakChip()];
 
     // Accesos rápidos
     const quick = makeEl('div', 'home-quick');
@@ -4562,6 +5280,9 @@
     // Tu daylist (lo que te va a esta hora)
     const day = daylist(p);
     if (day && day.tracks.length >= 8) parts.push(heroCard(day));
+
+    // Tu canción de hoy (idea 4)
+    parts.push(songOfTheDayCard(p));
 
     // Selección rápida
     const picks = quickPicks(p);
@@ -4627,6 +5348,28 @@
         return card;
       }), 'is-artists'));
     }
+
+    // Explora por género, radio de género y ruleta (ideas 1–3)
+    parts.push(genreSection(p));
+
+    // Juega y descubre (ideas 5 y 6)
+    const play = homeSection('Juega y descubre', 'Para salir de la rutina.');
+    const games = makeEl('div', 'game-row');
+    [['surprise', 'spark', 'Sorpréndeme', 'Un artista de Liquid que nunca pusiste, con su radio'],
+      ['quiz', 'question', 'Adivina la canción', '5 rondas de 10 segundos con tu música'],
+      ['open-achievements', 'trophy', 'Racha y logros', 'Lo que llevas conseguido escuchando']].forEach(([action, icon, title, sub]) => {
+      const card = makeEl('button', 'game-card');
+      card.type = 'button';
+      card.dataset.action = action;
+      const ico = makeEl('span', 'game-icon');
+      ico.append(svgIcon(icon));
+      const text = makeEl('span', 'game-text');
+      text.append(makeEl('span', 'game-title', title), makeEl('span', 'game-sub', sub));
+      card.append(ico, text);
+      games.append(card);
+    });
+    play.append(games);
+    parts.push(play);
 
     // Explorar estilos (primero los tuyos)
     const styles = homeSection('Explora tus estilos');
@@ -6725,6 +7468,7 @@
   function renderLyrics(text, emptyMessage = 'Letra no disponible para esta canción.') {
     state.lyrics = parseLyrics(text);
     state.activeLyric = -1;
+    if (karaoke.open) queueMicrotask(() => renderKaraoke(true));
     if (typeof text === 'string' && text && state.currentTrack) delete state.currentTrack.lyricsHay;
     queueMicrotask(updateLyricsTools);
     els.lyricsBody.replaceChildren();
@@ -6768,6 +7512,7 @@
       else break;
     }
     if (index === state.activeLyric && !force) return;
+    queueMicrotask(() => renderKaraoke());
 
     const previous = els.lyricsBody.querySelector('.lyric-line.is-active');
     if (previous) previous.classList.remove('is-active');
@@ -7646,6 +8391,22 @@
         case 'share-playlist': sharePlaylist(pl); break;
         case 'go-view': setView(target.dataset.value); break;
         case 'open-artist': openArtist(target.dataset.value); break;
+        case 'genre-radio':
+          if (state.currentTrack && state.playSource === `genre:${target.dataset.value}`) togglePlay();
+          else startGenreRadio(target.dataset.value);
+          break;
+        case 'genre-roulette': genreRoulette(); break;
+        case 'genre-open': openGenreInLibrary(target.dataset.value); break;
+        case 'sotd-play': {
+          const track = getTrack(target.dataset.value);
+          if (track && state.currentTrack?.id === track.id) togglePlay();
+          else if (track) startRadio(artistKeyOf(track), track);
+          break;
+        }
+        case 'surprise': surpriseMe(); break;
+        case 'quiz': openQuiz(); break;
+        case 'open-achievements': openAchievements(); break;
+        case 'month-card': openMonthCard(); break;
         case 'radio-artist':
           if (LAB_MODE) sendToLiquid({ action: 'radio', artist: target.dataset.value });
           else startRadio(target.dataset.value);
@@ -10572,6 +11333,7 @@
     updateVolumeUI();
     updateProgressUI(0, 0);
     bindEvents();
+    initIdeas();
     navHistory.init();
     npSheet.init();
     // Mientras llega la biblioteca (primera visita), filas de esqueleto en vez de un hueco
