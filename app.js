@@ -339,6 +339,7 @@
     plName: $('plName'),
     plEmojis: $('plEmojis'),
     plColors: $('plColors'),
+    plLocalNote: $('plLocalNote'),
     plPortadas: $('plPortadas'),
     deviceInfo: $('deviceInfo'),
     addDialog: $('addDialog'),
@@ -869,15 +870,21 @@
     if (start) playCollection(tracks, start, name, 'lab:result');
   }
 
+  // Con sesión iniciada todo se guarda en la cuenta: los avisos de «se puede perder» sobran.
+  // (`cuenta` se declara más abajo; antes de existir cuenta como sin sesión)
+  function signedIn() {
+    try { return cuenta.haySesion(); } catch { return false; }
+  }
+
   // Recordatorio suave: con playlists propias y sin copia en 30 días (como mucho una vez por semana)
   function maybeRemindBackup() {
     const day = 86400000;
     const now = Date.now();
-    if (!library.local.length) return;
+    if (!library.local.length || signedIn()) return;
     if (now - settings.lastBackup < 30 * day || now - settings.backupNagAt < 7 * day) return;
     settings.backupNagAt = now;
     saveSettings();
-    setTimeout(() => showToast('Tus playlists viven solo en este navegador. ¿Guardas una copia?', { label: 'Descargar', run: exportPlaylists }), 6000);
+    setTimeout(() => { if (!signedIn()) showToast('Sin sesión, tus playlists viven solo en este navegador. Inicia sesión para no perderlas.', { label: 'Iniciar sesión', run: () => cuenta.abrir() }); }, 6000);
   }
 
   /* ---------- Novedades: canciones que llegaron desde tu última visita ---------- */
@@ -1651,6 +1658,7 @@
       face.style.background = value;
       face.setAttribute('aria-label', value);
     });
+    if (els.plLocalNote) els.plLocalNote.hidden = signedIn();
     const result = await openDialog(els.plDialog);
     const name = els.plName.value.trim().slice(0, 60);
     if (result !== 'ok' || !name) return null;
@@ -2670,7 +2678,8 @@
 
     const grid = makeEl('div', 'stat-grid');
     grid.append(daily, hours, genres, artists, trend, songs);
-    panel.replaceChildren(tiles, grid, makeEl('p', 'pl-note', 'Tus estadísticas se calculan y guardan solo en este dispositivo.'));
+    panel.replaceChildren(tiles, grid);
+    if (!signedIn()) panel.append(makeEl('p', 'pl-note', 'Sin sesión, tus estadísticas se guardan solo en este dispositivo y se pierden si borras los datos del sitio. Para no perderlas, basta con iniciar sesión.'));
   }
 
   /* ---------- Lab: mezclas a medida, recetas y tu ADN musical ----------
@@ -2984,7 +2993,7 @@
 
   // Tu ADN musical: tus estilos, cuánto exploras y cuándo escuchas
   function renderDna(p) {
-    const section = labSection('Tu ADN musical', 'Así escuchas según este navegador. Cambia con lo que pongas.');
+    const section = labSection('Tu ADN musical', `Así escuchas según ${signedIn() ? 'tu cuenta' : 'este navegador'}. Cambia con lo que pongas.`);
     if (!p.hasHistory) {
       section.append(makeEl('p', 'lab-hint', 'Escucha unas cuantas canciones y aquí verás tus estilos, cuánto exploras y a qué hora escuchas.'));
       return section;
@@ -3591,7 +3600,7 @@
     const meta = makeEl('span', 'playlist-meta');
     meta.dataset.base = `${songsLabel(tracks.length)} · ${formatTotal(total)}`;
     meta.textContent = meta.dataset.base;
-    text.append(makeEl('span', `pl-kind pl-kind-${pl.kind}`, KIND_LABELS[pl.kind]), makeEl('h2', 'pl-hero-name', pl.name));
+    text.append(makeEl('span', `pl-kind pl-kind-${pl.kind}`, pl.kind === 'local' && signedIn() ? 'Guardada en tu cuenta' : KIND_LABELS[pl.kind]), makeEl('h2', 'pl-hero-name', pl.name));
     if (pl.description) text.append(makeEl('p', 'pl-hero-desc', pl.description));
     text.append(meta);
     header.append(playlistCover(pl, 112), text);
@@ -3616,7 +3625,7 @@
       actions.append(
         makeButton('icon-btn', 'edit-playlist', 'Cambiar nombre, icono o color', 'edit'),
         makeButton('icon-btn', 'copy-playlist', 'Duplicar esta playlist', 'playlist-add'),
-        makeButton('icon-btn', 'delete-playlist', 'Eliminar de este dispositivo', 'delete')
+        makeButton('icon-btn', 'delete-playlist', signedIn() ? 'Eliminar playlist' : 'Eliminar de este dispositivo', 'delete')
       );
     } else {
       actions.append(makeButton('btn', 'copy-playlist', 'Copiar a mis playlists', 'playlist-add', 'Copiar a mis playlists'));
@@ -3624,8 +3633,8 @@
     }
     wrap.append(back, header, actions);
 
-    if (pl.kind === 'local') {
-      wrap.append(makeEl('p', 'pl-note', 'Esta playlist vive solo en este navegador: si borras la caché o los datos del sitio, se pierde. Descarga una copia de seguridad desde Playlists para no perderla.'));
+    if (pl.kind === 'local' && !signedIn()) {
+      wrap.append(makeEl('p', 'pl-note', 'Sin sesión, esta playlist vive solo en este navegador: si borras la caché o los datos del sitio, se pierde. Para no perderla, basta con iniciar sesión.'));
     }
     return wrap;
   }
@@ -5043,7 +5052,7 @@
     if (pinned.length) parts.push(section('Fijadas', '', pinned));
     parts.push(
       section('Playlists de Liquid Bullet', pinned.length ? '' : 'Mantén pulsada una playlist (o clic derecho) para fijarla arriba.', unpinned(systemPlaylists())),
-      section('Mis playlists', 'Se guardan solo en este navegador. Si borras la caché o los datos del sitio, se perderán: descarga una copia de seguridad (botón Descargar de arriba).', unpinned(localPlaylists()), newCard)
+      section('Mis playlists', signedIn() ? '' : 'Sin sesión, se guardan solo en este navegador y se pierden si borras la caché o los datos del sitio. Para no perderlas, basta con iniciar sesión.', unpinned(localPlaylists()), newCard)
     );
     const autoLeft = unpinned(autos);
     if (autoLeft.length) parts.push(section('Para ti', '', autoLeft));
@@ -9651,6 +9660,7 @@
       sesion = null;
       sync.estado = 'apagado';
       guardarSesion();
+      renderList();
       if (motivo === 'caducada') showToast(ERRORES.sesion_caducada);
     }
 
@@ -10044,6 +10054,8 @@
         btn.setAttribute('aria-label', sesion ? `Tu cuenta (${p?.correo || ''})` : 'Iniciar sesión o crear cuenta');
         btn.title = sesion ? 'Tu cuenta' : 'Iniciar sesión';
       }
+      const notaLocal = document.getElementById('privacyLocalNote');
+      if (notaLocal) notaLocal.hidden = Boolean(sesion);
       const ajuste = document.getElementById('cuentaAjuste');
       if (ajuste) {
         ajuste.innerHTML = sesion
