@@ -430,6 +430,42 @@ PLAYLISTS = [
 # Destino de las canciones de artistas que aún no están en ninguna playlist
 DEFAULT_PLAYLIST = 'cuarto-pastel'
 
+# ---------- Géneros ----------
+# Cada estilo (playlist de base) pertenece a exactamente un género amplio. La app los usa para el
+# filtro «Géneros» de la Biblioteca/Buscar y para crear mezclas por género en Liquid Lab.
+GENRES = [
+    ('pop', 'Pop', ['cuarto-pastel', 'londres-rosa', 'cereza-suave']),
+    ('indie', 'Indie y alternativo', ['acido-lento', 'sol-sintetico', 'ola-tibia', 'lluvia-lenta', 'velo-sonico']),
+    ('rnb', 'R&B, soul y funk', ['seda-nocturna', 'brillo-disco']),
+    ('electronica', 'Electrónica y baile', ['riviera-francesa', 'neon-eterno', 'euforia-ibiza', 'tekk-fantasma', 'chicle-toxico', 'cuenta-atras']),
+    ('internet', 'Hyperpop y emo', ['senal-rota', 'corazon-roto', 'vampiro-digital']),
+    ('rap', 'Rap y hip hop', ['rima-cruda', 'verso-azul', 'nube-purpura', 'infierno-rosa']),
+    ('urbano', 'Reggaetón y trap latino', ['fiebre-latina', 'perreo-nocturno', 'barrio-sur', 'dembow-anejo', 'trap-lunar']),
+    ('latino', 'Latino alternativo', ['calle-cromo', 'alma-latina', 'verano-tropical']),
+    ('rock', 'Rock y metal', ['trueno-clasico', 'niebla-pesada', 'ciudad-furia', 'ola-fria']),
+    ('jazz', 'Jazz y swing', ['humo-dorado', 'terciopelo-azul', 'luna-swing']),
+    ('beats', 'Beats y lo-fi', ['otono-modal', 'cafe-lento', 'beat-nipon']),
+    ('clasicos', 'Clásicos y baladas', ['vinilo-rosa', 'balada-eterna']),
+    ('asia', 'K-pop y J-pop', ['seul-brillante', 'tokio-electrico']),
+]
+
+
+def build_genres(playlists):
+    """[{id, name, styles}] con los nombres de estilo (los que lleva cada canción en «genres»)."""
+    names = {p['id']: p['name'] for p in playlists}
+    owner = {}
+    for gid, _, styles in GENRES:
+        for pid in styles:
+            if pid in owner:
+                raise SystemExit(f'Género: {pid} está en {owner[pid]} y en {gid}')
+            owner[pid] = gid
+    missing = [pid for pid in names if pid not in owner]
+    if missing:
+        raise SystemExit('Género: estas playlists no tienen género (añádelas a GENRES): ' + ', '.join(missing))
+    return [{'id': gid, 'name': name, 'styles': [names[pid] for pid in styles if pid in names]}
+            for gid, name, styles in GENRES]
+
+
 def artist_key(name):
     # Nombres en japonés, coreano…: norm los dejaría vacíos, se comparan tal cual
     return norm(name) or str(name).strip().lower()
@@ -669,7 +705,7 @@ def main():
             # Excluida de las playlists (no se ve): un icono fijo según su id
             song_covers[t['id']] = int(hashlib.md5(t['id'].encode()).hexdigest(), 16) % len(song_files)
     nuevas = note_new_music(unique, previous)
-    catalog = {'version': 1, 'genres': genres, 'playlists': out, 'aliases': aliases,
+    catalog = {'version': 1, 'genres': genres, 'generos': build_genres(out), 'playlists': out, 'aliases': aliases,
                'songCoverFiles': song_files, 'songCovers': song_covers}
     (ROOT / 'catalog.json').write_text(json.dumps(catalog, ensure_ascii=False, indent=1), encoding='utf-8')
     shared = write_share_pages(tracks, out, {tid: song_files[i] for tid, i in song_covers.items()})

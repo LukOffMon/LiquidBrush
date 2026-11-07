@@ -194,6 +194,29 @@ test('Lab: una receta crea una mezcla y se pueden quitar canciones', async ({ pa
   await expect(rows).toHaveCount(59);
 });
 
+test('géneros: filtran la Biblioteca (con sus estilos) y Lab crea una mezcla por género', async ({ page }) => {
+  await page.goto('./');
+  await expect(page.locator('#libCount')).not.toHaveText('0');
+  await page.evaluate(() => document.querySelector('.tab[data-view="library"]').click());
+  const rock = page.locator('#filterChips .chip-genero[data-value="rock"]');
+  await expect(rock).toHaveText('Rock y metal');
+  await rock.evaluate((el) => el.click());
+  await expect(rock).toHaveAttribute('aria-pressed', 'true');
+  // Solo quedan los estilos de ese género, y cada canción visible es de uno de ellos
+  const styles = await page.locator('#filterChips [data-action="genre"]').allTextContents();
+  expect(styles.sort()).toEqual(['Ciudad Furia', 'Niebla Pesada', 'Ola Fría', 'Trueno Clásico']);
+  const shown = await page.evaluate(() => [...document.querySelectorAll('.track')].length);
+  expect(shown).toBeGreaterThan(0);
+
+  await page.goto('./lab.html');
+  await page.locator('.lab-generos [data-value="jazz"]').click();
+  await page.locator('.lab-create').click();
+  const rows = page.locator('.lab-result:not(.lab-seeds) .lab-track .lab-track-artist');
+  await expect(rows.first()).toBeVisible();
+  const genres = (await rows.allTextContents()).map((t) => t.split(' · ').pop());
+  expect(genres.every((g) => ['Humo Dorado', 'Terciopelo Azul', 'Luna Swing'].includes(g))).toBe(true);
+});
+
 test('el aleatorio deja al final lo recién escuchado', async ({ page }) => {
   await page.goto('./?view=library');
   await expect(page.locator('#libCount')).not.toHaveText('0');

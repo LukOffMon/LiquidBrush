@@ -208,8 +208,10 @@
     countedId: null,
     statsOffset: 0,
     query: '',
-    // Filtros rápidos de la lista: all | downloaded | favorites | unplayed, y un género
+    // Filtros rápidos de la lista: all | downloaded | favorites | unplayed, un género amplio
+    // (genero: id de catalog.json → generos) y un estilo (genre: nombre de su playlist de base)
     filter: 'all',
+    genero: '',
     genre: '',
     shuffle: false,
     repeat: 'off',
@@ -2731,6 +2733,7 @@
   const LAB_CAPS = [1, 2, 3, 0];
   const LAB_MIX_LABELS = ['Solo conocidas', 'Sobre todo conocidas', 'Mitad y mitad', 'Sobre todo nuevas', 'Solo nuevas'];
   const lab = {
+    generos: [],
     genres: [],
     artists: [],
     seeds: [],
@@ -2747,6 +2750,7 @@
     ...(() => {
       const saved = storage.get(KEYS.lab, {}) || {};
       return {
+        generos: Array.isArray(saved.generos) ? saved.generos : [],
         genres: Array.isArray(saved.genres) ? saved.genres : [],
         artists: Array.isArray(saved.artists) ? saved.artists : [],
         seeds: Array.isArray(saved.seeds) ? saved.seeds.slice(0, 5) : [],
@@ -2761,7 +2765,7 @@
   };
 
   function saveLab() {
-    storage.set(KEYS.lab, { genres: lab.genres, artists: lab.artists, seeds: lab.seeds, size: lab.size, minutes: lab.minutes,
+    storage.set(KEYS.lab, { generos: lab.generos, genres: lab.genres, artists: lab.artists, seeds: lab.seeds, size: lab.size, minutes: lab.minutes,
       mix: lab.mix, cap: lab.cap, order: lab.order });
   }
 
@@ -2811,6 +2815,19 @@
     return map;
   }
 
+  // Géneros amplios (catalog.json → generos): cada uno reúne varios estilos (playlists de base).
+  // Los usa el filtro «Géneros» de la Biblioteca y Buscar, y Liquid Lab para crear por género.
+  function genreFamilies() {
+    const list = Array.isArray(library.catalog?.generos) ? library.catalog.generos : [];
+    return list.filter((g) => g && g.id && g.name && Array.isArray(g.styles) && g.styles.length);
+  }
+  const familyOf = (id) => genreFamilies().find((g) => g.id === id);
+  function familyTracks(family) {
+    if (!family) return [];
+    const styles = new Set(family.styles);
+    return state.libraryTracks.filter((t) => styles.has(t.genre));
+  }
+
   function labGenres() {
     return shownPls(systemPlaylists()).map((pl) => ({ name: pl.name, description: pl.description || '', count: playlistTracksOf(pl).length }))
       .filter((g) => g.count > 0);
@@ -2830,6 +2847,7 @@
     const p = tasteProfile();
     const artists = labArtists();
     const pools = groups || [
+      ...lab.generos.map((id) => familyTracks(familyOf(id))),
       ...lab.genres.map((genre) => state.libraryTracks.filter((t) => t.genre === genre)),
       ...lab.artists.map((key) => artists.get(key)?.tracks || []),
       ...lab.seeds.map(getTrack).filter(Boolean).map(seedPool)
@@ -2910,11 +2928,11 @@
     const visible = labGenres().map((g) => g.name);
     const top = p.topGenres.filter((g) => visible.includes(g));
     const fallback = seededShuffle(visible, todayKey());
-    const keep = { genres: lab.genres, artists: lab.artists, seeds: lab.seeds, mix: lab.mix, cap: lab.cap, size: lab.size, minutes: lab.minutes, order: lab.order };
+    const keep = { generos: lab.generos, genres: lab.genres, artists: lab.artists, seeds: lab.seeds, mix: lab.mix, cap: lab.cap, size: lab.size, minutes: lab.minutes, order: lab.order };
     let result = [];
     const recipe = LAB_RECIPES.find((r) => r.id === id);
     const withSettings = (changes, groups = null) => {
-      Object.assign(lab, { artists: [], seeds: [], minutes: 0, order: 'mix' }, changes);
+      Object.assign(lab, { generos: [], artists: [], seeds: [], minutes: 0, order: 'mix' }, changes);
       let out = buildLabMix(groups);
       // Sin historial aún no hay «conocidas»: se completa con canciones nuevas
       if (out.length < 10 && lab.mix === 0) {
@@ -3076,6 +3094,8 @@
     const artists = labArtists();
     const genres = labGenres();
     lab.genres = lab.genres.filter((g) => genres.some((x) => x.name === g));
+    const families = genreFamilies();
+    lab.generos = lab.generos.filter((id) => families.some((f) => f.id === id));
     lab.artists = lab.artists.filter((a) => artists.has(a));
     lab.seeds = lab.seeds.filter((id) => state.trackMap.has(id));
 
@@ -3094,8 +3114,22 @@
     });
     recipes.append(recipeGrid);
 
-    // 1. Estilos (primero los tuyos)
-    const styles = labSection('1 · Mezcla estilos', 'Elige uno o varios: Lab los combina por turnos.');
+    // 1. Géneros y estilos (primero los tuyos)
+    const styles = labSection('1 · Mezcla géneros y estilos', 'Elige uno o varios: Lab los combina por turnos. Un género trae todos sus estilos.');
+    if (families.length) {
+      const counts = new Map(genres.map((g) => [g.name, g.count]));
+      const familyChips = makeEl('div', 'lab-chips lab-generos');
+      families.map((f) => ({ ...f, count: f.styles.reduce((n, style) => n + (counts.get(style) || 0), 0),
+        taste: f.styles.reduce((n, style) => n + Math.max(0, p.genreN(style)), 0) }))
+        .filter((f) => f.count > 0)
+        .sort((a, b) => b.taste - a.taste || b.count - a.count)
+        .forEach((f) => {
+          const chip = labChip(f.name, 'genero', f.id, lab.generos.includes(f.id), String(f.count));
+          chip.title = f.styles.join(', ');
+          familyChips.append(chip);
+        });
+      styles.append(makeEl('p', 'lab-sublabel', 'Géneros'), familyChips, makeEl('p', 'lab-sublabel', 'Estilos'));
+    }
     const styleChips = makeEl('div', 'lab-chips');
     genres.slice().sort((a, b) => p.genreN(b.name) - p.genreN(a.name)).forEach((g) => {
       const chip = labChip(g.name, 'genre', g.name, lab.genres.includes(g.name), String(g.count));
@@ -3163,11 +3197,11 @@
       group('Máximo por artista', LAB_CAPS.map((n) => labChip(n ? String(n) : 'Sin límite', 'cap', String(n), lab.cap === n))),
       group('Orden', [labChip('Mezclada', 'order', 'mix', lab.order === 'mix'), labChip('Viaje de estilos', 'order', 'journey', lab.order === 'journey')])
     );
-    const selected = lab.genres.length + lab.artists.length + lab.seeds.length;
+    const selected = lab.generos.length + lab.genres.length + lab.artists.length + lab.seeds.length;
     const create = labButton('btn btn-primary lab-create', 'create', 'Crear la mezcla', 'shuffle', lab.result.length && !lab.resultName ? 'Otra mezcla' : 'Crear mezcla');
     create.disabled = !selected;
-    const names = [...lab.genres, ...chosen.map((a) => a.name), ...lab.seeds.map(getTrack).filter(Boolean).map((t) => `«${splitTitle(t.title).main}»`)];
-    const summary = makeEl('p', 'lab-hint', selected ? `Mezclando: ${names.join(' + ')}` : 'Elige al menos un estilo, un artista o una canción.');
+    const names = [...lab.generos.map((id) => familyOf(id)?.name).filter(Boolean), ...lab.genres, ...chosen.map((a) => a.name), ...lab.seeds.map(getTrack).filter(Boolean).map((t) => `«${splitTitle(t.title).main}»`)];
+    const summary = makeEl('p', 'lab-hint', selected ? `Mezclando: ${names.join(' + ')}` : 'Elige al menos un género, un estilo, un artista o una canción.');
     const clear = makeEl('button', 'btn btn-ghost lab-clear', 'Limpiar');
     clear.type = 'button';
     clear.dataset.labAction = 'clear';
@@ -3255,7 +3289,7 @@
   function labName() {
     if (lab.resultName) return `Lab · ${lab.resultName}`;
     const artists = labArtists();
-    const parts = [...lab.genres, ...lab.artists.map((key) => artists.get(key)?.name).filter(Boolean),
+    const parts = [...lab.generos.map((id) => familyOf(id)?.name).filter(Boolean), ...lab.genres, ...lab.artists.map((key) => artists.get(key)?.name).filter(Boolean),
       ...lab.seeds.map(getTrack).filter(Boolean).map((t) => splitTitle(t.title).main)];
     const name = parts.length > 2 ? `${parts.slice(0, 2).join(' + ')} y más` : parts.join(' + ');
     return `Lab · ${name || 'Mezcla'}`.slice(0, 60);
@@ -3272,6 +3306,7 @@
     const toggle = (list, item) => (list.includes(item) ? list.filter((x) => x !== item) : [...list, item]);
     switch (action) {
       case 'recipe': runRecipe(value); haptic(12); return;
+      case 'genero': lab.generos = toggle(lab.generos, value); break;
       case 'genre': lab.genres = toggle(lab.genres, value); break;
       case 'artist': lab.artists = toggle(lab.artists, value); break;
       case 'seed':
@@ -3282,7 +3317,7 @@
       case 'minutes': lab.minutes = Number(value); break;
       case 'cap': lab.cap = Number(value); break;
       case 'order': lab.order = value === 'journey' ? 'journey' : 'mix'; break;
-      case 'clear': lab.genres = []; lab.artists = []; lab.seeds = []; lab.result = []; lab.resultName = ''; break;
+      case 'clear': lab.generos = []; lab.genres = []; lab.artists = []; lab.seeds = []; lab.result = []; lab.resultName = ''; break;
       case 'create': saveLab(); labCreate(); haptic(12); return;
       case 'play':
         if (state.currentTrack && state.playSource === 'lab:result') togglePlay();
@@ -3423,7 +3458,7 @@
   // no en las miles de canciones otra vez
   let lastExact = { key: '', q: '', result: null };
   // La lista de partida se rehace en cada tecla: se reconoce por vista, filtros, tamaño y extremos
-  const listKeyOf = (list) => `${state.view}|${state.openPlaylist?.key || state.openPlaylist || ''}|${state.openArtist || ''}|${state.sort}|${state.filter || ''}|${state.genre || ''}|${list.length}|${list[0]?.id}|${list[list.length - 1]?.id}`;
+  const listKeyOf = (list) => `${state.view}|${state.openPlaylist?.key || state.openPlaylist || ''}|${state.openArtist || ''}|${state.sort}|${state.filter || ''}|${state.genero || ''}|${state.genre || ''}|${list.length}|${list[0]?.id}|${list[list.length - 1]?.id}`;
   function searchTracks(list, query) {
     const q = normalize(query);
     if (!q) return list;
@@ -4991,6 +5026,11 @@
     if (state.filter === 'downloaded') result = result.filter(isDownloaded);
     else if (state.filter === 'favorites') result = result.filter((t) => state.favorites.has(t.id));
     else if (state.filter === 'unplayed') result = result.filter((t) => !library.plays[t.id]);
+    const family = state.genero ? familyOf(state.genero) : null;
+    if (family) {
+      const styles = new Set(family.styles);
+      result = result.filter((t) => styles.has(t.genre));
+    }
     if (state.genre) result = result.filter((t) => t.genre === state.genre);
     return result;
   }
@@ -5014,13 +5054,31 @@
     }
     const chips = Object.entries(FILTERS)
       .filter(([key]) => !(key === 'favorites' && state.view === 'favorites') && !(key === 'downloaded' && !offline.supported))
-      .map(([key, label]) => makeChip('filter', key, label, state.filter === key && !(key === 'all' && state.genre)));
-    // Géneros de la lista que se ve, de más a menos canciones
+      .map(([key, label]) => makeChip('filter', key, label, state.filter === key && !(key === 'all' && (state.genre || state.genero))));
+    // Estilos de la lista que se ve, de más a menos canciones
     const counts = new Map();
     baseTracks().forEach((t) => { if (t.genre) counts.set(t.genre, (counts.get(t.genre) || 0) + 1); });
-    const genres = [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([genre]) => genre);
+    // Géneros amplios (Pop, Rock, Reggaetón…) con canciones en esta lista, de más a menos
+    const families = genreFamilies()
+      .map((f) => ({ ...f, count: f.styles.reduce((n, style) => n + (counts.get(style) || 0), 0) }))
+      .filter((f) => f.count > 0)
+      .sort((a, b) => b.count - a.count);
+    if (state.genero && !families.some((f) => f.id === state.genero)) state.genero = '';
+    const family = families.find((f) => f.id === state.genero);
+    let genres = [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([genre]) => genre);
+    if (family) genres = genres.filter((g) => family.styles.includes(g));
     if (state.genre && !genres.includes(state.genre)) state.genre = '';
-    if (genres.length > 1) {
+    if (families.length > 1) {
+      chips.push(makeEl('span', 'chip-sep'));
+      families.forEach((f) => {
+        const chip = makeChip('genero', f.id, f.name, state.genero === f.id);
+        chip.classList.add('chip-genero');
+        chip.title = `${f.count} canciones · ${f.styles.join(', ')}`;
+        chips.push(chip);
+      });
+    }
+    // Estilos: los del género elegido (o todos si la lista tiene pocos)
+    if (genres.length > 1 && (family || state.genre || genres.length <= 8 || !families.length)) {
       chips.push(makeEl('span', 'chip-sep'));
       genres.forEach((genre) => chips.push(makeChip('genre', genre, genre, state.genre === genre)));
     }
@@ -5299,6 +5357,7 @@
     const changed = previous !== view || previousPlaylist !== state.openPlaylist || previousArtist !== state.lastArtist;
     if (changed) {
       state.filter = 'all';
+      state.genero = '';
       state.genre = '';
       home.artistsShown = ARTISTS_PAGE;
       const detail = view === 'playlist' || view === 'artist';
@@ -7616,9 +7675,16 @@
                 case 'toggle-plview': setPlaylistView(settings.plView === 'list' ? 'grid' : 'list'); break;
         case 'filter':
           state.filter = target.dataset.value;
-          if (state.filter === 'all') state.genre = '';
+          if (state.filter === 'all') { state.genre = ''; state.genero = ''; }
           renderList();
           break;
+        case 'genero': {
+          state.genero = state.genero === target.dataset.value ? '' : target.dataset.value;
+          const family = familyOf(state.genero);
+          if (state.genre && (!family || !family.styles.includes(state.genre))) state.genre = '';
+          renderList();
+          break;
+        }
         case 'genre':
           state.genre = state.genre === target.dataset.value ? '' : target.dataset.value;
           renderList();

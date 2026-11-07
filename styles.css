@@ -6903,3 +6903,15 @@ textarea {
   [data-mode="lab"] .lab-back span { display: none; }
   [data-mode="lab"] .lab-back { width: 40px; height: 40px; padding: 0; justify-content: center; }
 }
+
+/* ---------- Géneros amplios (Biblioteca/Buscar y Liquid Lab) ---------- */
+.chip.chip-genero:not(.is-active) { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); font-weight: 600; }
+.lab-sublabel {
+  margin: 4px 0 -2px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.lab-generos .lab-chip:not(.is-active) { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); font-weight: 600; }

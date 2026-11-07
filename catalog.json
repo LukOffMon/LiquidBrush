@@ -3970,6 +3970,131 @@
   "salt:blessme-101-131-130-rauw-alejandro-desenfocao-mp3-3512f8": "Trap Lunar",
   "salt:blessme-101-131-131-jhayco-j-balvin-bad-bunny-no-me-conoce-r-71e52b": "Fiebre Latina"
  },
+ "generos": [
+  {
+   "id": "pop",
+   "name": "Pop",
+   "styles": [
+    "Cuarto Pastel",
+    "Londres Rosa",
+    "Cereza Suave"
+   ]
+  },
+  {
+   "id": "indie",
+   "name": "Indie y alternativo",
+   "styles": [
+    "Ácido Lento",
+    "Sol Sintético",
+    "Ola Tibia",
+    "Lluvia Lenta",
+    "Velo Sónico"
+   ]
+  },
+  {
+   "id": "rnb",
+   "name": "R&B, soul y funk",
+   "styles": [
+    "Seda Nocturna",
+    "Brillo Disco"
+   ]
+  },
+  {
+   "id": "electronica",
+   "name": "Electrónica y baile",
+   "styles": [
+    "Riviera Francesa",
+    "Neón Eterno",
+    "Euforia Ibiza",
+    "Ghost Case",
+    "Chicle Tóxico",
+    "Cuenta Atrás"
+   ]
+  },
+  {
+   "id": "internet",
+   "name": "Hyperpop y emo",
+   "styles": [
+    "Señal Rota",
+    "Corazón Roto",
+    "Vampiro Digital"
+   ]
+  },
+  {
+   "id": "rap",
+   "name": "Rap y hip hop",
+   "styles": [
+    "Rima Cruda",
+    "Verso Azul",
+    "Nube Púrpura",
+    "Infierno Rosa"
+   ]
+  },
+  {
+   "id": "urbano",
+   "name": "Reggaetón y trap latino",
+   "styles": [
+    "Fiebre Latina",
+    "Perreo Nocturno",
+    "Barrio Sur",
+    "Dembow Añejo",
+    "Trap Lunar"
+   ]
+  },
+  {
+   "id": "latino",
+   "name": "Latino alternativo",
+   "styles": [
+    "Calle Cromo",
+    "Alma Latina",
+    "Verano Tropical"
+   ]
+  },
+  {
+   "id": "rock",
+   "name": "Rock y metal",
+   "styles": [
+    "Trueno Clásico",
+    "Niebla Pesada",
+    "Ciudad Furia",
+    "Ola Fría"
+   ]
+  },
+  {
+   "id": "jazz",
+   "name": "Jazz y swing",
+   "styles": [
+    "Humo Dorado",
+    "Terciopelo Azul",
+    "Luna Swing"
+   ]
+  },
+  {
+   "id": "beats",
+   "name": "Beats y lo-fi",
+   "styles": [
+    "Otoño Modal",
+    "Café Lento",
+    "Beat Nipón"
+   ]
+  },
+  {
+   "id": "clasicos",
+   "name": "Clásicos y baladas",
+   "styles": [
+    "Vinilo Rosa",
+    "Balada Eterna"
+   ]
+  },
+  {
+   "id": "asia",
+   "name": "K-pop y J-pop",
+   "styles": [
+    "Seúl Brillante",
+    "Tokio Eléctrico"
+   ]
+  }
+ ],
  "playlists": [
   {
    "id": "cuarto-pastel",
