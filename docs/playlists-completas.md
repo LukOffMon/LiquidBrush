@@ -1,50 +1,52 @@
 # Todas las playlists y sus canciones
 
-Listado completo tras la revisión de noviembre de 2026 y las entregas miniminiexe y DustAct: 3854 canciones en 43 playlists. Por artista, de más a menos canciones. Sale de `catalog.json`, que genera `tools/build_catalog.py` a partir de la tabla `PLAYLISTS`; los cambios y sus motivos están en [revision-playlists.md](revision-playlists.md).
+Listado completo tras la revisión de noviembre de 2026 y las entregas miniminiexe, DustAct y Blessme: 3957 canciones en 45 playlists. Por artista, de más a menos canciones. Sale de `catalog.json`, que genera `tools/build_catalog.py` a partir de la tabla `PLAYLISTS`; los cambios y sus motivos están en [revision-playlists.md](revision-playlists.md).
 
 | Playlist | Canciones | Qué es |
 | --- | ---: | --- |
 | [Cuarto Pastel](#cuarto-pastel) | 202 | Bedroom pop y pop soñador: The Marías, PinkPantheress, Clairo, Malcolm Todd, beabadoobee y TV Girl. |
 | [Londres Rosa](#londres-rosa) | 50 | Pop británico de purpurina y corazón roto: Harry Styles, Suki Waterhouse y Lily Allen. |
-| [Seda Nocturna](#seda-nocturna) | 197 | R&B y pop de madrugada: Steve Lacy, The Weeknd, Frank Ocean, SZA, Doja Cat y Kali Uchis. |
-| [Ácido Lento](#acido-lento) | 213 | Psicodelia e indie que flota: Tame Impala, Mild High Club, Crumb, The Strokes, Gorillaz y Foster The People. |
+| [Seda Nocturna](#seda-nocturna) | 200 | R&B y pop de madrugada: Steve Lacy, The Weeknd, Frank Ocean, SZA, Doja Cat y Kali Uchis. |
+| [Ácido Lento](#acido-lento) | 214 | Psicodelia e indie que flota: Tame Impala, Mild High Club, Crumb, The Strokes, Gorillaz y Foster The People. |
 | [Sol Sintético](#sol-sintetico) | 74 | Psicodelia de sintetizador y pop cósmico: MGMT, Empire Of The Sun y Djo. |
 | [Ola Tibia](#ola-tibia) | 99 | Indie de garaje soleado y bedroom psych: Inner Wave, Hot Flash Heat Wave, Yot Club y Jordana. |
 | [Cereza Suave](#cereza-suave) | 38 | Soft rock y sunshine pop de sonrisa ladeada: Paul Cherry, Dent May y JW Francis. |
 | [Riviera Francesa](#riviera-francesa) | 61 | French touch y nu-disco de verano: Polo & Pan, L'Impératrice, Parcels, Metronomy, Miel De Montagne y Myd. |
 | [Lluvia Lenta](#lluvia-lenta) | 264 | Melancolía de guitarra y niebla: Mac DeMarco, Radiohead, The Smiths, Jeff Buckley y Cigarettes After Sex. |
-| [Velo Sónico](#velo-sonico) | 47 | Shoegaze y dream pop de reverb infinita: Cocteau Twins, Slowdive, my bloody valentine, Mazzy Star, Tamaryn y Part Time. |
-| [Señal Rota](#senal-rota) | 55 | Hyperpop, digicore y emo de internet: Jane Remover, underscores, kmoe, celai, guitarbf y punchy. |
+| [Velo Sónico](#velo-sonico) | 50 | Shoegaze y dream pop de reverb infinita: Cocteau Twins, Slowdive, my bloody valentine, Mazzy Star, Tamaryn y Part Time. |
+| [Señal Rota](#senal-rota) | 57 | Hyperpop, digicore y emo de internet: Jane Remover, underscores, kmoe, celai, guitarbf y punchy. |
 | [Ghost Case](#tekk-fantasma) | 92 | Hardtekk, jumpstyle y slowed de madrugada: STØMPWRLD, ythotkk, SAIBOTAJE, Snow Strippers, DJ ZUP RAlii y akkiemi. |
 | [Chicle Tóxico](#chicle-toxico) | 20 | Nightcore, jersey y bimbo sped up: Luci4, Jxrsey, Isaac Reign, Miss Papaya, LyteSpeed y Aidan Swank. |
 | [Corazón Roto](#corazon-roto) | 114 | Emo y scenecore de internet: pupsies, Punkinloveee, h4rtbrkr, Boy Fantasy, Beach Bunny en bajón y Cuntsniffer. |
 | [Vampiro Digital](#vampiro-digital) | 46 | Emo gótico y cloud oscuro: morgue, blair, backw666s, lungskull, wifiskeleton e Im gonna die alone. |
 | [Ola Fría](#ola-fria) | 80 | Post-punk ruso, coldwave, doomer y pop ruso: Kino, Intelligency, Crystal Castles, Soft Blade, NEMIGA y SEREBRO. |
-| [Neón Eterno](#neon-eterno) | 113 | Synth pop de los 80, eurodance de los 90 y pista de los 2000: Depeche Mode, Haddaway, Daft Punk, Gwen Stefani y Nelly Furtado. |
+| [Neón Eterno](#neon-eterno) | 110 | Synth pop de los 80, eurodance de los 90 y pista de los 2000: Depeche Mode, Haddaway, Daft Punk, Gwen Stefani y Nelly Furtado. |
+| [Euforia Ibiza](#euforia-ibiza) | 15 | EDM y pop de festival de los 2010: Calvin Harris, Swedish House Mafia, Galantis, Clean Bandit, Robin Schulz y Jack Ü. |
 | [Brillo Disco](#brillo-disco) | 89 | Disco, funk y soul para la pista: Michael Jackson, Bee Gees, Earth, Wind & Fire, Prince y Stevie Wonder. |
-| [Perreo Nocturno](#perreo-nocturno) | 137 | Neoperreo, dembow mexa y club latino: DENNA LA PORRI, Doony Graff, Yeyo, Jose Alatorre, MJ Nebreda y funk brasileño. |
+| [Fiebre Latina](#fiebre-latina) | 28 | Pop latino y reggaetón de radio: Shakira, J Balvin, CNCO, Maluma, Prince Royce, Anitta y Danny Ocean. |
+| [Perreo Nocturno](#perreo-nocturno) | 143 | Neoperreo, dembow mexa y club latino: DENNA LA PORRI, Doony Graff, Yeyo, Jose Alatorre, MJ Nebreda y funk brasileño. |
 | [Barrio Sur](#barrio-sur) | 45 | Trap romántico y cumbia rkt de Argentina: One Flyt, JCKC, tomas metrikf, Sosa 66s y T4CHO. |
-| [Calle Cromo](#calle-cromo) | 74 | La nueva escuela española: Stereo Madness, Guxo, Lu Jr, LEÏTI, Enry-K, Ralphie Choo y superreservao. |
-| [Infierno Rosa](#infierno-rosa) | 57 | Trap de la calle española, de la PXXR GVNG para acá: Yung Beef y Kaydy Cain. |
+| [Calle Cromo](#calle-cromo) | 76 | La nueva escuela española: Stereo Madness, Guxo, Lu Jr, LEÏTI, Enry-K, Ralphie Choo y superreservao. |
+| [Infierno Rosa](#infierno-rosa) | 58 | Trap de la calle española, de la PXXR GVNG para acá: Yung Beef y Kaydy Cain. |
 | [Cuenta Atrás](#cuenta-atras) | 36 | Club, jersey y remixes con acento español: nusar3000, GIANNI BATISTA, Mushkaa, Natalia Lacunza, NATHY PELUSO y Safety Trance. |
-| [Dembow Añejo](#dembow-anejo) | 61 | Reggaetón de la vieja escuela y cumbia: Daddy Yankee, Don Omar, Arcángel, Wisin & Yandel y Kumbia Kings. |
-| [Trap Lunar](#trap-lunar) | 66 | Trap latino para la madrugada: Yan Block, Omar Courtz, Bad Bunny, Duki, Myke Towers y Bryant Myers. |
-| [Rima Cruda](#rima-cruda) | 139 | Rap en español y de EE. UU.: Cruzzi, Charles Ans, Gera MX, Wk, Kendrick Lamar, Drake y Canserbero. |
+| [Dembow Añejo](#dembow-anejo) | 63 | Reggaetón de la vieja escuela y cumbia: Daddy Yankee, Don Omar, Arcángel, Wisin & Yandel y Kumbia Kings. |
+| [Trap Lunar](#trap-lunar) | 82 | Trap latino para la madrugada: Yan Block, Omar Courtz, Bad Bunny, Duki, Myke Towers y Bryant Myers. |
+| [Rima Cruda](#rima-cruda) | 154 | Rap en español y de EE. UU.: Cruzzi, Charles Ans, Gera MX, Wk, Kendrick Lamar, Drake y Canserbero. |
 | [Verso Azul](#verso-azul) | 67 | Jazz rap y boom bap con alma: Marcus D, Cise Star, Kero One, Jazz Liberatorz, Mountain Brothers y Witness. |
 | [Nube Púrpura](#nube-purpura) | 120 | Cloud rap, plugg y underground: LUCKI, Lelo, void, empireofyu, Xavier Wulf, Trefuego y Yung Lean. |
-| [Trueno Clásico](#trueno-clasico) | 116 | Rock de colección y metal: Deep Purple, AC/DC, Led Zeppelin, Queen, Metallica y Pink Floyd. |
+| [Trueno Clásico](#trueno-clasico) | 117 | Rock de colección y metal: Deep Purple, AC/DC, Led Zeppelin, Queen, Metallica y Pink Floyd. |
 | [Niebla Pesada](#niebla-pesada) | 49 | Deftones de principio a fin: Around the Fur, White Pony, Diamond Eyes, Koi No Yokan y Ohms, del nu metal al shoegaze pesado. |
 | [Ciudad Furia](#ciudad-furia) | 104 | Rock en español de culto: Soda Stereo, Serú Girán, Los Bunkers, Cerati, Enanitos Verdes, Café Tacvba y Los Prisioneros. |
-| [Alma Latina](#alma-latina) | 125 | Indie y alternativo latino: Mon Laferte, Zoé, Natalia Lafourcade, LATIN MAFIA, CA7RIEL & Paco Amoroso y Buscabulla. |
-| [Verano Tropical](#verano-tropical) | 59 | Cumbia pop e indie bailable: YoSoyMatt, Eva de Marce, Los Eclipses, Disco Bahía, ZTVZ y Karen y Los Remedios. |
+| [Alma Latina](#alma-latina) | 133 | Indie y alternativo latino: Mon Laferte, Zoé, Natalia Lafourcade, LATIN MAFIA, CA7RIEL & Paco Amoroso y Buscabulla. |
+| [Verano Tropical](#verano-tropical) | 60 | Cumbia pop e indie bailable: YoSoyMatt, Eva de Marce, Los Eclipses, Disco Bahía, ZTVZ y Karen y Los Remedios. |
 | [Humo Dorado](#humo-dorado) | 104 | Jazz, fusión y soul: Chet Baker, Etta James, Billie Holiday, Amy Winehouse, Thundercat y Sade. |
 | [Terciopelo Azul](#terciopelo-azul) | 110 | Damas del jazz vocal a media luz: Julie London, Nancy Wilson, Dinah Washington y Blossom Dearie. |
 | [Luna Swing](#luna-swing) | 116 | Crooners y swing de salón: Frank Sinatra, Nat King Cole, Bobby Darin, Louis Armstrong y Ella Fitzgerald. |
-| [Balada Eterna](#balada-eterna) | 82 | Baladas, boleros y románticas de siempre: José José, Luis Miguel, Juan Gabriel, Nelson Ned, Los Tres Caballeros y Tin Tan. |
+| [Balada Eterna](#balada-eterna) | 83 | Baladas, boleros y románticas de siempre: José José, Luis Miguel, Juan Gabriel, Nelson Ned, Los Tres Caballeros y Tin Tan. |
 | [Otoño Modal](#otono-modal) | 55 | El universo Nujabes: Nujabes, Shing02, Uyama Hiroto, Force Of Nature, haruka nakamura y Yakkle. |
 | [Café Lento](#cafe-lento) | 27 | Jazzhop y beats para la mañana: Boho Fau & Elevated Soul, Emapea, Okvsho, Mndsgn, Teebs y edbl. |
 | [Beat Nipón](#beat-nipon) | 20 | Beats y jazz japonés de hoy: STUTS, tajima hal, Shingo Sekiguchi, Toshiki Soejima, mabanua y DJ Mitsu The Beats. |
-| [Vinilo Rosa](#vinilo-rosa) | 89 | Pop, doo-wop y soul de los 50 a los 70: Tom Jones, Brenda Lee, The Ronettes, Carpenters y The Beatles. |
+| [Vinilo Rosa](#vinilo-rosa) | 90 | Pop, doo-wop y soul de los 50 a los 70: Tom Jones, Brenda Lee, The Ronettes, Carpenters y The Beatles. |
 | [Seúl Brillante](#seul-brillante) | 95 | K-pop de escenario: ENHYPEN, BTS, Stray Kids, EXO, ATEEZ, NewJeans y TXT. |
 | [Tokio Eléctrico](#tokio-electrico) | 47 | J-rock, kawaii metal y city pop: BABYMETAL, Hanabie, ATARASHII GAKKO! y Masayoshi Takanaka. |
 
@@ -135,7 +137,7 @@ _Pop británico de purpurina y corazón roto: Harry Styles, Suki Waterhouse y Li
 - **Lily Allen** (1): Smile
 
 <a id="seda-nocturna"></a>
-## Seda Nocturna (197)
+## Seda Nocturna (200)
 
 _R&B y pop de madrugada: Steve Lacy, The Weeknd, Frank Ocean, SZA, Doja Cat y Kali Uchis._
 
@@ -151,6 +153,7 @@ _R&B y pop de madrugada: Steve Lacy, The Weeknd, Frank Ocean, SZA, Doja Cat y Ka
 - **Childish Gambino** (4): Me and Your Mama · Redbone · Heartbeat · Les
 - **Ariana Grande** (4): intro (end of the world) · pov · the boy is mine · Into You
 - **Melanie Martinez** (3): High School Sweethearts · Teacher's Pet · Pacify Her
+- **PARTYNEXTDOOR** (3): Break from Toronto · M a k e I t T o T h e M o r n i n g · Belong to the City
 - **Ambar Lucid** (3): Fantasmas · A Letter to my younger self · Universe
 - **Daniel Caesar** (2): Who Knows · Loose
 - **Ley Soul** (2): Intergalactic Janet · Into Sands
@@ -158,7 +161,6 @@ _R&B y pop de madrugada: Steve Lacy, The Weeknd, Frank Ocean, SZA, Doja Cat y Ka
 - **Tyler, The Creator, Pharrell Williams** (2): Big Poe (feat. Sk8brd) · IFHY (feat. Pharrell)
 - **Tyler, The Creator, Frank Ocean** (2): Where This Flower Blooms (feat. Frank Ocean) · She
 - **Montell Fish** (2): Hotel · Bathroom
-- **PARTYNEXTDOOR** (2): Break from Toronto · M a k e I t T o T h e M o r n i n g
 - **SZA** (2): Nobody Gets Me · Kill Bill
 - **Rihanna** (2): Woo · Needed Me
 - **Ravyn Lenae** (1): Love Me Not
@@ -211,7 +213,6 @@ _R&B y pop de madrugada: Steve Lacy, The Weeknd, Frank Ocean, SZA, Doja Cat y Ka
 - **The Weeknd, Kendrick Lamar** (1): Pray For Me
 - **Cassie** (1): Long Way 2 Go
 - **The Weeknd, Playboi Carti, Madonna** (1): Popular (with Playboi Carti & Madonna) - From The Idol Vol. 1 (Music from the HBO Original Series)
-- **Shakira, Rihanna** (1): Can't Remember to Forget You (feat. Rihanna)
 - **Billie Eilish, Khalid** (1): lovely (with Khalid)
 - **ZAYN** (1): PILLOWTALK
 - **Chris Brown** (1): Under The Influence
@@ -232,9 +233,12 @@ _R&B y pop de madrugada: Steve Lacy, The Weeknd, Frank Ocean, SZA, Doja Cat y Ka
 - **Tainy, Young Miko, The Marías** (1): mañana
 - **benny blanco, The Marías** (1): Memoria De Paz (feat. The Marías)
 - **Tainy, Bad Bunny** (1): MOJABI GHOST
+- **Trinidad Cardona, Robinson** (1): Love Me Back (Fayahh Beat)
+- **VVV [Trippin'you]** (1): Rush
+- **JEY** (1): Drug=love (Feat. Sik-K) (PROD. GXXD)
 
 <a id="acido-lento"></a>
-## Ácido Lento (213)
+## Ácido Lento (214)
 
 _Psicodelia e indie que flota: Tame Impala, Mild High Club, Crumb, The Strokes, Gorillaz y Foster The People._
 
@@ -331,6 +335,7 @@ _Psicodelia e indie que flota: Tame Impala, Mild High Club, Crumb, The Strokes, 
 - **Dayglow** (1): Can I Call You Tonight
 - **Seekae, Flume** (1): Test & Recognise - Flume Re-work
 - **untitled** (1): Restless
+- **Dominic Fike, Kenny Beats** (1): Phone Numbers
 
 <a id="sol-sintetico"></a>
 ## Sol Sintético (74)
@@ -475,12 +480,13 @@ _Melancolía de guitarra y niebla: Mac DeMarco, Radiohead, The Smiths, Jeff Buck
 - **Black Country, New Road** (1): The Place Where He Inserted the Blade
 
 <a id="velo-sonico"></a>
-## Velo Sónico (47)
+## Velo Sónico (50)
 
 _Shoegaze y dream pop de reverb infinita: Cocteau Twins, Slowdive, my bloody valentine, Mazzy Star, Tamaryn y Part Time._
 
 - **Cocteau Twins** (11): Serpentskirt · Rilkean Heart · Pitch the Baby · Evangeline - Remastered 2024 · Know Who You Are At Every Age - Remastered 2024 · Frou-frou Foxes in Midsummer Fires · Heaven or Las Vegas · Cherry-coloured Funk · Wolf in the Breast · Sugar Hiccup · Seekers Who Are Lovers
 - **Part Time** (4): Lies in the Eyes of Love · So Far Away · Spell #6 · A Million Things to Say
+- **Aphex Twin** (3): Xtal · Pulsewidth · QKThr
 - **Cocteau Twins, Harold Budd** (2): She Will Destroy You - 2024 Remaster · Sea, Swallow Me - 2024 Remaster
 - **You'll Never Get to Heaven** (2): Setting Sun · Caught In Time, So Far Away
 - **Alison's Halo** (2): Dozen · Jetpacks for Julian
@@ -510,7 +516,7 @@ _Shoegaze y dream pop de reverb infinita: Cocteau Twins, Slowdive, my bloody val
 - **BUBBLE TEA AND CIGARETTES** (1): Room 907
 
 <a id="senal-rota"></a>
-## Señal Rota (55)
+## Señal Rota (57)
 
 _Hyperpop, digicore y emo de internet: Jane Remover, underscores, kmoe, celai, guitarbf y punchy._
 
@@ -518,6 +524,7 @@ _Hyperpop, digicore y emo de internet: Jane Remover, underscores, kmoe, celai, g
 - **morgue vault** (2): decrepit · myspace
 - **celai** (2): shatter... war torn bastard · enough
 - **schizocat** (2): skin · kiss me and shut up
+- **Arca** (2): Rakata · Joya
 - **juno** (1): angel
 - **AKRIILA, Jane Remover** (1): suave (feat. Jane Remover)
 - **kmoe, Jane Remover, juno** (1): wide eyes
@@ -799,7 +806,7 @@ _Post-punk ruso, coldwave, doomer y pop ruso: Kino, Intelligency, Crystal Castle
 - **Czxxze** (1): Fearless - Instrumental
 
 <a id="neon-eterno"></a>
-## Neón Eterno (113)
+## Neón Eterno (110)
 
 _Synth pop de los 80, eurodance de los 90 y pista de los 2000: Depeche Mode, Haddaway, Daft Punk, Gwen Stefani y Nelly Furtado._
 
@@ -820,7 +827,7 @@ _Synth pop de los 80, eurodance de los 90 y pista de los 2000: Depeche Mode, Had
 - **Culture Beat** (2): Mr. Vain - Original Radio Edit · Mr. Vain
 - **Kylie Minogue** (2): Can't Get You out of My Head - Extended Mix · Can't Get You out of My Head
 - **Daft Punk** (2): One More Time · Around the World
-- **Calvin Harris, Pharrell Williams, Katy Perry, Big Sean, Funk Wav** (1): Feels (feat. Pharrell Williams, Katy Perry & Big Sean)
+- **Black Eyed Peas** (2): Let's Get It Started - Spike Mix · Just Can’t Get Enough
 - **Soft Cell** (1): Tainted Love
 - **Laura Branigan** (1): Self Control
 - **R.E.M.** (1): Losing My Religion
@@ -840,7 +847,6 @@ _Synth pop de los 80, eurodance de los 90 y pista de los 2000: Depeche Mode, Had
 - **Spandau Ballet** (1): True - 2003 Remaster
 - **Gesaffelstein, The Weeknd** (1): Lost in the Fire (feat. The Weeknd)
 - **Nelly Furtado, Timbaland** (1): Promiscuous
-- **Calvin Harris, Ellie Goulding** (1): Outside (feat. Ellie Goulding)
 - **Daft Punk, Julian Casablancas** (1): Instant Crush (feat. Julian Casablancas)
 - **LMFAO** (1): Sexy And I Know It
 - **LMFAO, Lauren Bennett, GoonRock** (1): Party Rock Anthem
@@ -862,7 +868,6 @@ _Synth pop de los 80, eurodance de los 90 y pista de los 2000: Depeche Mode, Had
 - **Technotronic** (1): Pump Up The Jam
 - **Scatman John** (1): Scatman (ski-ba-bop-ba-dop-bop)
 - **Timbaland, Tyssem** (1): The Way I Are
-- **David Guetta, Akon, Ne-Yo** (1): Play Hard (feat. Ne-Yo & Akon) - New Edit
 - **Madonna** (1): Hung Up
 - **Eiffel 65, Gabry Ponte** (1): Blue (Da Ba Dee) - Gabry Ponte Video Edit
 - **Bronski Beat** (1): Smalltown Boy
@@ -871,10 +876,8 @@ _Synth pop de los 80, eurodance de los 90 y pista de los 2000: Depeche Mode, Had
 - **Stromae** (1): Alors on danse - Radio Edit
 - **Junior Senior** (1): Move Your Feet
 - **will.i.am, Britney Spears** (1): Scream & Shout
-- **Calvin Harris** (1): Summer
 - **Flo Rida, Kesha** (1): Right Round
 - **Eurythmics, Annie Lennox, Dave Stewart** (1): Sweet Dreams (Are Made of This) - 2005 Remaster
-- **Black Eyed Peas** (1): Let's Get It Started - Spike Mix
 - **Olivia Newton-John** (1): Hopelessly Devoted To You - From “Grease”
 - **M83** (1): Midnight City
 - **Emmanuel** (1): La Chica de Humo
@@ -887,6 +890,26 @@ _Synth pop de los 80, eurodance de los 90 y pista de los 2000: Depeche Mode, Had
 - **Crystal Waters, The Basement Boys** (1): Gypsy Woman (She's Homeless) (La Da Dee La Da Da) - Basement Boy Strip To The Bone Mix
 - **Gwen Stefani, Johnny Vulture** (1): Bubble Pop Electric
 - **Gwen Stefani, Eve** (1): Rich Girl
+
+<a id="euforia-ibiza"></a>
+## Euforia Ibiza (15)
+
+_EDM y pop de festival de los 2010: Calvin Harris, Swedish House Mafia, Galantis, Clean Bandit, Robin Schulz y Jack Ü._
+
+- **Calvin Harris** (2): Summer · Feel So Close - Radio Edit
+- **Calvin Harris, Pharrell Williams, Katy Perry, Big Sean, Funk Wav** (1): Feels (feat. Pharrell Williams, Katy Perry & Big Sean)
+- **Calvin Harris, Ellie Goulding** (1): Outside (feat. Ellie Goulding)
+- **David Guetta, Akon, Ne-Yo** (1): Play Hard (feat. Ne-Yo & Akon) - New Edit
+- **Calvin Harris, John Newman** (1): Blame (feat. John Newman)
+- **Swedish House Mafia, John Martin** (1): Don't You Worry Child (feat. John Martin) - Radio Edit
+- **Galantis** (1): Runaway (U & I)
+- **Mike Posner, Seeb** (1): I Took A Pill In Ibiza - Seeb Remix
+- **Robin Schulz, Francesco Yates** (1): Sugar (feat. Francesco Yates)
+- **Olly Alexander (Years & Years)** (1): King
+- **Clean Bandit, Jess Glynne** (1): Rather Be (feat. Jess Glynne)
+- **Jack Ü, Skrillex, Diplo, Justin Bieber** (1): Where Are Ü Now (with Justin Bieber)
+- **Kyla, DJ Paleface, Crazy Cousinz** (1): Do You Mind - Remix
+- **99 Souls** (1): The Girl Is Mine
 
 <a id="brillo-disco"></a>
 ## Brillo Disco (89)
@@ -929,8 +952,36 @@ _Disco, funk y soul para la pista: Michael Jackson, Bee Gees, Earth, Wind & Fire
 - **Heatwave** (1): The Big Guns
 - **Michael Angelo** (1): Nubian Queen
 
+<a id="fiebre-latina"></a>
+## Fiebre Latina (28)
+
+_Pop latino y reggaetón de radio: Shakira, J Balvin, CNCO, Maluma, Prince Royce, Anitta y Danny Ocean._
+
+- **CNCO** (3): Tan Fácil · Se Vuelve Loca · Para Enamorarte
+- **CD9** (2): No le Hablen de Amor · Lío en la Cabeza
+- **J Balvin, Bad Bunny** (2): QUE PRETENDES · LA CANCIÓN
+- **J Balvin** (2): Morado · Ay Vamos
+- **Maluma** (2): Borro Cassette · El Perdedor
+- **Maluma, Eli Palacios** (1): La Temperatura (feat. Eli Palacios)
+- **Shakira, Rihanna** (1): Can't Remember to Forget You (feat. Rihanna)
+- **CNCO, Yandel** (1): Hey DJ
+- **Shakira, Maluma** (1): Clandestino
+- **Prince Royce** (1): El Clavo
+- **Anitta, J Balvin** (1): Downtown
+- **Shakira, Wyclef Jean** (1): Hips Don't Lie (feat. Wyclef Jean)
+- **Shakira, Alejandro Sanz** (1): La Tortura (feat. Alejandro Sanz)
+- **J Balvin, ROSALÍA** (1): Brillo
+- **NATTI NATASHA, Bad Bunny** (1): Amantes de una Noche
+- **Danny Ocean** (1): Me Rehúso
+- **Jesse & Joy, Alejandro Sanz** (1): No soy una de esas (feat. Alejandro Sanz)
+- **J Balvin, Maria Becerra** (1): Qué Más Pues?
+- **Kim Loaiza** (1): Quiere Volver
+- **Romeo Santos** (1): Imitadora
+- **J Balvin, Farruko** (1): 6 AM
+- **JHAYCO, J Balvin, Bad Bunny** (1): No Me Conoce - Remix
+
 <a id="perreo-nocturno"></a>
-## Perreo Nocturno (137)
+## Perreo Nocturno (143)
 
 _Neoperreo, dembow mexa y club latino: DENNA LA PORRI, Doony Graff, Yeyo, Jose Alatorre, MJ Nebreda y funk brasileño._
 
@@ -938,6 +989,7 @@ _Neoperreo, dembow mexa y club latino: DENNA LA PORRI, Doony Graff, Yeyo, Jose A
 - **Yeyo** (7): Diferente · Bendecido · lo mejor siempre SE DEMORA · amor, cómo ESTÁS??? · Maldad · 4rab3 · Tentación
 - **Doony Graff, Ezya** (5): Monica · supercogelona · swag · HONDA · MARIHUANA
 - **Doony Graff** (4): Todo me vale verga · NEZAYORK · goku ssj 1000000000000000000000000000000000000000000000000000000000000000 · Mija
+- **MC Kevinho** (3): Olha a Explosão · O Grave Bater · Tumbalatum
 - **Midfug** (2): Perreowave · Vas y vienes
 - **Sayuri & Sopholov, Fuentes Prod** (2): No Hay Nah · Muñecas Del Estado
 - **DENNA LA PORRI, Moodjaas** (1): SOLA
@@ -1048,6 +1100,9 @@ _Neoperreo, dembow mexa y club latino: DENNA LA PORRI, Doony Graff, Yeyo, Jose A
 - **Ya Ice Dilan, Rey Tony, Helabusador, JipMusic Global, Dj Honda** (1): Dichavate
 - **Dinamarca, emmi** (1): mate banana
 - **Dinamarca, Natt Calma** (1): Sapiosexual
+- **El Bogueto, Yeri Mua, Uzielito Mix** (1): Nena Moxita
+- **Big Metra, El Bogueto, El Malilla, VV Brujo** (1): Desnudate - Remix
+- **Jose Alatorre, DannyLux** (1): abu$adora
 
 <a id="barrio-sur"></a>
 ## Barrio Sur (45)
@@ -1092,11 +1147,12 @@ _Trap romántico y cumbia rkt de Argentina: One Flyt, JCKC, tomas metrikf, Sosa 
 - **One Flyt, Ventu Beats** (1): #plataysoledad
 
 <a id="calle-cromo"></a>
-## Calle Cromo (74)
+## Calle Cromo (76)
 
 _La nueva escuela española: Stereo Madness, Guxo, Lu Jr, LEÏTI, Enry-K, Ralphie Choo y superreservao._
 
 - **rusowsky** (19): malibU · So So · no t dejas ver · 4 Daisy · q bonito · pikito · + suave · LOTO · barquito - bonus track · esa carita · ALTAGAMA · B.I.L.L. · malibU x pink + pink - Live from NPR's Tiny Desk · micro · +1 · Disorder Waves · No Se · bamboo · OKRO
+- **ROSALÍA** (2): PIENSO EN TU MIRÁ - Cap.3: Celos · MALAMENTE - Cap.1: Augurio
 - **Lu Jr** (2): Mal de ti · Cobarde
 - **LEÏTI** (2): Terrorista · X5
 - **Teo Lucadamo** (2): Tengo Un Amor · Con Esta Cara, Con Este Pelo
@@ -1105,7 +1161,6 @@ _La nueva escuela española: Stereo Madness, Guxo, Lu Jr, LEÏTI, Enry-K, Ralphi
 - **rusowsky, Ralphie Choo** (2): Dolores · BBY ROMEO
 - **TRISTÁN!, rusowsky** (2): CELL · Verónica
 - **mori, rusowsky** (2): olas · Star
-- **ROSALÍA** (1): PIENSO EN TU MIRÁ - Cap.3: Celos
 - **rusowsky, Dinamarca** (1): mwah :3
 - **Bb trickz, Chapo 240** (1): Algo bien
 - **Fuji** (1): un tiempo
@@ -1144,9 +1199,10 @@ _La nueva escuela española: Stereo Madness, Guxo, Lu Jr, LEÏTI, Enry-K, Ralphi
 - **Hnos Munoz, rusowsky** (1): Solo Voy Voy
 - **rusowsky, dani dicostas** (1): Dónde estás (Rusowsky remix)
 - **Najwa, rusowsky** (1): Esta tarde vi llover
+- **Bad Gyal** (1): Fiebre - Prod. King DouDou
 
 <a id="infierno-rosa"></a>
-## Infierno Rosa (57)
+## Infierno Rosa (58)
 
 _Trap de la calle española, de la PXXR GVNG para acá: Yung Beef y Kaydy Cain._
 
@@ -1193,6 +1249,7 @@ _Trap de la calle española, de la PXXR GVNG para acá: Yung Beef y Kaydy Cain._
 - **Xiyo, Fernandezz, Doony Graff, Yeyo, Ezya** (1): Perfecta
 - **ladiferencia2006, Doony Graff, Novato El Flow, QueHicisteBella** (1): Llamame
 - **Pipo Beatz, Xiyo, Fernandezz, 8belial, Yeyo, Doony Graff** (1): Ella
+- **Kidd Keo, Ele A El Dominio** (1): Serpiente Veneno (feat. Ele A El Dominio)
 
 <a id="cuenta-atras"></a>
 ## Cuenta Atrás (36)
@@ -1217,7 +1274,7 @@ _Club, jersey y remixes con acento español: nusar3000, GIANNI BATISTA, Mushkaa,
 - **Lua de Santana, nusar3000** (1): iLUSÃO II
 
 <a id="dembow-anejo"></a>
-## Dembow Añejo (61)
+## Dembow Añejo (63)
 
 _Reggaetón de la vieja escuela y cumbia: Daddy Yankee, Don Omar, Arcángel, Wisin & Yandel y Kumbia Kings._
 
@@ -1233,7 +1290,6 @@ _Reggaetón de la vieja escuela y cumbia: Daddy Yankee, Don Omar, Arcángel, Wis
 - **Baby Rasta y Gringo** (1): Me Niegas
 - **Sammy & Falsetto, Ñengo Flow** (1): Yo Sé Que Tú Quieres
 - **Daddy Yankee, Prince Royce** (1): Ven Conmigo
-- **Maluma, Eli Palacios** (1): La Temperatura (feat. Eli Palacios)
 - **Plan B** (1): Por Que Te Demoras?
 - **Rayo & Toby** (1): Movimiento de Caderas
 - **Cruz Martinez presenta Los Super Reyes** (1): Muévelo
@@ -1267,14 +1323,20 @@ _Reggaetón de la vieja escuela y cumbia: Daddy Yankee, Don Omar, Arcángel, Wis
 - **Daddy Yankee, Randy Nota Loca** (1): Salgo Pa' la Calle
 - **Don Omar, Wisin & Yandel** (1): My Space
 - **Yaga & Mackie, Arcángel, De La Ghetto** (1): Aparentemente
+- **Mattei, Arcángel, De La Ghetto, Jowell & Randy, DJ Urba** (1): Pa las girlas (con DJ Urba) - Remix
+- **J-King y Maximan** (1): Cuándo, Cuándo Es?
+- **Yandel** (1): Encantadora
 
 <a id="trap-lunar"></a>
-## Trap Lunar (66)
+## Trap Lunar (82)
 
 _Trap latino para la madrugada: Yan Block, Omar Courtz, Bad Bunny, Duki, Myke Towers y Bryant Myers._
 
+- **Duki** (4): Goteo · En Movimiento · Ley de Atracción · TOP 5
 - **Yan Block** (3): Vacile · Media Hora · 5'3
 - **Yan Block, Panda Black** (2): Talento · 444
+- **Alvaro Diaz** (2): Reina Pepiada · PLN
+- **KAROL G** (2): Pineapple · OKI DOKI
 - **Slayter, Yan Block, NTG** (1): secuestro
 - **ROA** (1): ME GUSTAS CC
 - **Pablo Chill-E, Ñengo Flow, Jere Klein** (1): Bastardo (feat. Ñengo Flow & Jere Klein)
@@ -1335,23 +1397,34 @@ _Trap latino para la madrugada: Yan Block, Omar Courtz, Bad Bunny, Duki, Myke To
 - **Aitana, Nicki Nicole, rusowsky** (1): Formentera - rusowsky rmx
 - **Félix Vestre** (1): PERDIÉNDOME EN EL MOOD
 - **Kiddye** (1): MAMI NO TE MIENTAS
-- **Alvaro Diaz** (1): Reina Pepiada
+- **Feid, ATL Jacob** (1): LUNA
+- **Rauw Alejandro, Chencho Corleone** (1): El Efecto
+- **Young Weapon, Baby Jey** (1): No Me Sueltes
+- **Rauw Alejandro, Alexis y Fido** (1): Baja Pa' Acá
+- **Pressure 9X19** (1): VVS Switch
+- **iZaak, JHAYCO, Anuel AA** (1): BBY BOO - REMIX
+- **BANDIDO, Duki, Rei, Tiago PZK** (1): No Me Conocen (Remix) [con DUKI, Rei & Tiago PZK]
+- **Duki, YSY A, Rei** (1): Pintao
+- **Rauw Alejandro** (1): Desenfocao'
 
 <a id="rima-cruda"></a>
-## Rima Cruda (139)
+## Rima Cruda (154)
 
 _Rap en español y de EE. UU.: Cruzzi, Charles Ans, Gera MX, Wk, Kendrick Lamar, Drake y Canserbero._
 
-- **Cruzzi** (19): Movezz en silencio · Cangrinaje · Retro 11s · Lo Pues Intentar · Me Muevo Con Dios · Ojitos Aguaos · 4 PREZ · TURBO // Epifanía · Movin' loko · 922 928 · Ja Morant · goofy ahh luv joint · la raíz d€l mal · Ahí Fuera (No Hay Reglas) · Tokyo Drift · do it 4 th€ gram · 922 & Heartbreak · Coquito la Pieza · Mango
+- **Cruzzi** (20): Movezz en silencio · Cangrinaje · Retro 11s · Lo Pues Intentar · Me Muevo Con Dios · Ojitos Aguaos · 4 PREZ · TURBO // Epifanía · Movin' loko · 922 928 · Ja Morant · goofy ahh luv joint · la raíz d€l mal · Ahí Fuera (No Hay Reglas) · Tokyo Drift · do it 4 th€ gram · 922 & Heartbreak · Coquito la Pieza · Mango · rang€ rov€r
 - **Armand Hammer, The Alchemist** (9): Sir Benni Miles · Roaches Don't Fly · Indian Summer · God's Feet · Peppertree · Scaffolds · Squeegee · Robert Moses · Stonefruit
 - **Charles Ans** (7): Si Nunca Va a Amanecer · Empapelado · Esta Noche · Andrómeda · Ruego · No Pienso Llorar · Lejos de Aquí
 - **Wk** (5): Todo Está Bien · Una Canción para el Final de la Película · Mía More II · Corazón de Cristal · El Amor, Locura, Todo
 - **Milo j** (4): OLIMPO · M.A.I · RETIRADA · A VOS
 - **Simpson Ahuevo** (4): Manos de Anillo · Ponte Bien Buena · Mextasis · Despierto
+- **Rels B** (3): A Mí · Tienes el Don · TU VAS SIN (fav)
 - **Mime 871** (3): Seda Al Mar · Ser Inapropiado · Ramillete de Nardos
 - **A.C.O** (3): Voy tranquilo · Mirador de estrellas · Buscándote
+- **Mr. Knightowl** (3): Thug Love · Nasty Bitches · Take Another Hit
+- **Iluminatik** (3): Te Suena · Dios, El Diablo Y Yo · Inhala
 - **Drake** (2): Passionfruit · Trust Issues
-- **Rels B** (2): A Mí · Tienes el Don
+- **C. Tangana** (2): Mala Mujer · Demasiadas Mujeres
 - **Adán Cruz** (2): Charla Pendiente · Astronauta de Tus Lunares
 - **Mike Lamadrid** (2): Pausa · Ojos Vendados
 - **Anestesia** (2): Año 3: De Lunes a Domingo · Año 9: Lléname de Amor
@@ -1388,7 +1461,6 @@ _Rap en español y de EE. UU.: Cruzzi, Charles Ans, Gera MX, Wk, Kendrick Lamar,
 - **Ka-b** (1): A escondidas
 - **Cruzzi, Sholo Truth** (1): Te Enamoraste de un G
 - **Cruzzi, Dawaira** (1): Majalulo
-- **C. Tangana** (1): Mala Mujer
 - **C. Tangana, Mc Binn** (1): Pa' Llamar Tu Atención (feat. Mc Binn)
 - **C. Tangana, ROSALÍA** (1): Antes de Morirme - feat. ROSALÍA
 - **Trueno, Taiu, tatool, Yesan 雪山** (1): 2.0.1.9
@@ -1429,6 +1501,12 @@ _Rap en español y de EE. UU.: Cruzzi, Charles Ans, Gera MX, Wk, Kendrick Lamar,
 - **Kendrick Lamar** (1): PRIDE.
 - **N.E.R.D** (1): Bobby James
 - **C. Tangana, rusowsky** (1): Bien:( (feat. Rusowsky)
+- **Trueno** (1): REAL GANGSTA LOVE
+- **C. Tangana, Farruko, French Montana** (1): Mala Mujer (feat. Farruko & French Montana) - Remix
+- **Adán Cruz, La Sinclair** (1): No Doubt, Pt. 2
+- **Cartel De Santa, Millonario** (1): Burbujas de Cristal
+- **Tankeone, Papiros, Crox Castellanos** (1): Tal Vez No Fue el Lugar
+- **Cartel De Santa** (1): La Pelotona
 
 <a id="verso-azul"></a>
 ## Verso Azul (67)
@@ -1536,7 +1614,7 @@ _Cloud rap, plugg y underground: LUCKI, Lelo, void, empireofyu, Xavier Wulf, Tre
 - **void, astral** (1): LIE / LOSE YOU
 
 <a id="trueno-clasico"></a>
-## Trueno Clásico (116)
+## Trueno Clásico (117)
 
 _Rock de colección y metal: Deep Purple, AC/DC, Led Zeppelin, Queen, Metallica y Pink Floyd._
 
@@ -1560,6 +1638,7 @@ _Rock de colección y metal: Deep Purple, AC/DC, Led Zeppelin, Queen, Metallica 
 - **Guns N' Roses** (2): Welcome To The Jungle · Live And Let Die
 - **David Bowie** (2): Rebel Rebel - 2016 Remaster · "Heroes" - 2017 Remaster
 - **Foghat** (2): Slow Ride - 2016 Remaster · Slow Ride - Edit
+- **Sleeping With Sirens** (2): If I'm James Dean, You're Audrey Hepburn · If You Can't Hang
 - **Santana, The Product G&B** (1): Maria Maria (feat. The Product G&B)
 - **America, George Martin** (1): A Horse with No Name
 - **Santana, Rob Thomas** (1): Smooth (feat. Rob Thomas)
@@ -1593,7 +1672,6 @@ _Rock de colección y metal: Deep Purple, AC/DC, Led Zeppelin, Queen, Metallica 
 - **Hole** (1): Petals
 - **Pierce The Veil** (1): So Far So Fake
 - **Whitesnake** (1): Is This Love - 2018 Remaster
-- **Sleeping With Sirens** (1): If I'm James Dean, You're Audrey Hepburn
 
 <a id="niebla-pesada"></a>
 ## Niebla Pesada (49)
@@ -1654,7 +1732,7 @@ _Rock en español de culto: Soda Stereo, Serú Girán, Los Bunkers, Cerati, Enan
 - **Esteman** (1): Fuimos Amor
 
 <a id="alma-latina"></a>
-## Alma Latina (125)
+## Alma Latina (133)
 
 _Indie y alternativo latino: Mon Laferte, Zoé, Natalia Lafourcade, LATIN MAFIA, CA7RIEL & Paco Amoroso y Buscabulla._
 
@@ -1668,6 +1746,7 @@ _Indie y alternativo latino: Mon Laferte, Zoé, Natalia Lafourcade, LATIN MAFIA,
 - **Buscabulla** (3): Ta Que Tiembla · Nydia · NTE
 - **Diamante Eléctrico** (3): Suéltame, Bogotá · Oro · Rotos
 - **babas tutsipop** (2): coral · todo lo que pasa
+- **LATIN MAFIA** (2): Yo siempre contesto. · Sal rosa
 - **iza tkm** (2): dormiré sin ti · cuídame de mi
 - **Jósean Log** (2): Beso · Chachachá
 - **Little Jesus** (2): La Magia · Azul
@@ -1694,7 +1773,6 @@ _Indie y alternativo latino: Mon Laferte, Zoé, Natalia Lafourcade, LATIN MAFIA,
 - **Juanpa Gordoa, ND Kobi', Donovan Morales** (1): Congelados - Remix
 - **Juanpa Gordoa** (1): Starlove
 - **AQUIHAYAQUIHAY** (1): Tiempo Perfecto
-- **LATIN MAFIA** (1): Yo siempre contesto.
 - **Julieta Venegas, Ana Tijoux** (1): Eres para Mí
 - **Monsieur Periné, Vicente Garcia** (1): Nuestra Canción
 - **Manu Chao** (1): Me Gustas Tu
@@ -1744,9 +1822,16 @@ _Indie y alternativo latino: Mon Laferte, Zoé, Natalia Lafourcade, LATIN MAFIA,
 - **RØZ, Natt Calma, Mau Moctezuma** (1): CORA DE HIELO
 - **RØZ, Natt Calma** (1): la vuelta
 - **1702, Mi Compa el Chino** (1): do you mind if we dance forever?
+- **Nsqk, Easykid** (1): BOBOMENSOTONTO
+- **Juanpa Gordoa, ND Kobi'** (1): Congelados
+- **HUMBE** (1): KINTSUGI
+- **La Gabi** (1): Coco
+- **Bmontee** (1): Dejame Solo Pablo
+- **Youka** (1): Hm Hm hm
+- **Nsqk, El Malilla** (1): MIATA ᕙ(⇀‸↼‶)ᕗ
 
 <a id="verano-tropical"></a>
-## Verano Tropical (59)
+## Verano Tropical (60)
 
 _Cumbia pop e indie bailable: YoSoyMatt, Eva de Marce, Los Eclipses, Disco Bahía, ZTVZ y Karen y Los Remedios._
 
@@ -1756,6 +1841,7 @@ _Cumbia pop e indie bailable: YoSoyMatt, Eva de Marce, Los Eclipses, Disco Bahí
 - **ZTVZ** (3): Una Noche Más · 24 horas · Delincuente
 - **YoSoyMatt, French Braids, Eva de Marce** (3): Aurora Dijo Adiós · Discoman · El Sabor del Viejo Mar
 - **Plastical People** (2): Destino errante · Moverás tus pies
+- **Gondwana** (2): Dime · Sentimiento Original
 - **Weste** (2): Las Olas · Jamas
 - **Disco Bahía** (2): Necedad · Pacífico
 - **le venado** (2): Sed De Sangre · Mailob
@@ -1767,7 +1853,6 @@ _Cumbia pop e indie bailable: YoSoyMatt, Eva de Marce, Los Eclipses, Disco Bahí
 - **Young Tender** (1): Me Gustas
 - **Patricio Alvarado** (1): Candoca
 - **UNIVERSE** (1): Salchipapa
-- **Gondwana** (1): Dime
 - **YoSoyMatt, Eva de Marce, Polocorp** (1): La Niña del Volcán (Polocorp Remix)
 - **YoSoyMatt, Eva de Marce, French Braids** (1): Sr. Tigre - French Braids Rework
 - **YoSoyMatt, Polocorp, Eva de Marce** (1): Amor Entre Mujer
@@ -1916,7 +2001,7 @@ _Crooners y swing de salón: Frank Sinatra, Nat King Cole, Bobby Darin, Louis Ar
 - **Frank Sinatra, Nancy Sinatra** (1): Somethin' Stupid
 
 <a id="balada-eterna"></a>
-## Balada Eterna (82)
+## Balada Eterna (83)
 
 _Baladas, boleros y románticas de siempre: José José, Luis Miguel, Juan Gabriel, Nelson Ned, Los Tres Caballeros y Tin Tan._
 
@@ -1935,6 +2020,7 @@ _Baladas, boleros y románticas de siempre: José José, Luis Miguel, Juan Gabri
 - **Victor Yturbe "El Piruli"** (1): Yo Lo Comprendo
 - **Alejandro Sanz** (1): Amiga mía
 - **María de Jesús Vázquez** (1): Osito de felpa
+- **Lalo Rodriguez** (1): Ven Devórame Otra Vez
 
 <a id="otono-modal"></a>
 ## Otoño Modal (55)
@@ -2015,7 +2101,7 @@ _Beats y jazz japonés de hoy: STUTS, tajima hal, Shingo Sekiguchi, Toshiki Soej
 - **DJ FRIP a.k.a. BeatLab** (1): Awesome City
 
 <a id="vinilo-rosa"></a>
-## Vinilo Rosa (89)
+## Vinilo Rosa (90)
 
 _Pop, doo-wop y soul de los 50 a los 70: Tom Jones, Brenda Lee, The Ronettes, Carpenters y The Beatles._
 
@@ -2031,6 +2117,7 @@ _Pop, doo-wop y soul de los 50 a los 70: Tom Jones, Brenda Lee, The Ronettes, Ca
 - **Jerry Lee Lewis** (2): Great Balls Of Fire - 1964 Version · Great Balls Of Fire
 - **The Hollies** (2): Long Cool Woman (In a Black Dress) - 1999 Remaster · The Air That I Breathe - 2008 Remaster
 - **Frankie Valli** (2): Can't Take My Eyes off You · My Eyes Adored You
+- **George Harrison** (2): My Sweet Lord - 2014 Remaster · Cloud Nine
 - **Thee Sacred Souls** (2): Will I See You Again? · Weak for Your Love
 - **John Lennon** (2): Beautiful Boy (Darling Boy) - Remastered 2010 · Imagine - Remastered 2010
 - **Ricky Nelson** (1): I Will Follow You
@@ -2063,7 +2150,6 @@ _Pop, doo-wop y soul de los 50 a los 70: Tom Jones, Brenda Lee, The Ronettes, Ca
 - **Ritchie Valens** (1): We Belong Together
 - **10cc** (1): I'm Not In Love
 - **Tommy James & The Shondells** (1): Crystal Blue Persuasion
-- **George Harrison** (1): My Sweet Lord - 2014 Remaster
 - **Jim Croce** (1): Time in a Bottle
 - **Todd Rundgren** (1): Hello It's Me
 - **Bread** (1): Guitar Man

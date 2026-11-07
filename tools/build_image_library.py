@@ -15,7 +15,9 @@ Cada imagen del proyecto tiene un TIPO, que dice para qué (y solo para qué) se
 
 Para sumar una imagen nueva: guárdala en la carpeta de su tipo con el siguiente número libre
 (p. ej. covers/cover-45.jpg y covers/cover-45-sm.jpg) y ejecuta este script. El «uso» se
-calcula solo (qué playlist lleva cada portada, cuántas canciones cada icono…). Las notas
+calcula solo (qué playlist lleva cada portada, cuántas canciones cada icono…); las portadas de
+playlist que aún no usa ninguna playlist quedan marcadas como reservadas («reserved») para la
+próxima entrega de música (se asignan en FIXED_COVERS de build_catalog.py). Las notas
 escritas a mano en imagenes.json («label» y «notes») se conservan.
 """
 import json
@@ -24,6 +26,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / 'imagenes.json'
+RESERVED_USAGE = 'Reservada: lista para una playlist nueva en una futura entrega de música'
 
 TYPES = {
     'portada-playlist': {'name': 'Portadas de playlist', 'folder': 'covers/', 'size': '600 × 600 px + versión -sm de 320 px',
@@ -80,21 +83,25 @@ def main():
 
     images = []
 
-    def add(kind, file, small=None, usage='', label=''):
+    def add(kind, file, small=None, usage='', label='', reserved=False):
         old = previous.get(file, {})
-        images.append({
+        entry = {
             'file': file, 'small': small, 'type': kind,
             'label': old.get('label') or label,
             'usage': usage,
             'notes': old.get('notes', ''),
-        })
+        }
+        if reserved:
+            entry['reserved'] = True
+        images.append(entry)
 
     for path in sorted((ROOT / 'covers').glob('cover-[0-9][0-9].jpg')):
         rel = f'covers/{path.name}'
         sm = f'covers/{path.stem}-sm.jpg'
         names = cover_use.get(rel, [])
+        # Las que aún no tienen playlist quedan reservadas para la próxima entrega de música
         add('portada-playlist', rel, sm if (ROOT / sm).exists() else None,
-            ', '.join(names) if names else 'Libre (sin playlist)', f'Portada {path.stem[-2:]}')
+            ', '.join(names) if names else RESERVED_USAGE, f'Portada {path.stem[-2:]}', reserved=not names)
     nombres_propia = propia_names()
     for path in sorted((ROOT / 'covers' / 'propias').glob('propia-[0-9][0-9].jpg')):
         rel = f'covers/propias/{path.name}'
@@ -132,6 +139,9 @@ def main():
     for img in images:
         counts[img['type']] = counts.get(img['type'], 0) + 1
     print(f'imagenes.json: {len(images)} imágenes', counts)
+    reserved = [img['file'] for img in images if img.get('reserved')]
+    if reserved:
+        print(f'Portadas reservadas para futuras entregas de música: {len(reserved)} (' + ', '.join(Path(f).stem for f in reserved) + ')')
 
 
 if __name__ == '__main__':

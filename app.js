@@ -1329,6 +1329,43 @@
     setTimeout(() => { if (!updater.reloading) location.reload(); }, 3000);
   }
 
+  // Música que llegó con el parche (novedades.json → "songs", lo apunta tools/build_catalog.py):
+  // la lista completa, y cada canción se toca para escucharla (con las demás nuevas en la cola).
+  function newMusicNotes(songs) {
+    const valid = songs.filter((s) => s && (s.title || s.id));
+    const wrap = makeEl('div', 'update-music');
+    const head = makeEl('div', 'update-music-head');
+    head.append(makeEl('h5', '', `Música nueva · ${valid.length} ${valid.length === 1 ? 'canción' : 'canciones'}`));
+    const inLibrary = () => valid.map((s) => getTrack(s.id)).filter(Boolean);
+    if (inLibrary().length) {
+      const all = makeEl('button', 'btn btn-ghost update-music-play', 'Escuchar todas');
+      all.type = 'button';
+      all.addEventListener('click', () => {
+        const tracks = inLibrary();
+        if (tracks[0]) playCollection(tracks, tracks[0].id, 'Música nueva', 'col:nueva-musica');
+      });
+      head.append(all);
+    }
+    const list = makeEl('ol', 'update-music-list');
+    valid.forEach((song) => {
+      const li = document.createElement('li');
+      const track = getTrack(song.id);
+      const label = `${track?.title || song.title || ''}${(track?.artist || song.artist) ? ` · ${track?.artist || song.artist}` : ''}`;
+      if (track) {
+        const btn = makeEl('button', 'update-music-song', label);
+        btn.type = 'button';
+        btn.title = 'Escuchar';
+        btn.addEventListener('click', () => playCollection(inLibrary(), track.id, 'Música nueva', 'col:nueva-musica'));
+        li.append(btn);
+      } else {
+        li.textContent = label;
+      }
+      list.append(li);
+    });
+    wrap.append(head, list);
+    return wrap;
+  }
+
   async function renderPatchNotes(target = els.updateNotes) {
     target.textContent = 'Cargando novedades…';
     try {
@@ -1344,6 +1381,7 @@
         const listEl = document.createElement('ul');
         (release.items || []).forEach((item) => listEl.append(makeEl('li', '', item)));
         block.append(title, listEl);
+        if (Array.isArray(release.songs) && release.songs.length) block.append(newMusicNotes(release.songs));
         return block;
       });
       target.replaceChildren(...parts);
