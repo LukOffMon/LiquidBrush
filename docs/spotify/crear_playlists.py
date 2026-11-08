@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Crea en tu Spotify las 8 playlists de 99 canciones (los .txt de esta misma carpeta).
 
-Funciona con cuenta gratis (no hace falta Premium). Solo usa Python 3 estándar: no hay que
+Requiere Spotify Premium: desde febrero de 2026 Spotify exige Premium al dueño de la app de
+desarrollador. Sin Premium, usa TuneMyMusic (ver LEEME.md). Solo usa Python 3 estándar: no hay que
 instalar nada. Cada .txt tiene una canción por línea: «Artista - Canción».
 
     python crear_playlists.py              # crea las 8 playlists

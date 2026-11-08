@@ -1,6 +1,21 @@
-# Crear las 8 playlists en tu Spotify (cuenta gratis)
+# Crear las 8 playlists en tu Spotify
 
-Este script busca las 792 canciones de los 8 archivos `.txt` y crea en tu Spotify las 8 playlists de 99 canciones (privadas, con su nombre y descripción). **No hace falta Premium.** Tarda unos 10 a 15 minutos.
+> **Importante (febrero 2026):** Spotify exige **Premium** al dueño de una app de desarrollador para usar su API (y solo 1 app por persona). **Sin Premium este script no funciona**: usa la opción sin Premium de abajo. [Guía de Spotify](https://developer.spotify.com/documentation/web-api/tutorials/february-2026-migration-guide)
+
+## Opción sin Premium: TuneMyMusic (2 minutos por playlist)
+
+1. Entra a **tunemymusic.com** y pulsa **Empecemos**.
+2. Como origen elige **Texto libre** (o «Pegar texto»).
+3. Abre uno de los `.txt`, copia todo (Ctrl+A, Ctrl+C) y pégalo. Pulsa **Convertir / Continuar**.
+4. Como destino elige **Spotify** e inicia sesión con tu cuenta (sirve la gratis).
+5. Ponle el nombre (por ejemplo «Liquid · Hip Hop Dorado») y pulsa **Comenzar transferencia**.
+6. Repite con los otros 7 `.txt`. (El plan gratis de TuneMyMusic puede limitar cuántas canciones pasa por día; si se corta, sigue al día siguiente.)
+
+---
+
+## Opción con Premium: el script (todas de una vez)
+
+Este script busca las 792 canciones de los 8 archivos `.txt` y crea en tu Spotify las 8 playlists de 99 canciones (privadas, con su nombre y descripción). Tarda unos 10 a 15 minutos. **Requiere Premium** (ver arriba).
 
 Necesitas 3 cosas: **Python**, una **app gratis de Spotify para desarrolladores** (es solo un permiso, 2 minutos) y **esta carpeta** descomprimida.
 
@@ -68,7 +83,7 @@ Al terminar, abre Spotify → **Tu biblioteca**: ahí están las 8 playlists «L
 | `INVALID_CLIENT: Invalid redirect URI` (en el navegador) | En tu app de Spotify → Settings → Redirect URIs debe estar **exactamente** `http://127.0.0.1:8888/callback` (con `127.0.0.1`, no `localhost`). Guarda y vuelve a ejecutar. |
 | `INVALID_CLIENT: Invalid client` | El Client ID está mal copiado. Borra el archivo oculto `.spotify-client-id` de la carpeta y vuelve a ejecutar para pegarlo de nuevo. |
 | `Spotify respondió 403` | En tu app → **User Management**, añade tu nombre y el correo de tu cuenta de Spotify, guarda y vuelve a ejecutar. |
-| Spotify no te deja crear la app o te pide Premium | Spotify cambia a veces las condiciones para desarrolladores. Usa el plan B: **tunemymusic.com** → origen «Texto» → pega cada `.txt` → destino Spotify. |
+| No puedes marcar «Web API», no te deja crear la app o te pide Premium | Desde febrero de 2026 la API exige Premium. Usa la opción sin Premium (TuneMyMusic) de arriba. |
 | `El puerto 8888 está ocupado` | Cierra otros programas o reinicia y vuelve a intentarlo. |
 | Se cortó a la mitad | Vuelve a ejecutarlo: las playlists que ya se crearon se saltan solas. Para rehacer una, bórrala en Spotify, o usa `python crear_playlists.py --rehacer` (crea de nuevo todas). |
 
