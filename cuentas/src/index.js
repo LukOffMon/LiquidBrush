@@ -5,9 +5,11 @@ import {
   aB64url, deB64url, bytesAleatorios, sha256, iguales, hashClave, codigoSeisDigitos, hashCodigo,
   firmarPase, leerPase, VERSION_CLAVE
 } from './cripto.js';
-import { enviarCorreo, correoCodigo, correoYaRegistrado, correoBienvenida, correoClaveCambiada } from './correo.js';
+import {
+  enviarCorreo, correoCodigo, correoYaRegistrado, correoBienvenida, correoClaveCambiada, correoPeticionAdmin, correoPeticionRecibida
+} from './correo.js';
 
-const VERSION = '1.0.1';
+const VERSION = '1.1.0';
 const MIN = 60;
 const HORA = 3600;
 const DIA = 86400;
@@ -19,6 +21,8 @@ const ENVIOS_HORA = 5;              // códigos por correo y hora
 const CORREOS_DIA = 400;            // tope propio (Gmail permite ~500)
 const FALLOS_ENTRAR = 5;            // fallos antes de esperar
 const DATOS_MAX = 2 * 1024 * 1024;  // 2 MB por archivo en R2
+const PETICIONES_CORREO_DIA = 5;    // peticiones de canciones por correo y día
+const PETICIONES_DIA = 120;         // y en total al día (el resto del cupo de Gmail es para los códigos)
 
 const ahora = () => Math.floor(Date.now() / 1000);
 const hoy = () => new Date().toISOString().slice(0, 10);
@@ -482,6 +486,59 @@ async function datos(env, request, archivo) {
 }
 
 // Prueba de envío (solo el administrador, con la cabecera X-Admin)
+/* ---------- Peticiones de canciones ---------- */
+// «¿No encontraste lo que buscabas?»: el bot (el Gmail de Liquid) le reenvía la petición a Lukamon con
+// «Responder a» = correo de quien pide, y él contesta desde su correo oficial. Si la persona tiene sesión,
+// su correo ya está verificado: se salta Turnstile y además recibe un acuse con su número de ticket.
+const textoLimpio = (t, max) => String(t || '').replace(/\p{Cc}/gu, (c) => (c === '\n' ? c : '')).replace(/\n{3,}/g, '\n\n').trim().slice(0, max);
+
+async function peticion(env, request, ctx) {
+  await frenoIp(env, request, 'peticion');
+  const b = await cuerpo(request);
+  let correo = null;
+  let verificado = false;
+  if (request.headers.get('Authorization')) {
+    try {
+      const { usuario } = await autenticar(env, request);
+      const u = await env.DB.prepare('SELECT correo FROM usuarios WHERE id = ?1').bind(usuario).first();
+      if (u) { correo = u.correo; verificado = true; }
+    } catch { /* pase caducado: sigue como petición sin cuenta */ }
+  }
+  if (!verificado) {
+    correo = correoValido(b.correo);
+    await turnstile(env, request, b.turnstile);
+  }
+  const p = {
+    correo, verificado,
+    cancion: textoLimpio(b.cancion, 120),
+    artista: textoLimpio(b.artista, 120),
+    busqueda: textoLimpio(b.busqueda, 120),
+    mensaje: textoLimpio(b.mensaje, 1000),
+    dispositivo: nombreDispositivo(request, null)
+  };
+  if (!p.cancion && !p.artista && !p.busqueda) throw new ErrorApi('falta_cancion');
+  if (await sumarContador(env, `peticiones:${correo}:${hoy()}`, 2 * DIA) > PETICIONES_CORREO_DIA) throw new ErrorApi('demasiadas_peticiones', 429, { esperar: DIA });
+  if (await sumarContador(env, `peticiones:${hoy()}`, 2 * DIA) > PETICIONES_DIA) throw new ErrorApi('envio_no_disponible', 503);
+  const enviadosHoy = await leerContador(env, `correos:${hoy()}`);
+  if (enviadosHoy && enviadosHoy.valor >= CORREOS_DIA) throw new ErrorApi('envio_no_disponible', 503);
+  // Ticket corto y fácil de dictar: LB- y 5 letras/cifras sin las que se confunden (0/O, 1/I)
+  const abc = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  p.ticket = 'LB-' + [...bytesAleatorios(5)].map((n) => abc[n % abc.length]).join('');
+  const buzon = correoValido(env.BUZON_PETICIONES || 'officiallukamon@gmail.com');
+  if (!ctx.prueba) {
+    // El correo a Lukamon se envía antes de responder: si falla, la app ofrece mandarlo desde el correo de la persona
+    try {
+      await enviarCorreo(env, buzon, correoPeticionAdmin(p));
+      await sumarContador(env, `correos:${hoy()}`, 2 * DIA);
+    } catch (error) {
+      console.error('[peticion]', error.message);
+      throw new ErrorApi('envio_fallido', 502);
+    }
+    if (verificado) enviarEnSegundoPlano(env, ctx, correo, correoPeticionRecibida(p));
+  }
+  return json(env, request, { ok: true, ticket: p.ticket, acuse: verificado });
+}
+
 async function pruebaCorreo(env, request) {
   const clave = request.headers.get('X-Admin') || '';
   if (!env.ADMIN || !iguales(await sha256(clave), await sha256(env.ADMIN))) throw new ErrorApi('no_encontrado', 404);
@@ -565,6 +622,7 @@ export default {
       if (disp && m === 'DELETE') return await cerrarDispositivo(env, request, disp[1]);
       const arch = ruta.match(/^\/datos(?:\/escucha\/(\d{4}))?$/);
       if (arch) return await datos(env, request, arch[1] ? `escucha-${arch[1]}` : 'datos');
+      if (ruta === '/peticion' && m === 'POST') return await peticion(env, request, ctx);
       if (ruta === '/admin/prueba-correo' && m === 'POST') return await pruebaCorreo(env, request);
       return fallo(env, request, 'no_encontrado', 404);
     } catch (error) {

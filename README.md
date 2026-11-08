@@ -2,7 +2,7 @@
 
 > Antes se llamaba LiquidBrush. El repositorio, los buckets y las claves de guardado del navegador (`liquidbrush:*`) mantienen el nombre anterior para no perder favoritas, playlists ni descargas.
 
-Reproductor web personal de estética surrealista y cromada (temas "Surrealista" (por defecto), "Minimalista", "Yem" (noche, naranja y plata con destellos verdes) y "Ébano" (casi negro, marfil y oro, con letra Times New Roman), todos con acabado Liquid Glass), 100 % estático (HTML + CSS + JS) y listo para GitHub Pages.
+Reproductor web personal de estética surrealista y cromada, 100 % estático (HTML + CSS + JS) y listo para GitHub Pages. Trae tres temas de base (**Surrealista**, el de siempre, con el cromo de protagonista; **Claro** y **Oscuro**) y el **Taller de temas** para crear los tuyos (hasta 4 en total), todos con acabado Liquid Glass.
 
 El tema "Surrealista" incluye una escena animada: esfera de cromo en el horizonte, suelo de ajedrez, nubes, gotas de metal líquido, ojos que siguen el cursor y un reloj derretido cuyas agujas solo avanzan mientras suena la música.
 
@@ -13,7 +13,7 @@ El tema "Surrealista" incluye una escena animada: esfera de cromo en el horizont
 
 ## Añadir tus canciones (Cloudflare R2)
 
-La música vive en **5 buckets** de Cloudflare R2, cada uno en una cuenta distinta (10 GB gratis por cuenta). Cada bucket tiene su lista de canciones en la carpeta [`musica/`](musica/) de este repositorio. No hay base de datos: la app lee esas listas y reproduce los MP3 directamente desde cada bucket.
+La música vive en **6 buckets** de Cloudflare R2, cada uno en una cuenta distinta (10 GB gratis por cuenta). Cada bucket tiene su lista de canciones en la carpeta [`musica/`](musica/) de este repositorio. No hay base de datos: la app lee esas listas y reproduce los MP3 directamente desde cada bucket.
 
 | Lista | Bucket | URL pública |
 | --- | --- | --- |
@@ -22,6 +22,7 @@ La música vive en **5 buckets** de Cloudflare R2, cada uno en una cuenta distin
 | [`musica/brush3.json`](musica/brush3.json) | `liquidbrush3db3` | `https://pub-342aee3eb054410cb02224940f684884.r2.dev` |
 | [`musica/db4.json`](musica/db4.json) | `liquidbulletdb66` | `https://pub-0854e4225565462db16fa787cf2ab81c.r2.dev` |
 | [`musica/db5.json`](musica/db5.json) | 5.º bucket | `https://pub-864cd199a5e04cb0b5faf77320b1e47b.r2.dev` |
+| [`musica/db6.json`](musica/db6.json) | 6.º bucket (EscLIP) | `https://pub-5650a817f3404929a60bc899b7a1afe4.r2.dev` |
 
 Para sumar otro bucket: añade una entrada en `CONFIG.sources` (en `app.js`) con `name`, `list` y `base`, crea `musica/<name>.json` y añádelo a la lista `DATA_FILES` de `sw.js`.
 
@@ -88,7 +89,7 @@ Liquid funciona como Spotify, pero con tu colección de MP3: todo se calcula en 
 - **Radio**: empieza por un artista (o por una canción, desde el +) y se renueva sola con artistas parecidos, sin fin.
 - **Buscar**: al tocar el buscador salen tus **búsquedas recientes** (con Borrar) y los estilos para explorar; los resultados muestran también artistas.
 - **A continuación**: botón **Editar** para reordenar arrastrando del asa, y abajo Aleatorio, Repetir y Temporizador.
-- **Portadas**: todas son imágenes. Las playlists usan `covers/cover-NN.jpg` (Escuchadas hace poco y Tus más escuchadas, `cover-27` y `cover-28`; Velo Sónico y Niebla Pesada, `cover-29` y `cover-30`; Vampiro Digital, Chicle Tóxico, Verso Azul, Otoño Modal, Café Lento y Beat Nipón, `cover-31` a `cover-36`; Sol Sintético, Londres Rosa, Ola Tibia, Cereza Suave, Terciopelo Azul, Luna Swing e Infierno Rosa, `cover-37` a `cover-43`; Cuenta Atrás y Balada Eterna, `cover-44` y `cover-45`; Euforia Ibiza y Fiebre Latina, `cover-46` y `cover-47`). `cover-48` y `cover-49` están **reservadas** para las playlists nuevas de futuras entregas de música (la Biblioteca de imágenes las marca así). Cada canción lleva uno de los 52 iconos de [`covers/songs/`](covers/songs/), repartidos al azar y por igual entre las canciones que se ven (76 o 77 por icono; las copias ocultas llevan el icono de su original). `tools/build_catalog.py` guarda el reparto en `catalog.json`: cada canción conserva su icono y las nuevas reciben el menos usado. Para sumar iconos, añade `song-53.jpg` (600 px) y `song-53-sm.jpg` (320 px): al regenerar, algunas canciones pasan a los nuevos para que todos queden parejos. Los enlaces compartidos de canciones usan ese icono como miniatura.
+- **Portadas**: todas son imágenes. Las playlists usan `covers/cover-NN.jpg` (Escuchadas hace poco y Tus más escuchadas, `cover-27` y `cover-28`; Velo Sónico y Niebla Pesada, `cover-29` y `cover-30`; Vampiro Digital, Chicle Tóxico, Verso Azul, Otoño Modal, Café Lento y Beat Nipón, `cover-31` a `cover-36`; Sol Sintético, Londres Rosa, Ola Tibia, Cereza Suave, Terciopelo Azul, Luna Swing e Infierno Rosa, `cover-37` a `cover-43`; Cuenta Atrás y Balada Eterna, `cover-44` y `cover-45`; Euforia Ibiza y Fiebre Latina, `cover-46` y `cover-47`; Era Dorada, Pista Infinita, Diva Pop, Milenio Soul y Oro Latino, `cover-48` a `cover-52`). `cover-53`, `cover-54` y `cover-55` están **reservadas** para las playlists nuevas de futuras entregas de música (la Biblioteca de imágenes las marca así). Cada canción lleva uno de los 52 iconos de [`covers/songs/`](covers/songs/), repartidos al azar y por igual entre las canciones que se ven (76 o 77 por icono; las copias ocultas llevan el icono de su original). `tools/build_catalog.py` guarda el reparto en `catalog.json`: cada canción conserva su icono y las nuevas reciben el menos usado. Para sumar iconos, añade `song-53.jpg` (600 px) y `song-53-sm.jpg` (320 px): al regenerar, algunas canciones pasan a los nuevos para que todos queden parejos. Los enlaces compartidos de canciones usan ese icono como miniatura.
 
 ## Compartir
 
@@ -115,6 +116,28 @@ Lo que ofrece Liquid Lab:
 - **Si te gusta…**: artistas parecidos (colaboraciones, estilo y lo que escuchas los mismos días), con botón Radio.
 - **Tu ADN musical**: tus estilos en porcentaje, cuántos artistas escuchas, cuánto es nuevo para ti y tu momento del día.
 
+## Taller de temas
+
+**Ajustes → Apariencia → Tema** muestra los temas como tarjetas: tocar una la aplica. Siempre está el **Surrealista** (fijo: no se edita ni se borra); **Claro** y **Oscuro** vienen de base y se retocan con el lápiz o se borran para dejar sitio. Máximo **4 temas** contando el Surrealista. Personalizar es opcional.
+
+- Un tema son 9 datos: nombre, **fondo**, **acento**, **brillo**, **forma** (recta, suave, redonda), **letra de los títulos** (limpia, ancha, clásica, pintura), **ambiente** del fondo (liso, aura, degradado), **vidrio** y cuánto **tiñe la portada** la app. De ahí `app.js` (`paletaTema`) calcula todas las variables de color: elige el color de texto que mejor se lee sobre el fondo y acerca acento y brillo al texto si hace falta (contraste mínimo 2,6:1 y 2,2:1). El editor muestra el contraste y avisa cuando retoca un color.
+- Todo se ve **en vivo** mientras editas; Cancelar (o Esc) vuelve al tema que había.
+- **La canción que suena**: tema sacado del color de la portada. **Sorpréndeme**: paleta en armonía al azar.
+- **Compartir**: cada tema cabe en un código `LIQ1-…` (Ajustes del tema → Compartir o importar).
+- Pintarlo es escribir un único `<style id="lbTemaVars">` con degradados fijos (nada se anima): no pesa. El CSS ya calculado se guarda en `liquidbrush:tema-css` y `index.html` lo pone antes de pintar, así no hay parpadeo al abrir.
+- Guardado en `liquidbrush:temas` (lista) y `liquidbrush:theme` (activo). Con cuenta, los temas viajan entre dispositivos (gana la última edición). Los temas antiguos pasan solos: Minimalista → Claro; Yem y Ébano → Oscuro.
+
+## Pide tu canción (buscador)
+
+Cuando una búsqueda no encuentra nada sale **«¿No encontraste lo que buscabas?»** (y, con resultados, el enlace «¿No es lo que buscabas? Pídela»). El formulario se rellena con lo buscado (separa «Artista - Título» si puede) y pide el correo a quien no tiene sesión.
+
+- La app llama a `POST /peticion` del Worker de cuentas ([`cuentas/src/index.js`](cuentas/src/index.js)). El bot (el Gmail de Liquid, el mismo de los códigos de inicio de sesión) envía la petición a `BUZON_PETICIONES` (`officiallukamon@gmail.com`, en `cuentas/wrangler.toml`) con **«Responder a» = el correo de quien pide**: al pulsar Responder en Gmail contestas directamente desde tu correo oficial.
+- Cada petición lleva un ticket `LB-XXXXX`. Con sesión iniciada el correo ya está verificado (no hace falta Turnstile) y la persona recibe un acuse con su ticket; sin sesión pasa por Turnstile y no se envía nada a la dirección escrita (así nadie puede usar el formulario para escribirle a otro).
+- Topes: 5 peticiones por correo y día, 120 al día en total, dentro del cupo diario de correos del Worker, y el freno por IP de siempre.
+- Si el Worker no responde (sin desplegar, sin red, Turnstile bloqueado), la app ofrece **«o envíala desde tu correo»**: un `mailto:` a officiallukamon@gmail.com con la petición ya escrita.
+- Las peticiones se recuerdan en el navegador (`liquidbrush:peticiones`): cuando una canción pedida llega a la Biblioteca, Liquid avisa una vez con «Escuchar».
+- Para activarlo en el servidor: `cd cuentas && npx wrangler deploy` (con la cuenta de Liquid Bullet).
+
 ## Contacto
 
 Abajo del panel «Sonando» y en **Ajustes → Ayuda** hay un atajo a officiallukamon@gmail.com para ideas, mensajes o reportar errores.
@@ -125,7 +148,7 @@ La primera vez que alguien abre la app sale un recorrido de 7 pasos que resalta 
 
 ## Catálogo de playlists de base
 
-[`catalog.json`](catalog.json) define las 45 playlists de base (Cuarto Pastel, Londres Rosa, Seda Nocturna, Ácido Lento, Sol Sintético, Ola Tibia, Cereza Suave, Riviera Francesa, Lluvia Lenta, Velo Sónico, Señal Rota, Ghost Case, Chicle Tóxico, Corazón Roto, Vampiro Digital, Ola Fría, Neón Eterno, Euforia Ibiza, Brillo Disco, Fiebre Latina, Perreo Nocturno, Barrio Sur, Calle Cromo, Infierno Rosa, Cuenta Atrás, Dembow Añejo, Trap Lunar, Rima Cruda, Verso Azul, Nube Púrpura, Trueno Clásico, Niebla Pesada, Ciudad Furia, Alma Latina, Verano Tropical, Humo Dorado, Terciopelo Azul, Luna Swing, Balada Eterna, Otoño Modal, Café Lento, Beat Nipón, Vinilo Rosa, Seúl Brillante y Tokio Eléctrico), su descripción, su portada (imágenes de [`covers/`](covers/)) y el estilo de cada canción. Se genera con:
+[`catalog.json`](catalog.json) define las 50 playlists de base (Cuarto Pastel, Londres Rosa, Seda Nocturna, Milenio Soul, Diva Pop, Ácido Lento, Sol Sintético, Ola Tibia, Cereza Suave, Riviera Francesa, Lluvia Lenta, Velo Sónico, Señal Rota, Ghost Case, Chicle Tóxico, Corazón Roto, Vampiro Digital, Ola Fría, Neón Eterno, Euforia Ibiza, Pista Infinita, Brillo Disco, Fiebre Latina, Oro Latino, Perreo Nocturno, Barrio Sur, Calle Cromo, Infierno Rosa, Cuenta Atrás, Dembow Añejo, Trap Lunar, Rima Cruda, Era Dorada, Verso Azul, Nube Púrpura, Trueno Clásico, Niebla Pesada, Ciudad Furia, Alma Latina, Verano Tropical, Humo Dorado, Terciopelo Azul, Luna Swing, Balada Eterna, Otoño Modal, Café Lento, Beat Nipón, Vinilo Rosa, Seúl Brillante y Tokio Eléctrico), su descripción, su portada (imágenes de [`covers/`](covers/)) y el estilo de cada canción. Se genera con:
 
 ```bash
 python3 tools/build_catalog.py

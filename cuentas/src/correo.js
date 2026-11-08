@@ -75,12 +75,14 @@ async function sesionSmtp(env, para, mensaje) {
   }
 }
 
-function construirMensaje(env, para, { asunto, texto, html }) {
+function construirMensaje(env, para, { asunto, texto, html, responderA }) {
   const frontera = `liquid-${crypto.randomUUID()}`;
   const dominio = String(env.SMTP_USER).split('@')[1] || 'gmail.com';
   const cabeceras = [
     `From: "Liquid Bullet" <${env.SMTP_USER}>`,
     `To: <${para}>`,
+    // Peticiones: «Responder» en el buzón de Lukamon va directo a quien la mandó
+    ...(responderA ? [`Reply-To: <${responderA}>`] : []),
     `Subject: ${asuntoMime(asunto)}`,
     `Date: ${new Date().toUTCString()}`,
     `Message-ID: <${crypto.randomUUID()}@${dominio}>`,
@@ -182,5 +184,39 @@ export function correoClaveCambiada() {
     asunto: 'Se cambió tu contraseña de Liquid Bullet',
     texto: 'La contraseña de tu cuenta de Liquid Bullet acaba de cambiar y cerramos tus otras sesiones.\n\nSi no fuiste tú, usa «¿Olvidaste tu contraseña?» en la app para recuperarla.',
     html: marco('Tu contraseña cambió', 'La contraseña de tu cuenta de Liquid Bullet acaba de cambiar y cerramos tus otras sesiones.<br><br>Si <b>no fuiste tú</b>, usa «¿Olvidaste tu contraseña?» en la app para recuperarla.')
+  };
+}
+
+/* ---------- Peticiones de canciones (buscador → «¿No encontraste lo que buscabas?») ---------- */
+const filaHtml = (etiqueta, valor) => valor
+  ? `<tr><td style="padding:6px 12px 6px 0;color:#8f88a8;white-space:nowrap;vertical-align:top">${escapar(etiqueta)}</td><td style="padding:6px 0;color:#f4f2fb">${escapar(valor).replace(/\n/g, '<br>')}</td></tr>`
+  : '';
+
+// Para Lukamon: llega al buzón oficial con «Responder a» = correo de quien pide
+export function correoPeticionAdmin(p) {
+  const que = [p.cancion, p.artista].filter(Boolean).join(' — ') || p.busqueda || 'Sin título';
+  const datos = [
+    ['Ticket', p.ticket], ['Canción', p.cancion], ['Artista', p.artista], ['Buscó', p.busqueda], ['Mensaje', p.mensaje],
+    ['Correo', `${p.correo}${p.verificado ? ' (cuenta verificada)' : ' (sin cuenta: no verificado)'}`], ['Dispositivo', p.dispositivo]
+  ];
+  return {
+    asunto: `Petición ${p.ticket} · ${que}`.slice(0, 140),
+    responderA: p.correo,
+    texto: `Nueva petición en Liquid Bullet\n\n${datos.filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`).join('\n')}\n\nPulsa «Responder» para contestarle directamente a ${p.correo}.`,
+    html: marco(`Petición ${p.ticket}`, `Alguien quiere esta canción en Liquid:
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin:16px 0;font-size:15px">${datos.map(([k, v]) => filaHtml(k, v)).join('')}</table>
+Pulsa <b>Responder</b> para contestarle directamente a <b>${escapar(p.correo)}</b>.`)
+  };
+}
+
+// Para quien pide (solo con cuenta verificada: así nadie puede usar el formulario para escribirle a otro)
+export function correoPeticionRecibida(p) {
+  const que = [p.cancion, p.artista].filter(Boolean).join(' — ') || p.busqueda || 'tu canción';
+  return {
+    asunto: `Recibimos tu petición ${p.ticket}`,
+    texto: `¡Gracias por ayudar a que Liquid crezca!\n\nRecibimos tu petición ${p.ticket}: ${que}.\nLukamon la lee personalmente y te responderá desde officiallukamon@gmail.com. Cuando la canción llegue, saldrá en «Música nueva» de las novedades.\n\nLiquid Bullet · https://lukoffmon.github.io/LiquidBrush/`,
+    html: marco('¡Petición recibida!', `Recibimos tu petición <b>${escapar(p.ticket)}</b>:<br>
+<div style="margin:18px 0;padding:16px;border-radius:16px;background:linear-gradient(135deg,#2a2440,#1f1a33);font-size:17px;font-weight:700;color:#ffffff">${escapar(que)}</div>
+Lukamon la lee personalmente y te responderá desde <b>officiallukamon@gmail.com</b>. Cuando la canción llegue, saldrá en «Música nueva» de las novedades.`)
   };
 }

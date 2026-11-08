@@ -389,9 +389,9 @@
   <section id="temas">
     <div class="wrap">
       <div class="reveal">
-        <span class="kicker">Cuatro caras</span>
-        <h2>Elige cómo se ve.</h2>
-        <p class="lede">Todos con acabado Liquid Glass. El Surrealista trae una escena animada con una esfera de cromo, un reloj derretido y ojos que te siguen.</p>
+        <span class="kicker">Taller de temas</span>
+        <h2>Hazla tuya.</h2>
+        <p class="lede">Surrealista, Claro y Oscuro de base, y hasta 4 temas en total: crea el tuyo eligiendo fondo, acento, brillo, forma, letra y ambiente, o sácalo de la portada de la canción que suena. Liquid cuida el contraste por ti y cada tema cabe en un código para compartirlo. El Surrealista trae una escena animada con una esfera de cromo, un reloj derretido y ojos que te siguen.</p>
       </div>
       <div class="themes reveal">
         <div class="mock" id="mock" aria-hidden="true">
@@ -545,7 +545,8 @@
         ['headphones', 'Transiciones DJ', 'Una canción se funde con la siguiente.', ['De 3 a 12 segundos', 'Ecualizador cuando el audio lo permite']],
         ['download', 'Sin conexión', 'Descarga playlists y escucha sin datos.', ['Lo no descargado se salta solo', 'Continúa donde lo dejaste al abrir']],
         ['chart', 'Stats', 'Tus minutos, horas favoritas, géneros y artistas.', ['Comparación con el mes anterior', 'Canciones del mes']],
-        ['palette', 'Cuatro temas', 'Surrealista, Minimalista, Yem y Ébano.', ['Fondos de pantalla con vida', 'Color tomado de la portada']],
+        ['palette', 'Taller de temas', 'Crea hasta 4 temas propios, con el Surrealista siempre a mano.', ['Fondo, acento y brillo con contraste garantizado', 'Forma, letra de títulos, ambiente y vidrio', 'Un tema desde la portada que suena o «Sorpréndeme»', 'Códigos para compartir temas y sincronización con tu cuenta']],
+        ['mail', 'Pide tu canción', '¿No está? Pídesela a Lukamon desde el buscador.', ['Le llega al momento con un número de petición', 'Te responde a tu correo', 'Liquid te avisa cuando llega']],
         ['link', 'Compartir con portada', 'Enlaces que siempre salen con miniatura.', ['Tarjeta para Historias y Estados', 'Tus playlists viajan dentro del enlace']],
         ['person', 'Cuenta opcional', 'Tu música en todos tus dispositivos, gratis.', ['Correo + contraseña con código de confirmación', 'La contraseña se cifra en tu teléfono', 'Favoritas, playlists, escucha y ajustes sincronizados', 'Sin cuenta, todo sigue igual']],
         ['phone', 'Se instala como app', 'Pantalla completa, controles en la pantalla de bloqueo.', ['Avisa cuando hay versión nueva y te enseña qué trae', 'Se actualiza con un toque sin perder la canción']],
@@ -573,10 +574,10 @@
 
       // Temas
       var THEMES = [
-        { id: 'chrome', name: 'Surrealista', hint: 'Cromo, ojos y reloj derretido', bg: '#100d1c', surface: '#1f1a33', text: '#ffffff', a: '#d7dde8', b: '#9ee7ff', font: 'system-ui' },
-        { id: 'minimal', name: 'Minimalista', hint: 'Claro, limpio, sin ruido', bg: '#f4f3f0', surface: '#e6e4de', text: '#151515', a: '#151515', b: '#3d3b37', font: 'system-ui' },
-        { id: 'yem', name: 'Yem', hint: 'Noche, naranja y plata', bg: '#0b0907', surface: '#1d1712', text: '#f6efe6', a: '#ff8a1f', b: '#7dffb0', font: 'system-ui' },
-        { id: 'ebano', name: 'Ébano', hint: 'Marfil, oro y Times', bg: '#050506', surface: '#17161a', text: '#f1ead9', a: '#e6dccb', b: '#c2a36b', font: '"Times New Roman", Times, serif' }
+        { id: 'chrome', name: 'Surrealista', hint: 'Cromo, ojos y reloj derretido', bg: '#0d0e12', surface: '#1f2229', text: '#ffffff', a: '#d7dde8', b: '#c8d6ea', font: 'system-ui' },
+        { id: 'claro', name: 'Claro', hint: 'Limpio y luminoso', bg: '#f4f3f0', surface: '#e6e4de', text: '#151515', a: '#151515', b: '#e0245e', font: 'system-ui' },
+        { id: 'oscuro', name: 'Oscuro', hint: 'Negro suave y azul', bg: '#111114', surface: '#1d1d21', text: '#f4f5f8', a: '#f1f1f4', b: '#8ab4ff', font: 'system-ui' },
+        { id: 'tuyo', name: 'El tuyo', hint: 'Ejemplo hecho en el taller', bg: '#0b0907', surface: '#1d1712', text: '#f6efe6', a: '#ff8a1f', b: '#7dffb0', font: '"Times New Roman", Times, serif' }
       ];
       var picks = $('themePicks');
       var mock = $('mock');
