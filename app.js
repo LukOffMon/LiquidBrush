@@ -41,6 +41,12 @@
         name: 'db5',
         list: 'musica/db5.json',
         base: 'https://pub-864cd199a5e04cb0b5faf77320b1e47b.r2.dev'
+      },
+      {
+        // 6.º bucket (sexta cuenta de Cloudflare): EscLIP
+        name: 'db6',
+        list: 'musica/db6.json',
+        base: 'https://pub-5650a817f3404929a60bc899b7a1afe4.r2.dev'
       }
     ],
     tracksUrl: 'tracks.json',
@@ -55,6 +61,9 @@
   const KEYS = {
     favorites: 'liquidbrush:favorites',
     theme: 'liquidbrush:theme',
+    temas: 'liquidbrush:temas',
+    temasCambio: 'liquidbrush:temas-cambio',
+    temaCss: 'liquidbrush:tema-css',
     volume: 'liquidbrush:volume',
     muted: 'liquidbrush:muted',
     shuffle: 'liquidbrush:shuffle',
@@ -135,13 +144,6 @@
     const extras = [DEVICE.standalone ? 'app instalada' : '', DEVICE.lowEnd ? 'equipo modesto: modo ligero' : '', DEVICE.saveData ? 'ahorro de datos' : ''].filter(Boolean);
     return [os, browser, ...extras].join(' · ');
   }
-
-  const THEMES = {
-    chrome: '#100d1c',
-    minimal: '#f4f3f0',
-    yem: '#0b0907',
-    ebano: '#050506'
-  };
 
   const REPEAT_MODES = ['off', 'all', 'one'];
   const REPEAT_LABELS = { off: 'desactivado', all: 'toda la lista', one: 'una canción' };
@@ -271,7 +273,27 @@
     tourSkip: $('tourSkip'),
     tourAgain: $('tourAgain'),
     labPanel: $('labPanel'),
-    themeSelect: $('themeSelect'),
+    temaStrip: $('temaStrip'),
+    temaHint: $('temaHint'),
+    temaDialog: $('temaDialog'),
+    temaForm: $('temaForm'),
+    temaTitle: $('temaTitle'),
+    temaName: $('temaName'),
+    temaBg: $('temaBg'),
+    temaAccent: $('temaAccent'),
+    temaGlow: $('temaGlow'),
+    temaGlass: $('temaGlass'),
+    temaTint: $('temaTint'),
+    temaSeeds: $('temaSeeds'),
+    temaSongSeed: $('temaSongSeed'),
+    temaContrast: $('temaContrast'),
+    temaColorVals: [...document.querySelectorAll('.tema-color-val')],
+    temaCode: $('temaCode'),
+    temaCopy: $('temaCopy'),
+    temaImport: $('temaImport'),
+    temaImportBtn: $('temaImportBtn'),
+    temaDelete: $('temaDelete'),
+    temaCancel: $('temaCancel'),
     metaTheme: document.querySelector('meta[name="theme-color"]'),
     cover: $('cover'),
     npContext: $('npContext'),
@@ -812,6 +834,7 @@
     if (final) {
       trackArrivals();
       maybeRemindBackup();
+      pedir.revisarLlegadas();
     }
     if (eqActive()) probeCors().then(updateEqNote);
 
@@ -5027,6 +5050,24 @@
     els.filterChips.replaceChildren(...chips);
   }
 
+  /* ---------- «¿No encontraste lo que buscabas?» (buscador sin resultados) ---------- */
+  function tarjetaPedir(query) {
+    const q = String(query || '').trim();
+    const card = makeEl('div', 'pedir-card');
+    const icon = makeEl('span', 'pedir-card-icon');
+    icon.append(svgIcon('mail'));
+    const text = makeEl('div', 'pedir-card-text');
+    text.append(
+      makeEl('strong', '', q ? `«${q}» aún no está en Liquid` : '¿No encontraste lo que buscabas?'),
+      makeEl('span', '', 'Pídesela a Lukamon: le llega al momento, la lee él mismo y te responde a tu correo. Así crece la biblioteca de todos.')
+    );
+    const btn = makeEl('button', 'btn btn-primary pedir-card-btn', 'Pedir esta canción');
+    btn.type = 'button';
+    btn.addEventListener('click', () => pedir.abrir(q));
+    card.append(icon, text, btn);
+    return card;
+  }
+
   /* ---------- Playlists que coinciden con la búsqueda ---------- */
   function renderSearchPlaylists(q) {
     const matches = q
@@ -5175,7 +5216,7 @@
     if (!visible.length) {
       const li = makeEl('li', 'list-empty');
       if (!state.tracks.length) li.textContent = 'La biblioteca está vacía por ahora.';
-      else if (searching) li.textContent = 'No se encontraron canciones.';
+      else if (searching) li.append(tarjetaPedir(state.query));
       else if (state.filter !== 'all' || state.genre) li.textContent = 'Ninguna canción coincide con este filtro.';
       else if (state.view === 'favorites') {
         li.textContent = 'Aún no tienes favoritas. Toca el corazón de una canción para guardarla aquí.';
@@ -5201,6 +5242,13 @@
     els.listInfo.textContent = searching
       ? `${total} resultado${total === 1 ? '' : 's'} para «${state.query.trim()}»`
       : state.view === 'playlist' || state.view === 'artist' ? '' : `${songsLabel(total)} · ${formatTotal(seconds)}`;
+    // Con resultados también: quizá no era esa versión o ese artista
+    if (searching && total && !LAB_MODE) {
+      const link = makeEl('button', 'list-info-pedir', '¿No es lo que buscabas? Pídela');
+      link.type = 'button';
+      link.addEventListener('click', () => pedir.abrir(state.query));
+      els.listInfo.append(' · ', link);
+    }
     updateDownloadUI();
   }
 
@@ -7177,15 +7225,452 @@
     return { start, resize, refreshColors };
   })();
 
-  /* ---------- Temas ---------- */
-  function applyTheme(theme) {
-    const safeTheme = Object.prototype.hasOwnProperty.call(THEMES, theme) ? theme : 'chrome';
-    document.documentElement.dataset.theme = safeTheme;
-    window.lbLoadFonts?.(safeTheme, settings.font);
-    els.themeSelect.value = safeTheme;
-    if (els.metaTheme) els.metaTheme.setAttribute('content', THEMES[safeTheme]);
-    storage.set(KEYS.theme, safeTheme);
+  /* ---------- Temas: Taller de temas ----------
+     Tres de base: Surrealista (cromo; fijo, no se borra ni se edita), Claro y Oscuro. Como máximo 4
+     temas en total: los 3 que no son el Surrealista se editan, se borran y se crean desde cero.
+     Un tema son 9 datos (nombre, 3 colores, forma, letra de títulos, ambiente, vidrio y cuánto tiñe la
+     portada); de ahí se calculan todas las variables de color con contraste garantizado. Pintarlo es
+     escribir un solo <style> (nada se anima ni se recalcula mientras suena la música): no pesa nada.
+     El CSS calculado se guarda para que index.html lo ponga antes de pintar (sin parpadeo). */
+  const TEMA_SURREAL = 'chrome';
+  const TEMAS_MAX = 4;
+  const TEMA_FUENTES = {
+    inter: { label: 'Inter', title: "'Inter', system-ui, sans-serif", brand: "'Inter', system-ui, sans-serif" },
+    syne: { label: 'Syne', title: "'Syne', 'Inter', sans-serif", brand: "'Syne', 'Inter', sans-serif" },
+    serif: { label: 'Times', title: "'Times New Roman', Tinos, Times, Georgia, serif", brand: "'Times New Roman', Tinos, Times, Georgia, serif" },
+    rubik: { label: 'Pintura', title: "'Syne', 'Inter', sans-serif", brand: "'Rubik Wet Paint', 'Syne', sans-serif" }
+  };
+  const TEMA_FORMAS = { recto: 8, suave: 16, redondo: 24 };
+  const TEMA_AMBIENTES = ['liso', 'aura', 'degradado'];
+  const TEMAS_DE_BASE = [
+    { id: 'claro', name: 'Claro', bg: '#f4f3f0', accent: '#151515', glow: '#e0245e', font: 'inter', shape: 'suave', aura: 'liso', glass: 45, tint: 20 },
+    { id: 'oscuro', name: 'Oscuro', bg: '#111114', accent: '#f1f1f4', glow: '#8ab4ff', font: 'inter', shape: 'suave', aura: 'liso', glass: 55, tint: 30 }
+  ];
+
+  // ---- Color (hex #rrggbb) ----
+  const hexRgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const rgbHex = (rgb) => `#${rgb.map((v) => Math.round(clamp(v, 0, 255)).toString(16).padStart(2, '0')).join('')}`;
+  const mixHex = (a, b, t) => { const x = hexRgb(a); const y = hexRgb(b); return rgbHex(x.map((v, i) => v + (y[i] - v) * t)); };
+  const rgbaHex = (h, a) => `rgba(${hexRgb(h).join(', ')}, ${a})`;
+  function luminancia(h) {
+    const [r, g, b] = hexRgb(h).map((v) => { const c = v / 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  }
+  const contraste = (a, b) => { const x = luminancia(a); const y = luminancia(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+  // Acerca un color al texto hasta que se lea sobre el fondo (sin cambiar de tono más de lo necesario)
+  function legible(color, fondo, texto, minimo) {
+    let c = color;
+    for (let i = 1; i <= 10 && contraste(c, fondo) < minimo; i++) c = mixHex(color, texto, i / 10);
+    return c;
+  }
+
+  function limpiarTema(t, id) {
+    const hex = (v, d) => (/^#[0-9a-f]{6}$/i.test(String(v)) ? String(v).toLowerCase() : d);
+    const de = (v, lista, d) => (lista.includes(v) ? v : d);
+    const num = (v, a, b, d) => (Number.isFinite(Number(v)) && v !== '' && v !== null ? clamp(Math.round(Number(v)), a, b) : d);
+    return {
+      id: id || t?.id || `t${Date.now().toString(36)}`,
+      name: String(t?.name || '').replace(/\p{Cc}/gu, '').trim().slice(0, 24) || 'Mi tema',
+      bg: hex(t?.bg, '#111114'),
+      accent: hex(t?.accent, '#f1f1f4'),
+      glow: hex(t?.glow, '#8ab4ff'),
+      font: de(t?.font, Object.keys(TEMA_FUENTES), 'inter'),
+      shape: de(t?.shape, Object.keys(TEMA_FORMAS), 'suave'),
+      aura: de(t?.aura, TEMA_AMBIENTES, 'liso'),
+      glass: num(t?.glass, 0, 100, 50),
+      tint: num(t?.tint, 0, 60, 25)
+    };
+  }
+
+  // Todas las variables del tema a partir de sus 9 datos
+  function paletaTema(t) {
+    const claro = luminancia(t.bg) > 0.36;
+    const texto = contraste(t.bg, '#f4f5f8') >= contraste(t.bg, '#141414') ? '#f4f5f8' : '#141414';
+    const acento = legible(t.accent, t.bg, texto, 2.6);
+    const brillo = legible(t.glow, t.bg, texto, 2.2);
+    const sobreAcento = contraste(acento, '#ffffff') >= contraste(acento, '#121212') ? '#ffffff' : '#121212';
+    const radio = TEMA_FORMAS[t.shape];
+    const alfa = Math.round(92 - t.glass * 0.6);
+    const fuente = TEMA_FUENTES[t.font];
+    return {
+      claro,
+      vars: {
+        '--bg': t.bg,
+        '--bg-2': mixHex(t.bg, t.glow, claro ? 0.07 : 0.12),
+        '--surface': claro ? mixHex(t.bg, '#ffffff', 0.75) : mixHex(t.bg, texto, 0.05),
+        '--surface-2': mixHex(t.bg, texto, claro ? 0.05 : 0.1),
+        '--surface-hover': mixHex(t.bg, texto, claro ? 0.09 : 0.16),
+        '--text': texto,
+        '--text-muted': mixHex(texto, t.bg, 0.4),
+        '--accent': acento,
+        '--accent-2': brillo,
+        '--on-accent': sobreAcento,
+        '--heart': brillo,
+        '--border': rgbaHex(texto, claro ? 0.1 : 0.11),
+        '--shadow': claro ? '0 16px 40px rgba(0, 0, 0, 0.1)' : '0 18px 46px rgba(0, 0, 0, 0.55)',
+        '--glow': t.aura === 'liso' ? 'none' : `0 0 22px ${rgbaHex(brillo, 0.35)}`,
+        '--text-glow': 'none',
+        '--player-bg': claro ? mixHex(t.bg, '#ffffff', 0.6) : mixHex(t.bg, '#000000', 0.25),
+        '--dyn-strength': `${t.tint}%`,
+        '--radius': `${radio}px`,
+        '--glass-alpha': `${alfa}%`,
+        '--glass-alpha-soft': `${Math.max(20, alfa - 14)}%`,
+        '--title-font': fuente.title,
+        '--brand-font': fuente.brand,
+        '--viz-a': acento,
+        '--viz-b': brillo,
+        '--viz-c': mixHex(acento, brillo, 0.5),
+        'color-scheme': claro ? 'light' : 'dark'
+      },
+      // Ambiente del fondo: degradados quietos (no se animan: cero coste mientras suena)
+      fondo: [
+        'radial-gradient(120% 80% at 10% -10%, color-mix(in srgb, var(--dyn) var(--dyn-strength), transparent) 0%, transparent 60%)',
+        ...(t.aura === 'aura' ? [
+          `radial-gradient(60% 45% at 88% 4%, ${rgbaHex(brillo, claro ? 0.2 : 0.24)} 0%, transparent 70%)`,
+          `radial-gradient(55% 45% at 0% 100%, ${rgbaHex(acento, claro ? 0.12 : 0.16)} 0%, transparent 70%)`
+        ] : []),
+        t.aura === 'degradado'
+          ? `linear-gradient(160deg, ${mixHex(t.bg, brillo, claro ? 0.22 : 0.3)} 0%, ${t.bg} 55%, ${mixHex(t.bg, acento, claro ? 0.12 : 0.2)} 100%)`
+          : 'linear-gradient(180deg, var(--bg-2) 0%, var(--bg) 70%)'
+      ].join(', ')
+    };
+  }
+
+  function cssTema(t) {
+    const p = paletaTema(t);
+    const sel = ':root[data-theme]:not([data-theme="chrome"])';
+    const vars = Object.entries(p.vars).map(([k, v]) => `${k}:${v}`).join(';');
+    return { base: p.claro ? 'minimal' : 'dark', css: `${sel}{${vars}}${sel} .bg-glow{background:${p.fondo}}` };
+  }
+
+  const temas = {
+    lista: [],
+    borrador: null, // tema que se está editando (se ve en vivo)
+    cargar() {
+      const guardados = storage.get(KEYS.temas, null);
+      this.lista = (Array.isArray(guardados) ? guardados : TEMAS_DE_BASE).slice(0, TEMAS_MAX - 1).map((t) => limpiarTema(t));
+    },
+    guardar() {
+      storage.set(KEYS.temas, this.lista);
+      storage.set(KEYS.temasCambio, Date.now());
+    },
+    todos() {
+      return [{ id: TEMA_SURREAL, name: 'Surrealista', fijo: true }, ...this.lista];
+    },
+    de(id) {
+      return this.lista.find((t) => t.id === id) || null;
+    }
+  };
+
+  // Los temas viejos se traducen al de base más parecido
+  const TEMAS_VIEJOS = { minimal: 'claro', yem: 'oscuro', ebano: 'oscuro' };
+  function temaActivo() {
+    const id = storage.get(KEYS.theme, TEMA_SURREAL);
+    return TEMAS_VIEJOS[id] || id;
+  }
+
+  function pintarTema(t) {
+    const root = document.documentElement;
+    let style = document.getElementById('lbTemaVars');
+    if (!t) {
+      root.dataset.theme = TEMA_SURREAL;
+      delete root.dataset.tfont;
+      if (style) style.textContent = '';
+      window.lbLoadFonts?.(TEMA_SURREAL, settings.font);
+      if (els.metaTheme) els.metaTheme.setAttribute('content', '#0d0e12');
+      return null;
+    }
+    const { base, css } = cssTema(t);
+    if (!style) {
+      style = document.createElement('style');
+      style.id = 'lbTemaVars';
+      document.head.append(style);
+    }
+    style.textContent = css;
+    root.dataset.theme = base;
+    root.dataset.tfont = t.font;
+    window.lbLoadFonts?.(base, settings.font);
+    if (els.metaTheme) els.metaTheme.setAttribute('content', t.bg);
+    return { base, css };
+  }
+
+  function applyTheme(id) {
+    if (TEMAS_VIEJOS[id]) id = TEMAS_VIEJOS[id];
+    let t = temas.de(id);
+    // Un tema que ya no existe (borrado en otro dispositivo): vuelve al Surrealista
+    if (!t) id = TEMA_SURREAL;
+    if (id === TEMA_SURREAL) t = null;
+    const pintado = pintarTema(t);
+    storage.set(KEYS.theme, id);
+    // Para index.html: el CSS listo para ponerlo antes de pintar la primera vez
+    if (pintado) storage.set(KEYS.temaCss, { id, base: pintado.base, font: t.font, css: pintado.css });
+    else { try { localStorage.removeItem(KEYS.temaCss); } catch { /* sin acceso */ } }
+    renderTemaStrip();
     requestAnimationFrame(() => visualizer.refreshColors());
+  }
+
+  function cambiarTema(id) {
+    const change = () => applyTheme(id);
+    if (settings.motion && document.startViewTransition && !reducedMotion()) document.startViewTransition(change);
+    else change();
+  }
+
+  // Miniatura de un tema: fondo, acento y brillo (el Surrealista, de cromo)
+  function muestraTema(t) {
+    const m = makeEl('span', 'tema-muestra');
+    m.setAttribute('aria-hidden', 'true');
+    if (!t) {
+      m.classList.add('is-cromo');
+    } else {
+      const p = paletaTema(t);
+      m.style.setProperty('--m-bg', t.bg);
+      m.style.setProperty('--m-surface', p.vars['--surface-2']);
+      m.style.setProperty('--m-accent', p.vars['--accent']);
+      m.style.setProperty('--m-glow', p.vars['--accent-2']);
+      m.style.setProperty('--m-radius', `${Math.round(TEMA_FORMAS[t.shape] / 2.5)}px`);
+    }
+    m.append(makeEl('span', 'tema-muestra-bar'), makeEl('span', 'tema-muestra-dot'), makeEl('span', 'tema-muestra-dot is-glow'));
+    return m;
+  }
+
+  function renderTemaStrip() {
+    if (!els.temaStrip) return;
+    const activo = temaActivo();
+    const cards = temas.todos().map((t) => {
+      const card = makeEl('div', 'tema-card');
+      const pick = makeEl('button', 'tema-pick');
+      pick.type = 'button';
+      pick.setAttribute('role', 'radio');
+      pick.setAttribute('aria-checked', String(t.id === activo));
+      pick.dataset.tema = t.id;
+      pick.append(muestraTema(t.fijo ? null : t), makeEl('span', 'tema-name', t.name));
+      if (t.fijo) pick.append(makeEl('span', 'tema-tag', 'Fijo'));
+      card.append(pick);
+      if (!t.fijo) {
+        const edit = makeButton('tema-edit', 'tema-edit', `Editar «${t.name}»`, 'edit');
+        edit.dataset.tema = t.id;
+        card.append(edit);
+      }
+      card.classList.toggle('is-active', t.id === activo);
+      return card;
+    });
+    if (temas.lista.length < TEMAS_MAX - 1) {
+      const nuevo = makeEl('button', 'tema-card tema-new');
+      nuevo.type = 'button';
+      nuevo.dataset.tema = '+';
+      nuevo.append(svgIcon('palette'), makeEl('span', 'tema-name', 'Crear tema'));
+      cards.push(nuevo);
+    }
+    els.temaStrip.replaceChildren(...cards);
+    if (els.temaHint) {
+      els.temaHint.textContent = temas.lista.length >= TEMAS_MAX - 1
+        ? 'Tienes 4 temas, el máximo. Borra uno (lápiz › Borrar) para crear otro.'
+        : 'Toca uno para usarlo. Crea el tuyo con «Crear tema» o retoca Claro y Oscuro con el lápiz.';
+    }
+  }
+
+  /* ---- Editor (Taller de temas) ---- */
+  const CODIGO_TEMA = 'LIQ1-';
+  function codigoTema(t) {
+    const datos = [t.name, t.bg, t.accent, t.glow, t.font, t.shape, t.aura, t.glass, t.tint];
+    const bytes = new TextEncoder().encode(JSON.stringify(datos));
+    return CODIGO_TEMA + btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  function leerCodigoTema(texto) {
+    const m = /LIQ1-([\w-]+)/.exec(String(texto || ''));
+    if (!m) return null;
+    try {
+      const b = atob(m[1].replace(/-/g, '+').replace(/_/g, '/'));
+      const d = JSON.parse(new TextDecoder().decode(Uint8Array.from(b, (c) => c.charCodeAt(0))));
+      if (!Array.isArray(d)) return null;
+      const [name, bg, accent, glow, font, shape, aura, glass, tint] = d;
+      return limpiarTema({ name, bg, accent, glow, font, shape, aura, glass, tint }, 'importado');
+    } catch {
+      return null;
+    }
+  }
+
+  // Paletas que combinan: se parte de un tono y se reparten acento y brillo en armonía
+  const hslHex = (h, s, l) => rgbHex(hslToRgb(((h % 1) + 1) % 1, s, l));
+  function temaAlAzar(base) {
+    const h = Math.random();
+    const oscuro = Math.random() < 0.7;
+    const esquema = [0.5, 1 / 3, 1 / 12, 0.42][Math.floor(Math.random() * 4)];
+    return limpiarTema({
+      ...base,
+      bg: oscuro ? hslHex(h, 0.25 + Math.random() * 0.3, 0.06 + Math.random() * 0.05) : hslHex(h, 0.3 + Math.random() * 0.3, 0.92 + Math.random() * 0.05),
+      accent: hslHex(h + esquema, 0.7 + Math.random() * 0.25, oscuro ? 0.68 : 0.38),
+      glow: hslHex(h - esquema, 0.75 + Math.random() * 0.2, oscuro ? 0.62 : 0.45),
+      font: Object.keys(TEMA_FUENTES)[Math.floor(Math.random() * 4)],
+      shape: Object.keys(TEMA_FORMAS)[Math.floor(Math.random() * 3)],
+      aura: TEMA_AMBIENTES[Math.floor(Math.random() * 3)]
+    }, base.id);
+  }
+
+  // El tema sale de la portada de la canción que suena
+  function temaDeCancion(base) {
+    const track = state.currentTrack;
+    const rgb = track ? colorCache.get(track.id) : null;
+    if (!rgb) return null;
+    const [h, s] = rgbToHsl(...rgb);
+    return limpiarTema({
+      ...base,
+      name: base.name === 'Mi tema' && track.title ? track.title.slice(0, 24) : base.name,
+      bg: hslHex(h, Math.min(0.45, s), 0.07),
+      accent: rgbHex(rgb),
+      glow: hslHex(h + 0.08, Math.max(0.6, s), 0.68)
+    }, base.id);
+  }
+
+  const taller = { id: null, nuevo: false, guardado: false };
+
+  function leerEditor() {
+    const f = els.temaForm;
+    const valor = (n) => f.querySelector(`input[name="${n}"]:checked`)?.value;
+    return limpiarTema({
+      name: els.temaName.value,
+      bg: els.temaBg.value,
+      accent: els.temaAccent.value,
+      glow: els.temaGlow.value,
+      font: valor('temaFont'),
+      shape: valor('temaShape'),
+      aura: valor('temaAura'),
+      glass: els.temaGlass.value,
+      tint: els.temaTint.value
+    }, taller.id);
+  }
+
+  function llenarEditor(t) {
+    els.temaName.value = t.name;
+    els.temaBg.value = t.bg;
+    els.temaAccent.value = t.accent;
+    els.temaGlow.value = t.glow;
+    els.temaGlass.value = t.glass;
+    els.temaTint.value = t.tint;
+    [['temaFont', t.font], ['temaShape', t.shape], ['temaAura', t.aura]].forEach(([n, v]) => {
+      const input = els.temaForm.querySelector(`input[name="${n}"][value="${v}"]`);
+      if (input) input.checked = true;
+    });
+    vivoEditor();
+  }
+
+  let vivoPendiente = 0;
+  function vivoEditor() {
+    if (vivoPendiente) return;
+    vivoPendiente = requestAnimationFrame(() => {
+      vivoPendiente = 0;
+      const t = leerEditor();
+      temas.borrador = t;
+      pintarTema(t);
+      const p = paletaTema(t);
+      const c = contraste(p.vars['--text'], t.bg);
+      const ca = contraste(p.vars['--accent'], t.bg);
+      const ajustado = p.vars['--accent'] !== t.accent || p.vars['--accent-2'] !== t.glow;
+      els.temaContrast.textContent = `Legible: texto ${c.toFixed(1)}:1 · acento ${ca.toFixed(1)}:1${ajustado ? ' · retocamos un poco tus colores para que se lean' : ''}`;
+      els.temaContrast.classList.toggle('is-ajustado', ajustado);
+      els.temaCode.value = codigoTema(t);
+      els.temaColorVals.forEach((span) => { span.textContent = els[span.dataset.for].value.toUpperCase(); });
+    });
+  }
+
+  function abrirTaller(id) {
+    if (!els.temaDialog) return;
+    const existente = id && id !== '+' ? temas.de(id) : null;
+    if (!existente && temas.lista.length >= TEMAS_MAX - 1) {
+      showToast('Ya tienes 4 temas. Borra uno para crear otro.');
+      return;
+    }
+    taller.id = existente ? existente.id : `t${Date.now().toString(36)}`;
+    taller.nuevo = !existente;
+    taller.guardado = false;
+    els.temaTitle.textContent = existente ? `Editar «${existente.name}»` : 'Crear tema';
+    els.temaDelete.hidden = !existente;
+    els.temaImport.value = '';
+    els.temaSongSeed.disabled = !(state.currentTrack && colorCache.get(state.currentTrack.id));
+    const actual = temas.de(temaActivo());
+    llenarEditor(existente || limpiarTema({ ...(actual || TEMAS_DE_BASE[1]), name: 'Mi tema' }, taller.id));
+    els.settingsDialog?.close();
+    els.temaDialog.showModal();
+  }
+
+  function cerrarTaller(guardar) {
+    if (guardar) {
+      const t = leerEditor();
+      const i = temas.lista.findIndex((x) => x.id === t.id);
+      if (i >= 0) temas.lista[i] = t;
+      else temas.lista.push(t);
+      temas.guardar();
+      taller.guardado = true;
+      els.temaDialog.close();
+      applyTheme(t.id);
+      showToast(`Tema «${t.name}» guardado.`);
+      cuenta.sincronizar?.();
+      return;
+    }
+    els.temaDialog.close();
+  }
+
+  function setupTaller() {
+    if (!els.temaStrip) return;
+    els.temaStrip.addEventListener('click', (event) => {
+      const edit = event.target.closest('.tema-edit');
+      if (edit) { abrirTaller(edit.dataset.tema); return; }
+      const card = event.target.closest('[data-tema]');
+      if (!card) return;
+      if (card.dataset.tema === '+') abrirTaller('+');
+      else cambiarTema(card.dataset.tema);
+    });
+    if (!els.temaDialog) return;
+    els.temaForm.addEventListener('input', vivoEditor);
+    els.temaForm.addEventListener('change', vivoEditor);
+    els.temaForm.addEventListener('submit', (event) => { event.preventDefault(); cerrarTaller(true); });
+    els.temaCancel.addEventListener('click', () => cerrarTaller(false));
+    // Al cerrar sin guardar (Cancelar, Esc o tocar fuera) se vuelve al tema que había
+    els.temaDialog.addEventListener('close', () => {
+      temas.borrador = null;
+      if (!taller.guardado) applyTheme(temaActivo());
+    });
+    els.temaDialog.addEventListener('click', (event) => { if (event.target === els.temaDialog) els.temaDialog.close(); });
+    els.temaSeeds.addEventListener('click', (event) => {
+      const b = event.target.closest('[data-seed]');
+      if (!b) return;
+      const actual = leerEditor();
+      const semilla = b.dataset.seed;
+      let t;
+      if (semilla === 'song') t = temaDeCancion(actual);
+      else if (semilla === 'random') t = temaAlAzar(actual);
+      else t = limpiarTema({ ...TEMAS_DE_BASE[semilla === 'light' ? 0 : 1], name: actual.name }, taller.id);
+      if (!t) { showToast('Pon una canción y vuelve a tocar «De la canción».'); return; }
+      llenarEditor(t);
+      haptic(10);
+    });
+    els.temaDelete.addEventListener('click', () => {
+      const t = temas.de(taller.id);
+      if (!t || !confirm(`¿Borrar el tema «${t.name}»? Podrás crear otro en su lugar.`)) return;
+      temas.lista = temas.lista.filter((x) => x.id !== t.id);
+      temas.guardar();
+      taller.guardado = true;
+      els.temaDialog.close();
+      applyTheme(temaActivo() === t.id ? TEMA_SURREAL : temaActivo());
+      showToast(`Tema «${t.name}» borrado.`);
+      cuenta.sincronizar?.();
+    });
+    els.temaCopy.addEventListener('click', async () => {
+      const codigo = els.temaCode.value;
+      try {
+        await navigator.clipboard.writeText(codigo);
+        showToast('Código copiado: pásalo a quien quieras y que lo pegue en «Crear tema».');
+      } catch {
+        els.temaCode.select();
+        showToast('Selecciona y copia el código.');
+      }
+    });
+    els.temaImportBtn.addEventListener('click', () => {
+      const t = leerCodigoTema(els.temaImport.value);
+      if (!t) { showToast('Ese código no parece un tema de Liquid (empieza por LIQ1-).'); return; }
+      llenarEditor({ ...t, id: taller.id });
+      showToast(`Tema «${t.name}» cargado: guárdalo si te gusta.`);
+    });
   }
 
   /* ---------- Escena surrealista: los ojos siguen el cursor ---------- */
@@ -7984,12 +8469,8 @@
       }
     });
 
-    // Tema
-    els.themeSelect.addEventListener('change', () => {
-      const change = () => applyTheme(els.themeSelect.value);
-      if (settings.motion && document.startViewTransition && !reducedMotion()) document.startViewTransition(change);
-      else change();
-    });
+    // Temas (Taller de temas)
+    setupTaller();
 
     // Carátula de respaldo si la imagen falla
     [els.cover, els.miniCover].forEach((img) => {
@@ -8959,8 +9440,7 @@
       return robot.cargando;
     }
 
-    async function montarRobot() {
-      const caja = ui.body?.querySelector('.cuenta-robot');
+    async function montarRobot(caja = ui.body?.querySelector('.cuenta-robot')) {
       if (!caja) return;
       try { await cargarTurnstile(); } catch { return; }
       if (robot.widget !== null) { try { window.turnstile.remove(robot.widget); } catch { /* ya no existe */ } }
@@ -9004,7 +9484,11 @@
       sesion_caducada: 'Vuelve a entrar para seguir sincronizando. Tus datos de este dispositivo siguen aquí.',
       robot: 'No pudimos comprobar que eres tú. Inténtalo de nuevo.',
       ya_registrado: 'Ese correo ya tiene cuenta. Entra con tu contraseña.',
-      interno: 'Algo falló de nuestro lado. Inténtalo de nuevo en un momento.'
+      interno: 'Algo falló de nuestro lado. Inténtalo de nuevo en un momento.',
+      demasiadas_peticiones: 'Ya mandaste 5 peticiones hoy. ¡Gracias! Mañana puedes pedir más.',
+      falta_cancion: 'Escribe al menos el nombre de la canción o del artista.',
+      envio_fallido: 'No pudimos enviar tu petición ahora mismo.',
+      no_encontrado: 'Las peticiones aún no están activas en el servidor.'
     };
     const mensaje = (e) => {
       const codigo = e?.codigo || 'interno';
@@ -9715,7 +10199,7 @@
     const BASE_MIN = 26297280; // minutos desde 1970 hasta 2020-01-01: las fechas caben en 7 cifras
     const minAhora = () => Math.floor(Date.now() / 60000) - BASE_MIN;
     const LAPIDA_MIN = 90 * 24 * 60; // las marcas de borrado se guardan 90 días
-    const FUENTES = { pepper: 'p', salt: 's', brush3: 'b', db4: '4', db5: '5' };
+    const FUENTES = { pepper: 'p', salt: 's', brush3: 'b', db4: '4', db5: '5', db6: '6' };
     let cortosPorId = null;
 
     function mapasCortos() {
@@ -9732,7 +10216,7 @@
     }
     // «brush3:101-200-148-clairo-4ever-mp3-c0bf5f» (59 caracteres de media) → «bc0bf5f» (7)
     function idCorto(id) {
-      const m = /^(pepper|salt|brush3|db4|db5):.*-([0-9a-f]{6})$/.exec(String(id));
+      const m = /^(pepper|salt|brush3|db4|db5|db6):.*-([0-9a-f]{6})$/.exec(String(id));
       return m ? FUENTES[m[1]] + m[2] : `~${id}`;
     }
     const aCorto = (id) => mapasCortos().corto.get(id) || idCorto(id);
@@ -9977,10 +10461,15 @@
             const sk = { ...(r.sk || {}) };
             Object.entries(taste.skips).forEach(([id, n]) => { const c = aCorto(id); sk[c] = Math.max(sk[c] || 0, n); });
             const aj = { ...(r.aj || {}) };
-            const tema = storage.get(KEYS.theme, 'chrome');
+            const tema = temaActivo();
             // El tema viaja: gana el último cambio (un dispositivo nuevo adopta el de la cuenta)
             const temaCambiado = meta.tema !== undefined && meta.tema !== tema;
             if (!aj.tema || temaCambiado) aj.tema = [minAhora(), tema];
+            // Los temas propios (Taller de temas) también: gana la última edición
+            const msTemas = storage.get(KEYS.temasCambio, 0);
+            const minTemas = msTemas ? Math.floor(msTemas / 60000) - BASE_MIN : -1;
+            const temasRemotos = Array.isArray(aj.temas) && Array.isArray(aj.temas[1]) && aj.temas[0] > minTemas ? aj.temas : null;
+            if (!temasRemotos && minTemas >= 0) aj.temas = [minTemas, temas.lista];
             const doc = { v: 1, t: minAhora(), ...Object.fromEntries(Object.entries(sets).filter(([, v]) => Object.keys(v).length)), pl, pc, hd, sk, aj };
             Object.keys(doc).forEach((k) => { if (doc[k] && typeof doc[k] === 'object' && !Array.isArray(doc[k]) && !Object.keys(doc[k]).length) delete doc[k]; });
             if (!doc.pl.length) delete doc.pl;
@@ -10005,7 +10494,13 @@
                 taste.dirty = true;
                 taste.profile = null;
                 taste.save();
+                if (temasRemotos) {
+                  temas.lista = temasRemotos[1].slice(0, TEMAS_MAX - 1).map((t) => limpiarTema(t));
+                  storage.set(KEYS.temas, temas.lista);
+                  storage.set(KEYS.temasCambio, (temasRemotos[0] + BASE_MIN) * 60000);
+                }
                 if (aj.tema && aj.tema[1] !== tema) applyTheme(aj.tema[1]);
+                else if (temasRemotos) applyTheme(tema);
                 meta.tema = aj.tema?.[1];
               }
             };
@@ -10157,7 +10652,207 @@
 
     const vaPrimero = () => !sesion && !storage.get(K.ofrecida, false);
 
-    return { init, abrir, sincronizar, vaPrimero, haySesion: () => Boolean(sesion), nombre: () => sesion?.perfil?.nombre || '' };
+    // Pedir una canción (buscador): con sesión va con el correo ya verificado de la cuenta (y llega acuse);
+    // sin sesión, con el correo que escriba la persona y la comprobación anti-bots
+    async function pedirCancion(datos, caja) {
+      if (sesion) {
+        try { return await api('/peticion', { cuerpo: datos, auth: true }); } catch (e) {
+          if (e.codigo !== 'sesion_caducada') throw e;
+        }
+      }
+      if (!robot.token) {
+        await cargarTurnstile(); // si no carga (bloqueada, sin red) falla ya, sin esperar 20 s
+        await montarRobot(caja);
+      }
+      const turnstile = await tokenRobot();
+      try { return await api('/peticion', { cuerpo: { ...datos, turnstile } }); } finally { gastarRobot(); }
+    }
+
+    return {
+      init, abrir, sincronizar, vaPrimero, haySesion: () => Boolean(sesion), nombre: () => sesion?.perfil?.nombre || '',
+      correo: () => sesion?.perfil?.correo || storage.get(K.ultimoCorreo, '') || '',
+      prepararRobot: (caja) => (sesion ? Promise.resolve() : montarRobot(caja)),
+      pedirCancion,
+      mensajeError: mensaje
+    };
+  })();
+
+  /* =========================================================
+     «¿No encontraste lo que buscabas?»: pedir una canción
+     El bot de Liquid (el Gmail de las cuentas) le reenvía la petición a Lukamon con «Responder a» = el
+     correo de quien pide; él contesta desde officiallukamon@gmail.com. Si el servidor no responde, se
+     ofrece mandar el mismo mensaje desde el correo de la persona. Las peticiones se recuerdan aquí: cuando
+     la canción llega a la Biblioteca, Liquid avisa.
+     ========================================================= */
+  const BUZON_LUKAMON = 'officiallukamon@gmail.com';
+  const pedir = (() => {
+    const KEY = 'liquidbrush:peticiones';
+    const $p = (id) => document.getElementById(id);
+    const ui = {
+      dialog: $p('pedirDialog'), form: $p('pedirForm'), campos: $p('pedirCampos'), listo: $p('pedirListo'),
+      cancion: $p('pedirCancion'), artista: $p('pedirArtista'), mensaje: $p('pedirMensaje'), correo: $p('pedirCorreo'),
+      correoRow: $p('pedirCorreoRow'), nota: $p('pedirCuentaNota'), error: $p('pedirError'),
+      enviar: $p('pedirEnviar'), cerrar: $p('pedirCerrar')
+    };
+    let busqueda = '';
+    let enviando = false;
+    const lista = () => { const l = storage.get(KEY, []); return Array.isArray(l) ? l : []; };
+
+    function partirBusqueda(q) {
+      // «bad bunny - titi me pregunto» o «titi me pregunto de bad bunny»: se separa si se puede
+      const guion = q.split(/\s+[-–—]\s+/);
+      if (guion.length === 2) return { artista: guion[0], cancion: guion[1] };
+      const de = /^(.+?)\s+(?:de|by)\s+(.+)$/i.exec(q);
+      if (de) return { cancion: de[1], artista: de[2] };
+      return { cancion: q, artista: '' };
+    }
+
+    function mostrarError(texto, conCorreo) {
+      ui.error.replaceChildren(document.createTextNode(texto));
+      if (conCorreo) {
+        ui.error.append(' ');
+        const a = document.createElement('a');
+        a.href = enlaceCorreo();
+        a.textContent = 'o envíala desde tu correo';
+        a.className = 'pedir-mailto';
+        ui.error.append(a);
+      }
+      ui.error.hidden = false;
+    }
+
+    function datos() {
+      return {
+        cancion: ui.cancion.value.trim(),
+        artista: ui.artista.value.trim(),
+        mensaje: ui.mensaje.value.trim(),
+        busqueda,
+        correo: ui.correo.value.trim()
+      };
+    }
+
+    function enlaceCorreo() {
+      const d = datos();
+      const que = [d.cancion, d.artista].filter(Boolean).join(' — ') || d.busqueda;
+      const cuerpo = `Hola, Lukamon:\n\nMe gustaría que agregaras a Liquid:\n\nCanción: ${d.cancion || '-'}\nArtista: ${d.artista || '-'}\n${d.mensaje ? `\n${d.mensaje}\n` : ''}\n(Busqué «${d.busqueda || que}» y no estaba.)`;
+      return `mailto:${BUZON_LUKAMON}?subject=${encodeURIComponent(`Petición para Liquid · ${que}`)}&body=${encodeURIComponent(cuerpo)}`;
+    }
+
+    function abrir(q = '') {
+      if (!ui.dialog) {
+        location.href = `mailto:${BUZON_LUKAMON}`;
+        return;
+      }
+      busqueda = String(q || '').trim().slice(0, 120);
+      const partes = partirBusqueda(busqueda);
+      ui.cancion.value = partes.cancion;
+      ui.artista.value = partes.artista;
+      ui.mensaje.value = '';
+      const conCuenta = cuenta.haySesion();
+      const correo = cuenta.correo();
+      ui.correoRow.hidden = conCuenta;
+      ui.correo.required = !conCuenta;
+      if (!conCuenta && !ui.correo.value) ui.correo.value = correo;
+      ui.nota.hidden = !conCuenta;
+      ui.nota.textContent = conCuenta
+        ? `Te responderá a ${correo ? correo.replace(/^(.)[^@]*(@.*)$/, '$1•••$2') : 'el correo de tu cuenta'} y te llegará un acuse con tu número de petición.`
+        : '';
+      ui.error.hidden = true;
+      ui.campos.hidden = false;
+      ui.listo.hidden = true;
+      ui.enviar.hidden = false;
+      ui.enviar.disabled = false;
+      ui.enviar.textContent = 'Enviar petición';
+      ui.cerrar.textContent = 'Cancelar';
+      ui.dialog.showModal();
+      // La comprobación anti-bots se prepara mientras se escribe (casi siempre es invisible)
+      cuenta.prepararRobot(ui.form.querySelector('.pedir-robot')).catch(() => {});
+      if (!ui.cancion.value) ui.cancion.focus();
+    }
+
+    function listo(r, d) {
+      const pedidas = lista();
+      pedidas.unshift({ ticket: r.ticket, cancion: d.cancion, artista: d.artista, fecha: Date.now() });
+      storage.set(KEY, pedidas.slice(0, 30));
+      ui.campos.hidden = true;
+      ui.enviar.hidden = true;
+      ui.cerrar.textContent = 'Cerrar';
+      const que = [d.cancion, d.artista].filter(Boolean).join(' — ');
+      const caja = ui.listo;
+      caja.replaceChildren();
+      const ticket = makeEl('div', 'pedir-ticket');
+      ticket.append(makeEl('span', 'pedir-ticket-label', 'Tu número de petición'), makeEl('strong', '', r.ticket));
+      const otra = makeEl('button', 'btn btn-ghost', 'Pedir otra');
+      otra.type = 'button';
+      otra.addEventListener('click', () => abrir(''));
+      caja.append(
+        makeEl('p', 'pedir-gracias', '¡Gracias! Le llegó a Lukamon.'),
+        ticket,
+        makeEl('p', 'sheet-text', `«${que}». Te contestará desde ${BUZON_LUKAMON}${r.acuse ? ' y ya tienes el acuse en tu correo' : ''} (mira también en Spam). Cuando la canción llegue a Liquid, te avisamos aquí.`),
+        otra
+      );
+      caja.hidden = false;
+      haptic(12);
+    }
+
+    async function enviar(event) {
+      event.preventDefault();
+      if (enviando) return;
+      const d = datos();
+      ui.error.hidden = true;
+      if (!d.cancion && !d.artista) { mostrarError('Escribe al menos el nombre de la canción o del artista.'); ui.cancion.focus(); return; }
+      if (!cuenta.haySesion() && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(d.correo)) {
+        mostrarError('Escribe tu correo para que Lukamon pueda responderte.');
+        ui.correo.focus();
+        return;
+      }
+      enviando = true;
+      ui.enviar.disabled = true;
+      ui.enviar.textContent = 'Enviando…';
+      try {
+        const r = await cuenta.pedirCancion(d, ui.form.querySelector('.pedir-robot'));
+        listo(r, d);
+      } catch (e) {
+        const codigo = e?.codigo || 'interno';
+        // Si el servidor no puede, la petición no se pierde: sale desde el correo de la persona
+        const conCorreo = ['no_encontrado', 'interno', 'envio_fallido', 'envio_no_disponible', 'sin_conexion', 'robot'].includes(codigo);
+        mostrarError(cuenta.mensajeError(e), conCorreo);
+      } finally {
+        enviando = false;
+        ui.enviar.disabled = false;
+        ui.enviar.textContent = 'Enviar petición';
+      }
+    }
+
+    // ¿Llegó algo de lo que pidió esta persona? Se avisa una vez por petición
+    function revisarLlegadas() {
+      const pedidas = lista();
+      const pendientes = pedidas.filter((p) => !p.llego && p.cancion);
+      if (!pendientes.length || !state.tracks.length) return;
+      let aviso = null;
+      pendientes.forEach((p) => {
+        const titulo = normalize(p.cancion);
+        const artista = normalize(p.artista || '').split(/\s*,\s*/)[0];
+        const track = state.libraryTracks.find((t) => normalize(t.title).includes(titulo) && (!artista || normalize(t.artist).includes(artista)));
+        if (!track) return;
+        p.llego = Date.now();
+        aviso = aviso || { p, track };
+      });
+      if (!aviso) return;
+      storage.set(KEY, pedidas);
+      showToast(`¡Llegó «${aviso.track.title}», la que pediste!`, {
+        label: 'Escuchar',
+        run: () => playCollection([aviso.track], aviso.track.id, 'Lo que pediste', 'col:pedidas')
+      });
+    }
+
+    function init() {
+      if (!ui.dialog) return;
+      ui.form.addEventListener('submit', enviar);
+      ui.cerrar.addEventListener('click', () => ui.dialog.close());
+      ui.dialog.addEventListener('click', (event) => { if (event.target === ui.dialog) ui.dialog.close(); });
+    }
+
+    return { abrir, init, revisarLlegadas };
   })();
 
 
@@ -10445,7 +11140,8 @@
     listen.log = savedListen && typeof savedListen === 'object' ? savedListen : {};
     taste.load();
 
-    applyTheme(storage.get(KEYS.theme, 'chrome'));
+    temas.cargar();
+    applyTheme(temaActivo());
   }
 
   // Equipos modestos o "ahorro de datos": escena surrealista estática
@@ -10531,6 +11227,7 @@
     setupSurrealEyes();
     wall.init();
     cuenta.init();
+    pedir.init();
     tour.init();
     install.init();
     inappNotice();

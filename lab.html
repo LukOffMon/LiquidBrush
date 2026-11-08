@@ -3,7 +3,7 @@
 <html lang="es" data-theme="chrome" data-mode="lab">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://challenges.cloudflare.com 'sha256-9TRmdWG2mHi7bhsEvIwvqlasEjH6TPcNyF+KWeexVj8='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https:; worker-src 'self'; manifest-src 'self'; frame-src https://challenges.cloudflare.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://challenges.cloudflare.com 'sha256-5Se00KRuXDExYAAu2+RZS1Zd6hy2pBzaW++9B927Ie8='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https:; worker-src 'self'; manifest-src 'self'; frame-src https://challenges.cloudflare.com; object-src 'none'; base-uri 'self'; form-action 'self'">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="description" content="Liquid Lab: mezcla estilos, artistas y canciones y crea playlists a tu medida. Lo que guardes aparece en tu Liquid Bullet.">
   <meta name="theme-color" content="#100d1c">
@@ -47,7 +47,7 @@
   <link rel="dns-prefetch" href="https://pub-0854e4225565462db16fa787cf2ab81c.r2.dev">
   <link rel="dns-prefetch" href="https://pub-864cd199a5e04cb0b5faf77320b1e47b.r2.dev">
   <link rel="dns-prefetch" href="https://lrclib.net">
-  <link rel="stylesheet" href="styles.css?v=46">
+  <link rel="stylesheet" href="styles.css?v=47">
   <script>
     /* Aplica el tema, la fuente y el tamaño de letra guardados antes de pintar (sin parpadeos) */
     (function () {
@@ -96,7 +96,17 @@
       root.setAttribute('data-text', 'system');
       try {
         var saved = JSON.parse(localStorage.getItem('liquidbrush:theme'));
-        if (['chrome', 'minimal', 'yem', 'ebano'].indexOf(saved) !== -1) root.setAttribute('data-theme', saved);
+        /* Tema: el Surrealista (cromo) por defecto; los demás llegan ya calculados por app.js (Taller de temas) */
+        var tema = JSON.parse(localStorage.getItem('liquidbrush:tema-css'));
+        if (saved && saved !== 'chrome' && tema && tema.id === saved && typeof tema.css === 'string') {
+          root.setAttribute('data-theme', tema.base === 'minimal' ? 'minimal' : 'dark');
+          if (tema.font) root.setAttribute('data-tfont', String(tema.font));
+          var tv = document.createElement('style');
+          tv.id = 'lbTemaVars';
+          tv.textContent = tema.css;
+          document.head.appendChild(tv);
+        } else if (saved === 'minimal') root.setAttribute('data-theme', 'minimal');
+        else if (saved === 'yem' || saved === 'ebano') root.setAttribute('data-theme', 'dark');
         var settings = JSON.parse(localStorage.getItem('liquidbrush:settings')) || {};
         if (['street', 'graffiti', 'classic'].indexOf(settings.font) !== -1) root.setAttribute('data-font', settings.font);
         if (['system', 'small', 'normal', 'large', 'xl'].indexOf(settings.textSize) !== -1) root.setAttribute('data-text', settings.textSize);
@@ -117,12 +127,12 @@
         /* Modo ultraligero: letras del sistema, nada que descargar */
         if (document.documentElement.classList.contains('ultra')) return;
         var need = ['inter'];
-        if (theme === 'ebano') need.push('tinos');
-        else {
-          if (theme === 'chrome' || theme === 'yem') need.push('rubik', 'syne');
-          if (font === 'street') need.push('marker');
-          if (font === 'graffiti') need.push('sedgwick', 'marker');
-        }
+        var tfont = theme === 'chrome' ? 'rubik' : document.documentElement.getAttribute('data-tfont');
+        if (tfont === 'rubik') need.push('rubik', 'syne');
+        if (tfont === 'syne') need.push('syne');
+        if (tfont === 'serif') need.push('tinos');
+        if (font === 'street') need.push('marker');
+        if (font === 'graffiti') need.push('sedgwick', 'marker');
         need.forEach(function (key) {
           if (document.getElementById('font-' + key)) return;
           var link = document.createElement('link');
@@ -701,6 +711,120 @@
     </div>
   </dialog>
 
+  <!-- Taller de temas: crear o retocar un tema (se ve en vivo en toda la app) -->
+  <dialog id="temaDialog" class="sheet tema-sheet" aria-labelledby="temaTitle">
+    <form id="temaForm" class="sheet-body" autocomplete="off">
+      <h2 id="temaTitle" class="sheet-title"><svg class="icon" aria-hidden="true"><use href="#i-palette"></use></svg> Crear tema</h2>
+      <p class="sheet-text">Todo lo que toques se ve al momento en la app. Si no te convence, Cancelar lo deja como estaba.</p>
+      <label class="field">
+        <span class="field-label">Nombre</span>
+        <input id="temaName" type="text" maxlength="24" placeholder="Mi tema" required>
+      </label>
+      <div class="field">
+        <span class="field-label">Empieza desde</span>
+        <div id="temaSeeds" class="tema-seeds">
+          <button id="temaSongSeed" class="chip" type="button" data-seed="song"><svg class="icon" aria-hidden="true"><use href="#i-disc"></use></svg> La canción que suena</button>
+          <button class="chip" type="button" data-seed="random"><svg class="icon" aria-hidden="true"><use href="#i-dice"></use></svg> Sorpréndeme</button>
+          <button class="chip" type="button" data-seed="light">Claro</button>
+          <button class="chip" type="button" data-seed="dark">Oscuro</button>
+        </div>
+      </div>
+      <fieldset class="field">
+        <legend class="field-label">Colores</legend>
+        <div class="tema-colors">
+          <label class="tema-color"><input id="temaBg" type="color" value="#111114"><span>Fondo</span><span class="tema-color-val" data-for="temaBg"></span></label>
+          <label class="tema-color"><input id="temaAccent" type="color" value="#f1f1f4"><span>Acento</span><span class="tema-color-val" data-for="temaAccent"></span></label>
+          <label class="tema-color"><input id="temaGlow" type="color" value="#8ab4ff"><span>Brillo</span><span class="tema-color-val" data-for="temaGlow"></span></label>
+        </div>
+        <p id="temaContrast" class="tema-contrast" aria-live="polite"></p>
+      </fieldset>
+      <fieldset class="field">
+        <legend class="field-label">Forma</legend>
+        <div class="seg">
+          <label><input type="radio" name="temaShape" value="recto"><span>Recta</span></label>
+          <label><input type="radio" name="temaShape" value="suave"><span>Suave</span></label>
+          <label><input type="radio" name="temaShape" value="redondo"><span>Redonda</span></label>
+        </div>
+      </fieldset>
+      <fieldset class="field">
+        <legend class="field-label">Letra de los títulos</legend>
+        <div class="seg seg-fonts">
+          <label><input type="radio" name="temaFont" value="inter"><span style="font-family: Inter, system-ui, sans-serif">Limpia</span></label>
+          <label><input type="radio" name="temaFont" value="syne"><span style="font-family: Syne, Inter, sans-serif">Ancha</span></label>
+          <label><input type="radio" name="temaFont" value="serif"><span style="font-family: 'Times New Roman', Times, serif">Clásica</span></label>
+          <label><input type="radio" name="temaFont" value="rubik"><span>Pintura</span></label>
+        </div>
+      </fieldset>
+      <fieldset class="field">
+        <legend class="field-label">Ambiente del fondo</legend>
+        <div class="seg">
+          <label><input type="radio" name="temaAura" value="liso"><span>Liso</span></label>
+          <label><input type="radio" name="temaAura" value="aura"><span>Aura</span></label>
+          <label><input type="radio" name="temaAura" value="degradado"><span>Degradado</span></label>
+        </div>
+      </fieldset>
+      <label class="field tema-range">
+        <span class="field-label">Vidrio <small>(de sólido a transparente)</small></span>
+        <input id="temaGlass" type="range" min="0" max="100" step="5" value="50">
+      </label>
+      <label class="field tema-range">
+        <span class="field-label">La portada tiñe la app <small>(de nada a mucho)</small></span>
+        <input id="temaTint" type="range" min="0" max="60" step="5" value="25">
+      </label>
+      <details class="tema-share">
+        <summary>Compartir o importar un tema</summary>
+        <p class="sheet-note">Cada tema cabe en un código corto. Pásaselo a quien quieras: lo pega aquí y listo.</p>
+        <div class="tema-code-row">
+          <input id="temaCode" type="text" readonly aria-label="Código de este tema">
+          <button id="temaCopy" class="btn" type="button">Copiar</button>
+        </div>
+        <div class="tema-code-row">
+          <input id="temaImport" type="text" placeholder="Pega un código LIQ1-…" aria-label="Código de un tema para importar">
+          <button id="temaImportBtn" class="btn" type="button">Usar</button>
+        </div>
+      </details>
+      <div class="sheet-actions">
+        <button id="temaDelete" class="btn btn-danger" type="button" hidden>Borrar</button>
+        <button id="temaCancel" class="btn" type="button">Cancelar</button>
+        <button class="btn btn-primary" type="submit">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Pedir una canción que no está (buscador): llega a Lukamon con un número de ticket -->
+  <dialog id="pedirDialog" class="sheet pedir-sheet" aria-labelledby="pedirTitle">
+    <form id="pedirForm" class="sheet-body" autocomplete="on" novalidate>
+      <h2 id="pedirTitle" class="sheet-title"><svg class="icon" aria-hidden="true"><use href="#i-mail"></use></svg> Pide tu canción</h2>
+      <p class="sheet-text">Liquid crece con lo que escucha su gente. Dinos qué falta: le llega directo a <b>Lukamon</b>, que lo lee personalmente y te contesta a tu correo.</p>
+      <div id="pedirCampos">
+        <label class="field">
+          <span class="field-label">Canción</span>
+          <input id="pedirCancion" type="text" maxlength="120" placeholder="Título de la canción" required>
+        </label>
+        <label class="field">
+          <span class="field-label">Artista</span>
+          <input id="pedirArtista" type="text" maxlength="120" placeholder="Quién la canta (si lo sabes)">
+        </label>
+        <label class="field">
+          <span class="field-label">Mensaje <small>(opcional)</small></span>
+          <textarea id="pedirMensaje" maxlength="1000" rows="3" placeholder="¿Un álbum entero? ¿Una versión en concreto? ¿Algo más que quieras decir?"></textarea>
+        </label>
+        <label id="pedirCorreoRow" class="field">
+          <span class="field-label">Tu correo <small>(para responderte)</small></span>
+          <input id="pedirCorreo" type="email" maxlength="254" placeholder="tucorreo@ejemplo.com" autocomplete="email" inputmode="email">
+        </label>
+        <p id="pedirCuentaNota" class="sheet-note" hidden></p>
+        <div class="cuenta-robot pedir-robot"></div>
+        <p id="pedirError" class="pedir-error" role="alert" hidden></p>
+      </div>
+      <div id="pedirListo" class="pedir-listo" hidden></div>
+      <div class="sheet-actions">
+        <button id="pedirCerrar" class="btn" type="button">Cancelar</button>
+        <button id="pedirEnviar" class="btn btn-primary" type="submit">Enviar petición</button>
+      </div>
+    </form>
+  </dialog>
+
   <!-- Configuración -->
   <dialog id="settingsDialog" class="sheet settings" aria-labelledby="settingsTitle">
     <form method="dialog" class="sheet-body">
@@ -730,15 +854,13 @@
 
       <section class="settings-group" aria-labelledby="setLookTitle">
         <h3 id="setLookTitle" class="settings-group-title">Apariencia</h3>
-        <label class="setting">
-          <span class="setting-text"><span class="setting-name">Tema</span></span>
-          <select id="themeSelect" class="setting-select">
-            <option value="chrome">Surrealista</option>
-            <option value="minimal">Minimalista</option>
-            <option value="yem">Yem</option>
-            <option value="ebano">Ébano</option>
-          </select>
-        </label>
+        <div class="setting tema-setting">
+          <span class="setting-text">
+            <span class="setting-name">Tema</span>
+            <span id="temaHint" class="setting-hint"></span>
+          </span>
+          <div id="temaStrip" class="tema-strip" role="radiogroup" aria-label="Tema"></div>
+        </div>
         <label class="setting">
           <span class="setting-text">
             <span class="setting-name">Fuente</span>
@@ -940,6 +1062,6 @@
   <!-- Reproductores para el ecualizador (necesitan CORS en el servidor del audio) -->
   <audio id="audio3" preload="metadata" crossorigin="anonymous"></audio>
   <audio id="audio4" preload="auto" crossorigin="anonymous"></audio>
-  <script src="app.js?v=49" defer></script>
+  <script src="app.js?v=50" defer></script>
 </body>
 </html>

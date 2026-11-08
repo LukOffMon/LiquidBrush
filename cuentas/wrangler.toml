@@ -29,6 +29,8 @@ crons = ["17 4 * * *"]   # limpieza diaria, 04:17 UTC
 ORIGENES = "https://lukoffmon.github.io"
 SMTP_USER = "liquidbulletofficial@gmail.com"
 TURNSTILE_SITIO = "0x4AAAAAAF1SaKaBNeMZR5B-"
+# Buzón que recibe las peticiones de canciones del buscador (responde desde ahí a cada persona)
+BUZON_PETICIONES = "officiallukamon@gmail.com"
 
 [observability]
 enabled = true

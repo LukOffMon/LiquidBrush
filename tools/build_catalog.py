@@ -68,7 +68,12 @@ FIXED_COVERS = {
     'cuenta-atras': 44,
     'balada-eterna': 45,
     'euforia-ibiza': 46,
-    'fiebre-latina': 47
+    'fiebre-latina': 47,
+    'era-dorada': 48,
+    'pista-infinita': 49,
+    'diva-pop': 50,
+    'milenio-soul': 51,
+    'oro-latino': 52
 }
 
 # Playlists que antes llevaban diseño generado y ahora tienen imagen: siguen ocupando su turno
@@ -115,6 +120,18 @@ PLAYLISTS = [
         'Ari Abdul', 'Isabel LaRosa', 'Chris Grey', 'The Kid LAROI', 'Tainy', 'benny blanco', 'Wafia', 'Artemas',
         'JAWNY', 'FKA twigs', 'Smerz', 'Omar Apollo', 'KAYTRANADA', 'Ambar Lucid', 'Chase Atlantic', 'Ley Soul',
         'Trinidad Cardona', "VVV [Trippin'you]", 'JEY'
+    ]),
+    ('milenio-soul', 'Milenio Soul', 'R&B y neo soul de los 90 y 2000: Aaliyah, TLC, Destiny’s Child, Usher, Erykah Badu, D’Angelo y Alicia Keys.', [
+        'Aaliyah', 'TLC', "Destiny's Child", 'USHER', "D'Angelo", 'Erykah Badu', 'Alicia Keys', 'Mary J. Blige',
+        'Brandy', 'Monica', 'Mariah Carey', 'Whitney Houston', 'Janet Jackson', 'Toni Braxton', 'Boyz II Men',
+        'Jodeci', 'Ginuwine', 'Mario', 'Ne-Yo', 'Ciara', 'Keyshia Cole', 'Musiq Soulchild', 'Jill Scott', 'Maxwell',
+        'Amerie', 'Ashanti', 'Mya', 'SWV', 'En Vogue', 'Blackstreet', '112', 'Dru Hill', 'Joe', 'K-Ci & JoJo',
+        'Jagged Edge', 'Solange', 'H.E.R.', 'Craig David', 'Kelis', 'Bilal', 'Tony! Toni! Tone!'
+    ]),
+    ('diva-pop', 'Diva Pop', 'Pop de estadio y de culto: Beyoncé, Lady Gaga, Dua Lipa, Taylor Swift, Charli xcx, Britney Spears y Bruno Mars.', [
+        'Beyonce', 'Lady Gaga', 'Dua Lipa', 'Bruno Mars', 'Taylor Swift', 'Charli xcx', 'Lorde', 'Britney Spears',
+        'Katy Perry', 'Olivia Rodrigo', 'Sabrina Carpenter', 'Adele', 'Sia', 'Robyn', 'Christina Aguilera', 'Kesha',
+        'Carly Rae Jepsen', 'Avril Lavigne', 'Troye Sivan', 'Tove Lo', 'Ellie Goulding'
     ]),
     ('acido-lento', 'Ácido Lento', 'Psicodelia e indie que flota: Tame Impala, Mild High Club, Crumb, The Strokes, Gorillaz y Foster The People.', [
         'Tame Impala', 'Gorillaz', 'Justice', 'Theophilus London', 'ZHU', 'The Strokes', 'Chris Rainbow',
@@ -228,18 +245,42 @@ PLAYLISTS = [
     ('euforia-ibiza', 'Euforia Ibiza', 'EDM y pop de festival de los 2010: Calvin Harris, Swedish House Mafia, Galantis, Clean Bandit, Robin Schulz y Jack Ü.', [
         'Calvin Harris', 'Swedish House Mafia', 'Galantis', 'Mike Posner', 'Seeb', 'Robin Schulz',
         'Olly Alexander (Years & Years)', 'Years & Years', 'Clean Bandit', 'Jack Ü', 'David Guetta',
-        '99 Souls', 'Kyla', 'DJ Paleface', 'Crazy Cousinz'
+        '99 Souls', 'Kyla', 'DJ Paleface', 'Crazy Cousinz',
+        'Avicii', 'Kygo', 'Zedd', 'Martin Garrix', 'Major Lazer', 'Skrillex', 'deadmau5', 'Tiesto',
+        'The Chainsmokers', 'Alan Walker', 'Marshmello', 'Alesso'
+    ]),
+    ('pista-infinita', 'Pista Infinita', 'House, big beat y electrónica de club: Fred again.., Disclosure, Fatboy Slim, The Chemical Brothers, Peggy Gou y Röyksopp.', [
+        'Fred again..', 'Disclosure', 'Fatboy Slim', 'The Chemical Brothers', 'Basement Jaxx', 'Royksopp',
+        'Caribou', 'Peggy Gou', 'Purple Disco Machine', 'FISHER', 'BICEP', 'Jamie xx', 'Faithless',
+        'Armand Van Helden', 'LCD Soundsystem', 'Duck Sauce', 'Martin Solveig', 'Joel Corry', 'Kungs', 'MEDUZA',
+        'Lilly Wood and The Prick'
     ]),
     ('brillo-disco', 'Brillo Disco', 'Disco, funk y soul para la pista: Michael Jackson, Bee Gees, Earth, Wind & Fire, Prince y Stevie Wonder.', [
         'Michael Jackson', 'Paul McCartney', 'Bee Gees', 'Barry White', 'Earth', 'Kool & The Gang', 'Patrice Rushen',
         'A Taste Of Honey', 'KC & The Sunshine Band', 'Rick James', 'Bobby Caldwell', 'George Michael',
         'Grover Washington', 'Rod Stewart', 'Player', 'Bob Marley & The Wailers', 'Jamiroquai', 'Baccara', 'Tavares',
         'Gloria Gaynor', 'ABBA', 'Andy Gibb', 'Diana Ross', 'Stevie Wonder', 'Prince', 'Marvin Gaye', 'Al Green',
-        'Heatwave', 'Joe Bataan', 'Michael Angelo'
+        'Heatwave', 'Joe Bataan', 'Michael Angelo',
+        'CHIC', 'Donna Summer', 'Sister Sledge', 'Aretha Franklin', 'Chaka Khan', 'Rufus', 'The Jackson 5',
+        'The Jacksons', 'Boney M.', 'Commodores', 'Sly & The Family Stone', 'Evelyn Champagne King',
+        'Village People', 'Cheryl Lynn', 'Thelma Houston', 'Anita Ward', 'Lipps Inc.', 'Sylvester', 'The Trammps',
+        'Odyssey', 'McFadden & Whitehead', 'Shalamar', 'The Whispers', 'Lionel Richie', 'Parliament',
+        'George Clinton', 'James Brown', 'James Brown & The Famous Flames', 'Zapp', 'Cameo', 'The Gap Band',
+        'Teena Marie', 'Cerrone', 'Irene Cara', 'The Pointer Sisters', 'Rose Royce', 'Hot Chocolate', "The O'Jays",
+        'Billy Ocean', 'LaBelle', 'Amii Stewart'
     ]),
     ('fiebre-latina', 'Fiebre Latina', 'Pop latino y reggaetón de radio: Shakira, J Balvin, CNCO, Maluma, Prince Royce, Anitta y Danny Ocean.', [
         'Shakira', 'J Balvin', 'CNCO', 'CD9', 'Maluma', 'Prince Royce', 'Anitta', 'Danny Ocean', 'NATTI NATASHA',
-        'Jesse & Joy', 'Romeo Santos', 'Kim Loaiza'
+        'Jesse & Joy', 'Romeo Santos', 'Kim Loaiza',
+        'Ozuna', 'Nicky Jam', 'Sech', 'Lunay', 'Manuel Turizo', 'Camilo', 'Sebastian Yatra', 'Morat', 'Luis Fonsi',
+        'Young Miko'
+    ]),
+    ('oro-latino', 'Oro Latino', 'Los himnos del pop latino de los 90 y 2000: Ricky Martin, Thalía, Juanes, Maná, Selena, Juan Luis Guerra y Aventura.', [
+        'Ricky Martin', 'Enrique Iglesias', 'Thalia', 'Paulina Rubio', 'Juan Luis Guerra 4.40', 'Aventura',
+        'Selena', 'Juanes', 'Mana', 'Chayanne', 'Marc Anthony', 'Celia Cruz', 'Carlos Vives', 'RBD',
+        'Laura Pausini', 'Camila', 'Reik', 'Sin Bandera', 'Elvis Crespo', 'Los Del Rio', 'Ricardo Arjona',
+        'La Oreja de Van Gogh', 'Jennifer Lopez', 'Belinda', 'Gente De Zona', 'Franco De Vita',
+        'Alejandro Fernandez', 'Ha Ash', 'Miami Sound Machine'
     ]),
     ('perreo-nocturno', 'Perreo Nocturno', 'Neoperreo, dembow mexa y club latino: DENNA LA PORRI, Doony Graff, Yeyo, Jose Alatorre, MJ Nebreda y funk brasileño.', [
         'La Obsesion', 'Jose Alatorre', 'DENNA LA PORRI', 'Doony Graff', 'Yeyo', 'Sayuri & Sopholov', 'La Vendicion',
@@ -282,7 +323,8 @@ PLAYLISTS = [
         'A.B. Quintanilla III Y Los Kumbia Kings', 'Kumbia Kings', 'Cruz Martinez presenta Los Super Reyes',
         'Impacto Mc', 'Calo', 'Millonario & W. Corona', 'El Pelón del Mikrophone', 'América Sierra', 'Los Telez',
         'Xandy Almeida', 'Rayo & Toby',
-        'J-King y Maximan'
+        'J-King y Maximan',
+        'Tego Calderon', 'Zion & Lennox', 'Calle 13', 'Alexis y Fido', 'Tito El Bambino', 'Wisin'
     ]),
     ('trap-lunar', 'Trap Lunar', 'Trap latino para la madrugada: Yan Block, Omar Courtz, Bad Bunny, Duki, Myke Towers y Bryant Myers.', [
         'Yan Block', 'Omar Courtz', 'Bad Bunny', 'Rauw Alejandro', 'Myke Towers', 'Cris MJ', 'Bryant Myers', 'Jon Z',
@@ -301,6 +343,13 @@ PLAYLISTS = [
         'Robot95', 'Logan Hate', 'Armand Hammer', 'Ana Tijoux', 'Mellow Man Ace', 'Wk', 'Mime 871', 'A.C.O', 'Bizor',
         'Muelas De Gallo', 'Anestesia', 'Mike Lamadrid', 'Simpson Ahuevo', 'Gonzalo Genek', 'N.E.R.D',
         'Mr. Knightowl', 'Cartel De Santa', 'Iluminatik', 'Tankeone'
+    ]),
+    ('era-dorada', 'Era Dorada', 'La edad de oro del hip hop: Outkast, The Notorious B.I.G., 2Pac, Nas, A Tribe Called Quest, Wu-Tang Clan y MF DOOM.', [
+        'Outkast', 'The Notorious B.I.G.', '2Pac', 'Nas', 'Dr. Dre', 'Snoop Dogg', 'Eminem', 'JAY-Z',
+        'A Tribe Called Quest', 'MF DOOM', 'Madvillain', 'De La Soul', 'Wu-Tang Clan', 'Method Man', 'Mobb Deep',
+        'Ms. Lauryn Hill', 'Fugees', 'Missy Elliott', 'Lupe Fiasco', 'Common', 'Mos Def', 'Black Star',
+        'The Pharcyde', 'Gang Starr', 'J Dilla', 'Slum Village', 'RunD.M.C.', 'Beastie Boys', 'Cypress Hill',
+        'House Of Pain', 'Warren G'
     ]),
     ('verso-azul', 'Verso Azul', 'Jazz rap y boom bap con alma: Marcus D, Cise Star, Kero One, Jazz Liberatorz, Mountain Brothers y Witness.', [
         'Marcus D', 'Cise Star', 'Kero One', 'Jazz Liberatorz', 'Mountain Brothers', 'Witness', '3582', 'Glad2Mecha',
@@ -336,7 +385,13 @@ PLAYLISTS = [
         'Maldita Vecindad Y Los Hijos Del 5to. Patio', 'Los Auténticos Decadentes', 'Los Tetas', 'La Unión',
         'La Mosca', 'Miranda!', 'Glup!', 'Odisseo', 'Surfistas Del Sistema', 'Macha Y El Bloque Depresivo',
         'Chico Trujillo', 'Bandalos Chinos', 'Julius Popper', 'Esteman', 'León Larregui', 'Los Vaguens', 'Serú Girán',
-        'Pescado Rabioso', 'Almendra', 'Los Pericos', 'Los Cafres'
+        'Pescado Rabioso', 'Almendra', 'Los Pericos', 'Los Cafres',
+        'Caifanes', 'Heroes Del Silencio', 'Molotov', 'Los Fabulosos Cadillacs', 'Aterciopelados', 'Mecano',
+        'El Tri', 'Divididos', 'Sumo',
+        'Virus', 'La Ley', 'Fobia', 'Jaguares', 'Radio Futura', 'Los Planetas', 'Vetusta Morla', 'Love of Lesbian',
+        'Panteon Rococo', 'El Mato a un Policia Motorizado', 'El Ultimo De La Fila', 'Sui Generis', 'Los Piojos',
+        'La Renga', 'Patricio Rey y sus Redonditos de Ricota', 'Bersuit Vergarabat', 'Bunbury',
+        'Luis Alberto Spinetta'
     ]),
     ('alma-latina', 'Alma Latina', 'Indie y alternativo latino: Mon Laferte, Zoé, Natalia Lafourcade, LATIN MAFIA, CA7RIEL & Paco Amoroso y Buscabulla.', [
         'Mon Laferte', 'Zoé', 'Natalia Lafourcade', 'Julieta Venegas', 'Carla Morrison', 'Little Jesus', 'Siddhartha',
@@ -371,7 +426,8 @@ PLAYLISTS = [
         'Thundercat', 'DOMi & JD BECK', 'Paul Grant', 'Gotts Street Park', 'kuala', 'The Brothers Nylon', 'berlioz',
         'ridgeclub', 'Jean-Luc Ponty', 'Flea', 'Molly Lewis', 'Weather Report', 'jomm', 'John Wasson', 'Bolden.',
         'Siberia', 'Patchwork Inc.', 'Macabre Plaza', 'Hank Levy', 'Aurora Ave.', 'Nathanial Young', 'SERAPHINE NOIR',
-        'SEQUOIA', 'Evan Jacobson', 'Rob Araujo', 'Chihiro Yamanaka', 'Cortex', 'Dana and Alden'
+        'SEQUOIA', 'Evan Jacobson', 'Rob Araujo', 'Chihiro Yamanaka', 'Cortex', 'Dana and Alden',
+        'Venda'
     ]),
     ('terciopelo-azul', 'Terciopelo Azul', 'Damas del jazz vocal a media luz: Julie London, Nancy Wilson, Dinah Washington y Blossom Dearie.', [
         'Julie London', 'Nancy Wilson', 'Dinah Washington', 'Blossom Dearie', 'Clyde Otis', 'George Shearing Quintet',

@@ -1,6 +1,3952 @@
 {
   "releases": [
     {
+      "version": "v61",
+      "date": "noviembre 2026",
+      "title": "Taller de temas, pide tu canción y 786 canciones nuevas",
+      "items": [
+        "Taller de temas: crea tu propio tema en Ajustes → Apariencia. Elige fondo, acento y brillo (Liquid ajusta solo el contraste para que todo se lea), la forma (recta, suave o redonda), la letra de los títulos, el ambiente del fondo, cuánto vidrio y cuánto tiñe la portada. Todo se ve en vivo y Cancelar lo deja como estaba.",
+        "Atajos del taller: «La canción que suena» saca un tema de los colores de su portada y «Sorpréndeme» arma una paleta que combina. Cada tema cabe en un código (LIQ1-…) para compartirlo; quien lo pega lo tiene igual. Con cuenta, tus temas viajan a tus otros dispositivos.",
+        "Hasta 4 temas: Surrealista (fijo y ahora con el cromo de protagonista), Claro y Oscuro de base, que puedes retocar o borrar para crear los tuyos. Se van Minimalista, Yem y Ébano: si usabas uno, pasas a Claro u Oscuro. Personalizar es opcional: los de base funcionan tal cual.",
+        "¿No encontraste lo que buscabas? Si una búsqueda no encuentra nada (o no es la versión que querías), pídesela a Lukamon desde el buscador. Le llega al momento con un número de petición (LB-…), la lee él mismo y te contesta a tu correo. Con cuenta, además te llega un acuse. Cuando la canción llegue a Liquid, la app te avisa.",
+        "Llegan 786 canciones nuevas: pop latino, reggaetón, rock en español, disco y funk, divas del pop, hip hop clásico, electrónica y R&B. La lista completa (toca una para escucharla) está en Ajustes → Ayuda → Novedades y en el aviso de esta actualización.",
+        "5 playlists nuevas con portada propia: Oro Latino (Ricky Martin, Thalía, Juanes, Maná, Selena), Era Dorada (Outkast, Biggie, 2Pac, Nas, Wu-Tang Clan, MF DOOM), Diva Pop (Beyoncé, Lady Gaga, Dua Lipa, Taylor Swift, Charli xcx), Milenio Soul (Aaliyah, TLC, Destiny's Child, Usher, Erykah Badu) y Pista Infinita (Fred again.., Disclosure, Fatboy Slim, The Chemical Brothers, Peggy Gou).",
+        "Brillo Disco, Ciudad Furia, Euforia Ibiza, Fiebre Latina y Dembow Añejo crecen con CHIC, Donna Summer, Caifanes, Héroes del Silencio, Mecano, Avicii, Kygo, Ozuna, Nicky Jam, Tego Calderón y muchos más. Ya son 4743 canciones en 50 playlists."
+      ],
+      "songs": [
+        {
+          "id": "db6:esclip-001-100-001-ricky-martin-livin-la-vida-loca-mp3-3b3eac",
+          "artist": "Ricky Martin",
+          "title": "Livin' la Vida Loca"
+        },
+        {
+          "id": "db6:esclip-001-100-002-ricky-martin-maria-mp3-c22333",
+          "artist": "Ricky Martin",
+          "title": "Maria"
+        },
+        {
+          "id": "db6:esclip-001-100-003-ricky-martin-vuelve-mp3-4f7d61",
+          "artist": "Ricky Martin",
+          "title": "Vuelve"
+        },
+        {
+          "id": "db6:esclip-001-100-004-ricky-martin-la-copa-de-la-vida-la-cancio-b02074",
+          "artist": "Ricky Martin",
+          "title": "La Copa de la Vida (La Cancion Oficial de la Copa Mundial, Francia '98) - Spanish Version"
+        },
+        {
+          "id": "db6:esclip-001-100-005-ricky-martin-she-bangs-spanish-version-mp-a52527",
+          "artist": "Ricky Martin",
+          "title": "She Bangs - Spanish Version"
+        },
+        {
+          "id": "db6:esclip-001-100-006-enrique-iglesias-bailamos-mp3-a5219f",
+          "artist": "Enrique Iglesias",
+          "title": "Bailamos"
+        },
+        {
+          "id": "db6:esclip-001-100-007-enrique-iglesias-heroe-mp3-9fea96",
+          "artist": "Enrique Iglesias",
+          "title": "Heroe"
+        },
+        {
+          "id": "db6:esclip-001-100-008-enrique-iglesias-experiencia-religiosa-mp-530b02",
+          "artist": "Enrique Iglesias",
+          "title": "Experiencia Religiosa"
+        },
+        {
+          "id": "db6:esclip-001-100-009-enrique-iglesias-descemer-bueno-gente-de--f2c549",
+          "artist": "Enrique Iglesias, Descemer Bueno, Gente De Zona",
+          "title": "Bailando - Spanish Version"
+        },
+        {
+          "id": "db6:esclip-001-100-010-thalia-amor-a-la-mexicana-mp3-1ff8c9",
+          "artist": "Thalia",
+          "title": "Amor A La Mexicana"
+        },
+        {
+          "id": "db6:esclip-001-100-011-thalia-a-quien-le-importa-mp3-6b90b6",
+          "artist": "Thalia",
+          "title": "A Quien Le Importa"
+        },
+        {
+          "id": "db6:esclip-001-100-012-thalia-arrasando-mp3-5a2edf",
+          "artist": "Thalia",
+          "title": "Arrasando"
+        },
+        {
+          "id": "db6:esclip-001-100-013-paulina-rubio-ni-una-sola-palabra-mp3-166535",
+          "artist": "Paulina Rubio",
+          "title": "Ni Una Sola Palabra"
+        },
+        {
+          "id": "db6:esclip-001-100-014-paulina-rubio-mio-mp3-b6fa0d",
+          "artist": "Paulina Rubio",
+          "title": "Mio"
+        },
+        {
+          "id": "db6:esclip-001-100-015-juan-luis-guerra-4-40-ojala-que-llueva-ca-6fa3e3",
+          "artist": "Juan Luis Guerra 4.40",
+          "title": "Ojala Que Llueva Cafe"
+        },
+        {
+          "id": "db6:esclip-001-100-016-juan-luis-guerra-4-40-la-bilirrubina-mp3-c53109",
+          "artist": "Juan Luis Guerra 4.40",
+          "title": "La Bilirrubina"
+        },
+        {
+          "id": "db6:esclip-001-100-017-juan-luis-guerra-4-40-bachata-rosa-mp3-4d716a",
+          "artist": "Juan Luis Guerra 4.40",
+          "title": "Bachata Rosa"
+        },
+        {
+          "id": "db6:esclip-001-100-018-aventura-judy-santos-obsesion-mp3-f61b4b",
+          "artist": "Aventura, Judy Santos",
+          "title": "Obsesion"
+        },
+        {
+          "id": "db6:esclip-001-100-019-aventura-un-beso-mp3-cc8e12",
+          "artist": "Aventura",
+          "title": "Un Beso"
+        },
+        {
+          "id": "db6:esclip-001-100-020-aventura-los-infieles-mp3-6a636a",
+          "artist": "Aventura",
+          "title": "Los Infieles"
+        },
+        {
+          "id": "db6:esclip-001-100-021-selena-como-la-flor-mp3-477f42",
+          "artist": "Selena",
+          "title": "Como La Flor"
+        },
+        {
+          "id": "db6:esclip-001-100-022-selena-amor-prohibido-mp3-e0b142",
+          "artist": "Selena",
+          "title": "Amor Prohibido"
+        },
+        {
+          "id": "db6:esclip-001-100-023-selena-bidi-bidi-bom-bom-1994-version-mp3-01fe1c",
+          "artist": "Selena",
+          "title": "Bidi Bidi Bom Bom - 1994 Version"
+        },
+        {
+          "id": "db6:esclip-001-100-024-selena-baila-esta-cumbia-mp3-4a8486",
+          "artist": "Selena",
+          "title": "Baila Esta Cumbia"
+        },
+        {
+          "id": "db6:esclip-001-100-025-juanes-la-camisa-negra-mp3-b0d767",
+          "artist": "Juanes",
+          "title": "La Camisa Negra"
+        },
+        {
+          "id": "db6:esclip-001-100-026-enrique-iglesias-hero-mp3-0cab96",
+          "artist": "Enrique Iglesias",
+          "title": "Hero"
+        },
+        {
+          "id": "db6:esclip-001-100-027-thalia-piel-morena-mp3-425e2e",
+          "artist": "Thalia",
+          "title": "Piel Morena"
+        },
+        {
+          "id": "db6:esclip-001-100-028-juanes-es-por-ti-mp3-d2bf20",
+          "artist": "Juanes",
+          "title": "Es Por Ti"
+        },
+        {
+          "id": "db6:esclip-001-100-029-mana-rayando-el-sol-mp3-1f6d56",
+          "artist": "Mana",
+          "title": "Rayando el Sol"
+        },
+        {
+          "id": "db6:esclip-001-100-030-mana-clavado-en-un-bar-mp3-bc32f1",
+          "artist": "Mana",
+          "title": "Clavado en Un Bar"
+        },
+        {
+          "id": "db6:esclip-001-100-031-mana-en-el-muelle-de-san-blas-mp3-a2ab8d",
+          "artist": "Mana",
+          "title": "En El Muelle de San Blas"
+        },
+        {
+          "id": "db6:esclip-001-100-032-mana-oye-mi-amor-mp3-ea76da",
+          "artist": "Mana",
+          "title": "Oye Mi Amor"
+        },
+        {
+          "id": "db6:esclip-001-100-033-shakira-ojos-asi-mp3-e9f9eb",
+          "artist": "Shakira",
+          "title": "Ojos Asi"
+        },
+        {
+          "id": "db6:esclip-001-100-034-shakira-whenever-wherever-mp3-aa8091",
+          "artist": "Shakira",
+          "title": "Whenever, Wherever"
+        },
+        {
+          "id": "db6:esclip-001-100-035-shakira-ciega-sordomuda-mp3-a06379",
+          "artist": "Shakira",
+          "title": "Ciega, Sordomuda"
+        },
+        {
+          "id": "db6:esclip-001-100-036-chayanne-torero-mp3-41a75d",
+          "artist": "Chayanne",
+          "title": "Torero"
+        },
+        {
+          "id": "db6:esclip-001-100-037-chayanne-tiempo-de-vals-mp3-332cd0",
+          "artist": "Chayanne",
+          "title": "Tiempo De Vals"
+        },
+        {
+          "id": "db6:esclip-001-100-038-marc-anthony-vivir-mi-vida-mp3-3460c2",
+          "artist": "Marc Anthony",
+          "title": "Vivir Mi Vida"
+        },
+        {
+          "id": "db6:esclip-001-100-039-marc-anthony-valio-la-pena-salsa-version--7ded1e",
+          "artist": "Marc Anthony",
+          "title": "Valio la Pena - Salsa Version"
+        },
+        {
+          "id": "db6:esclip-001-100-040-celia-cruz-la-vida-es-un-carnaval-mp3-6b1a43",
+          "artist": "Celia Cruz",
+          "title": "La Vida Es Un Carnaval"
+        },
+        {
+          "id": "db6:esclip-001-100-041-celia-cruz-la-negra-tiene-tumbao-mp3-2634de",
+          "artist": "Celia Cruz",
+          "title": "La Negra Tiene Tumbao"
+        },
+        {
+          "id": "db6:esclip-001-100-042-miami-sound-machine-gloria-estefan-conga--2e67ea",
+          "artist": "Miami Sound Machine, Gloria Estefan",
+          "title": "Conga"
+        },
+        {
+          "id": "db6:esclip-001-100-043-carlos-vives-la-gota-fria-mp3-01480a",
+          "artist": "Carlos Vives",
+          "title": "La Gota Fria"
+        },
+        {
+          "id": "db6:esclip-001-100-044-paulina-rubio-y-yo-sigo-aqui-mp3-e56644",
+          "artist": "Paulina Rubio",
+          "title": "Y Yo Sigo Aqui"
+        },
+        {
+          "id": "db6:esclip-001-100-045-juan-luis-guerra-4-40-burbujas-de-amor-mp-c88d5d",
+          "artist": "Juan Luis Guerra 4.40",
+          "title": "Burbujas de Amor"
+        },
+        {
+          "id": "db6:esclip-001-100-046-juanes-a-dios-le-pido-mp3-e7eae6",
+          "artist": "Juanes",
+          "title": "A Dios Le Pido"
+        },
+        {
+          "id": "db6:esclip-001-100-047-juanes-me-enamora-mp3-83eacf",
+          "artist": "Juanes",
+          "title": "Me Enamora"
+        },
+        {
+          "id": "db6:esclip-001-100-048-mana-vivir-sin-aire-mp3-a5b3ea",
+          "artist": "Mana",
+          "title": "Vivir Sin Aire"
+        },
+        {
+          "id": "db6:esclip-001-100-049-shakira-estoy-aqui-mp3-70269c",
+          "artist": "Shakira",
+          "title": "Estoy Aqui"
+        },
+        {
+          "id": "db6:esclip-001-100-050-shakira-maluma-chantaje-feat-maluma-mp3-cf3791",
+          "artist": "Shakira, Maluma",
+          "title": "Chantaje (feat. Maluma)"
+        },
+        {
+          "id": "db6:esclip-001-100-051-chayanne-salome-mp3-e403f5",
+          "artist": "Chayanne",
+          "title": "Salome"
+        },
+        {
+          "id": "db6:esclip-001-100-052-marc-anthony-tu-amor-me-hace-bien-salsa-v-7ad15e",
+          "artist": "Marc Anthony",
+          "title": "Tu Amor Me Hace Bien - Salsa Version"
+        },
+        {
+          "id": "db6:esclip-001-100-053-gloria-estefan-mi-tierra-mp3-3a00f5",
+          "artist": "Gloria Estefan",
+          "title": "Mi Tierra"
+        },
+        {
+          "id": "db6:esclip-001-100-054-gloria-estefan-hoy-spanish-version-mp3-1cccdc",
+          "artist": "Gloria Estefan",
+          "title": "Hoy - Spanish Version"
+        },
+        {
+          "id": "db6:esclip-001-100-055-carlos-vives-fruta-fresca-mp3-f2d9d8",
+          "artist": "Carlos Vives",
+          "title": "Fruta Fresca"
+        },
+        {
+          "id": "db6:esclip-001-100-056-carlos-vives-shakira-la-bicicleta-mp3-abff8d",
+          "artist": "Carlos Vives, Shakira",
+          "title": "La Bicicleta"
+        },
+        {
+          "id": "db6:esclip-001-100-057-alejandro-sanz-corazon-partio-mp3-88dc73",
+          "artist": "Alejandro Sanz",
+          "title": "Corazon partio"
+        },
+        {
+          "id": "db6:esclip-001-100-058-alejandro-sanz-y-si-fuera-ella-mp3-99ce59",
+          "artist": "Alejandro Sanz",
+          "title": "Y, Si fuera ella"
+        },
+        {
+          "id": "db6:esclip-001-100-059-alejandro-sanz-cuando-nadie-me-ve-mp3-928c26",
+          "artist": "Alejandro Sanz",
+          "title": "Cuando nadie me ve"
+        },
+        {
+          "id": "db6:esclip-001-100-060-julieta-venegas-me-voy-mp3-f2ab1c",
+          "artist": "Julieta Venegas",
+          "title": "Me Voy"
+        },
+        {
+          "id": "db6:esclip-001-100-061-julieta-venegas-limon-y-sal-mp3-1abf83",
+          "artist": "Julieta Venegas",
+          "title": "Limon y Sal"
+        },
+        {
+          "id": "db6:esclip-001-100-062-julieta-venegas-andar-conmigo-mp3-e3d83b",
+          "artist": "Julieta Venegas",
+          "title": "Andar Conmigo"
+        },
+        {
+          "id": "db6:esclip-001-100-063-natalia-lafourcade-hasta-la-raiz-mp3-731ea1",
+          "artist": "Natalia Lafourcade",
+          "title": "Hasta la Raiz"
+        },
+        {
+          "id": "db6:esclip-001-100-064-natalia-lafourcade-en-el-2000-mp3-8ef17a",
+          "artist": "Natalia Lafourcade",
+          "title": "En el 2000"
+        },
+        {
+          "id": "db6:esclip-001-100-065-natalia-lafourcade-lo-que-construimos-mp3-1b925d",
+          "artist": "Natalia Lafourcade",
+          "title": "Lo Que Construimos"
+        },
+        {
+          "id": "db6:esclip-001-100-066-luis-fonsi-daddy-yankee-despacito-mp3-93869a",
+          "artist": "Luis Fonsi, Daddy Yankee",
+          "title": "Despacito"
+        },
+        {
+          "id": "db6:esclip-001-100-067-luis-miguel-ahora-te-puedes-marchar-mp3-a0f207",
+          "artist": "Luis Miguel",
+          "title": "Ahora Te Puedes Marchar"
+        },
+        {
+          "id": "db6:esclip-001-100-068-luis-miguel-la-incondicional-mp3-bbdf7b",
+          "artist": "Luis Miguel",
+          "title": "La Incondicional"
+        },
+        {
+          "id": "db6:esclip-001-100-069-luis-miguel-sabor-a-mi-mp3-c2614c",
+          "artist": "Luis Miguel",
+          "title": "Sabor a Mi"
+        },
+        {
+          "id": "db6:esclip-001-100-070-romeo-santos-propuesta-indecente-mp3-ab10c3",
+          "artist": "Romeo Santos",
+          "title": "Propuesta Indecente"
+        },
+        {
+          "id": "db6:esclip-001-100-071-romeo-santos-eres-mia-mp3-113831",
+          "artist": "Romeo Santos",
+          "title": "Eres Mia"
+        },
+        {
+          "id": "db6:esclip-001-100-072-prince-royce-stand-by-me-mp3-104480",
+          "artist": "Prince Royce",
+          "title": "Stand by Me"
+        },
+        {
+          "id": "db6:esclip-001-100-073-prince-royce-corazon-sin-cara-mp3-afc6c5",
+          "artist": "Prince Royce",
+          "title": "Corazon Sin Cara"
+        },
+        {
+          "id": "db6:esclip-001-100-074-jesse-joy-corre-mp3-6e7c1e",
+          "artist": "Jesse & Joy",
+          "title": "Corre!"
+        },
+        {
+          "id": "db6:esclip-001-100-075-camila-todo-cambio-mp3-28fe48",
+          "artist": "Camila",
+          "title": "Todo Cambio"
+        },
+        {
+          "id": "db6:esclip-001-100-076-reik-yo-quisiera-mp3-9825d4",
+          "artist": "Reik",
+          "title": "Yo Quisiera"
+        },
+        {
+          "id": "db6:esclip-001-100-077-sin-bandera-entra-en-mi-vida-mp3-0d3d7a",
+          "artist": "Sin Bandera",
+          "title": "Entra en Mi Vida"
+        },
+        {
+          "id": "db6:esclip-001-100-078-elvis-crespo-suavemente-mp3-40c663",
+          "artist": "Elvis Crespo",
+          "title": "Suavemente"
+        },
+        {
+          "id": "db6:esclip-001-100-079-los-del-rio-macarena-mp3-4203ff",
+          "artist": "Los Del Rio",
+          "title": "Macarena"
+        },
+        {
+          "id": "db6:esclip-001-100-080-ricardo-arjona-historia-de-taxi-mp3-6db2c0",
+          "artist": "Ricardo Arjona",
+          "title": "Historia de Taxi"
+        },
+        {
+          "id": "db6:esclip-001-100-081-la-oreja-de-van-gogh-rosas-mp3-a985e7",
+          "artist": "La Oreja de Van Gogh",
+          "title": "Rosas"
+        },
+        {
+          "id": "db6:esclip-001-100-082-jennifer-lopez-let-s-get-loud-mp3-e6e01e",
+          "artist": "Jennifer Lopez",
+          "title": "Let's Get Loud"
+        },
+        {
+          "id": "db6:esclip-001-100-083-belinda-bella-traicion-mp3-6415ed",
+          "artist": "Belinda",
+          "title": "Bella Traicion"
+        },
+        {
+          "id": "db6:esclip-001-100-084-rbd-anahi-dulce-maria-maite-perroni-chris-cd25a2",
+          "artist": "RBD, Anahi, Dulce Maria, Maite Perroni, Christian Chavez, Christopher von Uckermann, Alfonso Herrera",
+          "title": "Rebelde"
+        },
+        {
+          "id": "db6:esclip-001-100-085-rbd-anahi-dulce-maria-maite-perroni-chris-e938c6",
+          "artist": "RBD, Anahi, Dulce Maria, Maite Perroni, Christian Chavez, Christopher von Uckermann, Alfonso Herrera",
+          "title": "Salvame"
+        },
+        {
+          "id": "db6:esclip-001-100-086-gente-de-zona-marc-anthony-la-gozadera-fe-2b8036",
+          "artist": "Gente De Zona, Marc Anthony",
+          "title": "La Gozadera (feat. Marc Anthony)"
+        },
+        {
+          "id": "db6:esclip-001-100-087-camilo-vida-de-rico-mp3-2b9dca",
+          "artist": "Camilo",
+          "title": "Vida de Rico"
+        },
+        {
+          "id": "db6:esclip-001-100-088-sebastian-yatra-traicionera-mp3-2578e2",
+          "artist": "Sebastian Yatra",
+          "title": "Traicionera"
+        },
+        {
+          "id": "db6:esclip-001-100-089-morat-como-te-atreves-mp3-4871fa",
+          "artist": "Morat",
+          "title": "Como Te Atreves"
+        },
+        {
+          "id": "db6:esclip-001-100-090-luis-fonsi-no-me-doy-por-vencido-mp3-4dc6d1",
+          "artist": "Luis Fonsi",
+          "title": "No Me Doy Por Vencido"
+        },
+        {
+          "id": "db6:esclip-001-100-091-juanes-volverte-a-ver-mp3-60a49a",
+          "artist": "Juanes",
+          "title": "Volverte A Ver"
+        },
+        {
+          "id": "db6:esclip-001-100-092-mana-labios-compartidos-mp3-7b6252",
+          "artist": "Mana",
+          "title": "Labios Compartidos"
+        },
+        {
+          "id": "db6:esclip-001-100-093-carlos-vives-volvi-a-nacer-mp3-055a56",
+          "artist": "Carlos Vives",
+          "title": "Volvi a Nacer"
+        },
+        {
+          "id": "db6:esclip-001-100-094-marc-anthony-ahora-quien-salsa-version-mp-e8fe37",
+          "artist": "Marc Anthony",
+          "title": "Ahora Quien - Salsa Version"
+        },
+        {
+          "id": "db6:esclip-001-100-095-laura-pausini-la-soledad-mp3-e73004",
+          "artist": "Laura Pausini",
+          "title": "La soledad"
+        },
+        {
+          "id": "db6:esclip-001-100-096-laura-pausini-en-cambio-no-mp3-f91bcf",
+          "artist": "Laura Pausini",
+          "title": "En cambio no"
+        },
+        {
+          "id": "db6:esclip-001-100-097-franco-de-vita-te-amo-mp3-15a0fd",
+          "artist": "Franco De Vita",
+          "title": "Te Amo"
+        },
+        {
+          "id": "db6:esclip-001-100-098-alejandro-fernandez-me-dedique-a-perderte-245cc0",
+          "artist": "Alejandro Fernandez",
+          "title": "Me Dedique a Perderte"
+        },
+        {
+          "id": "db6:esclip-001-100-099-ha-ash-lo-aprendi-de-ti-ha-ash-primera-fi-08f835",
+          "artist": "Ha Ash",
+          "title": "Lo Aprendi de Ti - HA-ASH Primera Fila - Hecho Realidad En Vivo"
+        },
+        {
+          "id": "db6:esclip-001-100-100-daddy-yankee-gasolina-mp3-4011b8",
+          "artist": "Daddy Yankee",
+          "title": "Gasolina"
+        },
+        {
+          "id": "db6:esclip-101-200-101-daddy-yankee-rompe-mp3-40d9d9",
+          "artist": "Daddy Yankee",
+          "title": "Rompe"
+        },
+        {
+          "id": "db6:esclip-101-200-102-daddy-yankee-lo-que-paso-paso-mp3-844c81",
+          "artist": "Daddy Yankee",
+          "title": "Lo Que Paso, Paso"
+        },
+        {
+          "id": "db6:esclip-101-200-103-daddy-yankee-limbo-mp3-024a0b",
+          "artist": "Daddy Yankee",
+          "title": "Limbo"
+        },
+        {
+          "id": "db6:esclip-101-200-104-daddy-yankee-dura-mp3-993acd",
+          "artist": "Daddy Yankee",
+          "title": "Dura"
+        },
+        {
+          "id": "db6:esclip-101-200-105-daddy-yankee-snow-con-calma-mp3-4e59a9",
+          "artist": "Daddy Yankee, Snow",
+          "title": "Con Calma"
+        },
+        {
+          "id": "db6:esclip-101-200-106-daddy-yankee-shaky-shaky-mp3-3f3970",
+          "artist": "Daddy Yankee",
+          "title": "Shaky Shaky"
+        },
+        {
+          "id": "db6:esclip-101-200-107-don-omar-lucenzo-danza-kuduro-mp3-8ad036",
+          "artist": "Don Omar, Lucenzo",
+          "title": "Danza Kuduro"
+        },
+        {
+          "id": "db6:esclip-101-200-108-don-omar-dile-mp3-583611",
+          "artist": "Don Omar",
+          "title": "Dile"
+        },
+        {
+          "id": "db6:esclip-101-200-109-don-omar-pobre-diabla-mp3-87024e",
+          "artist": "Don Omar",
+          "title": "Pobre Diabla"
+        },
+        {
+          "id": "db6:esclip-101-200-110-don-omar-virtual-diva-mp3-3a2d4e",
+          "artist": "Don Omar",
+          "title": "Virtual Diva"
+        },
+        {
+          "id": "db6:esclip-101-200-111-tego-calderon-pa-que-retozen-mp3-66515b",
+          "artist": "Tego Calderon",
+          "title": "Pa' Que Retozen"
+        },
+        {
+          "id": "db6:esclip-101-200-112-tego-calderon-al-natural-mp3-5f4efb",
+          "artist": "Tego Calderon",
+          "title": "Al Natural"
+        },
+        {
+          "id": "db6:esclip-101-200-113-tego-calderon-metele-sazon-mp3-93e416",
+          "artist": "Tego Calderon",
+          "title": "Metele Sazon"
+        },
+        {
+          "id": "db6:esclip-101-200-114-wisin-yandel-chris-brown-t-pain-algo-me-g-95fae3",
+          "artist": "Wisin & Yandel, Chris Brown, T-Pain",
+          "title": "Algo Me Gusta De Ti"
+        },
+        {
+          "id": "db6:esclip-101-200-115-wisin-yandel-sexy-movimiento-mp3-bee1e9",
+          "artist": "Wisin & Yandel",
+          "title": "Sexy Movimiento"
+        },
+        {
+          "id": "db6:esclip-101-200-116-wisin-yandel-me-estas-tentando-mp3-0d63eb",
+          "artist": "Wisin & Yandel",
+          "title": "Me Estas Tentando"
+        },
+        {
+          "id": "db6:esclip-101-200-117-wisin-yandel-mirala-bien-mp3-3e326c",
+          "artist": "Wisin & Yandel",
+          "title": "Mirala Bien"
+        },
+        {
+          "id": "db6:esclip-101-200-118-ivy-queen-te-he-querido-te-he-llorado-mp3-e48e01",
+          "artist": "Ivy Queen",
+          "title": "Te He Querido, Te He Llorado"
+        },
+        {
+          "id": "db6:esclip-101-200-119-hector-el-father-noche-de-travesura-mp3-a5d681",
+          "artist": "Hector El Father",
+          "title": "Noche de Travesura"
+        },
+        {
+          "id": "db6:esclip-101-200-120-zion-lennox-yo-voy-feat-daddy-yankee-mp3-e313c4",
+          "artist": "Zion & Lennox",
+          "title": "Yo Voy (feat. Daddy Yankee)"
+        },
+        {
+          "id": "db6:esclip-101-200-121-calle-13-atrevete-te-te-mp3-76f944",
+          "artist": "Calle 13",
+          "title": "Atrevete-Te-Te"
+        },
+        {
+          "id": "db6:esclip-101-200-122-calle-13-toto-la-momposina-susana-baca-ma-0304a7",
+          "artist": "Calle 13, Toto La Momposina, Susana Baca, Maria Rita",
+          "title": "Latinoamerica (feat. Toto la Momposina, Susana Baca & Maria Rita)"
+        },
+        {
+          "id": "db6:esclip-101-200-123-nicky-jam-travesuras-mp3-55a1c9",
+          "artist": "Nicky Jam",
+          "title": "Travesuras"
+        },
+        {
+          "id": "db6:esclip-101-200-124-nicky-jam-enrique-iglesias-el-perdon-with-06bffb",
+          "artist": "Nicky Jam, Enrique Iglesias",
+          "title": "El Perdon (with Enrique Iglesias)"
+        },
+        {
+          "id": "db6:esclip-101-200-125-nicky-jam-hasta-el-amanecer-mp3-a8cff0",
+          "artist": "Nicky Jam",
+          "title": "Hasta el Amanecer"
+        },
+        {
+          "id": "db6:esclip-101-200-126-nicky-jam-j-balvin-x-mp3-a92884",
+          "artist": "Nicky Jam, J Balvin",
+          "title": "X"
+        },
+        {
+          "id": "db6:esclip-101-200-127-ozuna-dile-que-tu-me-quieres-mp3-db3126",
+          "artist": "Ozuna",
+          "title": "Dile Que Tu Me Quieres"
+        },
+        {
+          "id": "db6:esclip-101-200-128-ozuna-se-preparo-mp3-1b2363",
+          "artist": "Ozuna",
+          "title": "Se Preparo"
+        },
+        {
+          "id": "db6:esclip-101-200-129-dj-snake-selena-gomez-ozuna-cardi-b-taki--df5159",
+          "artist": "DJ Snake, Selena Gomez, Ozuna, Cardi B",
+          "title": "Taki Taki (with Selena Gomez, Ozuna & Cardi B)"
+        },
+        {
+          "id": "db6:esclip-101-200-130-anuel-aa-daddy-yankee-karol-g-j-balvin-oz-6e7e3c",
+          "artist": "Anuel AA, Daddy Yankee, KAROL G, J Balvin, Ozuna",
+          "title": "China"
+        },
+        {
+          "id": "db6:esclip-101-200-131-anuel-aa-romeo-santos-ella-quiere-beber-r-d8afd5",
+          "artist": "Anuel AA, Romeo Santos",
+          "title": "Ella Quiere Beber - Remix"
+        },
+        {
+          "id": "db6:esclip-101-200-132-karol-g-shakira-tqg-mp3-9da98f",
+          "artist": "KAROL G, Shakira",
+          "title": "TQG"
+        },
+        {
+          "id": "db6:esclip-101-200-133-karol-g-bichota-mp3-524f48",
+          "artist": "KAROL G",
+          "title": "BICHOTA"
+        },
+        {
+          "id": "db6:esclip-101-200-134-karol-g-provenza-mp3-01eccd",
+          "artist": "KAROL G",
+          "title": "PROVENZA"
+        },
+        {
+          "id": "db6:esclip-101-200-135-karol-g-nicki-minaj-tusa-mp3-bd4e4f",
+          "artist": "KAROL G, Nicki Minaj",
+          "title": "Tusa"
+        },
+        {
+          "id": "db6:esclip-101-200-136-feid-normal-mp3-bc446b",
+          "artist": "Feid",
+          "title": "Normal"
+        },
+        {
+          "id": "db6:esclip-101-200-137-feid-ferxxo-100-mp3-7ac927",
+          "artist": "Feid",
+          "title": "Ferxxo 100"
+        },
+        {
+          "id": "db6:esclip-101-200-138-feid-young-miko-classy-101-mp3-f0d29f",
+          "artist": "Feid, Young Miko",
+          "title": "CLASSY 101"
+        },
+        {
+          "id": "db6:esclip-101-200-139-myke-towers-lala-mp3-465376",
+          "artist": "Myke Towers",
+          "title": "LALA"
+        },
+        {
+          "id": "db6:esclip-101-200-140-myke-towers-diosa-mp3-ed3d7b",
+          "artist": "Myke Towers",
+          "title": "Diosa"
+        },
+        {
+          "id": "db6:esclip-101-200-141-bad-bunny-titi-me-pregunto-mp3-6d7e98",
+          "artist": "Bad Bunny",
+          "title": "Titi Me Pregunto"
+        },
+        {
+          "id": "db6:esclip-101-200-142-bad-bunny-chencho-corleone-me-porto-bonit-f865dc",
+          "artist": "Bad Bunny, Chencho Corleone",
+          "title": "Me Porto Bonito"
+        },
+        {
+          "id": "db6:esclip-101-200-143-bad-bunny-tainy-callaita-mp3-cf3eec",
+          "artist": "Bad Bunny, Tainy",
+          "title": "Callaita"
+        },
+        {
+          "id": "db6:esclip-101-200-144-bad-bunny-yo-perreo-sola-mp3-f6be8f",
+          "artist": "Bad Bunny",
+          "title": "Yo Perreo Sola"
+        },
+        {
+          "id": "db6:esclip-101-200-145-bad-bunny-jhayco-dakiti-mp3-983b5f",
+          "artist": "Bad Bunny, JHAYCO",
+          "title": "DAKITI"
+        },
+        {
+          "id": "db6:esclip-101-200-146-bad-bunny-moscow-mule-mp3-7e24fd",
+          "artist": "Bad Bunny",
+          "title": "Moscow Mule"
+        },
+        {
+          "id": "db6:esclip-101-200-147-bad-bunny-monaco-mp3-34f8c4",
+          "artist": "Bad Bunny",
+          "title": "MONACO"
+        },
+        {
+          "id": "db6:esclip-101-200-148-j-balvin-willy-william-mi-gente-mp3-1e8727",
+          "artist": "J Balvin, Willy William",
+          "title": "Mi Gente"
+        },
+        {
+          "id": "db6:esclip-101-200-149-j-balvin-ginza-mp3-7596c9",
+          "artist": "J Balvin",
+          "title": "Ginza"
+        },
+        {
+          "id": "db6:esclip-101-200-150-rauw-alejandro-todo-de-ti-mp3-91b9d1",
+          "artist": "Rauw Alejandro",
+          "title": "Todo De Ti"
+        },
+        {
+          "id": "db6:esclip-101-200-151-young-miko-lisa-mp3-f3265e",
+          "artist": "Young Miko",
+          "title": "Lisa"
+        },
+        {
+          "id": "db6:esclip-101-200-152-farruko-pepas-mp3-fd83b3",
+          "artist": "Farruko",
+          "title": "Pepas"
+        },
+        {
+          "id": "db6:esclip-101-200-153-plan-b-mi-vecinita-mp3-6bcae3",
+          "artist": "Plan B",
+          "title": "Mi Vecinita"
+        },
+        {
+          "id": "db6:esclip-101-200-154-plan-b-candy-mp3-6b947c",
+          "artist": "Plan B",
+          "title": "Candy"
+        },
+        {
+          "id": "db6:esclip-101-200-155-tito-el-bambino-el-amor-mp3-fff89b",
+          "artist": "Tito El Bambino",
+          "title": "El Amor"
+        },
+        {
+          "id": "db6:esclip-101-200-156-manuel-turizo-la-bachata-mp3-d18578",
+          "artist": "Manuel Turizo",
+          "title": "La Bachata"
+        },
+        {
+          "id": "db6:esclip-101-200-157-maluma-hawai-mp3-d6cf57",
+          "artist": "Maluma",
+          "title": "Hawai"
+        },
+        {
+          "id": "db6:esclip-101-200-158-maluma-felices-los-4-mp3-6fbece",
+          "artist": "Maluma",
+          "title": "Felices los 4"
+        },
+        {
+          "id": "db6:esclip-101-200-159-maluma-nego-do-borel-corazon-feat-nego-do-93ff6f",
+          "artist": "Maluma, Nego do Borel",
+          "title": "Corazon (feat. Nego do Borel)"
+        },
+        {
+          "id": "db6:esclip-101-200-160-wisin-ozuna-escapate-conmigo-feat-ozuna-m-3e79c8",
+          "artist": "Wisin, Ozuna",
+          "title": "Escapate Conmigo (feat. Ozuna)"
+        },
+        {
+          "id": "db6:esclip-101-200-161-alexis-y-fido-baby-ranks-el-tiburon-mp3-61ea0a",
+          "artist": "Alexis y Fido, Baby Ranks",
+          "title": "El Tiburon"
+        },
+        {
+          "id": "db6:esclip-101-200-162-jowell-randy-de-la-ghetto-un-poco-loca-fe-c040ed",
+          "artist": "Jowell & Randy, De La Ghetto",
+          "title": "Un Poco Loca (feat. De La Ghetto)"
+        },
+        {
+          "id": "db6:esclip-101-200-163-daddy-yankee-llamado-de-emergencia-mp3-3a913e",
+          "artist": "Daddy Yankee",
+          "title": "Llamado de Emergencia"
+        },
+        {
+          "id": "db6:esclip-101-200-164-daddy-yankee-impacto-mp3-695ee5",
+          "artist": "Daddy Yankee",
+          "title": "Impacto"
+        },
+        {
+          "id": "db6:esclip-101-200-165-don-omar-hasta-que-salga-el-sol-mp3-a30399",
+          "artist": "Don Omar",
+          "title": "Hasta Que Salga El Sol"
+        },
+        {
+          "id": "db6:esclip-101-200-166-wisin-yandel-llame-pa-verte-bailando-sexy-b3a7f4",
+          "artist": "Wisin & Yandel",
+          "title": "Llame Pa' Verte (Bailando Sexy)"
+        },
+        {
+          "id": "db6:esclip-101-200-167-wisin-yandel-te-siento-mp3-680513",
+          "artist": "Wisin & Yandel",
+          "title": "Te Siento"
+        },
+        {
+          "id": "db6:esclip-101-200-168-zion-lennox-j-balvin-otra-vez-feat-j-balv-2357fa",
+          "artist": "Zion & Lennox, J Balvin",
+          "title": "Otra Vez (feat. J Balvin)"
+        },
+        {
+          "id": "db6:esclip-101-200-169-nicky-jam-el-amante-mp3-34aaaa",
+          "artist": "Nicky Jam",
+          "title": "El Amante"
+        },
+        {
+          "id": "db6:esclip-101-200-170-natti-natasha-ozuna-criminal-mp3-2e6fe7",
+          "artist": "NATTI NATASHA, Ozuna",
+          "title": "Criminal"
+        },
+        {
+          "id": "db6:esclip-101-200-171-ozuna-baila-baila-baila-mp3-c6b11c",
+          "artist": "Ozuna",
+          "title": "Baila Baila Baila"
+        },
+        {
+          "id": "db6:esclip-101-200-172-ozuna-el-farsante-mp3-4da552",
+          "artist": "Ozuna",
+          "title": "El Farsante"
+        },
+        {
+          "id": "db6:esclip-101-200-173-bad-bunny-soy-peor-mp3-454abd",
+          "artist": "Bad Bunny",
+          "title": "Soy Peor"
+        },
+        {
+          "id": "db6:esclip-101-200-174-bad-bunny-el-alfa-la-romana-mp3-9d6b94",
+          "artist": "Bad Bunny, El Alfa",
+          "title": "La Romana"
+        },
+        {
+          "id": "db6:esclip-101-200-175-bad-bunny-neverita-mp3-3110cc",
+          "artist": "Bad Bunny",
+          "title": "Neverita"
+        },
+        {
+          "id": "db6:esclip-101-200-176-bad-bunny-bomba-estereo-ojitos-lindos-mp3-fced10",
+          "artist": "Bad Bunny, Bomba Estereo",
+          "title": "Ojitos Lindos"
+        },
+        {
+          "id": "db6:esclip-101-200-177-bad-bunny-efecto-mp3-7f120e",
+          "artist": "Bad Bunny",
+          "title": "Efecto"
+        },
+        {
+          "id": "db6:esclip-101-200-178-bad-bunny-baile-inolvidable-mp3-879cff",
+          "artist": "Bad Bunny",
+          "title": "BAILE INoLVIDABLE"
+        },
+        {
+          "id": "db6:esclip-101-200-179-bad-bunny-dtmf-mp3-15b0ee",
+          "artist": "Bad Bunny",
+          "title": "DtMF"
+        },
+        {
+          "id": "db6:esclip-101-200-180-bad-bunny-nuevayol-mp3-4b8786",
+          "artist": "Bad Bunny",
+          "title": "NUEVAYoL"
+        },
+        {
+          "id": "db6:esclip-101-200-181-j-balvin-pharrell-williams-bia-sky-rompie-1535c5",
+          "artist": "J Balvin, Pharrell Williams, BIA, Sky Rompiendo",
+          "title": "Safari"
+        },
+        {
+          "id": "db6:esclip-101-200-182-j-balvin-reggaeton-mp3-d9b652",
+          "artist": "J Balvin",
+          "title": "Reggaeton"
+        },
+        {
+          "id": "db6:esclip-101-200-183-j-balvin-jeon-anitta-machika-mp3-17261e",
+          "artist": "J Balvin, Jeon, Anitta",
+          "title": "Machika"
+        },
+        {
+          "id": "db6:esclip-101-200-184-becky-g-karol-g-mamiii-mp3-ed7fcc",
+          "artist": "Becky G, KAROL G",
+          "title": "MAMIII"
+        },
+        {
+          "id": "db6:esclip-101-200-185-karol-g-si-antes-te-hubiera-conocido-mp3-f902c7",
+          "artist": "KAROL G",
+          "title": "Si Antes Te Hubiera Conocido"
+        },
+        {
+          "id": "db6:esclip-101-200-186-rauw-alejandro-tattoo-mp3-8f5d63",
+          "artist": "Rauw Alejandro",
+          "title": "Tattoo"
+        },
+        {
+          "id": "db6:esclip-101-200-187-rauw-alejandro-chencho-corleone-desespera-3ce71d",
+          "artist": "Rauw Alejandro, Chencho Corleone",
+          "title": "Desesperados"
+        },
+        {
+          "id": "db6:esclip-101-200-188-rauw-alejandro-baby-rasta-punto-40-mp3-a4d619",
+          "artist": "Rauw Alejandro, Baby Rasta",
+          "title": "PUNTO 40"
+        },
+        {
+          "id": "db6:esclip-101-200-189-ozuna-feid-hey-mor-mp3-7f0c43",
+          "artist": "Ozuna, Feid",
+          "title": "Hey Mor"
+        },
+        {
+          "id": "db6:esclip-101-200-190-sech-relacion-mp3-7e6497",
+          "artist": "Sech",
+          "title": "Relacion"
+        },
+        {
+          "id": "db6:esclip-101-200-191-lunay-gaby-music-chris-jedi-soltera-mp3-f04e85",
+          "artist": "Lunay, Gaby Music, Chris Jedi",
+          "title": "Soltera"
+        },
+        {
+          "id": "db6:esclip-101-200-192-anuel-aa-karol-g-secreto-mp3-58dd9b",
+          "artist": "Anuel AA, KAROL G",
+          "title": "Secreto"
+        },
+        {
+          "id": "db6:esclip-101-200-193-becky-g-natti-natasha-sin-pijama-mp3-0fdd29",
+          "artist": "Becky G, NATTI NATASHA",
+          "title": "Sin Pijama"
+        },
+        {
+          "id": "db6:esclip-101-200-194-becky-g-bad-bunny-mayores-mp3-f34b10",
+          "artist": "Becky G, Bad Bunny",
+          "title": "Mayores"
+        },
+        {
+          "id": "db6:esclip-101-200-195-bizarrap-quevedo-quevedo-bzrp-music-sessi-7874c4",
+          "artist": "Bizarrap, Quevedo",
+          "title": "Quevedo Bzrp Music Sessions, Vol. 5266"
+        },
+        {
+          "id": "db6:esclip-101-200-196-caifanes-la-negra-tomasa-bilongo-version--a3cfcb",
+          "artist": "Caifanes",
+          "title": "La Negra Tomasa - Bilongo - Version Tropical"
+        },
+        {
+          "id": "db6:esclip-101-200-197-caifanes-afuera-mp3-edae1b",
+          "artist": "Caifanes",
+          "title": "Afuera"
+        },
+        {
+          "id": "db6:esclip-101-200-198-caifanes-no-dejes-que-mp3-bd729f",
+          "artist": "Caifanes",
+          "title": "No Dejes Que"
+        },
+        {
+          "id": "db6:esclip-101-200-199-caifanes-viento-mp3-2e081e",
+          "artist": "Caifanes",
+          "title": "Viento"
+        },
+        {
+          "id": "db6:esclip-101-200-200-caifanes-antes-de-que-nos-olviden-mp3-f92161",
+          "artist": "Caifanes",
+          "title": "Antes de Que Nos Olviden"
+        },
+        {
+          "id": "db6:esclip-201-300-201-heroes-del-silencio-entre-dos-tierras-mp3-692415",
+          "artist": "Heroes Del Silencio",
+          "title": "Entre dos tierras"
+        },
+        {
+          "id": "db6:esclip-201-300-202-heroes-del-silencio-maldito-duende-mp3-b331fe",
+          "artist": "Heroes Del Silencio",
+          "title": "Maldito duende"
+        },
+        {
+          "id": "db6:esclip-201-300-203-heroes-del-silencio-la-sirena-varada-mp3-049e5b",
+          "artist": "Heroes Del Silencio",
+          "title": "La sirena varada"
+        },
+        {
+          "id": "db6:esclip-201-300-204-heroes-del-silencio-heroe-de-leyenda-mp3-92ddc9",
+          "artist": "Heroes Del Silencio",
+          "title": "Heroe de leyenda"
+        },
+        {
+          "id": "db6:esclip-201-300-205-molotov-puto-mp3-5a4480",
+          "artist": "Molotov",
+          "title": "Puto"
+        },
+        {
+          "id": "db6:esclip-201-300-206-molotov-frijolero-mp3-1cd898",
+          "artist": "Molotov",
+          "title": "Frijolero"
+        },
+        {
+          "id": "db6:esclip-201-300-207-molotov-gimme-tha-power-mp3-b8b987",
+          "artist": "Molotov",
+          "title": "Gimme Tha Power"
+        },
+        {
+          "id": "db6:esclip-201-300-208-los-fabulosos-cadillacs-matador-remasteri-b23598",
+          "artist": "Los Fabulosos Cadillacs",
+          "title": "Matador - Remasterizado 2008"
+        },
+        {
+          "id": "db6:esclip-201-300-209-los-fabulosos-cadillacs-vasos-vacios-mp3-a1d84a",
+          "artist": "Los Fabulosos Cadillacs",
+          "title": "Vasos Vacios"
+        },
+        {
+          "id": "db6:esclip-201-300-210-los-fabulosos-cadillacs-mal-bicho-mp3-452bc7",
+          "artist": "Los Fabulosos Cadillacs",
+          "title": "Mal Bicho"
+        },
+        {
+          "id": "db6:esclip-201-300-211-aterciopelados-bolero-falaz-mp3-d4c5bb",
+          "artist": "Aterciopelados",
+          "title": "Bolero Falaz"
+        },
+        {
+          "id": "db6:esclip-201-300-212-aterciopelados-el-estuche-mp3-470f37",
+          "artist": "Aterciopelados",
+          "title": "El Estuche"
+        },
+        {
+          "id": "db6:esclip-201-300-213-mecano-hijo-de-la-luna-mp3-e81924",
+          "artist": "Mecano",
+          "title": "Hijo de la Luna"
+        },
+        {
+          "id": "db6:esclip-201-300-214-mecano-me-cole-en-una-fiesta-mp3-85f878",
+          "artist": "Mecano",
+          "title": "Me Cole en una Fiesta"
+        },
+        {
+          "id": "db6:esclip-201-300-215-mecano-la-fuerza-del-destino-mp3-54c1f2",
+          "artist": "Mecano",
+          "title": "La Fuerza del Destino"
+        },
+        {
+          "id": "db6:esclip-201-300-216-mecano-cruz-de-navajas-mp3-188724",
+          "artist": "Mecano",
+          "title": "Cruz de Navajas"
+        },
+        {
+          "id": "db6:esclip-201-300-217-luis-alberto-spinetta-seguir-viviendo-sin-4e95ff",
+          "artist": "Luis Alberto Spinetta",
+          "title": "Seguir Viviendo Sin Tu Amor"
+        },
+        {
+          "id": "db6:esclip-201-300-218-luis-alberto-spinetta-almendra-muchacha-o-102710",
+          "artist": "Luis Alberto Spinetta, Almendra",
+          "title": "Muchacha Ojos de Papel (En Vivo Estadio Velez Sarsfield) (with Almendra)"
+        },
+        {
+          "id": "db6:esclip-201-300-219-charly-garcia-demoliendo-hoteles-mp3-76b1a7",
+          "artist": "Charly Garcia",
+          "title": "Demoliendo Hoteles"
+        },
+        {
+          "id": "db6:esclip-201-300-220-charly-garcia-yendo-de-la-cama-al-living--ea6af8",
+          "artist": "Charly Garcia",
+          "title": "Yendo De La Cama Al Living"
+        },
+        {
+          "id": "db6:esclip-201-300-221-charly-garcia-nos-siguen-pegando-abajo-mp-2c339d",
+          "artist": "Charly Garcia",
+          "title": "Nos Siguen Pegando Abajo"
+        },
+        {
+          "id": "db6:esclip-201-300-222-fito-paez-mariposa-tecknicolor-mp3-f87aa2",
+          "artist": "Fito Paez",
+          "title": "Mariposa tecknicolor"
+        },
+        {
+          "id": "db6:esclip-201-300-223-fito-paez-a-rodar-mi-vida-mp3-5629e5",
+          "artist": "Fito Paez",
+          "title": "A rodar mi vida"
+        },
+        {
+          "id": "db6:esclip-201-300-224-fito-paez-el-amor-despues-del-amor-mp3-a6c549",
+          "artist": "Fito Paez",
+          "title": "El amor despues del amor"
+        },
+        {
+          "id": "db6:esclip-201-300-225-andres-calamaro-crimenes-perfectos-mp3-cf0fe1",
+          "artist": "Andres Calamaro",
+          "title": "Crimenes perfectos"
+        },
+        {
+          "id": "db6:esclip-201-300-226-andres-calamaro-paloma-mp3-0318cb",
+          "artist": "Andres Calamaro",
+          "title": "Paloma"
+        },
+        {
+          "id": "db6:esclip-201-300-227-los-rodriguez-sin-documentos-mp3-0adb09",
+          "artist": "Los Rodriguez",
+          "title": "Sin documentos"
+        },
+        {
+          "id": "db6:esclip-201-300-228-soda-stereo-te-para-tres-mp3-3d46bc",
+          "artist": "Soda Stereo",
+          "title": "Te para Tres"
+        },
+        {
+          "id": "db6:esclip-201-300-229-soda-stereo-zoom-mp3-e26912",
+          "artist": "Soda Stereo",
+          "title": "Zoom"
+        },
+        {
+          "id": "db6:esclip-201-300-230-soda-stereo-primavera-0-remasterizado-200-4e1d41",
+          "artist": "Soda Stereo",
+          "title": "Primavera 0 - Remasterizado 2007"
+        },
+        {
+          "id": "db6:esclip-201-300-231-soda-stereo-corazon-delator-mp3-afddb6",
+          "artist": "Soda Stereo",
+          "title": "Corazon Delator"
+        },
+        {
+          "id": "db6:esclip-201-300-232-gustavo-cerati-crimen-mp3-2ea57a",
+          "artist": "Gustavo Cerati",
+          "title": "Crimen"
+        },
+        {
+          "id": "db6:esclip-201-300-233-gustavo-cerati-puente-mp3-bdd630",
+          "artist": "Gustavo Cerati",
+          "title": "Puente"
+        },
+        {
+          "id": "db6:esclip-201-300-234-gustavo-cerati-adios-mp3-49fe8b",
+          "artist": "Gustavo Cerati",
+          "title": "Adios"
+        },
+        {
+          "id": "db6:esclip-201-300-235-cafe-tacvba-la-ingrata-mp3-b07a41",
+          "artist": "Cafe Tacvba",
+          "title": "La ingrata"
+        },
+        {
+          "id": "db6:esclip-201-300-236-cafe-tacvba-las-flores-mp3-49e323",
+          "artist": "Cafe Tacvba",
+          "title": "Las flores"
+        },
+        {
+          "id": "db6:esclip-201-300-237-cafe-tacvba-chilanga-banda-mp3-6e4fb2",
+          "artist": "Cafe Tacvba",
+          "title": "Chilanga banda"
+        },
+        {
+          "id": "db6:esclip-201-300-238-cafe-tacvba-el-baile-y-el-salon-mp3-b22316",
+          "artist": "Cafe Tacvba",
+          "title": "El baile y el salon"
+        },
+        {
+          "id": "db6:esclip-201-300-239-los-prisioneros-el-baile-de-los-que-sobra-63ab7c",
+          "artist": "Los Prisioneros",
+          "title": "El Baile De Los Que Sobran"
+        },
+        {
+          "id": "db6:esclip-201-300-240-los-prisioneros-we-are-sudamerican-rocker-1543d9",
+          "artist": "Los Prisioneros",
+          "title": "We Are Sudamerican Rockers"
+        },
+        {
+          "id": "db6:esclip-201-300-241-hombres-g-venecia-mp3-11cf43",
+          "artist": "Hombres G",
+          "title": "Venecia"
+        },
+        {
+          "id": "db6:esclip-201-300-242-los-enanitos-verdes-guitarras-blancas-mp3-59d934",
+          "artist": "Los Enanitos Verdes",
+          "title": "Guitarras Blancas"
+        },
+        {
+          "id": "db6:esclip-201-300-243-los-enanitos-verdes-amores-lejanos-mp3-5f20a0",
+          "artist": "Los Enanitos Verdes",
+          "title": "Amores Lejanos"
+        },
+        {
+          "id": "db6:esclip-201-300-244-zoe-sone-mp3-f5f2aa",
+          "artist": "Zoe",
+          "title": "Sone"
+        },
+        {
+          "id": "db6:esclip-201-300-245-zoe-labios-rotos-en-vivo-desde-mexico-201-3a22bb",
+          "artist": "Zoe",
+          "title": "Labios Rotos - En Vivo Desde Mexico 2010"
+        },
+        {
+          "id": "db6:esclip-201-300-246-zoe-via-lactea-mp3-af3860",
+          "artist": "Zoe",
+          "title": "Via Lactea"
+        },
+        {
+          "id": "db6:esclip-201-300-247-zoe-luna-en-vivo-mp3-f1b529",
+          "artist": "Zoe",
+          "title": "Luna - En Vivo"
+        },
+        {
+          "id": "db6:esclip-201-300-248-babasonicos-irresponsables-mp3-9a8de6",
+          "artist": "Babasonicos",
+          "title": "Irresponsables"
+        },
+        {
+          "id": "db6:esclip-201-300-249-babasonicos-yegua-mp3-722271",
+          "artist": "Babasonicos",
+          "title": "Yegua"
+        },
+        {
+          "id": "db6:esclip-201-300-250-vilma-palma-e-vampiros-la-pachanga-mp3-024264",
+          "artist": "Vilma Palma e Vampiros",
+          "title": "La Pachanga"
+        },
+        {
+          "id": "db6:esclip-201-300-251-el-tri-triste-cancion-mp3-b9d140",
+          "artist": "El Tri",
+          "title": "Triste cancion"
+        },
+        {
+          "id": "db6:esclip-201-300-252-el-tri-las-piedras-rodantes-mp3-392980",
+          "artist": "El Tri",
+          "title": "Las piedras rodantes"
+        },
+        {
+          "id": "db6:esclip-201-300-253-maldita-vecindad-y-los-hijos-del-5to-pati-2434de",
+          "artist": "Maldita Vecindad Y Los Hijos Del 5to. Patio",
+          "title": "Pachuco"
+        },
+        {
+          "id": "db6:esclip-201-300-254-los-autenticos-decadentes-la-guitarra-mp3-769500",
+          "artist": "Los Autenticos Decadentes",
+          "title": "La Guitarra"
+        },
+        {
+          "id": "db6:esclip-201-300-255-divididos-el-arriero-mp3-8437e6",
+          "artist": "Divididos",
+          "title": "El Arriero"
+        },
+        {
+          "id": "db6:esclip-201-300-256-sumo-la-rubia-tarada-mp3-7bb078",
+          "artist": "Sumo",
+          "title": "La Rubia Tarada"
+        },
+        {
+          "id": "db6:esclip-201-300-257-virus-wadu-wadu-mp3-f05481",
+          "artist": "Virus",
+          "title": "Wadu Wadu"
+        },
+        {
+          "id": "db6:esclip-201-300-258-virus-pronta-entrega-mp3-7e73cc",
+          "artist": "Virus",
+          "title": "Pronta Entrega"
+        },
+        {
+          "id": "db6:esclip-201-300-259-la-ley-el-duelo-mp3-666352",
+          "artist": "La Ley",
+          "title": "El Duelo"
+        },
+        {
+          "id": "db6:esclip-201-300-260-la-ley-mentira-mp3-20ee43",
+          "artist": "La Ley",
+          "title": "Mentira"
+        },
+        {
+          "id": "db6:esclip-201-300-261-fobia-veneno-vil-mp3-5e42a0",
+          "artist": "Fobia",
+          "title": "Veneno Vil"
+        },
+        {
+          "id": "db6:esclip-201-300-262-jaguares-fin-mp3-4fff3d",
+          "artist": "Jaguares",
+          "title": "Fin"
+        },
+        {
+          "id": "db6:esclip-201-300-263-radio-futura-escuela-de-calor-mp3-c451f6",
+          "artist": "Radio Futura",
+          "title": "Escuela de Calor"
+        },
+        {
+          "id": "db6:esclip-201-300-264-los-planetas-segundo-premio-mp3-5e5070",
+          "artist": "Los Planetas",
+          "title": "Segundo Premio"
+        },
+        {
+          "id": "db6:esclip-201-300-265-vetusta-morla-copenhague-mp3-da6d62",
+          "artist": "Vetusta Morla",
+          "title": "Copenhague"
+        },
+        {
+          "id": "db6:esclip-201-300-266-love-of-lesbian-club-de-fans-de-john-boy--bc7ff4",
+          "artist": "Love of Lesbian",
+          "title": "Club de fans de John Boy"
+        },
+        {
+          "id": "db6:esclip-201-300-267-los-tres-dejate-caer-mp3-f32b21",
+          "artist": "Los Tres",
+          "title": "Dejate Caer"
+        },
+        {
+          "id": "db6:esclip-201-300-268-panteon-rococo-la-dosis-perfecta-mp3-c18afa",
+          "artist": "Panteon Rococo",
+          "title": "La Dosis Perfecta"
+        },
+        {
+          "id": "db6:esclip-201-300-269-el-mato-a-un-policia-motorizado-chica-de--cd0ada",
+          "artist": "El Mato a un Policia Motorizado",
+          "title": "Chica de Oro"
+        },
+        {
+          "id": "db6:esclip-201-300-270-caifanes-aqui-no-es-asi-mp3-b3951f",
+          "artist": "Caifanes",
+          "title": "Aqui No Es Asi"
+        },
+        {
+          "id": "db6:esclip-201-300-271-caifanes-nubes-mp3-0e4aac",
+          "artist": "Caifanes",
+          "title": "Nubes"
+        },
+        {
+          "id": "db6:esclip-201-300-272-soda-stereo-ella-uso-mi-cabeza-como-un-re-420b48",
+          "artist": "Soda Stereo",
+          "title": "Ella Uso Mi Cabeza Como Un Revolver - Remasterizado 2007"
+        },
+        {
+          "id": "db6:esclip-201-300-273-gustavo-cerati-te-llevo-para-que-me-lleve-b4901b",
+          "artist": "Gustavo Cerati",
+          "title": "Te Llevo para Que Me Lleves"
+        },
+        {
+          "id": "db6:esclip-201-300-274-los-enanitos-verdes-tus-viejas-cartas-mp3-6bf04e",
+          "artist": "Los Enanitos Verdes",
+          "title": "Tus Viejas Cartas"
+        },
+        {
+          "id": "db6:esclip-201-300-275-zoe-poli-mp3-1c0c48",
+          "artist": "Zoe",
+          "title": "Poli"
+        },
+        {
+          "id": "db6:esclip-201-300-276-los-prisioneros-muevan-las-industrias-mp3-003c89",
+          "artist": "Los Prisioneros",
+          "title": "Muevan Las Industrias"
+        },
+        {
+          "id": "db6:esclip-201-300-277-los-fabulosos-cadillacs-siguiendo-la-luna-794148",
+          "artist": "Los Fabulosos Cadillacs",
+          "title": "Siguiendo La Luna"
+        },
+        {
+          "id": "db6:esclip-201-300-278-aterciopelados-florecita-rockera-mp3-f08545",
+          "artist": "Aterciopelados",
+          "title": "Florecita Rockera"
+        },
+        {
+          "id": "db6:esclip-201-300-279-hombres-g-visite-nuestro-bar-mp3-dfb80d",
+          "artist": "Hombres G",
+          "title": "Visite nuestro bar"
+        },
+        {
+          "id": "db6:esclip-201-300-280-el-ultimo-de-la-fila-como-un-burro-amarra-299614",
+          "artist": "El Ultimo De La Fila",
+          "title": "Como un burro amarrado en la puerta del baile"
+        },
+        {
+          "id": "db6:esclip-201-300-281-fito-paez-11-y-6-mp3-58ef31",
+          "artist": "Fito Paez",
+          "title": "11 Y 6"
+        },
+        {
+          "id": "db6:esclip-201-300-282-luis-alberto-spinetta-barro-tal-vez-mp3-9faaee",
+          "artist": "Luis Alberto Spinetta",
+          "title": "Barro Tal Vez"
+        },
+        {
+          "id": "db6:esclip-201-300-283-sui-generis-rasguna-las-piedras-mp3-5fb711",
+          "artist": "Sui Generis",
+          "title": "Rasguna las Piedras"
+        },
+        {
+          "id": "db6:esclip-201-300-284-sui-generis-cancion-para-mi-muerte-mp3-08e748",
+          "artist": "Sui Generis",
+          "title": "Cancion para Mi Muerte"
+        },
+        {
+          "id": "db6:esclip-201-300-285-los-piojos-como-ali-mp3-25225b",
+          "artist": "Los Piojos",
+          "title": "Como Ali"
+        },
+        {
+          "id": "db6:esclip-201-300-286-la-renga-el-final-es-en-donde-parti-mp3-c1ccb4",
+          "artist": "La Renga",
+          "title": "El Final Es En Donde Parti"
+        },
+        {
+          "id": "db6:esclip-201-300-287-andres-calamaro-estadio-azteca-mp3-7a5002",
+          "artist": "Andres Calamaro",
+          "title": "Estadio Azteca"
+        },
+        {
+          "id": "db6:esclip-201-300-288-los-tres-un-amor-violento-mp3-bf3dca",
+          "artist": "Los Tres",
+          "title": "Un Amor Violento"
+        },
+        {
+          "id": "db6:esclip-201-300-289-cafe-tacvba-maria-mp3-5ce87e",
+          "artist": "Cafe Tacvba",
+          "title": "Maria"
+        },
+        {
+          "id": "db6:esclip-201-300-290-patricio-rey-y-sus-redonditos-de-ricota-j-341f1b",
+          "artist": "Patricio Rey y sus Redonditos de Ricota",
+          "title": "Ji Ji Ji"
+        },
+        {
+          "id": "db6:esclip-201-300-291-bersuit-vergarabat-sr-cobranza-mp3-f338ab",
+          "artist": "Bersuit Vergarabat",
+          "title": "Sr. Cobranza"
+        },
+        {
+          "id": "db6:esclip-201-300-292-bunbury-lady-blue-mp3-d76558",
+          "artist": "Bunbury",
+          "title": "Lady Blue"
+        },
+        {
+          "id": "db6:esclip-201-300-293-bunbury-infinito-mp3-303bad",
+          "artist": "Bunbury",
+          "title": "Infinito"
+        },
+        {
+          "id": "db6:esclip-201-300-294-chic-le-freak-mp3-cf976b",
+          "artist": "CHIC",
+          "title": "Le Freak"
+        },
+        {
+          "id": "db6:esclip-201-300-295-chic-good-times-mp3-b9d78c",
+          "artist": "CHIC",
+          "title": "Good Times"
+        },
+        {
+          "id": "db6:esclip-201-300-296-chic-i-want-your-love-mp3-2e1c48",
+          "artist": "CHIC",
+          "title": "I Want Your Love"
+        },
+        {
+          "id": "db6:esclip-201-300-297-donna-summer-i-feel-love-mp3-f86b7f",
+          "artist": "Donna Summer",
+          "title": "I Feel Love"
+        },
+        {
+          "id": "db6:esclip-201-300-298-donna-summer-hot-stuff-mp3-eb5809",
+          "artist": "Donna Summer",
+          "title": "Hot Stuff"
+        },
+        {
+          "id": "db6:esclip-201-300-299-donna-summer-bad-girls-mp3-9f6d49",
+          "artist": "Donna Summer",
+          "title": "Bad Girls"
+        },
+        {
+          "id": "db6:esclip-201-300-300-donna-summer-love-to-love-you-baby-mp3-d3d9e9",
+          "artist": "Donna Summer",
+          "title": "Love To Love You Baby"
+        },
+        {
+          "id": "db6:esclip-301-400-301-sister-sledge-we-are-family-mp3-0fc0b2",
+          "artist": "Sister Sledge",
+          "title": "We Are Family"
+        },
+        {
+          "id": "db6:esclip-301-400-302-sister-sledge-he-s-the-greatest-dancer-19-9b498e",
+          "artist": "Sister Sledge",
+          "title": "He's the Greatest Dancer - 1995 Remaster"
+        },
+        {
+          "id": "db6:esclip-301-400-303-sister-sledge-lost-in-music-1995-remaster-e5c0b5",
+          "artist": "Sister Sledge",
+          "title": "Lost in Music - 1995 Remaster"
+        },
+        {
+          "id": "db6:esclip-301-400-304-earth-wind-fire-september-mp3-f04d0d",
+          "artist": "Earth, Wind & Fire",
+          "title": "September"
+        },
+        {
+          "id": "db6:esclip-301-400-305-earth-wind-fire-fantasy-mp3-6d99bd",
+          "artist": "Earth, Wind & Fire",
+          "title": "Fantasy"
+        },
+        {
+          "id": "db6:esclip-301-400-306-earth-wind-fire-after-the-love-has-gone-m-9a659c",
+          "artist": "Earth, Wind & Fire",
+          "title": "After the Love Has Gone"
+        },
+        {
+          "id": "db6:esclip-301-400-307-whitney-houston-i-wanna-dance-with-somebo-37d484",
+          "artist": "Whitney Houston",
+          "title": "I Wanna Dance with Somebody (Who Loves Me)"
+        },
+        {
+          "id": "db6:esclip-301-400-308-whitney-houston-how-will-i-know-mp3-519fa1",
+          "artist": "Whitney Houston",
+          "title": "How Will I Know"
+        },
+        {
+          "id": "db6:esclip-301-400-309-aretha-franklin-respect-mp3-a24cf7",
+          "artist": "Aretha Franklin",
+          "title": "Respect"
+        },
+        {
+          "id": "db6:esclip-301-400-310-aretha-franklin-you-make-me-feel-like-a-n-38e46a",
+          "artist": "Aretha Franklin",
+          "title": "(You Make Me Feel Like) A Natural Woman"
+        },
+        {
+          "id": "db6:esclip-301-400-311-aretha-franklin-think-mp3-e4e6a9",
+          "artist": "Aretha Franklin",
+          "title": "Think"
+        },
+        {
+          "id": "db6:esclip-301-400-312-chaka-khan-i-m-every-woman-mp3-4528a9",
+          "artist": "Chaka Khan",
+          "title": "I'm Every Woman"
+        },
+        {
+          "id": "db6:esclip-301-400-313-chaka-khan-i-feel-for-you-mp3-cfcec5",
+          "artist": "Chaka Khan",
+          "title": "I Feel for You"
+        },
+        {
+          "id": "db6:esclip-301-400-314-rufus-chaka-khan-ain-t-nobody-mp3-2dbfb6",
+          "artist": "Rufus, Chaka Khan",
+          "title": "Ain't Nobody"
+        },
+        {
+          "id": "db6:esclip-301-400-315-bee-gees-night-fever-from-saturday-night--f806b6",
+          "artist": "Bee Gees",
+          "title": "Night Fever - From Saturday Night Fever Soundtrack"
+        },
+        {
+          "id": "db6:esclip-301-400-316-bee-gees-jive-talkin-mp3-a105fc",
+          "artist": "Bee Gees",
+          "title": "Jive Talkin'"
+        },
+        {
+          "id": "db6:esclip-301-400-317-bee-gees-tragedy-mp3-6019da",
+          "artist": "Bee Gees",
+          "title": "Tragedy"
+        },
+        {
+          "id": "db6:esclip-301-400-318-stevie-wonder-superstition-mp3-312a71",
+          "artist": "Stevie Wonder",
+          "title": "Superstition"
+        },
+        {
+          "id": "db6:esclip-301-400-319-stevie-wonder-sir-duke-mp3-433376",
+          "artist": "Stevie Wonder",
+          "title": "Sir Duke"
+        },
+        {
+          "id": "db6:esclip-301-400-320-stevie-wonder-i-wish-mp3-f456aa",
+          "artist": "Stevie Wonder",
+          "title": "I Wish"
+        },
+        {
+          "id": "db6:esclip-301-400-321-stevie-wonder-signed-sealed-delivered-i-m-ba8e0d",
+          "artist": "Stevie Wonder",
+          "title": "Signed, Sealed, Delivered (I'm Yours)"
+        },
+        {
+          "id": "db6:esclip-301-400-322-prince-kiss-mp3-736783",
+          "artist": "Prince",
+          "title": "Kiss"
+        },
+        {
+          "id": "db6:esclip-301-400-323-prince-when-doves-cry-mp3-a70e0d",
+          "artist": "Prince",
+          "title": "When Doves Cry"
+        },
+        {
+          "id": "db6:esclip-301-400-324-prince-little-red-corvette-mp3-61312e",
+          "artist": "Prince",
+          "title": "Little Red Corvette"
+        },
+        {
+          "id": "db6:esclip-301-400-325-prince-1999-mp3-69d328",
+          "artist": "Prince",
+          "title": "1999"
+        },
+        {
+          "id": "db6:esclip-301-400-326-prince-let-s-go-crazy-mp3-1ac7bf",
+          "artist": "Prince",
+          "title": "Let's Go Crazy"
+        },
+        {
+          "id": "db6:esclip-301-400-327-kool-the-gang-celebration-mp3-100121",
+          "artist": "Kool & The Gang",
+          "title": "Celebration"
+        },
+        {
+          "id": "db6:esclip-301-400-328-kool-the-gang-jungle-boogie-mp3-c9b633",
+          "artist": "Kool & The Gang",
+          "title": "Jungle Boogie"
+        },
+        {
+          "id": "db6:esclip-301-400-329-the-jackson-5-i-want-you-back-mp3-b9ae2d",
+          "artist": "The Jackson 5",
+          "title": "I Want You Back"
+        },
+        {
+          "id": "db6:esclip-301-400-330-the-jackson-5-abc-mp3-5cf4ae",
+          "artist": "The Jackson 5",
+          "title": "ABC"
+        },
+        {
+          "id": "db6:esclip-301-400-331-the-jacksons-blame-it-on-the-boogie-mp3-71e473",
+          "artist": "The Jacksons",
+          "title": "Blame It on the Boogie"
+        },
+        {
+          "id": "db6:esclip-301-400-332-the-jacksons-shake-your-body-down-to-the--5ad3c9",
+          "artist": "The Jacksons",
+          "title": "Shake Your Body (Down to the Ground)"
+        },
+        {
+          "id": "db6:esclip-301-400-333-marvin-gaye-got-to-give-it-up-mp3-cf30dc",
+          "artist": "Marvin Gaye",
+          "title": "Got To Give It Up"
+        },
+        {
+          "id": "db6:esclip-301-400-334-marvin-gaye-what-s-going-on-mp3-bb6c50",
+          "artist": "Marvin Gaye",
+          "title": "What's Going On"
+        },
+        {
+          "id": "db6:esclip-301-400-335-marvin-gaye-let-s-get-it-on-mp3-44fff3",
+          "artist": "Marvin Gaye",
+          "title": "Let's Get It On"
+        },
+        {
+          "id": "db6:esclip-301-400-336-diana-ross-upside-down-mp3-a3391e",
+          "artist": "Diana Ross",
+          "title": "Upside Down"
+        },
+        {
+          "id": "db6:esclip-301-400-337-diana-ross-i-m-coming-out-mp3-72f65e",
+          "artist": "Diana Ross",
+          "title": "I'm Coming Out"
+        },
+        {
+          "id": "db6:esclip-301-400-338-gloria-gaynor-never-can-say-goodbye-mp3-f41f66",
+          "artist": "Gloria Gaynor",
+          "title": "Never Can Say Goodbye"
+        },
+        {
+          "id": "db6:esclip-301-400-339-abba-dancing-queen-mp3-12ca4d",
+          "artist": "ABBA",
+          "title": "Dancing Queen"
+        },
+        {
+          "id": "db6:esclip-301-400-340-abba-gimme-gimme-gimme-a-man-after-midnig-685376",
+          "artist": "ABBA",
+          "title": "Gimme! Gimme! Gimme! (A Man After Midnight)"
+        },
+        {
+          "id": "db6:esclip-301-400-341-abba-voulez-vous-mp3-da83b7",
+          "artist": "ABBA",
+          "title": "Voulez-Vous"
+        },
+        {
+          "id": "db6:esclip-301-400-342-abba-lay-all-your-love-on-me-mp3-0b0dc4",
+          "artist": "ABBA",
+          "title": "Lay All Your Love On Me"
+        },
+        {
+          "id": "db6:esclip-301-400-343-rick-james-give-it-to-me-baby-mp3-18f8b1",
+          "artist": "Rick James",
+          "title": "Give It To Me Baby"
+        },
+        {
+          "id": "db6:esclip-301-400-344-jamiroquai-cosmic-girl-remastered-2013-mp-fa7b1e",
+          "artist": "Jamiroquai",
+          "title": "Cosmic Girl - Remastered 2013"
+        },
+        {
+          "id": "db6:esclip-301-400-345-jamiroquai-canned-heat-mp3-8a6fc2",
+          "artist": "Jamiroquai",
+          "title": "Canned Heat"
+        },
+        {
+          "id": "db6:esclip-301-400-346-jamiroquai-love-foolosophy-radio-edit-mp3-ae6d64",
+          "artist": "Jamiroquai",
+          "title": "Love Foolosophy - Radio Edit"
+        },
+        {
+          "id": "db6:esclip-301-400-347-george-michael-faith-mp3-4f548b",
+          "artist": "George Michael",
+          "title": "Faith"
+        },
+        {
+          "id": "db6:esclip-301-400-348-george-michael-freedom-90-remastered-mp3-0db1a8",
+          "artist": "George Michael",
+          "title": "Freedom! '90 - Remastered"
+        },
+        {
+          "id": "db6:esclip-301-400-349-patrice-rushen-haven-t-you-heard-mp3-57fa79",
+          "artist": "Patrice Rushen",
+          "title": "Haven't You Heard"
+        },
+        {
+          "id": "db6:esclip-301-400-350-barry-white-can-t-get-enough-of-your-love-48c09c",
+          "artist": "Barry White",
+          "title": "Can't Get Enough Of Your Love, Babe"
+        },
+        {
+          "id": "db6:esclip-301-400-351-kc-the-sunshine-band-that-s-the-way-i-lik-314466",
+          "artist": "KC & The Sunshine Band",
+          "title": "That's the Way (I Like It)"
+        },
+        {
+          "id": "db6:esclip-301-400-352-kc-the-sunshine-band-boogie-shoes-mp3-c029a5",
+          "artist": "KC & The Sunshine Band",
+          "title": "Boogie Shoes"
+        },
+        {
+          "id": "db6:esclip-301-400-353-village-people-y-m-c-a-mp3-04e177",
+          "artist": "Village People",
+          "title": "Y.M.C.A"
+        },
+        {
+          "id": "db6:esclip-301-400-354-cheryl-lynn-got-to-be-real-mp3-adcfb9",
+          "artist": "Cheryl Lynn",
+          "title": "Got to Be Real"
+        },
+        {
+          "id": "db6:esclip-301-400-355-thelma-houston-don-t-leave-me-this-way-mp-c107b9",
+          "artist": "Thelma Houston",
+          "title": "Don't Leave Me This Way"
+        },
+        {
+          "id": "db6:esclip-301-400-356-anita-ward-ring-my-bell-mp3-f1fb48",
+          "artist": "Anita Ward",
+          "title": "Ring My Bell"
+        },
+        {
+          "id": "db6:esclip-301-400-357-lipps-inc-funkytown-mp3-e53de1",
+          "artist": "Lipps Inc.",
+          "title": "Funkytown"
+        },
+        {
+          "id": "db6:esclip-301-400-358-boney-m-rasputin-mp3-aaefea",
+          "artist": "Boney M.",
+          "title": "Rasputin"
+        },
+        {
+          "id": "db6:esclip-301-400-359-boney-m-daddy-cool-mp3-57c2e2",
+          "artist": "Boney M.",
+          "title": "Daddy Cool"
+        },
+        {
+          "id": "db6:esclip-301-400-360-sylvester-you-make-me-feel-mighty-real-mp-cf079a",
+          "artist": "Sylvester",
+          "title": "You Make Me Feel (Mighty Real)"
+        },
+        {
+          "id": "db6:esclip-301-400-361-the-trammps-disco-inferno-mp3-9f5337",
+          "artist": "The Trammps",
+          "title": "Disco Inferno"
+        },
+        {
+          "id": "db6:esclip-301-400-362-odyssey-native-new-yorker-mp3-2a58ff",
+          "artist": "Odyssey",
+          "title": "Native New Yorker"
+        },
+        {
+          "id": "db6:esclip-301-400-363-mcfadden-whitehead-ain-t-no-stoppin-us-no-c64ced",
+          "artist": "McFadden & Whitehead",
+          "title": "Ain't No Stoppin' Us Now"
+        },
+        {
+          "id": "db6:esclip-301-400-364-shalamar-a-night-to-remember-mp3-f8daf1",
+          "artist": "Shalamar",
+          "title": "A Night to Remember"
+        },
+        {
+          "id": "db6:esclip-301-400-365-the-whispers-and-the-beat-goes-on-mp3-6181b7",
+          "artist": "The Whispers",
+          "title": "And the Beat Goes On"
+        },
+        {
+          "id": "db6:esclip-301-400-366-lionel-richie-all-night-long-all-night-mp-32eec2",
+          "artist": "Lionel Richie",
+          "title": "All Night Long (All Night)"
+        },
+        {
+          "id": "db6:esclip-301-400-367-commodores-brick-house-mp3-87125c",
+          "artist": "Commodores",
+          "title": "Brick House"
+        },
+        {
+          "id": "db6:esclip-301-400-368-commodores-easy-mp3-8b0671",
+          "artist": "Commodores",
+          "title": "Easy"
+        },
+        {
+          "id": "db6:esclip-301-400-369-parliament-give-up-the-funk-tear-the-roof-7e6bfa",
+          "artist": "Parliament",
+          "title": "Give Up The Funk (Tear The Roof Off The Sucker)"
+        },
+        {
+          "id": "db6:esclip-301-400-370-george-clinton-parliament-funkadelic-not--88a55b",
+          "artist": "George Clinton, Parliament Funkadelic",
+          "title": "Not Just Knee Deep - Live"
+        },
+        {
+          "id": "db6:esclip-301-400-371-james-brown-get-up-i-feel-like-being-a-se-b81421",
+          "artist": "James Brown",
+          "title": "Get Up I Feel Like Being A Sex Machine - Pt. 1 Single Version"
+        },
+        {
+          "id": "db6:esclip-301-400-372-james-brown-the-famous-flames-i-got-you-i-fa7cb1",
+          "artist": "James Brown & The Famous Flames",
+          "title": "I Got You (I Feel Good)"
+        },
+        {
+          "id": "db6:esclip-301-400-373-sly-the-family-stone-everyday-people-mp3-433ef6",
+          "artist": "Sly & The Family Stone",
+          "title": "Everyday People"
+        },
+        {
+          "id": "db6:esclip-301-400-374-sly-the-family-stone-thank-you-falettinme-972bed",
+          "artist": "Sly & The Family Stone",
+          "title": "Thank You (Falettinme Be Mice Elf Agin) - Single Version"
+        },
+        {
+          "id": "db6:esclip-301-400-375-zapp-computer-love-mp3-da4e27",
+          "artist": "Zapp",
+          "title": "Computer Love"
+        },
+        {
+          "id": "db6:esclip-301-400-376-cameo-word-up-mp3-371b08",
+          "artist": "Cameo",
+          "title": "Word Up"
+        },
+        {
+          "id": "db6:esclip-301-400-377-the-gap-band-outstanding-mp3-61248e",
+          "artist": "The Gap Band",
+          "title": "Outstanding"
+        },
+        {
+          "id": "db6:esclip-301-400-378-evelyn-champagne-king-love-come-down-mp3-76ca1a",
+          "artist": "Evelyn Champagne King",
+          "title": "Love Come Down"
+        },
+        {
+          "id": "db6:esclip-301-400-379-evelyn-champagne-king-shame-mp3-6049a7",
+          "artist": "Evelyn Champagne King",
+          "title": "Shame"
+        },
+        {
+          "id": "db6:esclip-301-400-380-teena-marie-square-biz-remastered-2002-mp-8f19ac",
+          "artist": "Teena Marie",
+          "title": "Square Biz - Remastered 2002"
+        },
+        {
+          "id": "db6:esclip-301-400-381-cerrone-supernature-mp3-50097b",
+          "artist": "Cerrone",
+          "title": "Supernature"
+        },
+        {
+          "id": "db6:esclip-301-400-382-irene-cara-flashdance-what-a-feeling-radi-7dc657",
+          "artist": "Irene Cara",
+          "title": "Flashdance...What a Feeling - Radio Edit"
+        },
+        {
+          "id": "db6:esclip-301-400-383-the-pointer-sisters-i-m-so-excited-mp3-52a3b2",
+          "artist": "The Pointer Sisters",
+          "title": "I'm So Excited"
+        },
+        {
+          "id": "db6:esclip-301-400-384-earth-wind-fire-shining-star-mp3-a39110",
+          "artist": "Earth, Wind & Fire",
+          "title": "Shining Star"
+        },
+        {
+          "id": "db6:esclip-301-400-385-chic-everybody-dance-mp3-a61a2c",
+          "artist": "CHIC",
+          "title": "Everybody Dance"
+        },
+        {
+          "id": "db6:esclip-301-400-386-donna-summer-last-dance-mp3-9d9d20",
+          "artist": "Donna Summer",
+          "title": "Last Dance"
+        },
+        {
+          "id": "db6:esclip-301-400-387-rose-royce-car-wash-mp3-d23df5",
+          "artist": "Rose Royce",
+          "title": "Car Wash"
+        },
+        {
+          "id": "db6:esclip-301-400-388-hot-chocolate-you-sexy-thing-mp3-8a603e",
+          "artist": "Hot Chocolate",
+          "title": "You Sexy Thing"
+        },
+        {
+          "id": "db6:esclip-301-400-389-the-o-jays-love-train-mp3-c37c31",
+          "artist": "The O'Jays",
+          "title": "Love Train"
+        },
+        {
+          "id": "db6:esclip-301-400-390-billy-ocean-get-outta-my-dreams-get-into--448e24",
+          "artist": "Billy Ocean",
+          "title": "Get Outta My Dreams, Get Into My Car"
+        },
+        {
+          "id": "db6:esclip-301-400-391-labelle-lady-marmalade-mp3-9ba3ff",
+          "artist": "LaBelle",
+          "title": "Lady Marmalade"
+        },
+        {
+          "id": "db6:esclip-301-400-392-amii-stewart-knock-on-wood-mp3-40af87",
+          "artist": "Amii Stewart",
+          "title": "Knock on Wood"
+        },
+        {
+          "id": "db6:esclip-301-400-393-beyonce-jay-z-crazy-in-love-feat-jay-z-mp-dc6f66",
+          "artist": "Beyonce, JAY-Z",
+          "title": "Crazy In Love (feat. JAY-Z)"
+        },
+        {
+          "id": "db6:esclip-301-400-394-beyonce-halo-mp3-c101e1",
+          "artist": "Beyonce",
+          "title": "Halo"
+        },
+        {
+          "id": "db6:esclip-301-400-395-beyonce-single-ladies-put-a-ring-on-it-mp-909e4e",
+          "artist": "Beyonce",
+          "title": "Single Ladies (Put a Ring on It)"
+        },
+        {
+          "id": "db6:esclip-301-400-396-beyonce-love-on-top-mp3-624e8c",
+          "artist": "Beyonce",
+          "title": "Love On Top"
+        },
+        {
+          "id": "db6:esclip-301-400-397-beyonce-irreplaceable-mp3-62376f",
+          "artist": "Beyonce",
+          "title": "Irreplaceable"
+        },
+        {
+          "id": "db6:esclip-301-400-398-beyonce-cuff-it-mp3-d7b68e",
+          "artist": "Beyonce",
+          "title": "CUFF IT"
+        },
+        {
+          "id": "db6:esclip-301-400-399-lady-gaga-bad-romance-mp3-9c3a2f",
+          "artist": "Lady Gaga",
+          "title": "Bad Romance"
+        },
+        {
+          "id": "db6:esclip-301-400-400-lady-gaga-poker-face-mp3-1ee32d",
+          "artist": "Lady Gaga",
+          "title": "Poker Face"
+        },
+        {
+          "id": "db6:esclip-401-500-401-lady-gaga-colby-o-donis-just-dance-mp3-1da395",
+          "artist": "Lady Gaga, Colby O'Donis",
+          "title": "Just Dance"
+        },
+        {
+          "id": "db6:esclip-401-500-402-lady-gaga-paparazzi-mp3-d5e35f",
+          "artist": "Lady Gaga",
+          "title": "Paparazzi"
+        },
+        {
+          "id": "db6:esclip-401-500-403-lady-gaga-bradley-cooper-shallow-mp3-c35fdf",
+          "artist": "Lady Gaga, Bradley Cooper",
+          "title": "Shallow"
+        },
+        {
+          "id": "db6:esclip-401-500-404-lady-gaga-applause-mp3-9336a1",
+          "artist": "Lady Gaga",
+          "title": "Applause"
+        },
+        {
+          "id": "db6:esclip-401-500-405-dua-lipa-dababy-levitating-feat-dababy-mp-e5df25",
+          "artist": "Dua Lipa, DaBaby",
+          "title": "Levitating (feat. DaBaby)"
+        },
+        {
+          "id": "db6:esclip-401-500-406-dua-lipa-don-t-start-now-mp3-efbfb2",
+          "artist": "Dua Lipa",
+          "title": "Don't Start Now"
+        },
+        {
+          "id": "db6:esclip-401-500-407-dua-lipa-new-rules-mp3-dbf20b",
+          "artist": "Dua Lipa",
+          "title": "New Rules"
+        },
+        {
+          "id": "db6:esclip-401-500-408-dua-lipa-physical-mp3-a75d86",
+          "artist": "Dua Lipa",
+          "title": "Physical"
+        },
+        {
+          "id": "db6:esclip-401-500-409-dua-lipa-houdini-mp3-325303",
+          "artist": "Dua Lipa",
+          "title": "Houdini"
+        },
+        {
+          "id": "db6:esclip-401-500-410-mark-ronson-bruno-mars-uptown-funk-feat-b-fe25e7",
+          "artist": "Mark Ronson, Bruno Mars",
+          "title": "Uptown Funk (feat. Bruno Mars)"
+        },
+        {
+          "id": "db6:esclip-401-500-411-bruno-mars-just-the-way-you-are-mp3-beed8c",
+          "artist": "Bruno Mars",
+          "title": "Just the Way You Are"
+        },
+        {
+          "id": "db6:esclip-401-500-412-bruno-mars-locked-out-of-heaven-mp3-4c8f53",
+          "artist": "Bruno Mars",
+          "title": "Locked out of Heaven"
+        },
+        {
+          "id": "db6:esclip-401-500-413-bruno-mars-24k-magic-mp3-c417d9",
+          "artist": "Bruno Mars",
+          "title": "24K Magic"
+        },
+        {
+          "id": "db6:esclip-401-500-414-bruno-mars-treasure-mp3-bef50a",
+          "artist": "Bruno Mars",
+          "title": "Treasure"
+        },
+        {
+          "id": "db6:esclip-401-500-415-taylor-swift-blank-space-mp3-ebcbc7",
+          "artist": "Taylor Swift",
+          "title": "Blank Space"
+        },
+        {
+          "id": "db6:esclip-401-500-416-taylor-swift-shake-it-off-mp3-bde085",
+          "artist": "Taylor Swift",
+          "title": "Shake It Off"
+        },
+        {
+          "id": "db6:esclip-401-500-417-taylor-swift-style-mp3-4a5167",
+          "artist": "Taylor Swift",
+          "title": "Style"
+        },
+        {
+          "id": "db6:esclip-401-500-418-taylor-swift-cruel-summer-mp3-753cf2",
+          "artist": "Taylor Swift",
+          "title": "Cruel Summer"
+        },
+        {
+          "id": "db6:esclip-401-500-419-taylor-swift-love-story-mp3-48b966",
+          "artist": "Taylor Swift",
+          "title": "Love Story"
+        },
+        {
+          "id": "db6:esclip-401-500-420-taylor-swift-anti-hero-mp3-59ca31",
+          "artist": "Taylor Swift",
+          "title": "Anti-Hero"
+        },
+        {
+          "id": "db6:esclip-401-500-421-charli-xcx-360-mp3-928c0f",
+          "artist": "Charli xcx",
+          "title": "360"
+        },
+        {
+          "id": "db6:esclip-401-500-422-charli-xcx-von-dutch-mp3-c413ff",
+          "artist": "Charli xcx",
+          "title": "Von dutch"
+        },
+        {
+          "id": "db6:esclip-401-500-423-charli-xcx-boom-clap-mp3-8c02ba",
+          "artist": "Charli xcx",
+          "title": "Boom Clap"
+        },
+        {
+          "id": "db6:esclip-401-500-424-charli-xcx-apple-mp3-4b7ad2",
+          "artist": "Charli xcx",
+          "title": "Apple"
+        },
+        {
+          "id": "db6:esclip-401-500-425-lorde-royals-mp3-66da29",
+          "artist": "Lorde",
+          "title": "Royals"
+        },
+        {
+          "id": "db6:esclip-401-500-426-lorde-green-light-mp3-7b2211",
+          "artist": "Lorde",
+          "title": "Green Light"
+        },
+        {
+          "id": "db6:esclip-401-500-427-lorde-ribs-mp3-465617",
+          "artist": "Lorde",
+          "title": "Ribs"
+        },
+        {
+          "id": "db6:esclip-401-500-428-britney-spears-toxic-mp3-ccb329",
+          "artist": "Britney Spears",
+          "title": "Toxic"
+        },
+        {
+          "id": "db6:esclip-401-500-429-britney-spears-baby-one-more-time-mp3-436a01",
+          "artist": "Britney Spears",
+          "title": "...Baby One More Time"
+        },
+        {
+          "id": "db6:esclip-401-500-430-britney-spears-oops-i-did-it-again-mp3-afe7e4",
+          "artist": "Britney Spears",
+          "title": "Oops!...I Did It Again"
+        },
+        {
+          "id": "db6:esclip-401-500-431-britney-spears-womanizer-mp3-a35e50",
+          "artist": "Britney Spears",
+          "title": "Womanizer"
+        },
+        {
+          "id": "db6:esclip-401-500-432-britney-spears-gimme-more-mp3-3aeff0",
+          "artist": "Britney Spears",
+          "title": "Gimme More"
+        },
+        {
+          "id": "db6:esclip-401-500-433-rihanna-jay-z-umbrella-mp3-319b84",
+          "artist": "Rihanna, JAY-Z",
+          "title": "Umbrella"
+        },
+        {
+          "id": "db6:esclip-401-500-434-rihanna-calvin-harris-we-found-love-mp3-213d87",
+          "artist": "Rihanna, Calvin Harris",
+          "title": "We Found Love"
+        },
+        {
+          "id": "db6:esclip-401-500-435-rihanna-only-girl-in-the-world-mp3-89a78b",
+          "artist": "Rihanna",
+          "title": "Only Girl (In The World)"
+        },
+        {
+          "id": "db6:esclip-401-500-436-rihanna-diamonds-mp3-32136b",
+          "artist": "Rihanna",
+          "title": "Diamonds"
+        },
+        {
+          "id": "db6:esclip-401-500-437-rihanna-don-t-stop-the-music-mp3-048a87",
+          "artist": "Rihanna",
+          "title": "Don't Stop The Music"
+        },
+        {
+          "id": "db6:esclip-401-500-438-rihanna-drake-work-mp3-582080",
+          "artist": "Rihanna, Drake",
+          "title": "Work"
+        },
+        {
+          "id": "db6:esclip-401-500-439-katy-perry-teenage-dream-mp3-75cd87",
+          "artist": "Katy Perry",
+          "title": "Teenage Dream"
+        },
+        {
+          "id": "db6:esclip-401-500-440-katy-perry-firework-mp3-9e49cc",
+          "artist": "Katy Perry",
+          "title": "Firework"
+        },
+        {
+          "id": "db6:esclip-401-500-441-katy-perry-last-friday-night-t-g-i-f-mp3-9a7450",
+          "artist": "Katy Perry",
+          "title": "Last Friday Night (T.G.I.F.)"
+        },
+        {
+          "id": "db6:esclip-401-500-442-katy-perry-hot-n-cold-mp3-27f0eb",
+          "artist": "Katy Perry",
+          "title": "Hot N Cold"
+        },
+        {
+          "id": "db6:esclip-401-500-443-ariana-grande-7-rings-mp3-10cfb7",
+          "artist": "Ariana Grande",
+          "title": "7 rings"
+        },
+        {
+          "id": "db6:esclip-401-500-444-ariana-grande-thank-u-next-mp3-182e9d",
+          "artist": "Ariana Grande",
+          "title": "thank u, next"
+        },
+        {
+          "id": "db6:esclip-401-500-445-ariana-grande-positions-mp3-79c83d",
+          "artist": "Ariana Grande",
+          "title": "positions"
+        },
+        {
+          "id": "db6:esclip-401-500-446-ariana-grande-no-tears-left-to-cry-mp3-4d0e88",
+          "artist": "Ariana Grande",
+          "title": "no tears left to cry"
+        },
+        {
+          "id": "db6:esclip-401-500-447-billie-eilish-bad-guy-mp3-eff443",
+          "artist": "Billie Eilish",
+          "title": "bad guy"
+        },
+        {
+          "id": "db6:esclip-401-500-448-billie-eilish-when-the-party-s-over-mp3-c3f819",
+          "artist": "Billie Eilish",
+          "title": "when the party's over"
+        },
+        {
+          "id": "db6:esclip-401-500-449-billie-eilish-happier-than-ever-mp3-8e1f89",
+          "artist": "Billie Eilish",
+          "title": "Happier Than Ever"
+        },
+        {
+          "id": "db6:esclip-401-500-450-doja-cat-say-so-mp3-2a5781",
+          "artist": "Doja Cat",
+          "title": "Say So"
+        },
+        {
+          "id": "db6:esclip-401-500-451-doja-cat-woman-mp3-4bda16",
+          "artist": "Doja Cat",
+          "title": "Woman"
+        },
+        {
+          "id": "db6:esclip-401-500-452-sabrina-carpenter-espresso-mp3-7fa5a1",
+          "artist": "Sabrina Carpenter",
+          "title": "Espresso"
+        },
+        {
+          "id": "db6:esclip-401-500-453-sabrina-carpenter-please-please-please-mp-6bb442",
+          "artist": "Sabrina Carpenter",
+          "title": "Please Please Please"
+        },
+        {
+          "id": "db6:esclip-401-500-454-olivia-rodrigo-drivers-license-mp3-47e0eb",
+          "artist": "Olivia Rodrigo",
+          "title": "drivers license"
+        },
+        {
+          "id": "db6:esclip-401-500-455-olivia-rodrigo-good-4-u-mp3-d71221",
+          "artist": "Olivia Rodrigo",
+          "title": "good 4 u"
+        },
+        {
+          "id": "db6:esclip-401-500-456-olivia-rodrigo-vampire-mp3-e6fe84",
+          "artist": "Olivia Rodrigo",
+          "title": "vampire"
+        },
+        {
+          "id": "db6:esclip-401-500-457-chappell-roan-hot-to-go-mp3-ec4ce4",
+          "artist": "Chappell Roan",
+          "title": "HOT TO GO!"
+        },
+        {
+          "id": "db6:esclip-401-500-458-chappell-roan-pink-pony-club-mp3-24c323",
+          "artist": "Chappell Roan",
+          "title": "Pink Pony Club"
+        },
+        {
+          "id": "db6:esclip-401-500-459-chappell-roan-femininomenon-mp3-76e2ed",
+          "artist": "Chappell Roan",
+          "title": "Femininomenon"
+        },
+        {
+          "id": "db6:esclip-401-500-460-the-weeknd-blinding-lights-mp3-5cdf59",
+          "artist": "The Weeknd",
+          "title": "Blinding Lights"
+        },
+        {
+          "id": "db6:esclip-401-500-461-the-weeknd-save-your-tears-mp3-3478c8",
+          "artist": "The Weeknd",
+          "title": "Save Your Tears"
+        },
+        {
+          "id": "db6:esclip-401-500-462-madonna-like-a-prayer-mp3-53ef6f",
+          "artist": "Madonna",
+          "title": "Like a Prayer"
+        },
+        {
+          "id": "db6:esclip-401-500-463-madonna-vogue-mp3-3b4853",
+          "artist": "Madonna",
+          "title": "Vogue"
+        },
+        {
+          "id": "db6:esclip-401-500-464-madonna-material-girl-mp3-e3ba26",
+          "artist": "Madonna",
+          "title": "Material Girl"
+        },
+        {
+          "id": "db6:esclip-401-500-465-robyn-dancing-on-my-own-radio-edit-mp3-d6f146",
+          "artist": "Robyn",
+          "title": "Dancing On My Own - Radio Edit"
+        },
+        {
+          "id": "db6:esclip-401-500-466-robyn-call-your-girlfriend-mp3-8b5ef6",
+          "artist": "Robyn",
+          "title": "Call Your Girlfriend"
+        },
+        {
+          "id": "db6:esclip-401-500-467-christina-aguilera-genie-in-a-bottle-mp3-f6150a",
+          "artist": "Christina Aguilera",
+          "title": "Genie In a Bottle"
+        },
+        {
+          "id": "db6:esclip-401-500-468-christina-aguilera-redman-dirrty-feat-red-c6977f",
+          "artist": "Christina Aguilera, Redman",
+          "title": "Dirrty (feat. Redman)"
+        },
+        {
+          "id": "db6:esclip-401-500-469-justin-timberlake-timbaland-sexyback-feat-83b140",
+          "artist": "Justin Timberlake, Timbaland",
+          "title": "SexyBack (feat. Timbaland)"
+        },
+        {
+          "id": "db6:esclip-401-500-470-justin-timberlake-cry-me-a-river-mp3-134b62",
+          "artist": "Justin Timberlake",
+          "title": "Cry Me a River"
+        },
+        {
+          "id": "db6:esclip-401-500-471-justin-timberlake-mirrors-mp3-901b15",
+          "artist": "Justin Timberlake",
+          "title": "Mirrors"
+        },
+        {
+          "id": "db6:esclip-401-500-472-nelly-furtado-i-m-like-a-bird-mp3-38ec70",
+          "artist": "Nelly Furtado",
+          "title": "I'm Like A Bird"
+        },
+        {
+          "id": "db6:esclip-401-500-473-gwen-stefani-hollaback-girl-mp3-20f1fe",
+          "artist": "Gwen Stefani",
+          "title": "Hollaback Girl"
+        },
+        {
+          "id": "db6:esclip-401-500-474-gwen-stefani-akon-the-sweet-escape-mp3-5ba9f5",
+          "artist": "Gwen Stefani, Akon",
+          "title": "The Sweet Escape"
+        },
+        {
+          "id": "db6:esclip-401-500-475-kesha-tik-tok-mp3-d8cfa2",
+          "artist": "Kesha",
+          "title": "TiK ToK"
+        },
+        {
+          "id": "db6:esclip-401-500-476-carly-rae-jepsen-call-me-maybe-mp3-99ac22",
+          "artist": "Carly Rae Jepsen",
+          "title": "Call Me Maybe"
+        },
+        {
+          "id": "db6:esclip-401-500-477-carly-rae-jepsen-run-away-with-me-mp3-5e88b7",
+          "artist": "Carly Rae Jepsen",
+          "title": "Run Away With Me"
+        },
+        {
+          "id": "db6:esclip-401-500-478-sia-chandelier-mp3-3458e4",
+          "artist": "Sia",
+          "title": "Chandelier"
+        },
+        {
+          "id": "db6:esclip-401-500-479-sia-cheap-thrills-mp3-1b47dd",
+          "artist": "Sia",
+          "title": "Cheap Thrills"
+        },
+        {
+          "id": "db6:esclip-401-500-480-adele-rolling-in-the-deep-mp3-ef3b10",
+          "artist": "Adele",
+          "title": "Rolling in the Deep"
+        },
+        {
+          "id": "db6:esclip-401-500-481-adele-someone-like-you-mp3-3d5a0c",
+          "artist": "Adele",
+          "title": "Someone Like You"
+        },
+        {
+          "id": "db6:esclip-401-500-482-adele-hello-mp3-05dedf",
+          "artist": "Adele",
+          "title": "Hello"
+        },
+        {
+          "id": "db6:esclip-401-500-483-lana-del-rey-video-games-mp3-01a39d",
+          "artist": "Lana Del Rey",
+          "title": "Video Games"
+        },
+        {
+          "id": "db6:esclip-401-500-484-lana-del-rey-summertime-sadness-mp3-8a2087",
+          "artist": "Lana Del Rey",
+          "title": "Summertime Sadness"
+        },
+        {
+          "id": "db6:esclip-401-500-485-lana-del-rey-born-to-die-mp3-19feca",
+          "artist": "Lana Del Rey",
+          "title": "Born To Die"
+        },
+        {
+          "id": "db6:esclip-401-500-486-lana-del-rey-young-and-beautiful-mp3-daad6c",
+          "artist": "Lana Del Rey",
+          "title": "Young And Beautiful"
+        },
+        {
+          "id": "db6:esclip-401-500-487-troye-sivan-rush-mp3-7c58d9",
+          "artist": "Troye Sivan",
+          "title": "Rush"
+        },
+        {
+          "id": "db6:esclip-401-500-488-tove-lo-habits-stay-high-mp3-569ef2",
+          "artist": "Tove Lo",
+          "title": "Habits (Stay High)"
+        },
+        {
+          "id": "db6:esclip-401-500-489-ellie-goulding-lights-mp3-793568",
+          "artist": "Ellie Goulding",
+          "title": "Lights"
+        },
+        {
+          "id": "db6:esclip-401-500-490-avril-lavigne-complicated-mp3-74bfe8",
+          "artist": "Avril Lavigne",
+          "title": "Complicated"
+        },
+        {
+          "id": "db6:esclip-401-500-491-avril-lavigne-sk8er-boi-mp3-c45795",
+          "artist": "Avril Lavigne",
+          "title": "Sk8er Boi"
+        },
+        {
+          "id": "db6:esclip-401-500-492-outkast-ms-jackson-mp3-219d50",
+          "artist": "Outkast",
+          "title": "Ms. Jackson"
+        },
+        {
+          "id": "db6:esclip-401-500-493-outkast-hey-ya-mp3-337610",
+          "artist": "Outkast",
+          "title": "Hey Ya!"
+        },
+        {
+          "id": "db6:esclip-401-500-494-outkast-roses-mp3-0ca283",
+          "artist": "Outkast",
+          "title": "Roses"
+        },
+        {
+          "id": "db6:esclip-401-500-495-outkast-so-fresh-so-clean-mp3-18fd82",
+          "artist": "Outkast",
+          "title": "So Fresh, So Clean"
+        },
+        {
+          "id": "db6:esclip-401-500-496-outkast-b-o-b-bombs-over-baghdad-mp3-c88b48",
+          "artist": "Outkast",
+          "title": "B.O.B. - Bombs Over Baghdad"
+        },
+        {
+          "id": "db6:esclip-401-500-497-outkast-rosa-parks-mp3-6ee4d0",
+          "artist": "Outkast",
+          "title": "Rosa Parks"
+        },
+        {
+          "id": "db6:esclip-401-500-498-outkast-spottieottiedopaliscious-mp3-3fbaf3",
+          "artist": "Outkast",
+          "title": "SpottieOttieDopaliscious"
+        },
+        {
+          "id": "db6:esclip-401-500-499-the-notorious-b-i-g-juicy-2005-remaster-m-442108",
+          "artist": "The Notorious B.I.G.",
+          "title": "Juicy - 2005 Remaster"
+        },
+        {
+          "id": "db6:esclip-401-500-500-the-notorious-b-i-g-big-poppa-mp3-67d584",
+          "artist": "The Notorious B.I.G.",
+          "title": "Big Poppa"
+        },
+        {
+          "id": "db6:esclip-501-600-501-the-notorious-b-i-g-hypnotize-2014-remast-c3e405",
+          "artist": "The Notorious B.I.G.",
+          "title": "Hypnotize - 2014 Remaster"
+        },
+        {
+          "id": "db6:esclip-501-600-502-the-notorious-b-i-g-mase-diddy-mo-money-m-7a5982",
+          "artist": "The Notorious B.I.G., Mase, Diddy",
+          "title": "Mo Money Mo Problems (feat. Mase & Puff Daddy) - 2016 Remaster"
+        },
+        {
+          "id": "db6:esclip-501-600-503-the-notorious-b-i-g-112-sky-s-the-limit-f-6ef408",
+          "artist": "The Notorious B.I.G., 112",
+          "title": "Sky's the Limit (feat. 112) - 2014 Remaster"
+        },
+        {
+          "id": "db6:esclip-501-600-504-the-notorious-b-i-g-warning-2007-remaster-572401",
+          "artist": "The Notorious B.I.G.",
+          "title": "Warning - 2007 Remaster"
+        },
+        {
+          "id": "db6:esclip-501-600-505-2pac-roger-dr-dre-california-love-origina-461bef",
+          "artist": "2Pac, Roger, Dr. Dre",
+          "title": "California Love - Original Version"
+        },
+        {
+          "id": "db6:esclip-501-600-506-2pac-talent-changes-mp3-7f6fc5",
+          "artist": "2Pac, Talent",
+          "title": "Changes"
+        },
+        {
+          "id": "db6:esclip-501-600-507-2pac-dear-mama-mp3-d0c9cf",
+          "artist": "2Pac",
+          "title": "Dear Mama"
+        },
+        {
+          "id": "db6:esclip-501-600-508-2pac-outlawz-hit-em-up-single-version-mp3-e1f33e",
+          "artist": "2Pac, Outlawz",
+          "title": "Hit 'Em Up - Single Version"
+        },
+        {
+          "id": "db6:esclip-501-600-509-2pac-ambitionz-az-a-ridah-mp3-7557db",
+          "artist": "2Pac",
+          "title": "Ambitionz Az A Ridah"
+        },
+        {
+          "id": "db6:esclip-501-600-510-2pac-keep-ya-head-up-mp3-420b4e",
+          "artist": "2Pac",
+          "title": "Keep Ya Head Up"
+        },
+        {
+          "id": "db6:esclip-501-600-511-nas-n-y-state-of-mind-mp3-591a91",
+          "artist": "Nas",
+          "title": "N.Y. State of Mind"
+        },
+        {
+          "id": "db6:esclip-501-600-512-nas-the-world-is-yours-mp3-9e30fb",
+          "artist": "Nas",
+          "title": "The World Is Yours"
+        },
+        {
+          "id": "db6:esclip-501-600-513-nas-ms-lauryn-hill-if-i-ruled-the-world-i-fe9056",
+          "artist": "Nas, Ms. Lauryn Hill",
+          "title": "If I Ruled the World (Imagine That) (feat. Lauryn Hill)"
+        },
+        {
+          "id": "db6:esclip-501-600-514-nas-one-mic-mp3-9371b3",
+          "artist": "Nas",
+          "title": "One Mic"
+        },
+        {
+          "id": "db6:esclip-501-600-515-nas-made-you-look-mp3-c31530",
+          "artist": "Nas",
+          "title": "Made You Look"
+        },
+        {
+          "id": "db6:esclip-501-600-516-dr-dre-snoop-dogg-still-d-r-e-mp3-af6937",
+          "artist": "Dr. Dre, Snoop Dogg",
+          "title": "Still D.R.E"
+        },
+        {
+          "id": "db6:esclip-501-600-517-dr-dre-snoop-dogg-the-next-episode-mp3-a61fe9",
+          "artist": "Dr. Dre, Snoop Dogg",
+          "title": "The Next Episode"
+        },
+        {
+          "id": "db6:esclip-501-600-518-dr-dre-eminem-forgot-about-dre-mp3-f9d648",
+          "artist": "Dr. Dre, Eminem",
+          "title": "Forgot About Dre"
+        },
+        {
+          "id": "db6:esclip-501-600-519-dr-dre-snoop-dogg-nuthin-but-a-g-thang-mp-fc6ffb",
+          "artist": "Dr. Dre, Snoop Dogg",
+          "title": "Nuthin' But A G Thang"
+        },
+        {
+          "id": "db6:esclip-501-600-520-snoop-dogg-gin-and-juice-mp3-f5c35b",
+          "artist": "Snoop Dogg",
+          "title": "Gin and Juice"
+        },
+        {
+          "id": "db6:esclip-501-600-521-snoop-dogg-pharrell-williams-drop-it-like-e6cf98",
+          "artist": "Snoop Dogg, Pharrell Williams",
+          "title": "Drop It Like It's Hot"
+        },
+        {
+          "id": "db6:esclip-501-600-522-snoop-dogg-who-am-i-whats-my-name-mp3-389ede",
+          "artist": "Snoop Dogg",
+          "title": "Who Am I (Whats My Name)"
+        },
+        {
+          "id": "db6:esclip-501-600-523-eminem-lose-yourself-mp3-c6fc3a",
+          "artist": "Eminem",
+          "title": "Lose Yourself"
+        },
+        {
+          "id": "db6:esclip-501-600-524-eminem-the-real-slim-shady-mp3-803d00",
+          "artist": "Eminem",
+          "title": "The Real Slim Shady"
+        },
+        {
+          "id": "db6:esclip-501-600-525-eminem-dido-stan-mp3-7ef3d4",
+          "artist": "Eminem, Dido",
+          "title": "Stan"
+        },
+        {
+          "id": "db6:esclip-501-600-526-eminem-without-me-mp3-8be361",
+          "artist": "Eminem",
+          "title": "Without Me"
+        },
+        {
+          "id": "db6:esclip-501-600-527-eminem-mockingbird-mp3-f5ca27",
+          "artist": "Eminem",
+          "title": "Mockingbird"
+        },
+        {
+          "id": "db6:esclip-501-600-528-eminem-sing-for-the-moment-mp3-472177",
+          "artist": "Eminem",
+          "title": "Sing For The Moment"
+        },
+        {
+          "id": "db6:esclip-501-600-529-jay-z-alicia-keys-empire-state-of-mind-mp-d9abf6",
+          "artist": "JAY-Z, Alicia Keys",
+          "title": "Empire State Of Mind"
+        },
+        {
+          "id": "db6:esclip-501-600-530-jay-z-99-problems-mp3-aa8b79",
+          "artist": "JAY-Z",
+          "title": "99 Problems"
+        },
+        {
+          "id": "db6:esclip-501-600-531-jay-z-dirt-off-your-shoulder-mp3-09b8f0",
+          "artist": "JAY-Z",
+          "title": "Dirt Off Your Shoulder"
+        },
+        {
+          "id": "db6:esclip-501-600-532-jay-z-hard-knock-life-ghetto-anthem-mp3-2c32c3",
+          "artist": "JAY-Z",
+          "title": "Hard Knock Life (Ghetto Anthem)"
+        },
+        {
+          "id": "db6:esclip-501-600-533-jay-z-ugk-big-pimpin-mp3-b8f97a",
+          "artist": "JAY-Z, UGK",
+          "title": "Big Pimpin'"
+        },
+        {
+          "id": "db6:esclip-501-600-534-jay-z-izzo-h-o-v-a-mp3-9a651e",
+          "artist": "JAY-Z",
+          "title": "Izzo (H.O.V.A.)"
+        },
+        {
+          "id": "db6:esclip-501-600-535-a-tribe-called-quest-can-i-kick-it-mp3-db0b89",
+          "artist": "A Tribe Called Quest",
+          "title": "Can I Kick It"
+        },
+        {
+          "id": "db6:esclip-501-600-536-a-tribe-called-quest-electric-relaxation--0d15c3",
+          "artist": "A Tribe Called Quest",
+          "title": "Electric Relaxation"
+        },
+        {
+          "id": "db6:esclip-501-600-537-a-tribe-called-quest-trugoy-the-dove-awar-a45531",
+          "artist": "A Tribe Called Quest, Trugoy The Dove",
+          "title": "Award Tour (feat. Trugoy The Dove)"
+        },
+        {
+          "id": "db6:esclip-501-600-538-a-tribe-called-quest-busta-rhymes-dinco-d-52cf85",
+          "artist": "A Tribe Called Quest, Busta Rhymes, Dinco D, Charlie Brown",
+          "title": "Scenario (feat. Busta Rhymes, Dinco D & Charlie Brown) - LP"
+        },
+        {
+          "id": "db6:esclip-501-600-539-a-tribe-called-quest-check-the-rhime-mp3-e174d8",
+          "artist": "A Tribe Called Quest",
+          "title": "Check the Rhime"
+        },
+        {
+          "id": "db6:esclip-501-600-540-mf-doom-dj-cucumber-slice-rhymes-like-dim-c34cf5",
+          "artist": "MF DOOM, DJ Cucumber Slice",
+          "title": "Rhymes Like Dimes"
+        },
+        {
+          "id": "db6:esclip-501-600-541-mf-doom-pebbles-the-invisible-girl-doomsd-0e6db3",
+          "artist": "MF DOOM, Pebbles The Invisible Girl",
+          "title": "Doomsday"
+        },
+        {
+          "id": "db6:esclip-501-600-542-madvillain-madlib-mf-doom-accordion-mp3-978d9c",
+          "artist": "Madvillain, Madlib, MF DOOM",
+          "title": "Accordion"
+        },
+        {
+          "id": "db6:esclip-501-600-543-madvillain-madlib-mf-doom-all-caps-mp3-b440b2",
+          "artist": "Madvillain, Madlib, MF DOOM",
+          "title": "All Caps"
+        },
+        {
+          "id": "db6:esclip-501-600-544-madvillain-madlib-mf-doom-rainbows-mp3-0daffd",
+          "artist": "Madvillain, Madlib, MF DOOM",
+          "title": "Rainbows"
+        },
+        {
+          "id": "db6:esclip-501-600-545-de-la-soul-me-myself-and-i-mp3-903c0b",
+          "artist": "De La Soul",
+          "title": "Me Myself and I"
+        },
+        {
+          "id": "db6:esclip-501-600-546-de-la-soul-ring-ring-ring-ha-ha-hey-mp3-64ca42",
+          "artist": "De La Soul",
+          "title": "Ring Ring Ring (Ha Ha Hey)"
+        },
+        {
+          "id": "db6:esclip-501-600-547-de-la-soul-otis-redding-eye-know-mp3-9b783e",
+          "artist": "De La Soul, Otis Redding",
+          "title": "Eye Know"
+        },
+        {
+          "id": "db6:esclip-501-600-548-wu-tang-clan-c-r-e-a-m-cash-rules-everyth-22a93d",
+          "artist": "Wu-Tang Clan",
+          "title": "C.R.E.A.M. (Cash Rules Everything Around Me)"
+        },
+        {
+          "id": "db6:esclip-501-600-549-wu-tang-clan-protect-ya-neck-mp3-6182a3",
+          "artist": "Wu-Tang Clan",
+          "title": "Protect Ya Neck"
+        },
+        {
+          "id": "db6:esclip-501-600-550-method-man-bring-the-pain-mp3-de49ec",
+          "artist": "Method Man",
+          "title": "Bring The Pain"
+        },
+        {
+          "id": "db6:esclip-501-600-551-mobb-deep-shook-ones-pt-ii-mp3-81af63",
+          "artist": "Mobb Deep",
+          "title": "Shook Ones, Pt. II"
+        },
+        {
+          "id": "db6:esclip-501-600-552-mobb-deep-survival-of-the-fittest-mp3-bdf6cb",
+          "artist": "Mobb Deep",
+          "title": "Survival of the Fittest"
+        },
+        {
+          "id": "db6:esclip-501-600-553-ms-lauryn-hill-doo-wop-that-thing-mp3-b94c50",
+          "artist": "Ms. Lauryn Hill",
+          "title": "Doo Wop (That Thing)"
+        },
+        {
+          "id": "db6:esclip-501-600-554-ms-lauryn-hill-everything-is-everything-m-c61c5b",
+          "artist": "Ms. Lauryn Hill",
+          "title": "Everything Is Everything"
+        },
+        {
+          "id": "db6:esclip-501-600-555-fugees-ms-lauryn-hill-killing-me-softly-w-08c73a",
+          "artist": "Fugees, Ms. Lauryn Hill",
+          "title": "Killing Me Softly With His Song"
+        },
+        {
+          "id": "db6:esclip-501-600-556-fugees-ms-lauryn-hill-wyclef-jean-pras-re-425a8a",
+          "artist": "Fugees, Ms. Lauryn Hill, Wyclef Jean, Pras",
+          "title": "Ready or Not"
+        },
+        {
+          "id": "db6:esclip-501-600-557-fugees-ms-lauryn-hill-wyclef-jean-pras-fu-37cca2",
+          "artist": "Fugees, Ms. Lauryn Hill, Wyclef Jean, Pras",
+          "title": "Fu-Gee-La"
+        },
+        {
+          "id": "db6:esclip-501-600-558-missy-elliott-get-ur-freak-on-mp3-e6b0ab",
+          "artist": "Missy Elliott",
+          "title": "Get Ur Freak On"
+        },
+        {
+          "id": "db6:esclip-501-600-559-missy-elliott-work-it-mp3-b49bce",
+          "artist": "Missy Elliott",
+          "title": "Work It"
+        },
+        {
+          "id": "db6:esclip-501-600-560-missy-elliott-the-rain-supa-dupa-fly-mp3-59dea2",
+          "artist": "Missy Elliott",
+          "title": "The Rain (Supa Dupa Fly)"
+        },
+        {
+          "id": "db6:esclip-501-600-561-missy-elliott-ciara-fatman-scoop-lose-con-c2a547",
+          "artist": "Missy Elliott, Ciara, Fatman Scoop",
+          "title": "Lose Control (feat. Ciara & Fat Man Scoop)"
+        },
+        {
+          "id": "db6:esclip-501-600-562-kanye-west-jamie-foxx-gold-digger-mp3-38abd7",
+          "artist": "Kanye West, Jamie Foxx",
+          "title": "Gold Digger"
+        },
+        {
+          "id": "db6:esclip-501-600-563-kanye-west-through-the-wire-mp3-e81431",
+          "artist": "Kanye West",
+          "title": "Through The Wire"
+        },
+        {
+          "id": "db6:esclip-501-600-564-kanye-west-jesus-walks-mp3-304a16",
+          "artist": "Kanye West",
+          "title": "Jesus Walks"
+        },
+        {
+          "id": "db6:esclip-501-600-565-kanye-west-dwele-flashing-lights-mp3-fdd4bd",
+          "artist": "Kanye West, Dwele",
+          "title": "Flashing Lights"
+        },
+        {
+          "id": "db6:esclip-501-600-566-kanye-west-heartless-mp3-a61a21",
+          "artist": "Kanye West",
+          "title": "Heartless"
+        },
+        {
+          "id": "db6:esclip-501-600-567-kanye-west-syleena-johnson-all-falls-down-427fc3",
+          "artist": "Kanye West, Syleena Johnson",
+          "title": "All Falls Down"
+        },
+        {
+          "id": "db6:esclip-501-600-568-kanye-west-lupe-fiasco-touch-the-sky-mp3-0e0176",
+          "artist": "Kanye West, Lupe Fiasco",
+          "title": "Touch The Sky"
+        },
+        {
+          "id": "db6:esclip-501-600-569-kanye-west-pusha-t-runaway-mp3-02b4f2",
+          "artist": "Kanye West, Pusha T",
+          "title": "Runaway"
+        },
+        {
+          "id": "db6:esclip-501-600-570-lupe-fiasco-kick-push-mp3-6836d1",
+          "artist": "Lupe Fiasco",
+          "title": "Kick, Push"
+        },
+        {
+          "id": "db6:esclip-501-600-571-lupe-fiasco-superstar-feat-matthew-santos-e09d3a",
+          "artist": "Lupe Fiasco",
+          "title": "Superstar (feat. Matthew Santos) - Radio Edit"
+        },
+        {
+          "id": "db6:esclip-501-600-572-common-the-light-mp3-b5d1ff",
+          "artist": "Common",
+          "title": "The Light"
+        },
+        {
+          "id": "db6:esclip-501-600-573-common-go-mp3-524849",
+          "artist": "Common",
+          "title": "GO!"
+        },
+        {
+          "id": "db6:esclip-501-600-574-mos-def-ms-fat-booty-mp3-4a3ce6",
+          "artist": "Mos Def",
+          "title": "Ms. Fat Booty"
+        },
+        {
+          "id": "db6:esclip-501-600-575-black-star-definition-mp3-44f4ed",
+          "artist": "Black Star",
+          "title": "Definition"
+        },
+        {
+          "id": "db6:esclip-501-600-576-the-pharcyde-passin-me-by-mp3-903e78",
+          "artist": "The Pharcyde",
+          "title": "Passin' Me By"
+        },
+        {
+          "id": "db6:esclip-501-600-577-the-pharcyde-runnin-mp3-c5b4db",
+          "artist": "The Pharcyde",
+          "title": "Runnin'"
+        },
+        {
+          "id": "db6:esclip-501-600-578-gang-starr-mass-appeal-mp3-579def",
+          "artist": "Gang Starr",
+          "title": "Mass Appeal"
+        },
+        {
+          "id": "db6:esclip-501-600-579-gang-starr-moment-of-truth-mp3-dc5d59",
+          "artist": "Gang Starr",
+          "title": "Moment Of Truth"
+        },
+        {
+          "id": "db6:esclip-501-600-580-j-dilla-don-t-cry-mp3-93592d",
+          "artist": "J Dilla",
+          "title": "Don't Cry"
+        },
+        {
+          "id": "db6:esclip-501-600-581-slum-village-rl-t3-altman-iii-ess-band-fa-867fc3",
+          "artist": "Slum Village, RL T3 Altman III, Ess Band",
+          "title": "Fall In Love"
+        },
+        {
+          "id": "db6:esclip-501-600-582-rund-m-c-it-s-tricky-mp3-4bc46c",
+          "artist": "RunD.M.C.",
+          "title": "It's Tricky"
+        },
+        {
+          "id": "db6:esclip-501-600-583-rund-m-c-aerosmith-walk-this-way-feat-aer-abc83a",
+          "artist": "RunD.M.C., Aerosmith",
+          "title": "Walk This Way (feat. Aerosmith)"
+        },
+        {
+          "id": "db6:esclip-501-600-584-beastie-boys-intergalactic-remastered-200-549dd7",
+          "artist": "Beastie Boys",
+          "title": "Intergalactic - Remastered 2009"
+        },
+        {
+          "id": "db6:esclip-501-600-585-beastie-boys-sabotage-mp3-ee6cb9",
+          "artist": "Beastie Boys",
+          "title": "Sabotage"
+        },
+        {
+          "id": "db6:esclip-501-600-586-beastie-boys-you-gotta-fight-for-your-rig-ab3e0b",
+          "artist": "Beastie Boys",
+          "title": "(You Gotta) Fight For Your Right (To Party!)"
+        },
+        {
+          "id": "db6:esclip-501-600-587-cypress-hill-insane-in-the-brain-mp3-702a22",
+          "artist": "Cypress Hill",
+          "title": "Insane in the Brain"
+        },
+        {
+          "id": "db6:esclip-501-600-588-house-of-pain-jump-around-mp3-ba23bc",
+          "artist": "House Of Pain",
+          "title": "Jump Around"
+        },
+        {
+          "id": "db6:esclip-501-600-589-warren-g-nate-dogg-regulate-mp3-ea937e",
+          "artist": "Warren G, Nate Dogg",
+          "title": "Regulate"
+        },
+        {
+          "id": "db6:esclip-501-600-590-avicii-levels-radio-edit-mp3-1e2b95",
+          "artist": "Avicii",
+          "title": "Levels - Radio Edit"
+        },
+        {
+          "id": "db6:esclip-501-600-591-avicii-wake-me-up-mp3-17340c",
+          "artist": "Avicii",
+          "title": "Wake Me Up"
+        },
+        {
+          "id": "db6:esclip-501-600-592-avicii-hey-brother-mp3-a857b6",
+          "artist": "Avicii",
+          "title": "Hey Brother"
+        },
+        {
+          "id": "db6:esclip-501-600-593-avicii-the-nights-mp3-426a64",
+          "artist": "Avicii",
+          "title": "The Nights"
+        },
+        {
+          "id": "db6:esclip-501-600-594-avicii-waiting-for-love-mp3-e16533",
+          "artist": "Avicii",
+          "title": "Waiting For Love"
+        },
+        {
+          "id": "db6:esclip-501-600-595-venda-you-re-never-fully-dressed-without--5e51b1",
+          "artist": "Venda",
+          "title": "You're Never Fully Dressed Without a Smile - From Annie"
+        },
+        {
+          "id": "db6:esclip-501-600-596-daft-punk-harder-better-faster-stronger-m-d68fe4",
+          "artist": "Daft Punk",
+          "title": "Harder, Better, Faster, Stronger"
+        },
+        {
+          "id": "db6:esclip-501-600-597-daft-punk-pharrell-williams-nile-rodgers--091645",
+          "artist": "Daft Punk, Pharrell Williams, Nile Rodgers",
+          "title": "Get Lucky (Radio Edit) feat. Pharrell Williams and Nile Rodgers"
+        },
+        {
+          "id": "db6:esclip-501-600-598-daft-punk-digital-love-mp3-4babdc",
+          "artist": "Daft Punk",
+          "title": "Digital Love"
+        },
+        {
+          "id": "db6:esclip-501-600-599-daft-punk-something-about-us-mp3-8e0e02",
+          "artist": "Daft Punk",
+          "title": "Something About Us"
+        },
+        {
+          "id": "db6:esclip-501-600-600-daft-punk-pharrell-williams-lose-yourself-b83ca8",
+          "artist": "Daft Punk, Pharrell Williams",
+          "title": "Lose Yourself to Dance (feat. Pharrell Williams)"
+        },
+        {
+          "id": "db6:esclip-601-700-601-disclosure-sam-smith-latch-mp3-4f8087",
+          "artist": "Disclosure, Sam Smith",
+          "title": "Latch"
+        },
+        {
+          "id": "db6:esclip-601-700-602-disclosure-alunageorge-white-noise-mp3-680fab",
+          "artist": "Disclosure, AlunaGeorge",
+          "title": "White Noise"
+        },
+        {
+          "id": "db6:esclip-601-700-603-disclosure-sam-smith-omen-mp3-7616b4",
+          "artist": "Disclosure, Sam Smith",
+          "title": "Omen"
+        },
+        {
+          "id": "db6:esclip-601-700-604-kygo-conrad-sewell-firestone-mp3-588515",
+          "artist": "Kygo, Conrad Sewell",
+          "title": "Firestone"
+        },
+        {
+          "id": "db6:esclip-601-700-605-kygo-parson-james-stole-the-show-mp3-08f9cc",
+          "artist": "Kygo, Parson James",
+          "title": "Stole the Show"
+        },
+        {
+          "id": "db6:esclip-601-700-606-kygo-selena-gomez-it-aint-me-with-selena--9a9852",
+          "artist": "Kygo, Selena Gomez",
+          "title": "It Aint Me (with Selena Gomez)"
+        },
+        {
+          "id": "db6:esclip-601-700-607-zedd-foxes-clarity-mp3-5cd056",
+          "artist": "Zedd, Foxes",
+          "title": "Clarity"
+        },
+        {
+          "id": "db6:esclip-601-700-608-zedd-hayley-williams-stay-the-night-featu-38070b",
+          "artist": "Zedd, Hayley Williams",
+          "title": "Stay The Night - Featuring Hayley Williams Of Paramore"
+        },
+        {
+          "id": "db6:esclip-601-700-609-zedd-maren-morris-grey-the-middle-mp3-7b26bd",
+          "artist": "Zedd, Maren Morris, Grey",
+          "title": "The Middle"
+        },
+        {
+          "id": "db6:esclip-601-700-610-martin-garrix-animals-mp3-3aac04",
+          "artist": "Martin Garrix",
+          "title": "Animals"
+        },
+        {
+          "id": "db6:esclip-601-700-611-martin-garrix-dua-lipa-scared-to-be-lonel-0591dd",
+          "artist": "Martin Garrix, Dua Lipa",
+          "title": "Scared to Be Lonely"
+        },
+        {
+          "id": "db6:esclip-601-700-612-swedish-house-mafia-save-the-world-mp3-985d4f",
+          "artist": "Swedish House Mafia",
+          "title": "Save The World"
+        },
+        {
+          "id": "db6:esclip-601-700-613-swedish-house-mafia-pharrell-williams-one-142b5e",
+          "artist": "Swedish House Mafia, Pharrell Williams",
+          "title": "One (Your Name) (feat. Pharrell Williams) - Radio Edit"
+        },
+        {
+          "id": "db6:esclip-601-700-614-swedish-house-mafia-greyhound-mp3-5388a8",
+          "artist": "Swedish House Mafia",
+          "title": "Greyhound"
+        },
+        {
+          "id": "db6:esclip-601-700-615-swedish-house-mafia-tinie-tempah-miami-2--9539c6",
+          "artist": "Swedish House Mafia, Tinie Tempah",
+          "title": "Miami 2 Ibiza - Swedish House Mafia vs. Tinie Tempah"
+        },
+        {
+          "id": "db6:esclip-601-700-616-calvin-harris-rihanna-this-is-what-you-ca-160f68",
+          "artist": "Calvin Harris, Rihanna",
+          "title": "This Is What You Came For"
+        },
+        {
+          "id": "db6:esclip-601-700-617-calvin-harris-disciples-how-deep-is-your--9556f3",
+          "artist": "Calvin Harris, Disciples",
+          "title": "How Deep Is Your Love"
+        },
+        {
+          "id": "db6:esclip-601-700-618-calvin-harris-dua-lipa-one-kiss-with-dua--18dde9",
+          "artist": "Calvin Harris, Dua Lipa",
+          "title": "One Kiss (with Dua Lipa)"
+        },
+        {
+          "id": "db6:esclip-601-700-619-calvin-harris-frank-ocean-migos-funk-wav--914713",
+          "artist": "Calvin Harris, Frank Ocean, Migos, Funk Wav",
+          "title": "Slide (feat. Frank Ocean & Migos)"
+        },
+        {
+          "id": "db6:esclip-601-700-620-calvin-harris-florence-welch-sweet-nothin-aed13f",
+          "artist": "Calvin Harris, Florence Welch",
+          "title": "Sweet Nothing (feat. Florence Welch)"
+        },
+        {
+          "id": "db6:esclip-601-700-621-calvin-harris-i-m-not-alone-2019-edit-mp3-32691d",
+          "artist": "Calvin Harris",
+          "title": "I'm Not Alone - 2019 Edit"
+        },
+        {
+          "id": "db6:esclip-601-700-622-major-lazer-m-dj-snake-lean-on-mp3-f825f6",
+          "artist": "Major Lazer, M, DJ Snake",
+          "title": "Lean On"
+        },
+        {
+          "id": "db6:esclip-601-700-623-major-lazer-nyla-fuse-odg-light-it-up-mp3-dbb3e0",
+          "artist": "Major Lazer, Nyla, Fuse ODG",
+          "title": "Light It Up"
+        },
+        {
+          "id": "db6:esclip-601-700-624-major-lazer-justin-bieber-m-cold-water-fe-c31b8a",
+          "artist": "Major Lazer, Justin Bieber, M",
+          "title": "Cold Water (feat. Justin Bieber & M)"
+        },
+        {
+          "id": "db6:esclip-601-700-625-fred-again-the-blessed-madonna-marea-weve-1c11cd",
+          "artist": "Fred again.., The Blessed Madonna",
+          "title": "Marea (weve lost dancing)"
+        },
+        {
+          "id": "db6:esclip-601-700-626-fred-again-delilah-montagu-delilah-pull-m-a08bc1",
+          "artist": "Fred again.., Delilah Montagu",
+          "title": "Delilah (pull me out of this)"
+        },
+        {
+          "id": "db6:esclip-601-700-627-fred-again-jungle-mp3-2ca3d3",
+          "artist": "Fred again..",
+          "title": "Jungle"
+        },
+        {
+          "id": "db6:esclip-601-700-628-fred-again-baby-keem-leavemealone-mp3-16d2af",
+          "artist": "Fred again.., Baby Keem",
+          "title": "leavemealone"
+        },
+        {
+          "id": "db6:esclip-601-700-629-kaytranada-kali-uchis-10-feat-kali-uchis--d46dce",
+          "artist": "KAYTRANADA, Kali Uchis",
+          "title": "10 (feat. Kali Uchis)"
+        },
+        {
+          "id": "db6:esclip-601-700-630-kaytranada-anderson-paak-glowed-up-mp3-80d7e5",
+          "artist": "KAYTRANADA, Anderson .Paak",
+          "title": "GLOWED UP"
+        },
+        {
+          "id": "db6:esclip-601-700-631-kaytranada-syd-you-re-the-one-mp3-4efd6b",
+          "artist": "KAYTRANADA, Syd",
+          "title": "YOU'RE THE ONE"
+        },
+        {
+          "id": "db6:esclip-601-700-632-justice-d-a-n-c-e-mp3-a736eb",
+          "artist": "Justice",
+          "title": "D.A.N.C.E"
+        },
+        {
+          "id": "db6:esclip-601-700-633-justice-genesis-mp3-794f8e",
+          "artist": "Justice",
+          "title": "Genesis"
+        },
+        {
+          "id": "db6:esclip-601-700-634-flume-kai-never-be-like-you-mp3-ec685c",
+          "artist": "Flume, kai",
+          "title": "Never Be Like You"
+        },
+        {
+          "id": "db6:esclip-601-700-635-flume-tove-lo-say-it-mp3-97cfb3",
+          "artist": "Flume, Tove Lo",
+          "title": "Say It"
+        },
+        {
+          "id": "db6:esclip-601-700-636-zhu-faded-mp3-f61d0e",
+          "artist": "ZHU",
+          "title": "Faded"
+        },
+        {
+          "id": "db6:esclip-601-700-637-david-guetta-sia-titanium-feat-sia-mp3-317ab2",
+          "artist": "David Guetta, Sia",
+          "title": "Titanium (feat. Sia)"
+        },
+        {
+          "id": "db6:esclip-601-700-638-david-guetta-kelly-rowland-when-love-take-f4cad8",
+          "artist": "David Guetta, Kelly Rowland",
+          "title": "When Love Takes Over (feat. Kelly Rowland)"
+        },
+        {
+          "id": "db6:esclip-601-700-639-david-guetta-kid-cudi-memories-feat-kid-c-f1e5a3",
+          "artist": "David Guetta, Kid Cudi",
+          "title": "Memories (feat. Kid Cudi)"
+        },
+        {
+          "id": "db6:esclip-601-700-640-skrillex-sirah-bangarang-feat-sirah-mp3-f8671b",
+          "artist": "Skrillex, Sirah",
+          "title": "Bangarang (feat. Sirah)"
+        },
+        {
+          "id": "db6:esclip-601-700-641-skrillex-scary-monsters-and-nice-sprites--5fcf18",
+          "artist": "Skrillex",
+          "title": "Scary Monsters and Nice Sprites"
+        },
+        {
+          "id": "db6:esclip-601-700-642-deadmau5-ghosts-n-stuff-mp3-d73b60",
+          "artist": "deadmau5",
+          "title": "Ghosts 'n' Stuff"
+        },
+        {
+          "id": "db6:esclip-601-700-643-deadmau5-strobe-mp3-8af142",
+          "artist": "deadmau5",
+          "title": "Strobe"
+        },
+        {
+          "id": "db6:esclip-601-700-644-eric-prydz-call-on-me-mp3-f49902",
+          "artist": "Eric Prydz",
+          "title": "Call on Me"
+        },
+        {
+          "id": "db6:esclip-601-700-645-eric-prydz-pjanoo-radio-edit-mp3-c1e21d",
+          "artist": "Eric Prydz",
+          "title": "Pjanoo - Radio Edit"
+        },
+        {
+          "id": "db6:esclip-601-700-646-alesso-tove-lo-heroes-we-could-be-mp3-881b4a",
+          "artist": "Alesso, Tove Lo",
+          "title": "Heroes (we could be)"
+        },
+        {
+          "id": "db6:esclip-601-700-647-lilly-wood-and-the-prick-prayer-in-c-mp3-5c7062",
+          "artist": "Lilly Wood and The Prick",
+          "title": "Prayer In C"
+        },
+        {
+          "id": "db6:esclip-601-700-648-galantis-peanut-butter-jelly-mp3-71ec14",
+          "artist": "Galantis",
+          "title": "Peanut Butter Jelly"
+        },
+        {
+          "id": "db6:esclip-601-700-649-galantis-no-money-mp3-385d5f",
+          "artist": "Galantis",
+          "title": "No Money"
+        },
+        {
+          "id": "db6:esclip-601-700-650-clean-bandit-zara-larsson-symphony-mp3-38153e",
+          "artist": "Clean Bandit, Zara Larsson",
+          "title": "Symphony"
+        },
+        {
+          "id": "db6:esclip-601-700-651-clean-bandit-anne-marie-sean-paul-rockaby-2308aa",
+          "artist": "Clean Bandit, Anne-Marie, Sean Paul",
+          "title": "Rockabye (feat. Sean Paul & Anne-Marie)"
+        },
+        {
+          "id": "db6:esclip-601-700-652-martin-solveig-dragonette-hello-mp3-929e0c",
+          "artist": "Martin Solveig, Dragonette",
+          "title": "Hello"
+        },
+        {
+          "id": "db6:esclip-601-700-653-duck-sauce-a-trak-armand-van-helden-barbr-d55497",
+          "artist": "Duck Sauce, A-Trak, Armand Van Helden",
+          "title": "Barbra Streisand - Radio Edit"
+        },
+        {
+          "id": "db6:esclip-601-700-654-basement-jaxx-where-s-your-head-at-mp3-ed6049",
+          "artist": "Basement Jaxx",
+          "title": "Where's Your Head At"
+        },
+        {
+          "id": "db6:esclip-601-700-655-basement-jaxx-romeo-mp3-223b4a",
+          "artist": "Basement Jaxx",
+          "title": "Romeo"
+        },
+        {
+          "id": "db6:esclip-601-700-656-the-chemical-brothers-q-tip-galvanize-mp3-560b84",
+          "artist": "The Chemical Brothers, Q-Tip",
+          "title": "Galvanize"
+        },
+        {
+          "id": "db6:esclip-601-700-657-the-chemical-brothers-hey-boy-hey-girl-mp-9f5c40",
+          "artist": "The Chemical Brothers",
+          "title": "Hey Boy Hey Girl"
+        },
+        {
+          "id": "db6:esclip-601-700-658-fatboy-slim-right-here-right-now-mp3-a49f43",
+          "artist": "Fatboy Slim",
+          "title": "Right Here, Right Now"
+        },
+        {
+          "id": "db6:esclip-601-700-659-fatboy-slim-praise-you-mp3-72a416",
+          "artist": "Fatboy Slim",
+          "title": "Praise You"
+        },
+        {
+          "id": "db6:esclip-601-700-660-fatboy-slim-the-rockafeller-skank-mp3-49886a",
+          "artist": "Fatboy Slim",
+          "title": "The Rockafeller Skank"
+        },
+        {
+          "id": "db6:esclip-601-700-661-david-guetta-benny-benassi-satisfaction-m-759138",
+          "artist": "David Guetta, Benny Benassi",
+          "title": "Satisfaction"
+        },
+        {
+          "id": "db6:esclip-601-700-662-armand-van-helden-duane-harden-you-don-t--4ccd30",
+          "artist": "Armand Van Helden, Duane Harden",
+          "title": "You Don't Know Me (feat. Duane Harden) - Radio Edit"
+        },
+        {
+          "id": "db6:esclip-601-700-663-faithless-insomnia-mp3-8357ed",
+          "artist": "Faithless",
+          "title": "Insomnia"
+        },
+        {
+          "id": "db6:esclip-601-700-664-royksopp-eple-mp3-53d3f0",
+          "artist": "Royksopp",
+          "title": "Eple"
+        },
+        {
+          "id": "db6:esclip-601-700-665-royksopp-what-else-is-there-mp3-5e0cbc",
+          "artist": "Royksopp",
+          "title": "What Else Is There"
+        },
+        {
+          "id": "db6:esclip-601-700-666-jamie-xx-young-thug-popcaan-i-know-there--368dc0",
+          "artist": "Jamie xx, Young Thug, Popcaan",
+          "title": "I Know There's Gonna Be (Good Times)"
+        },
+        {
+          "id": "db6:esclip-601-700-667-caribou-can-t-do-without-you-mp3-822402",
+          "artist": "Caribou",
+          "title": "Can't Do Without You"
+        },
+        {
+          "id": "db6:esclip-601-700-668-caribou-odessa-mp3-d30e7b",
+          "artist": "Caribou",
+          "title": "Odessa"
+        },
+        {
+          "id": "db6:esclip-601-700-669-fred-again-skrillex-four-tet-baby-again-m-b01a30",
+          "artist": "Fred again.., Skrillex, Four Tet",
+          "title": "Baby Again"
+        },
+        {
+          "id": "db6:esclip-601-700-670-bicep-glue-mp3-bbd1d9",
+          "artist": "BICEP",
+          "title": "Glue"
+        },
+        {
+          "id": "db6:esclip-601-700-671-peggy-gou-it-goes-like-nanana-mp3-187bd8",
+          "artist": "Peggy Gou",
+          "title": "(It Goes Like) Nanana"
+        },
+        {
+          "id": "db6:esclip-601-700-672-peggy-gou-starry-night-mp3-c27e86",
+          "artist": "Peggy Gou",
+          "title": "Starry Night"
+        },
+        {
+          "id": "db6:esclip-601-700-673-purple-disco-machine-sophie-and-the-giant-80873f",
+          "artist": "Purple Disco Machine, Sophie and the Giants",
+          "title": "Hypnotized"
+        },
+        {
+          "id": "db6:esclip-601-700-674-purple-disco-machine-moss-kena-the-knocks-6a65de",
+          "artist": "Purple Disco Machine, Moss Kena, The Knocks",
+          "title": "Fireworks (feat. Moss Kena & The Knocks)"
+        },
+        {
+          "id": "db6:esclip-601-700-675-fisher-losing-it-mp3-17b7ae",
+          "artist": "FISHER",
+          "title": "Losing It"
+        },
+        {
+          "id": "db6:esclip-601-700-676-meduza-goodboys-piece-of-your-heart-mp3-d864cb",
+          "artist": "MEDUZA, Goodboys",
+          "title": "Piece Of Your Heart"
+        },
+        {
+          "id": "db6:esclip-601-700-677-joel-corry-mnek-head-heart-feat-mnek-mp3-05fa8a",
+          "artist": "Joel Corry, MNEK",
+          "title": "Head & Heart (feat. MNEK)"
+        },
+        {
+          "id": "db6:esclip-601-700-678-kungs-cookin-on-3-burners-this-girl-kungs-61d592",
+          "artist": "Kungs, Cookin' On 3 Burners",
+          "title": "This Girl (Kungs Vs. Cookin' On 3 Burners)"
+        },
+        {
+          "id": "db6:esclip-601-700-679-tiesto-the-business-mp3-46f838",
+          "artist": "Tiesto",
+          "title": "The Business"
+        },
+        {
+          "id": "db6:esclip-601-700-680-tiesto-red-lights-mp3-822eb0",
+          "artist": "Tiesto",
+          "title": "Red Lights"
+        },
+        {
+          "id": "db6:esclip-601-700-681-avicii-fade-into-darkness-vocal-radio-mix-89963c",
+          "artist": "Avicii",
+          "title": "Fade Into Darkness - Vocal Radio Mix"
+        },
+        {
+          "id": "db6:esclip-601-700-682-alan-walker-faded-mp3-40ddc1",
+          "artist": "Alan Walker",
+          "title": "Faded"
+        },
+        {
+          "id": "db6:esclip-601-700-683-marshmello-alone-mp3-365f91",
+          "artist": "Marshmello",
+          "title": "Alone"
+        },
+        {
+          "id": "db6:esclip-601-700-684-the-chainsmokers-halsey-closer-mp3-07d636",
+          "artist": "The Chainsmokers, Halsey",
+          "title": "Closer"
+        },
+        {
+          "id": "db6:esclip-601-700-685-the-chainsmokers-rozes-roses-mp3-088bbc",
+          "artist": "The Chainsmokers, ROZES",
+          "title": "Roses"
+        },
+        {
+          "id": "db6:esclip-601-700-686-daft-punk-veridis-quo-mp3-96b943",
+          "artist": "Daft Punk",
+          "title": "Veridis Quo"
+        },
+        {
+          "id": "db6:esclip-601-700-687-lcd-soundsystem-dance-yrself-clean-mp3-46a6ce",
+          "artist": "LCD Soundsystem",
+          "title": "Dance Yrself Clean"
+        },
+        {
+          "id": "db6:esclip-601-700-688-aaliyah-are-you-that-somebody-mp3-7e2f8d",
+          "artist": "Aaliyah",
+          "title": "Are You That Somebody"
+        },
+        {
+          "id": "db6:esclip-601-700-689-aaliyah-try-again-mp3-819518",
+          "artist": "Aaliyah",
+          "title": "Try Again"
+        },
+        {
+          "id": "db6:esclip-601-700-690-aaliyah-one-in-a-million-mp3-d4c900",
+          "artist": "Aaliyah",
+          "title": "One In A Million"
+        },
+        {
+          "id": "db6:esclip-601-700-691-aaliyah-rock-the-boat-mp3-772506",
+          "artist": "Aaliyah",
+          "title": "Rock The Boat"
+        },
+        {
+          "id": "db6:esclip-601-700-692-aaliyah-more-than-a-woman-mp3-15221d",
+          "artist": "Aaliyah",
+          "title": "More Than A Woman"
+        },
+        {
+          "id": "db6:esclip-601-700-693-aaliyah-r-kelly-at-your-best-you-are-love-ca8d7b",
+          "artist": "Aaliyah, R. Kelly",
+          "title": "At Your Best (You Are Love) - Gangstar Child Remix"
+        },
+        {
+          "id": "db6:esclip-601-700-694-tlc-no-scrubs-mp3-aac681",
+          "artist": "TLC",
+          "title": "No Scrubs"
+        },
+        {
+          "id": "db6:esclip-601-700-695-tlc-waterfalls-mp3-fa910f",
+          "artist": "TLC",
+          "title": "Waterfalls"
+        },
+        {
+          "id": "db6:esclip-601-700-696-tlc-creep-mp3-f20ec5",
+          "artist": "TLC",
+          "title": "Creep"
+        },
+        {
+          "id": "db6:esclip-601-700-697-tlc-unpretty-mp3-d8b2d6",
+          "artist": "TLC",
+          "title": "Unpretty"
+        },
+        {
+          "id": "db6:esclip-601-700-698-tlc-red-light-special-mp3-bb3c83",
+          "artist": "TLC",
+          "title": "Red Light Special"
+        },
+        {
+          "id": "db6:esclip-601-700-699-destiny-s-child-say-my-name-mp3-8b3fc7",
+          "artist": "Destiny's Child",
+          "title": "Say My Name"
+        },
+        {
+          "id": "db6:esclip-601-700-700-destiny-s-child-bills-bills-bills-mp3-cedc9d",
+          "artist": "Destiny's Child",
+          "title": "Bills, Bills, Bills"
+        },
+        {
+          "id": "db6:esclip-701-786-701-destiny-s-child-survivor-mp3-8f2988",
+          "artist": "Destiny's Child",
+          "title": "Survivor"
+        },
+        {
+          "id": "db6:esclip-701-786-702-destiny-s-child-jumpin-jumpin-mp3-5f5eea",
+          "artist": "Destiny's Child",
+          "title": "Jumpin', Jumpin'"
+        },
+        {
+          "id": "db6:esclip-701-786-703-destiny-s-child-independent-women-pt-1-mp-7a913c",
+          "artist": "Destiny's Child",
+          "title": "Independent Women, Pt. 1"
+        },
+        {
+          "id": "db6:esclip-701-786-704-destiny-s-child-lose-my-breath-mp3-420932",
+          "artist": "Destiny's Child",
+          "title": "Lose My Breath"
+        },
+        {
+          "id": "db6:esclip-701-786-705-usher-you-make-me-wanna-mp3-b2a60e",
+          "artist": "USHER",
+          "title": "You Make Me Wanna"
+        },
+        {
+          "id": "db6:esclip-701-786-706-usher-u-got-it-bad-mp3-2e5d33",
+          "artist": "USHER",
+          "title": "U Got It Bad"
+        },
+        {
+          "id": "db6:esclip-701-786-707-usher-lil-jon-ludacris-yeah-feat-lil-jon--30aab7",
+          "artist": "USHER, Lil Jon, Ludacris",
+          "title": "Yeah! (feat. Lil Jon & Ludacris)"
+        },
+        {
+          "id": "db6:esclip-701-786-708-usher-confessions-part-ii-mp3-4df6db",
+          "artist": "USHER",
+          "title": "Confessions Part II"
+        },
+        {
+          "id": "db6:esclip-701-786-709-usher-burn-mp3-28b7c7",
+          "artist": "USHER",
+          "title": "Burn"
+        },
+        {
+          "id": "db6:esclip-701-786-710-usher-nice-slow-radio-version-mp3-107ed8",
+          "artist": "USHER",
+          "title": "Nice & Slow - Radio Version"
+        },
+        {
+          "id": "db6:esclip-701-786-711-d-angelo-untitled-how-does-it-feel-mp3-d35432",
+          "artist": "D'Angelo",
+          "title": "Untitled (How Does It Feel)"
+        },
+        {
+          "id": "db6:esclip-701-786-712-d-angelo-brown-sugar-mp3-c5b15e",
+          "artist": "D'Angelo",
+          "title": "Brown Sugar"
+        },
+        {
+          "id": "db6:esclip-701-786-713-d-angelo-lady-mp3-c79225",
+          "artist": "D'Angelo",
+          "title": "Lady"
+        },
+        {
+          "id": "db6:esclip-701-786-714-erykah-badu-on-on-mp3-a7ab1c",
+          "artist": "Erykah Badu",
+          "title": "On & On"
+        },
+        {
+          "id": "db6:esclip-701-786-715-erykah-badu-tyrone-live-mp3-bb147f",
+          "artist": "Erykah Badu",
+          "title": "Tyrone - Live"
+        },
+        {
+          "id": "db6:esclip-701-786-716-erykah-badu-bag-lady-mp3-10673b",
+          "artist": "Erykah Badu",
+          "title": "Bag Lady"
+        },
+        {
+          "id": "db6:esclip-701-786-717-erykah-badu-next-lifetime-mp3-0b5b78",
+          "artist": "Erykah Badu",
+          "title": "Next Lifetime"
+        },
+        {
+          "id": "db6:esclip-701-786-718-ms-lauryn-hill-ex-factor-mp3-a51b4b",
+          "artist": "Ms. Lauryn Hill",
+          "title": "Ex-Factor"
+        },
+        {
+          "id": "db6:esclip-701-786-719-ms-lauryn-hill-d-angelo-nothing-even-matt-1d6f6c",
+          "artist": "Ms. Lauryn Hill, D'Angelo",
+          "title": "Nothing Even Matters (feat. D'Angelo)"
+        },
+        {
+          "id": "db6:esclip-701-786-720-alicia-keys-fallin-mp3-149c7e",
+          "artist": "Alicia Keys",
+          "title": "Fallin'"
+        },
+        {
+          "id": "db6:esclip-701-786-721-alicia-keys-if-i-ain-t-got-you-mp3-271206",
+          "artist": "Alicia Keys",
+          "title": "If I Ain't Got You"
+        },
+        {
+          "id": "db6:esclip-701-786-722-alicia-keys-no-one-mp3-e78bf9",
+          "artist": "Alicia Keys",
+          "title": "No One"
+        },
+        {
+          "id": "db6:esclip-701-786-723-alicia-keys-you-don-t-know-my-name-mp3-31c796",
+          "artist": "Alicia Keys",
+          "title": "You Don't Know My Name"
+        },
+        {
+          "id": "db6:esclip-701-786-724-mary-j-blige-real-love-mp3-3e51fc",
+          "artist": "Mary J. Blige",
+          "title": "Real Love"
+        },
+        {
+          "id": "db6:esclip-701-786-725-mary-j-blige-spanish-fly-family-affair-sp-0d4ec6",
+          "artist": "Mary J. Blige, Spanish Fly",
+          "title": "Family Affair - Spanish Fly Remix"
+        },
+        {
+          "id": "db6:esclip-701-786-726-mary-j-blige-be-without-you-kendu-mix-mp3-8bf0bd",
+          "artist": "Mary J. Blige",
+          "title": "Be Without You - Kendu Mix"
+        },
+        {
+          "id": "db6:esclip-701-786-727-brandy-monica-the-boy-is-mine-mp3-ad5aaf",
+          "artist": "Brandy, Monica",
+          "title": "The Boy Is Mine"
+        },
+        {
+          "id": "db6:esclip-701-786-728-brandy-have-you-ever-mp3-254bae",
+          "artist": "Brandy",
+          "title": "Have You Ever"
+        },
+        {
+          "id": "db6:esclip-701-786-729-monica-angel-of-mine-mp3-a23280",
+          "artist": "Monica",
+          "title": "Angel of Mine"
+        },
+        {
+          "id": "db6:esclip-701-786-730-mariah-carey-we-belong-together-mp3-9d25ff",
+          "artist": "Mariah Carey",
+          "title": "We Belong Together"
+        },
+        {
+          "id": "db6:esclip-701-786-731-mariah-carey-fantasy-mp3-2dc641",
+          "artist": "Mariah Carey",
+          "title": "Fantasy"
+        },
+        {
+          "id": "db6:esclip-701-786-732-mariah-carey-always-be-my-baby-mp3-35e92b",
+          "artist": "Mariah Carey",
+          "title": "Always Be My Baby"
+        },
+        {
+          "id": "db6:esclip-701-786-733-whitney-houston-i-have-nothing-mp3-55ca4b",
+          "artist": "Whitney Houston",
+          "title": "I Have Nothing"
+        },
+        {
+          "id": "db6:esclip-701-786-734-whitney-houston-i-will-always-love-you-mp-c791d8",
+          "artist": "Whitney Houston",
+          "title": "I Will Always Love You"
+        },
+        {
+          "id": "db6:esclip-701-786-735-janet-jackson-that-s-the-way-love-goes-mp-863b1c",
+          "artist": "Janet Jackson",
+          "title": "That's The Way Love Goes"
+        },
+        {
+          "id": "db6:esclip-701-786-736-janet-jackson-joni-mitchell-q-tip-got-til-9fba77",
+          "artist": "Janet Jackson, Joni Mitchell, Q-Tip",
+          "title": "Got 'Til It's Gone"
+        },
+        {
+          "id": "db6:esclip-701-786-737-janet-jackson-all-for-you-mp3-9c8df8",
+          "artist": "Janet Jackson",
+          "title": "All For You"
+        },
+        {
+          "id": "db6:esclip-701-786-738-janet-jackson-together-again-mp3-575773",
+          "artist": "Janet Jackson",
+          "title": "Together Again"
+        },
+        {
+          "id": "db6:esclip-701-786-739-toni-braxton-un-break-my-heart-mp3-244ca1",
+          "artist": "Toni Braxton",
+          "title": "Un-Break My Heart"
+        },
+        {
+          "id": "db6:esclip-701-786-740-toni-braxton-he-wasn-t-man-enough-mp3-806c28",
+          "artist": "Toni Braxton",
+          "title": "He Wasn't Man Enough"
+        },
+        {
+          "id": "db6:esclip-701-786-741-boyz-ii-men-end-of-the-road-mp3-eb888b",
+          "artist": "Boyz II Men",
+          "title": "End Of The Road"
+        },
+        {
+          "id": "db6:esclip-701-786-742-boyz-ii-men-i-ll-make-love-to-you-mp3-56bbb4",
+          "artist": "Boyz II Men",
+          "title": "I'll Make Love To You"
+        },
+        {
+          "id": "db6:esclip-701-786-743-jodeci-come-talk-to-me-mp3-2bb3cc",
+          "artist": "Jodeci",
+          "title": "Come & Talk To Me"
+        },
+        {
+          "id": "db6:esclip-701-786-744-jodeci-feenin-mp3-ccdb25",
+          "artist": "Jodeci",
+          "title": "Feenin'"
+        },
+        {
+          "id": "db6:esclip-701-786-745-ginuwine-pony-mp3-fdcbf3",
+          "artist": "Ginuwine",
+          "title": "Pony"
+        },
+        {
+          "id": "db6:esclip-701-786-746-ginuwine-differences-mp3-9f7fed",
+          "artist": "Ginuwine",
+          "title": "Differences"
+        },
+        {
+          "id": "db6:esclip-701-786-747-mario-let-me-love-you-mp3-ccb315",
+          "artist": "Mario",
+          "title": "Let Me Love You"
+        },
+        {
+          "id": "db6:esclip-701-786-748-ne-yo-so-sick-mp3-7b485a",
+          "artist": "Ne-Yo",
+          "title": "So Sick"
+        },
+        {
+          "id": "db6:esclip-701-786-749-ne-yo-miss-independent-mp3-49aa7d",
+          "artist": "Ne-Yo",
+          "title": "Miss Independent"
+        },
+        {
+          "id": "db6:esclip-701-786-750-ne-yo-because-of-you-mp3-beb4c4",
+          "artist": "Ne-Yo",
+          "title": "Because Of You"
+        },
+        {
+          "id": "db6:esclip-701-786-751-ciara-missy-elliott-1-2-step-feat-missy-e-d131f8",
+          "artist": "Ciara, Missy Elliott",
+          "title": "1, 2 Step (feat. Missy Elliott)"
+        },
+        {
+          "id": "db6:esclip-701-786-752-ciara-petey-pablo-goodies-feat-petey-pabl-f40d82",
+          "artist": "Ciara, Petey Pablo",
+          "title": "Goodies (feat. Petey Pablo)"
+        },
+        {
+          "id": "db6:esclip-701-786-753-keyshia-cole-love-mp3-221737",
+          "artist": "Keyshia Cole",
+          "title": "Love"
+        },
+        {
+          "id": "db6:esclip-701-786-754-musiq-soulchild-love-mp3-c6eda7",
+          "artist": "Musiq Soulchild",
+          "title": "Love"
+        },
+        {
+          "id": "db6:esclip-701-786-755-jill-scott-a-long-walk-mp3-3ede09",
+          "artist": "Jill Scott",
+          "title": "A Long Walk"
+        },
+        {
+          "id": "db6:esclip-701-786-756-maxwell-ascension-don-t-ever-wonder-remas-1c08fe",
+          "artist": "Maxwell",
+          "title": "Ascension (Don't Ever Wonder) - Remastered 2021"
+        },
+        {
+          "id": "db6:esclip-701-786-757-amerie-1-thing-mp3-727f6c",
+          "artist": "Amerie",
+          "title": "1 Thing"
+        },
+        {
+          "id": "db6:esclip-701-786-758-ashanti-foolish-mp3-6aaa94",
+          "artist": "Ashanti",
+          "title": "Foolish"
+        },
+        {
+          "id": "db6:esclip-701-786-759-mya-case-of-the-ex-whatcha-gonna-do-mp3-ccc4de",
+          "artist": "Mya",
+          "title": "Case Of The Ex (Whatcha Gonna Do)"
+        },
+        {
+          "id": "db6:esclip-701-786-760-swv-weak-mp3-909687",
+          "artist": "SWV",
+          "title": "Weak"
+        },
+        {
+          "id": "db6:esclip-701-786-761-en-vogue-don-t-let-go-love-mp3-fe7060",
+          "artist": "En Vogue",
+          "title": "Don't Let Go (Love)"
+        },
+        {
+          "id": "db6:esclip-701-786-762-en-vogue-hold-on-mp3-36171e",
+          "artist": "En Vogue",
+          "title": "Hold On"
+        },
+        {
+          "id": "db6:esclip-701-786-763-blackstreet-dr-dre-queen-pen-no-diggity-m-8e773d",
+          "artist": "Blackstreet, Dr. Dre, Queen Pen",
+          "title": "No Diggity"
+        },
+        {
+          "id": "db6:esclip-701-786-764-112-peaches-cream-mp3-9e1abe",
+          "artist": "112",
+          "title": "Peaches & Cream"
+        },
+        {
+          "id": "db6:esclip-701-786-765-112-cupid-mp3-2d599c",
+          "artist": "112",
+          "title": "Cupid"
+        },
+        {
+          "id": "db6:esclip-701-786-766-dru-hill-in-my-bed-mp3-27c8fe",
+          "artist": "Dru Hill",
+          "title": "In My Bed"
+        },
+        {
+          "id": "db6:esclip-701-786-767-joe-i-wanna-know-mp3-2d4bfe",
+          "artist": "Joe",
+          "title": "I Wanna Know"
+        },
+        {
+          "id": "db6:esclip-701-786-768-k-ci-jojo-all-my-life-mp3-37c934",
+          "artist": "K-Ci & JoJo",
+          "title": "All My Life"
+        },
+        {
+          "id": "db6:esclip-701-786-769-jagged-edge-let-s-get-married-mp3-6c0f54",
+          "artist": "Jagged Edge",
+          "title": "Let's Get Married"
+        },
+        {
+          "id": "db6:esclip-701-786-770-sade-by-your-side-mp3-251787",
+          "artist": "Sade",
+          "title": "By Your Side"
+        },
+        {
+          "id": "db6:esclip-701-786-771-sade-the-sweetest-taboo-mp3-0f8a36",
+          "artist": "Sade",
+          "title": "The Sweetest Taboo"
+        },
+        {
+          "id": "db6:esclip-701-786-772-sade-cherish-the-day-mp3-bc6701",
+          "artist": "Sade",
+          "title": "Cherish the Day"
+        },
+        {
+          "id": "db6:esclip-701-786-773-sade-your-love-is-king-mp3-02a79e",
+          "artist": "Sade",
+          "title": "Your Love Is King"
+        },
+        {
+          "id": "db6:esclip-701-786-774-amy-winehouse-rehab-mp3-2fc449",
+          "artist": "Amy Winehouse",
+          "title": "Rehab"
+        },
+        {
+          "id": "db6:esclip-701-786-775-mark-ronson-amy-winehouse-valerie-feat-am-619699",
+          "artist": "Mark Ronson, Amy Winehouse",
+          "title": "Valerie (feat. Amy Winehouse) - Version Revisited"
+        },
+        {
+          "id": "db6:esclip-701-786-776-amy-winehouse-tears-dry-on-their-own-mp3-d16ad0",
+          "artist": "Amy Winehouse",
+          "title": "Tears Dry On Their Own"
+        },
+        {
+          "id": "db6:esclip-701-786-777-amy-winehouse-you-know-i-m-no-good-mp3-5b8c9a",
+          "artist": "Amy Winehouse",
+          "title": "You Know I'm No Good"
+        },
+        {
+          "id": "db6:esclip-701-786-778-solange-cranes-in-the-sky-mp3-8ff345",
+          "artist": "Solange",
+          "title": "Cranes in the Sky"
+        },
+        {
+          "id": "db6:esclip-701-786-779-h-e-r-focus-mp3-f38dcb",
+          "artist": "H.E.R.",
+          "title": "Focus"
+        },
+        {
+          "id": "db6:esclip-701-786-780-daniel-caesar-h-e-r-best-part-feat-h-e-r--de18d3",
+          "artist": "Daniel Caesar, H.E.R.",
+          "title": "Best Part (feat. H.E.R.)"
+        },
+        {
+          "id": "db6:esclip-701-786-781-chris-brown-with-you-mp3-a848a0",
+          "artist": "Chris Brown",
+          "title": "With You"
+        },
+        {
+          "id": "db6:esclip-701-786-782-craig-david-7-days-mp3-dd4fc3",
+          "artist": "Craig David",
+          "title": "7 Days"
+        },
+        {
+          "id": "db6:esclip-701-786-783-craig-david-fill-me-in-mp3-5f7ca7",
+          "artist": "Craig David",
+          "title": "Fill Me In"
+        },
+        {
+          "id": "db6:esclip-701-786-784-kelis-milkshake-mp3-9451bb",
+          "artist": "Kelis",
+          "title": "Milkshake"
+        },
+        {
+          "id": "db6:esclip-701-786-785-bilal-soul-sista-mp3-143c90",
+          "artist": "Bilal",
+          "title": "Soul Sista"
+        },
+        {
+          "id": "db6:esclip-701-786-786-tony-toni-tone-anniversary-mp3-8ff5c5",
+          "artist": "Tony! Toni! Tone!",
+          "title": "Anniversary"
+        }
+      ]
+    },
+    {
       "version": "v60",
       "date": "noviembre 2026",
       "title": "Música nueva: 103 canciones y 2 playlists",
