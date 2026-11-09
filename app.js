@@ -10224,7 +10224,7 @@
 
     function metaLocal() {
       const m = storage.get(K.meta, null) || {};
-      return { sets: m.sets || {}, pl: m.pl || {}, otrosPlays: m.otrosPlays || {}, otrosLog: m.otrosLog || {}, etag: m.etag || {}, escucha: m.escucha !== false };
+      return { sets: m.sets || {}, pl: m.pl || {}, otrosPlays: m.otrosPlays || {}, otrosLog: m.otrosLog || {}, etag: m.etag || {}, escucha: m.escucha !== false, ...(typeof m.tema === 'string' ? { tema: m.tema } : {}) };
     }
     const guardarMeta = (m) => storage.set(K.meta, m);
 

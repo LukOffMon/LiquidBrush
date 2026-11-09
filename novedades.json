@@ -1,6 +1,14 @@
 {
   "releases": [
     {
+      "version": "v62",
+      "date": "noviembre 2026",
+      "title": "Tu tema se queda puesto",
+      "items": [
+        "Arreglado: con cuenta, el tema que eliges (Claro, Oscuro o uno tuyo del Taller) ya no vuelve solo al que tenía guardado la cuenta. Ahora se queda el último que pusiste y viaja así a tus otros dispositivos."
+      ]
+    },
+    {
       "version": "v61",
       "date": "noviembre 2026",
       "title": "Taller de temas, pide tu canción y 786 canciones nuevas",

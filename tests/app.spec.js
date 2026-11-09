@@ -567,3 +567,39 @@ test.describe('pantalla de bloqueo', () => {
     expect(last.seekbackward).toBe('object');
   });
 });
+
+test('cuenta: el tema elegido en este dispositivo no lo pisa el que estaba guardado en la cuenta', async ({ page }) => {
+  const { gzipSync, gunzipSync } = await import('node:zlib');
+  const hace = Math.floor(Date.now() / 60000) - 26297280 - 60;
+  const remoto = { v: 1, t: hace, aj: { tema: [hace, 'claro'] } };
+  const subidas = [];
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem('ya-cargo')) return;
+    sessionStorage.setItem('ya-cargo', '1');
+    localStorage.setItem('liquidbrush:cuenta', JSON.stringify({ pase: 'x', renovacion: 'y', caducaPase: Date.now() / 1000 + 3600, correo: 'a@b.c', nombre: 'A' }));
+    // La última sincronización dejó el tema «Claro»; luego, sin conexión, se eligió «Oscuro»
+    localStorage.setItem('liquidbrush:sync-meta', JSON.stringify({ tema: 'claro', etag: { datos: '"1"' } }));
+    localStorage.setItem('liquidbrush:theme', JSON.stringify('oscuro'));
+  });
+  await page.route(/liquid-cuentas/, async (route) => {
+    const req = route.request();
+    const url = new URL(req.url());
+    if (url.pathname === '/datos' && req.method() === 'GET') {
+      return route.fulfill({ status: 200, headers: { 'Content-Type': 'application/gzip', ETag: '"1"' }, body: gzipSync(JSON.stringify(remoto)) });
+    }
+    if (req.method() === 'PUT') {
+      if (url.pathname === '/datos') subidas.push(JSON.parse(gunzipSync(req.postDataBuffer()).toString()));
+      return route.fulfill({ status: 200, headers: { 'Content-Type': 'application/json', ETag: '"2"' }, body: '{"ok":true}' });
+    }
+    return route.fulfill({ status: 404, headers: { 'Content-Type': 'application/json' }, body: '{"ok":false,"error":"no_existe"}' });
+  });
+  await page.goto('./');
+  await expect(page.locator('#libCount')).not.toHaveText('0');
+  await expect.poll(() => subidas.length, { timeout: 10000 }).toBeGreaterThan(0);
+  expect(subidas.at(-1).aj.tema[1]).toBe('oscuro');
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('liquidbrush:theme')))).toBe('oscuro');
+  await page.reload();
+  await expect(page.locator('#libCount')).not.toHaveText('0');
+  await page.waitForTimeout(3500);
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('liquidbrush:theme')))).toBe('oscuro');
+});
