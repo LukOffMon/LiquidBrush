@@ -205,6 +205,7 @@ Sin cuenta, la app funciona igual que siempre (todo en el navegador). Con cuenta
 ## Páginas aparte
 
 - [`review.html`](review.html): review interactiva de Liquid Bullet (qué trae, nota por apartados, simulador del algoritmo, temas, comparativa, preguntas).
+- **Toda la música en un TXT**: [`musica-liquid.txt`](musica-liquid.txt) lista cada canción a máximo detalle (título, artista y con quién canta, géneros con el principal primero, playlist, duración, versión, en qué versión llegó, icono, archivo, enlace e id) y al final el resumen por género, playlist y artista. Se ve, se busca y se descarga desde la Biblioteca de imágenes («Toda la música de Liquid»), que lee el resumen corto de [`musica-liquid.json`](musica-liquid.json). Los genera [`tools/build_music_list.py`](tools/build_music_list.py), que `build_catalog.py` ejecuta solo al final; también se puede correr aparte.
 - [`imagenes.html`](imagenes.html): **Biblioteca de imágenes**. Cada imagen tiene un tipo (portada de playlist, icono de canción, fondo, icono de fondo, icono de la app, compartir, captura) y se usa solo para eso. Para sumar una: guárdala en la carpeta de su tipo con el siguiente número libre y ejecuta `python3 tools/build_image_library.py` (regenera [`imagenes.json`](imagenes.json) con dónde se usa cada una; las notas escritas a mano se conservan). Las portadas de playlist que aún no usa ninguna playlist salen como **Reservadas**: están dispuestas a ser usadas en futuras entregas de música (hoy, `cover-48` y `cover-49`).
 
 ## Verificación de nombres

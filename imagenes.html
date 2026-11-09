@@ -56,6 +56,23 @@
     }
     .how div { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; }
     .how b { display: block; margin-bottom: 2px; }
+    /* Toda la música (TXT) */
+    .music { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; margin: 0 0 22px; }
+    .music h2 { margin: 0 0 4px; font-size: 1.15rem; }
+    .music > p { color: var(--muted); margin: 0 0 14px; font-size: .92rem; max-width: 75ch; }
+    .music-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin: 0 0 12px; }
+    .music-stats div { background: var(--panel-2); border-radius: 12px; padding: 10px 12px; }
+    .music-stats b { display: block; font-size: 1.15rem; }
+    .music-stats span { color: var(--muted); font-size: .8rem; }
+    .music-genres { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; }
+    .music-genres span { border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; font-size: .8rem; color: var(--muted); }
+    .music-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+    .music-btn { display: inline-flex; align-items: center; border-radius: 999px; padding: 9px 16px; font-weight: 700; font-size: .9rem; text-decoration: none; border: 1px solid var(--line); color: var(--text); background: var(--panel-2); }
+    .music-btn.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+    .music-search { width: 100%; border: 1px solid var(--line); background: var(--bg); color: var(--text); border-radius: 999px; padding: 10px 16px; font: inherit; }
+    .music-info { color: var(--muted); font-size: .85rem; margin: 8px 2px 0; }
+    .music-results { margin: 8px 0 0; padding: 12px 14px; max-height: 420px; overflow: auto; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; font-size: .8rem; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .how span { color: var(--muted); font-size: .88rem; }
     .how span { color: var(--muted); font-size: .88rem; }
     .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
     .tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; max-width: 100%; }
@@ -151,6 +168,20 @@
       <div><b>1 · Mándame la imagen</b><span>Y dime de qué tipo es: portada de playlist, icono de canción, fondo, icono de fondo, foto de perfil, icono de la app, compartir o captura.</span></div>
       <div><b>2 · Va a su carpeta</b><span>Con el siguiente número libre y su versión pequeña (p. ej. <code>covers/cover-45.jpg</code> + <code>-sm.jpg</code>).</span></div>
       <div><b>3 · Se registra sola</b><span><code>python3 tools/build_image_library.py</code> la añade aquí y calcula dónde se usa.</span></div>
+    </section>
+
+    <section id="music" class="music" aria-labelledby="musicTitle">
+      <h2 id="musicTitle">Toda la música de Liquid (TXT)</h2>
+      <p>Un archivo de texto con cada canción que hay en Liquid hasta hoy, a máximo detalle: título, artista y con quién canta, género o géneros (si es de varios se indica cuántos y cuál es el principal), playlist, duración, versión (slowed, remix, en vivo…), en qué versión de la app llegó, su icono, su archivo y su enlace para compartir. Al final, el resumen por género, por playlist y por artista. Se actualiza solo cada vez que llega música nueva.</p>
+      <div id="musicStats" class="music-stats" aria-live="polite"></div>
+      <div id="musicGenres" class="music-genres"></div>
+      <div class="music-actions">
+        <a class="music-btn primary" href="musica-liquid.txt" target="_blank" rel="noopener">Abrir el TXT</a>
+        <a class="music-btn" href="musica-liquid.txt" download="musica-liquid.txt">Descargar</a>
+      </div>
+      <input id="musicSearch" class="music-search" type="search" placeholder="Buscar en la lista: canción, artista, género, playlist…" aria-label="Buscar en la lista de música" autocomplete="off">
+      <p id="musicInfo" class="music-info" aria-live="polite"></p>
+      <pre id="musicResults" class="music-results" hidden></pre>
     </section>
 
     <section id="reserved" class="reserved-box" aria-label="Portadas reservadas" hidden>
@@ -307,6 +338,53 @@
       });
       $('viewerClose').addEventListener('click', function () { $('viewer').close(); });
       $('viewer').addEventListener('click', function (e) { if (e.target === $('viewer')) $('viewer').close(); });
+
+      // Toda la música: el resumen (musica-liquid.json) al abrir; el TXT entero solo al buscar
+      var music = { blocks: null, loading: null, t: 0 };
+      fetch('musica-liquid.json', { cache: 'no-cache' }).then(function (r) { return r.json(); }).then(function (m) {
+        var fmt = function (n) { return Number(n).toLocaleString('es'); };
+        var stats = [[fmt(m.canciones), 'canciones'], [fmt(m.artistas), 'artistas'], [m.generos, 'géneros'],
+          [fmt(m.variosGeneros), 'de varios géneros'], [m.playlists, 'playlists'], [m.duracion, 'de música']];
+        $('musicStats').replaceChildren.apply($('musicStats'), stats.map(function (st) {
+          var d = el('div');
+          d.append(el('b', '', String(st[0])), el('span', '', st[1]));
+          return d;
+        }));
+        $('musicGenres').replaceChildren.apply($('musicGenres'), (m.topGeneros || []).map(function (g) { return el('span', '', g[0] + ' · ' + fmt(g[1])); }));
+        $('musicInfo').textContent = 'Actualizado el ' + m.fecha + ' · ' + Math.round(m.bytes / 1024) + ' KB';
+      }).catch(function () { $('musicInfo').textContent = 'No se pudo cargar el resumen de la música.'; });
+
+      function loadMusic() {
+        if (!music.loading) {
+          music.loading = fetch('musica-liquid.txt', { cache: 'no-cache' }).then(function (r) { return r.text(); }).then(function (text) {
+            // Una ficha por canción («0001. Título» y sus líneas); el artista va en la ficha
+            var part = text.split(/\n\nRESUMEN POR G/)[0];
+            music.blocks = part.split(/\n(?=\d{4}\. )/).slice(1).map(function (b) { return b.replace(/\n\n■[^\n]*\n?/g, '').trim(); });
+            music.norms = music.blocks.map(norm);
+          });
+        }
+        return music.loading;
+      }
+
+      function searchMusic() {
+        var q = norm($('musicSearch').value).trim();
+        if (!q) { $('musicResults').hidden = true; $('musicResults').textContent = ''; return; }
+        $('musicInfo').textContent = 'Buscando…';
+        loadMusic().then(function () {
+          var words = q.split(/\s+/);
+          var found = [];
+          for (var i = 0; i < music.blocks.length; i++) {
+            if (words.every(function (w) { return music.norms[i].indexOf(w) !== -1; })) found.push(music.blocks[i]);
+          }
+          $('musicInfo').textContent = found.length
+            ? found.length + (found.length === 1 ? ' canción' : ' canciones') + (found.length > 60 ? ' · se muestran las 60 primeras (el TXT las tiene todas)' : '')
+            : 'Ninguna canción coincide.';
+          $('musicResults').hidden = !found.length;
+          $('musicResults').textContent = found.slice(0, 60).join('\n\n');
+          $('musicResults').scrollTop = 0;
+        }, function () { $('musicInfo').textContent = 'No se pudo cargar musica-liquid.txt.'; });
+      }
+      $('musicSearch').addEventListener('input', function () { clearTimeout(music.t); music.t = setTimeout(searchMusic, 200); });
 
       fetch('imagenes.json', { cache: 'no-cache' }).then(function (r) { return r.json(); }).then(function (data) {
         state.data = data;

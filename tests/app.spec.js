@@ -623,3 +623,19 @@ test('Género: se elige cuál (Rock, Indie…) y cada canción dice sus géneros
   await page.locator('#genreChips .chip', { hasText: /^Rock/ }).click();
   await expect(page.locator('.chip-genre')).toHaveText('Género');
 });
+
+test('Biblioteca de imágenes: toda la música en un TXT, con resumen y buscador', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.goto('./imagenes.html');
+  await expect(page.locator('#musicStats div')).toHaveCount(6);
+  await expect(page.locator('#music a[download]')).toHaveAttribute('href', 'musica-liquid.txt');
+  await page.fill('#musicSearch', 'linkin park faint');
+  await expect(page.locator('#musicResults')).toBeVisible();
+  await expect(page.locator('#musicResults')).toContainText('Géneros (3): Alternativo (principal), Metal, Rock');
+  await expect(page.locator('#musicResults')).toContainText('Playlist: Trueno Clásico');
+  const txt = await (await page.request.get('./musica-liquid.txt')).text();
+  expect(txt).toContain('LIQUID BULLET · TODA LA MÚSICA');
+  expect(txt).toContain('RESUMEN POR GÉNERO');
+  expect(errors).toEqual([]);
+});

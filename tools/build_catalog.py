@@ -780,6 +780,9 @@ def main():
         print(f'Música nueva: {nuevas} canciones apuntadas en novedades.json (nuevaMusica); bump_version.py las pasa al parche')
     if unknown:
         print(f'Artistas sin playlist (van a {names[DEFAULT_PLAYLIST]}): ' + ', '.join(sorted(unknown)))
+    # Toda la música en un TXT para la Biblioteca de imágenes (musica-liquid.txt)
+    import build_music_list
+    build_music_list.main()
 
 
 if __name__ == '__main__':
