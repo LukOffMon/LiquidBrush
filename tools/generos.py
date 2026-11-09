@@ -348,4 +348,10 @@ ARTISTAS = {
     '花冷え。': 'metal', 'KAQRIYOTERROR': 'metal jpop', 'ATARASHII GAKKO!': 'jpop hiphop',
     'LADYBABY': 'metal jpop', 'Yousei Teikoku': 'metal jpop', 'the peggies': 'jpop rock',
     'Fujii Kaze': 'jpop rnb', 'Lamp': 'jpop bossa',
+    # Artistas que solo salen en colaboraciones (sin playlist propia): sin esto heredarían el género del invitado
+    'Anuel AA': 'trap reggaeton', 'Becky G': 'latino reggaeton', 'JHAYCO': 'reggaeton', 'Bizarrap': 'hiphop electronica',
+    'Aitana': 'pop latino', 'NATHY PELUSO': 'latino rnb hiphop', 'Natalia Lacunza': 'pop indie', 'DELLAFUENTE': 'latino rnb',
+    'TAICHU': 'pop', 'Pedro Guerra': 'folk latino', 'Wiz Khalifa': 'hiphop', 'Yeat': 'hiphop trap',
+    'AZ Chike': 'hiphop', 'Brent Faiyaz': 'rnb', 'Anyma': 'electronica', 'DJ Snake': 'electronica dance',
+    'Mark Ronson': 'pop funk', 'Flume': 'electronica', 'Billy Lemos': 'pop indie',
 }

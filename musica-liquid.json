@@ -1,0 +1,63 @@
+{
+ "archivo": "musica-liquid.txt",
+ "actualizado": "2026-11-09",
+ "fecha": "9 de noviembre de 2026",
+ "canciones": 4743,
+ "copiasOcultas": 11,
+ "artistas": 2393,
+ "duracion": "282 h 0 min",
+ "generos": 42,
+ "variosGeneros": 3435,
+ "playlists": 50,
+ "bytes": 3044507,
+ "topGeneros": [
+  [
+   "Pop",
+   1001
+  ],
+  [
+   "Indie",
+   996
+  ],
+  [
+   "Hip hop y rap",
+   769
+  ],
+  [
+   "Rock",
+   708
+  ],
+  [
+   "Jazz",
+   505
+  ],
+  [
+   "Electrónica",
+   434
+  ],
+  [
+   "Reggaetón",
+   395
+  ],
+  [
+   "R&B",
+   324
+  ],
+  [
+   "Trap",
+   321
+  ],
+  [
+   "Psicodelia",
+   321
+  ],
+  [
+   "Alternativo",
+   283
+  ],
+  [
+   "Soul",
+   267
+  ]
+ ]
+}
