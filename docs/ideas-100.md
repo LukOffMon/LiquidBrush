@@ -114,7 +114,7 @@ Leyenda: ✅ = elegida y hecha en v63 · ✅ extra = hecha, pero va dentro de ot
 | # | Idea | |
 |---|---|---|
 | 69 | Descargar tu historial completo en CSV (Excel, Google Sheets) | ✅ |
-| 70 | Resumen anual estilo «Wrapped» | ✗ proyecto aparte |
+| 70 | Resumen anual de tu año | ✅ aparte de las 40: **Tu Año Líquido**, cada 25 de diciembre (ver README) |
 | 71 | Comparar meses | ✗ Stats ya compara con el mes anterior |
 | 72 | Géneros más escuchados | ✗ ya existe (con géneros reales desde v62) |
 

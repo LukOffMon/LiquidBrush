@@ -7482,3 +7482,819 @@ body.np-open .float-actions {
     animation: none;
   }
 }
+
+/* =========================================================
+   Tu Año Líquido: el resumen del año (25 de diciembre)
+   ========================================================= */
+.resumen {
+  --c1: #ff3d8b;
+  --c2: #7a5cff;
+  --c3: #00e5ff;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  background: #07050f;
+  color: #fff;
+  font-family: var(--title-font, 'Inter', system-ui, sans-serif);
+}
+
+.resumen::backdrop {
+  background: #000;
+}
+
+.resumen[open] {
+  animation: rz-open 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes rz-open {
+  from { opacity: 0; transform: scale(1.04); filter: blur(10px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+
+body.resumen-open {
+  overflow: hidden;
+}
+
+/* Fondo: tres manchas que se mueven despacio y cambian de color con cada escena */
+.rz-bg {
+  position: absolute;
+  inset: -20%;
+  filter: blur(60px) saturate(1.3);
+  opacity: 0.85;
+}
+
+.rz-blob {
+  position: absolute;
+  width: 60vmax;
+  height: 60vmax;
+  border-radius: 50%;
+  transition: background-color 1.4s ease;
+  mix-blend-mode: screen;
+}
+
+.rz-blob.b1 { left: -5%; top: -5%; background-color: var(--c1); animation: rz-drift1 22s ease-in-out infinite alternate; }
+.rz-blob.b2 { right: -10%; top: 20%; background-color: var(--c2); animation: rz-drift2 26s ease-in-out infinite alternate; }
+.rz-blob.b3 { left: 15%; bottom: -15%; background-color: var(--c3); opacity: 0.8; animation: rz-drift3 30s ease-in-out infinite alternate; }
+
+@keyframes rz-drift1 { to { transform: translate(18vw, 22vh) scale(1.2); } }
+@keyframes rz-drift2 { to { transform: translate(-22vw, 12vh) scale(0.85); } }
+@keyframes rz-drift3 { to { transform: translate(14vw, -24vh) scale(1.15); } }
+
+/* Gotas que caen desde arriba (el «derretido» de Liquid) */
+.rz-drips {
+  position: absolute;
+  inset: 20% 20% auto;
+  height: 22vh;
+  background:
+    radial-gradient(circle at 8% 0, #fff 0 18px, transparent 19px),
+    radial-gradient(circle at 31% 0, #fff 0 26px, transparent 27px),
+    radial-gradient(circle at 57% 0, #fff 0 14px, transparent 15px),
+    radial-gradient(circle at 83% 0, #fff 0 22px, transparent 23px);
+  opacity: 0.08;
+  animation: rz-drip 9s ease-in infinite;
+}
+
+@keyframes rz-drip {
+  0% { transform: translateY(-30%) scaleY(0.6); }
+  60% { transform: translateY(40%) scaleY(1.4); }
+  100% { transform: translateY(160%) scaleY(1); opacity: 0; }
+}
+
+.resumen::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(120% 90% at 50% 40%, transparent 30%, rgba(4, 2, 12, 0.55) 100%);
+  pointer-events: none;
+}
+
+/* Barra superior: progreso de cada escena y botones */
+.rz-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  padding: calc(12px + env(safe-area-inset-top)) 16px 0;
+}
+
+.rz-progress {
+  display: flex;
+  gap: 4px;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.rz-seg {
+  flex: 1;
+  height: 3px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.25);
+  overflow: hidden;
+}
+
+.rz-seg i {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: #fff;
+}
+
+.rz-tools {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  max-width: 720px;
+  margin: 10px auto 0;
+}
+
+.rz-tool {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.rz-tool .icon {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+/* Zonas para avanzar (derecha) y volver (izquierda), debajo del contenido */
+.rz-nav {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 1;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.rz-prev { left: 0; width: 30%; cursor: w-resize; }
+.rz-next { right: 0; width: 70%; cursor: e-resize; }
+.resumen.is-first .rz-nav { display: none; }
+
+.rz-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  padding: calc(84px + env(safe-area-inset-top)) 22px calc(28px + env(safe-area-inset-bottom));
+  pointer-events: none;
+}
+
+.rz-slide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 560px;
+  max-height: 100%;
+  text-align: center;
+  overflow: hidden;
+}
+
+.rz-slide button,
+.rz-slide a {
+  pointer-events: auto;
+}
+
+/* Cada pieza entra con su retraso */
+.rz-in {
+  opacity: 0;
+  animation: rz-in 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) var(--d, 0s) forwards;
+}
+
+@keyframes rz-in {
+  from { opacity: 0; transform: translateY(26px) scale(0.97); filter: blur(8px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+
+.resumen.is-paused .rz-in,
+.resumen.is-paused .rz-blob,
+.resumen.is-paused .rz-vinyl,
+.resumen.is-paused .rz-drips {
+  animation-play-state: paused;
+}
+
+.rz-kicker {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.rz-mega {
+  margin: 0;
+  font-family: var(--brand-font, var(--title-font));
+  font-size: clamp(2.4rem, 11vw, 5.4rem);
+  font-weight: 800;
+  line-height: 0.98;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+  text-shadow: 0 6px 30px rgba(0, 0, 0, 0.35);
+}
+
+.rz-melt {
+  background: linear-gradient(180deg, #fff 0%, #fff 55%, var(--c3) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 6px 24px rgba(0, 0, 0, 0.4));
+}
+
+.rz-year {
+  margin: -6px 0 0;
+  font-size: clamp(3rem, 16vw, 7rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: transparent;
+  -webkit-text-stroke: 2px #fff;
+}
+
+.rz-title {
+  margin: 0;
+  font-size: clamp(1.6rem, 6.5vw, 2.6rem);
+  font-weight: 800;
+  line-height: 1.08;
+  text-wrap: balance;
+}
+
+.rz-sub {
+  margin: -4px 0 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.rz-lead {
+  margin: 4px 0 0;
+  max-width: 34ch;
+  font-size: clamp(1.05rem, 4.2vw, 1.3rem);
+  font-weight: 600;
+  line-height: 1.35;
+  text-wrap: balance;
+}
+
+.rz-small {
+  margin: 0;
+  max-width: 38ch;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  opacity: 0.8;
+}
+
+.rz-hint {
+  margin: 6px 0 0;
+  max-width: 36ch;
+  font-size: 0.82rem;
+  opacity: 0.7;
+}
+
+.rz-count {
+  font-size: clamp(3.4rem, 19vw, 8rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.rz-unit {
+  margin: -6px 0 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+  opacity: 0.85;
+}
+
+.rz-start {
+  margin-top: 10px;
+  padding: 14px 38px;
+  border: 0;
+  border-radius: 999px;
+  background: #fff;
+  color: #0b0614;
+  font: inherit;
+  font-size: 1.1rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 10px 40px color-mix(in srgb, var(--c1) 60%, transparent);
+}
+
+.rz-start.rz-in {
+  animation: rz-in 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) var(--d, 0s) forwards, rz-pulse 2.2s ease-in-out calc(var(--d, 0s) + 1s) infinite;
+}
+
+@keyframes rz-pulse {
+  50% { transform: scale(1.06); }
+}
+
+/* Portadas */
+.rz-cover {
+  width: min(62vw, 280px);
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: 22px;
+  object-fit: cover;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+
+.rz-cover-xl {
+  width: min(70vw, 320px);
+  border-radius: 50%;
+}
+
+.rz-spin-in.rz-in { animation-name: rz-spin-in; }
+
+@keyframes rz-spin-in {
+  from { opacity: 0; transform: rotate(-18deg) scale(0.6); filter: blur(10px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+
+.rz-zoom.rz-in {
+  animation: rz-in 1s cubic-bezier(0.2, 0.8, 0.2, 1) var(--d, 0s) forwards, rz-ken 16s linear var(--d, 0s) forwards;
+}
+
+@keyframes rz-ken {
+  to { transform: scale(1.08); }
+}
+
+/* Calendario del año */
+.rz-cal {
+  display: grid;
+  gap: 3px;
+  width: 100%;
+}
+
+.rz-cal-row {
+  display: grid;
+  grid-template-columns: 30px repeat(31, 1fr);
+  gap: 2px;
+  align-items: center;
+  opacity: 0;
+  animation: rz-in 0.6s ease-out calc(0.9s + var(--m) * 0.12s) forwards;
+}
+
+.rz-cal-m {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-align: left;
+  opacity: 0.75;
+}
+
+.rz-cal-d {
+  aspect-ratio: 1;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.rz-cal-d[style] {
+  background: color-mix(in srgb, #fff calc(var(--v) * 100%), var(--c1));
+  opacity: calc(0.35 + var(--v) * 0.65);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--c1) 60%, transparent);
+}
+
+.rz-cal-d.is-out {
+  visibility: hidden;
+}
+
+/* Barras de géneros */
+.rz-bars {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.rz-bar {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: 12px;
+  overflow: hidden;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.rz-bar::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--c1) 85%, transparent), color-mix(in srgb, var(--c2) 70%, transparent));
+  animation: rz-grow 1.4s cubic-bezier(0.2, 0.8, 0.2, 1) calc(1.6s + var(--i) * 0.25s) forwards;
+}
+
+@keyframes rz-grow {
+  to { width: var(--w); }
+}
+
+.rz-bar span {
+  position: relative;
+}
+
+.rz-bar-val {
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
+/* Nube de géneros explorados */
+.rz-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 6px 0;
+}
+
+.rz-chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  font-size: calc(0.85rem * var(--s));
+  font-weight: 700;
+  opacity: 0;
+  animation: rz-in 0.6s ease-out calc(1.4s + var(--i) * 0.1s) forwards;
+}
+
+/* Rankings (artistas y canciones) */
+.rz-rank {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.rz-rank-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px 8px 8px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.rz-rank-n {
+  width: 30px;
+  font-size: 1.5rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.rz-rank-img {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+.rz-rank-name {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rz-rank-name b,
+.rz-rank-name small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rz-rank-name small {
+  font-weight: 600;
+  opacity: 0.75;
+}
+
+.rz-rank-val {
+  font-size: 0.85rem;
+  font-weight: 700;
+  opacity: 0.85;
+}
+
+/* Tocadiscos de la canción del año */
+.rz-vinyl {
+  display: grid;
+  place-items: center;
+  width: min(66vw, 300px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: repeating-radial-gradient(circle, #0c0c10 0 2px, #1b1b22 3px 4px);
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.6), 0 0 0 6px rgba(255, 255, 255, 0.05);
+}
+
+.rz-vinyl.rz-in {
+  animation: rz-in 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) var(--d, 0s) forwards, rz-turn 6s linear var(--d, 0s) infinite;
+}
+
+@keyframes rz-turn {
+  to { transform: rotate(360deg); }
+}
+
+.rz-vinyl-label {
+  width: 46%;
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 0 0 4px #0c0c10;
+}
+
+/* Reloj de 24 horas */
+.rz-clock {
+  width: min(78vw, 320px);
+  height: auto;
+}
+
+.rz-clock line {
+  stroke: rgba(255, 255, 255, 0.55);
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: rz-draw 1.2s ease-out calc(1s + var(--i) * 0.05s) forwards;
+}
+
+.rz-clock line.is-top {
+  stroke: #fff;
+  stroke-width: 9;
+  filter: drop-shadow(0 0 6px var(--c1));
+}
+
+@keyframes rz-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+.rz-clock text {
+  fill: rgba(255, 255, 255, 0.7);
+  font-size: 11px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+
+/* Meses */
+.rz-months {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  align-items: end;
+  gap: 6px;
+  width: 100%;
+  height: 34vh;
+  max-height: 260px;
+}
+
+.rz-month {
+  position: relative;
+  height: 0;
+  border-radius: 8px 8px 3px 3px;
+  background: rgba(255, 255, 255, 0.28);
+  animation: rz-rise 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) calc(1.2s + var(--i) * 0.08s) forwards;
+}
+
+.rz-month.is-top {
+  background: #fff;
+  box-shadow: 0 0 24px var(--c1);
+}
+
+.rz-month i {
+  position: absolute;
+  bottom: -20px;
+  left: 0;
+  right: 0;
+  font-size: 0.7rem;
+  font-style: normal;
+  font-weight: 700;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+
+@keyframes rz-rise {
+  to { height: var(--h); }
+}
+
+.rz-mini {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 420px;
+  padding: 10px 14px 10px 10px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.12);
+  text-align: left;
+  font-weight: 600;
+}
+
+/* En números */
+.rz-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  width: 100%;
+}
+
+.rz-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px 12px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.rz-stat b {
+  font-size: clamp(1.8rem, 8vw, 2.6rem);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.rz-stat span {
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
+/* Personalidad */
+.rz-badge {
+  display: grid;
+  place-items: center;
+  width: 128px;
+  height: 128px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff, var(--c1) 55%, var(--c2));
+  box-shadow: 0 0 60px var(--c1);
+}
+
+.rz-badge.rz-in {
+  animation: rz-in 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) var(--d, 0s) forwards, rz-pulse 2.6s ease-in-out calc(var(--d, 0s) + 1s) infinite;
+}
+
+.rz-badge .icon {
+  width: 56px;
+  height: 56px;
+  fill: #fff;
+}
+
+/* Final: tarjeta y botones */
+.rz-card {
+  max-height: 42vh;
+  width: auto;
+  max-width: 70vw;
+  aspect-ratio: 9 / 16;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+
+.rz-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.rz-btn {
+  padding: 11px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.rz-btn.is-primary {
+  border-color: transparent;
+  background: #fff;
+  color: #0b0614;
+}
+
+/* Ultraligero, sin animaciones o «reducir movimiento»: todo quieto y a la vista */
+.resumen.is-lite .rz-blob,
+.resumen.is-lite .rz-drips,
+.resumen.is-lite .rz-vinyl.rz-in {
+  animation: none;
+}
+
+.resumen.is-lite .rz-in,
+.resumen.is-lite .rz-cal-row,
+.resumen.is-lite .rz-chip {
+  animation: none;
+  opacity: 1;
+}
+
+.resumen.is-lite .rz-bar::before { animation: none; width: var(--w); }
+.resumen.is-lite .rz-month { animation: none; height: var(--h); }
+.resumen.is-lite .rz-clock line { animation: none; stroke-dashoffset: 0; }
+
+/* Invitación en Inicio y Stats */
+.rz-invite {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  margin: 0 0 18px;
+  padding: 20px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  color: #fff;
+  background: linear-gradient(130deg, #2a0b45, #0e0726 55%, #0a2240);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.rz-invite::before {
+  content: '';
+  position: absolute;
+  inset: -40%;
+  background:
+    radial-gradient(40% 40% at 20% 30%, rgba(255, 61, 139, 0.55), transparent 70%),
+    radial-gradient(40% 40% at 80% 60%, rgba(0, 229, 255, 0.45), transparent 70%),
+    radial-gradient(35% 35% at 50% 90%, rgba(122, 92, 255, 0.5), transparent 70%);
+  filter: blur(20px);
+  animation: rz-drift1 14s ease-in-out infinite alternate;
+}
+
+.rz-invite > * {
+  position: relative;
+}
+
+.rz-invite-kicker {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.rz-invite-title {
+  font-family: var(--brand-font, var(--title-font));
+  font-size: clamp(1.6rem, 6vw, 2.2rem);
+  font-weight: 800;
+  line-height: 1.05;
+}
+
+.rz-invite-sub {
+  max-width: 46ch;
+  font-size: 0.92rem;
+  opacity: 0.9;
+}
+
+.rz-invite-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 10px 18px;
+  border: 0;
+  border-radius: 999px;
+  background: #fff;
+  color: #0b0614;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.rz-invite-btn .icon {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rz-invite::before,
+  .resumen[open] {
+    animation: none;
+  }
+}

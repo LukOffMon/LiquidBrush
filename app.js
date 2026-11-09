@@ -877,6 +877,8 @@
     }
     openIncomingLink(Boolean(final));
     receiveFromLab(Boolean(final));
+    // Tu Año Líquido: aviso de temporada (o ?resumen=AAAA) cuando ya están las canciones
+    if (!resumen.announced && state.tracks.length) { resumen.announced = true; resumenAnnounce(); }
   }
 
   // Liquid recoge lo que llegó de Liquid Lab: abre la playlist guardada o pone la mezcla a sonar
@@ -2639,13 +2641,15 @@
 
   function renderStats() {
     flushListening();
+    // Tu Año Líquido: cuenta atrás en diciembre, el evento en temporada o «volver a verlo»
+    const invite = state.statsOffset === 0 ? resumenInvite('stats') : null;
     const info = monthInfo(state.statsOffset);
     const current = aggregate(info.keys);
     const previous = aggregate(monthInfo(state.statsOffset - 1).keys);
     const panel = els.statsPanel;
 
     if (current.seconds < 60) {
-      panel.replaceChildren(makeEl('p', 'list-empty', state.statsOffset === 0
+      panel.replaceChildren(...[invite].filter(Boolean), makeEl('p', 'list-empty', state.statsOffset === 0
         ? 'Todavía no hay suficiente música este mes. Escucha un rato y vuelve: aquí verás tus minutos, géneros y artistas.'
         : `No hay registros de ${info.label}.`));
       return;
@@ -2760,7 +2764,7 @@
     grid.append(daily, hours, genres, artists, trend, songs);
     const csv = makeButton('btn btn-ghost stats-csv', 'export-csv', 'Descargar todo tu historial de escucha (CSV, para Excel o Google Sheets)', 'download', 'Descargar mi historial (CSV)');
     csv.addEventListener('click', exportListeningCsv);
-    panel.replaceChildren(tiles, grid, csv);
+    panel.replaceChildren(...[invite, tiles, grid, csv].filter(Boolean));
     if (!signedIn()) panel.append(makeEl('p', 'pl-note', 'Sin sesión, tus estadísticas se guardan solo en este dispositivo y se pierden si borras los datos del sitio. Para no perderlas, basta con iniciar sesión.'));
   }
 
@@ -4555,6 +4559,9 @@
     const p = tasteProfile();
     const lite = settings.ultra;
     const parts = [homeHeader(p)];
+    // Del 25 de diciembre al 15 de enero: Tu Año Líquido, lo primero
+    const invite = resumenInvite('home');
+    if (invite) parts.push(invite);
 
     // Accesos rápidos
     const quick = makeEl('div', 'home-quick');
@@ -8236,6 +8243,7 @@
         case 'back': setView('playlists'); break;
         case 'stats-prev': state.statsOffset -= 1; renderList(); break;
         case 'stats-next': state.statsOffset = Math.min(0, state.statsOffset + 1); renderList(); break;
+        case 'resumen': openResumen(Number(target.dataset.value) || undefined); break;
         case 'stats-artist':
         case 'stats-genre':
           els.searchInput.value = target.dataset.value;
@@ -11815,6 +11823,800 @@
 
     // Ayuda de Ajustes: atajos de teclado
     if (els.shortcutsBtn) els.shortcutsBtn.addEventListener('click', () => { els.settingsDialog?.close(); openShortcuts(); });
+  }
+
+  /* =========================================================
+     Tu Año Líquido: el resumen del año (cada 25 de diciembre)
+     - Stats se ven todos los días; esto es un evento: llega el 25 de diciembre y se puede ver
+       hasta el 15 de enero (antes, Stats cuenta los días que faltan; después, se puede volver a ver).
+     - 16 escenas a pantalla completa (~18 s cada una, ≈ 5 min) con su música: fragmentos de tus
+       canciones del año. Se avanza tocando a la derecha, se vuelve a la izquierda, se pausa
+       manteniendo pulsado. Todo se calcula aquí, con el registro de escucha (listen.log).
+     - ?resumen=2026 en la dirección lo abre en cualquier fecha (para verlo antes de tiempo).
+     ========================================================= */
+  const RESUMEN_SLIDE_MS = 18000;
+  const RESUMEN_MIN_SECONDS = 20 * 60;
+  const RESUMEN_SEEN = 'liquidbrush:resumen-aviso';
+  const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+  // Temporada del evento: del 25 de diciembre al 15 de enero (el resumen es del año que termina)
+  function resumenSeason(now = new Date()) {
+    if (now.getMonth() === 11 && now.getDate() >= 25) return now.getFullYear();
+    if (now.getMonth() === 0 && now.getDate() <= 15) return now.getFullYear() - 1;
+    return null;
+  }
+
+  function daysToResumen(now = new Date()) {
+    const target = new Date(now.getFullYear(), 11, 25);
+    return Math.ceil((target - new Date(now.getFullYear(), now.getMonth(), now.getDate())) / 86400000);
+  }
+
+  // Lo que define tu año musical: se calcula al abrirlo
+  const ARQUETIPOS = [
+    { id: 'nocturna', name: 'Alma nocturna', icon: 'moon', desc: 'Tu música vive cuando el resto duerme. La noche es tu escenario.', score: (d) => d.share.noche / 0.32 },
+    { id: 'aurora', name: 'Luz de mañana', icon: 'spark', desc: 'Empiezas el día con banda sonora. Antes del café, ya hay canción.', score: (d) => d.share.manana / 0.32 },
+    { id: 'explorador', name: 'Explorador sin mapa', icon: 'compass', desc: 'Saltas de un género a otro sin miedo. Tu biblioteca es un viaje.', score: (d) => (d.genresExplored / 18) * Math.min(1.2, d.artistsCount / Math.max(1, d.tracksCount) / 0.45) },
+    { id: 'fiel', name: 'Corazón fiel', icon: 'heart', desc: `Cuando algo te gusta, te quedas. Un artista marcó tu año como nadie.`, score: (d) => d.topArtistShare / 0.18 },
+    { id: 'bucle', name: 'Rey del bucle', icon: 'repeat-alt', desc: 'Si una canción te atrapa, la pones hasta sabértela de memoria.', score: (d) => d.top5Share / 0.28 },
+    { id: 'tiempo', name: 'Viajero en el tiempo', icon: 'clock', desc: 'Vinilos, swing y voces de otra época: el pasado suena mejor contigo.', score: (d) => d.genreShare(['Oldies', 'Swing', 'Jazz', 'Balada y bolero', 'Disco', 'Funk', 'Soul', 'Bossa nova', 'Blues']) / 0.34 },
+    { id: 'fuego', name: 'Fuego latino', icon: 'flame', desc: 'Perreo, cumbia y calle: tu año tuvo ritmo de principio a fin.', score: (d) => d.genreShare(['Reggaetón', 'Pop latino', 'Cumbia y tropical', 'Salsa', 'Bachata', 'Funk brasileño', 'Regional mexicano']) / 0.38 },
+    { id: 'indie', name: 'Soñador indie', icon: 'cloud', desc: 'Guitarras con reverb y canciones que suenan a recuerdo.', score: (d) => d.genreShare(['Indie', 'Dream pop y shoegaze', 'Psicodelia', 'Alternativo', 'Folk']) / 0.42 },
+    { id: 'voltaje', name: 'Alto voltaje', icon: 'bolt', desc: 'Bajos, sintetizadores y pista de baile. Tu año fue eléctrico.', score: (d) => d.genreShare(['Electrónica', 'House', 'Dance y EDM', 'Club y jersey', 'Hardtekk y jumpstyle', 'Hyperpop', 'Synth pop']) / 0.38 },
+    { id: 'rugido', name: 'Rugido eléctrico', icon: 'flame', desc: 'Distorsión, batería y gritos: el volumen siempre arriba.', score: (d) => d.genreShare(['Rock', 'Metal', 'Punk y post-punk', 'Emo']) / 0.38 },
+    { id: 'verso', name: 'Verso de la calle', icon: 'mic', desc: 'Rimas, bajos pesados y barras: tu año habló claro.', score: (d) => d.genreShare(['Hip hop y rap', 'Trap']) / 0.38 },
+    { id: 'seda', name: 'Terciopelo', icon: 'gem', desc: 'R&B, soul y voces suaves: tu año sonó a madrugada lenta.', score: (d) => d.genreShare(['R&B', 'Soul', 'Lo-fi y jazzhop']) / 0.34 }
+  ];
+
+  function resumenData(year) {
+    flushListening();
+    const days = Object.keys(listen.log).filter((k) => k.startsWith(`${year}-`)).sort();
+    const secsById = new Map();
+    const playsById = new Map();
+    const perDay = new Map();
+    const perMonth = new Array(12).fill(0);
+    const hours = new Array(24).fill(0);
+    const weekdays = new Array(7).fill(0);
+    days.forEach((day) => {
+      const entry = listen.log[day];
+      let total = 0;
+      Object.entries(entry.s || {}).forEach(([id, s]) => {
+        if (!getTrack(id)) return;
+        secsById.set(id, (secsById.get(id) || 0) + s);
+        total += s;
+      });
+      Object.entries(entry.p || {}).forEach(([id, n]) => playsById.set(id, (playsById.get(id) || 0) + n));
+      (entry.h || []).forEach((s, h) => { hours[h] += s || 0; });
+      perDay.set(day, total);
+      perMonth[Number(day.slice(5, 7)) - 1] += total;
+      weekdays[new Date(`${day}T12:00:00`).getDay()] += total;
+    });
+    const total = [...secsById.values()].reduce((a, b) => a + b, 0);
+    if (total < RESUMEN_MIN_SECONDS) return { year, total, empty: true };
+
+    const songs = [...secsById.entries()].sort((a, b) => b[1] - a[1])
+      .map(([id, secs]) => ({ track: getTrack(id), secs, plays: playsById.get(id) || 0 }));
+    const artistMap = new Map();
+    songs.forEach(({ track, secs }) => {
+      const names = creditedArtists(track);
+      (names.length ? names : [track.artist]).forEach((name) => {
+        const key = normalize(name);
+        const a = artistMap.get(key) || { name, secs: 0, songs: [] };
+        a.secs += secs;
+        a.songs.push(track);
+        artistMap.set(key, a);
+      });
+    });
+    const artists = [...artistMap.values()].sort((a, b) => b.secs - a.secs);
+    const genreMap = new Map();
+    const primaryMap = new Map();
+    songs.forEach(({ track, secs }) => {
+      track.generos.forEach((g) => genreMap.set(g, (genreMap.get(g) || 0) + secs));
+      if (track.generos[0]) primaryMap.set(track.generos[0], (primaryMap.get(track.generos[0]) || 0) + secs);
+    });
+    const genres = [...genreMap.entries()].sort((a, b) => b[1] - a[1]);
+    const primaryTotal = [...primaryMap.values()].reduce((a, b) => a + b, 0) || 1;
+    // Racha: días seguidos con al menos un minuto de música
+    let streak = 0;
+    let run = 0;
+    let prev = null;
+    days.forEach((day) => {
+      if ((perDay.get(day) || 0) < 60) { run = 0; prev = null; return; }
+      const t = new Date(`${day}T12:00:00`).getTime();
+      run = prev !== null && Math.round((t - prev) / 86400000) === 1 ? run + 1 : 1;
+      prev = t;
+      streak = Math.max(streak, run);
+    });
+    const activeDays = [...perDay.values()].filter((s) => s >= 60).length;
+    const [topDay, topDaySecs] = [...perDay.entries()].sort((a, b) => b[1] - a[1])[0];
+    const dayTop = (day) => Object.entries(listen.log[day]?.s || {}).filter(([id]) => getTrack(id))
+      .sort((a, b) => b[1] - a[1]).map(([id]) => getTrack(id))[0] || null;
+    const firstDay = days.find((d) => (perDay.get(d) || 0) >= 30) || days[0];
+    const hoursTotal = hours.reduce((a, b) => a + b, 0) || 1;
+    const sumHours = (list) => list.reduce((a, h) => a + hours[h], 0) / hoursTotal;
+    const share = {
+      noche: sumHours([22, 23, 0, 1, 2, 3, 4, 5]),
+      manana: sumHours([6, 7, 8, 9, 10, 11]),
+      tarde: sumHours([12, 13, 14, 15, 16, 17]),
+      atardecer: sumHours([18, 19, 20, 21])
+    };
+    const data = {
+      year, total, days: perDay, activeDays, streak, perMonth, hours, weekdays, share,
+      songs, artists, genres,
+      tracksCount: songs.length, artistsCount: artists.length,
+      genresExplored: genreMap.size, genresTotal: (library.catalog?.generos?.lista || []).length || 42,
+      libraryShare: songs.length / Math.max(1, state.libraryTracks.length),
+      topArtistShare: artists[0] ? artists[0].secs / total : 0,
+      top5Share: songs.slice(0, 5).reduce((a, s) => a + s.secs, 0) / total,
+      genreShare: (list) => list.reduce((a, g) => a + (primaryMap.get(g) || 0), 0) / primaryTotal,
+      topDay, topDaySecs, topDayTrack: dayTop(topDay),
+      firstDay, firstTrack: dayTop(firstDay),
+      topHour: hours.indexOf(Math.max(...hours)),
+      topMonth: perMonth.indexOf(Math.max(...perMonth)),
+      topWeekday: weekdays.indexOf(Math.max(...weekdays)),
+      favorites: state.favorites.size,
+      playlistsMade: library.local.filter((p) => new Date(p.createdAt || 0).getFullYear() === year).length
+    };
+    const ranked = ARQUETIPOS.map((a) => ({ ...a, value: a.score(data) })).sort((a, b) => b.value - a.value);
+    data.arquetipo = ranked[0].value >= 0.8 ? ranked[0]
+      : { id: 'eclectico', name: 'Ecléctico total', icon: 'dice', desc: 'Ningún molde te queda: un poco de todo, siempre a tu manera.' };
+    data.rasgos = ranked.filter((a) => a.id !== data.arquetipo.id).slice(0, 2);
+    return data;
+  }
+
+  const numberEs = (n) => Math.round(n).toLocaleString('es');
+  const fechaEs = (day) => { const d = new Date(`${day}T12:00:00`); return `${d.getDate()} de ${MESES[d.getMonth()]}`; };
+
+  // El momento del día que más suena
+  function franja(hour) {
+    if (hour < 6) return 'de madrugada';
+    if (hour < 12) return 'por la mañana';
+    if (hour < 18) return 'por la tarde';
+    if (hour < 22) return 'al caer la tarde';
+    return 'de noche';
+  }
+
+  // Paletas de cada escena (fondo líquido de tres manchas)
+  const RESUMEN_PALETAS = [
+    ['#ff3d8b', '#7a5cff', '#00e5ff'], ['#ffb347', '#ff3d8b', '#7a1cff'], ['#00e5ff', '#3ddc97', '#1a2bff'],
+    ['#ff7ad9', '#ffe27a', '#ff5f6d'], ['#9b5cff', '#00e5ff', '#ff3d8b'], ['#3ddc97', '#ffe27a', '#00b3ff'],
+    ['#ff5f6d', '#ff9f43', '#ffe27a'], ['#c5cddb', '#7a5cff', '#ff7ad9'], ['#1a2bff', '#ff3d8b', '#ffb347'],
+    ['#ffe27a', '#ff3d8b', '#9b5cff'], ['#00e5ff', '#7a5cff', '#0b0b2a'], ['#ff9f43', '#3ddc97', '#ff5f6d'],
+    ['#ff7ad9', '#00e5ff', '#ffe27a'], ['#7a5cff', '#3ddc97', '#ff9f43'], ['#ff3d8b', '#ffe27a', '#00e5ff'],
+    ['#c5cddb', '#ff3d8b', '#7a5cff']
+  ];
+
+  const resumen = {
+    el: null, data: null, slides: [], index: 0, timer: 0, started: 0, elapsed: 0,
+    paused: false, music: true, playing: null, holdTimer: 0, held: false, wasPlaying: false
+  };
+
+  // Piezas de las escenas: cada una entra con su retraso (--d) para que se lean en orden
+  function rz(tag, cls, text, delay) {
+    const node = makeEl(tag, cls, text);
+    if (delay !== undefined) { node.classList.add('rz-in'); node.style.setProperty('--d', `${delay}s`); }
+    return node;
+  }
+
+  function rzCover(track, size, cls = 'rz-cover', delay) {
+    const img = photoImg(track?.cover || track?.thumb, size, cls);
+    img.loading = 'eager';
+    if (delay !== undefined) { img.classList.add('rz-in'); img.style.setProperty('--d', `${delay}s`); }
+    return img;
+  }
+
+  // Un número que sube desde 0
+  function rzCount(target, delay = 0, suffix = '') {
+    const node = rz('span', 'rz-count', `0${suffix}`, delay);
+    const start = performance.now() + delay * 1000;
+    const ms = 2200;
+    const tick = (now) => {
+      if (!node.isConnected && now - start > 100) return;
+      const p = clamp((now - start) / ms, 0, 1);
+      node.textContent = `${numberEs(target * (1 - (1 - p) ** 3))}${suffix}`;
+      if (p < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+    return node;
+  }
+
+  function resumenSlides(d) {
+    const s = d.songs;
+    const top = (i) => s[Math.min(i, s.length - 1)]?.track;
+    const artist = d.artists[0];
+    const artistTrack = artist?.songs[0];
+    const topGenre = d.genres[0]?.[0] || 'tu música';
+    const genreTrack = s.find((x) => x.track.generos[0] === topGenre)?.track || top(0);
+    const mins = d.total / 60;
+    const slides = [];
+
+    // 1 · Portada
+    slides.push({ track: top(2), wait: true, render: (box) => {
+      box.append(
+        rz('p', 'rz-kicker', 'Liquid Bullet presenta', 0.2),
+        rz('h1', 'rz-mega rz-melt', `Tu Año Líquido`, 0.5),
+        rz('p', 'rz-year', String(d.year), 0.9),
+        rz('p', 'rz-lead', `${numberEs(mins)} minutos de música se derritieron este año. Esto es lo que dicen de ti.`, 1.4)
+      );
+      const go = rz('button', 'rz-start', 'Empezar', 1.9);
+      go.type = 'button';
+      go.dataset.rz = 'start';
+      box.append(go, rz('p', 'rz-hint', 'Toca a la derecha para avanzar, a la izquierda para volver y mantén pulsado para pausar. Unos 5 minutos, con música.', 2.2));
+    } });
+
+    // 2 · Minutos
+    const dias = mins / 1440;
+    slides.push({ track: top(2), render: (box) => {
+      box.append(rz('p', 'rz-kicker', 'Este año escuchaste', 0.2), rzCount(mins, 0.5), rz('p', 'rz-unit', 'minutos', 0.6));
+      box.append(rz('p', 'rz-lead', dias >= 1
+        ? `Eso son ${String(Math.round(dias * 10) / 10).replace('.', ',')} días enteros de música sin parar.`
+        : `Eso son ${numberEs(mins / 60)} horas de música.`, 2.4));
+      box.append(rz('p', 'rz-small', `O ${numberEs(mins / 3.5)} canciones de 3 minutos y medio, una detrás de otra.`, 3.4));
+    } });
+
+    // 3 · Calendario del año
+    slides.push({ track: top(2), render: (box) => {
+      box.append(rz('p', 'rz-kicker', 'Tu año, día a día', 0.2), rz('h2', 'rz-title', `${d.activeDays} días con música`, 0.4));
+      const max = Math.max(...d.days.values(), 1);
+      const cal = rz('div', 'rz-cal', null, 0.8);
+      for (let m = 0; m < 12; m++) {
+        const row = makeEl('div', 'rz-cal-row');
+        row.style.setProperty('--m', m);
+        row.append(makeEl('span', 'rz-cal-m', MESES[m].slice(0, 3)));
+        const dim = new Date(d.year, m + 1, 0).getDate();
+        for (let day = 1; day <= 31; day++) {
+          const cell = makeEl('span', 'rz-cal-d');
+          if (day > dim) cell.classList.add('is-out');
+          else {
+            const key = `${d.year}-${String(m + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const v = (d.days.get(key) || 0) / max;
+            if (v > 0) cell.style.setProperty('--v', String(Math.max(0.18, Math.sqrt(v))));
+          }
+          row.append(cell);
+        }
+        cal.append(row);
+      }
+      box.append(cal, rz('p', 'rz-lead', `Tu racha más larga: ${d.streak} ${d.streak === 1 ? 'día' : 'días'} seguidos sin soltar los auriculares.`, 3.2));
+    } });
+
+    // 4 · La primera canción del año
+    if (d.firstTrack) {
+      slides.push({ track: d.firstTrack, render: (box) => {
+        box.append(rz('p', 'rz-kicker', `${fechaEs(d.firstDay)}: así empezó todo`, 0.2), rzCover(d.firstTrack, 280, 'rz-cover rz-spin-in', 0.5),
+          rz('h2', 'rz-title', splitTitle(d.firstTrack.title).main, 1.2), rz('p', 'rz-sub', d.firstTrack.knownArtist || d.firstTrack.artist, 1.4),
+          rz('p', 'rz-lead', 'La primera canción que sonó fuerte en tu año. ¿Te acordabas?', 2.4));
+      } });
+    }
+
+    // 5 · Géneros
+    slides.push({ track: genreTrack, render: (box) => {
+      box.append(rz('p', 'rz-kicker', 'Tu año sonó a…', 0.2), rz('h1', 'rz-mega', topGenre, 0.6));
+      const bars = rz('div', 'rz-bars', null, 1.4);
+      const max = d.genres[0]?.[1] || 1;
+      d.genres.slice(0, 6).forEach(([g, secs], i) => {
+        const row = makeEl('div', 'rz-bar');
+        row.style.setProperty('--w', `${Math.max(6, (secs / max) * 100)}%`);
+        row.style.setProperty('--i', i);
+        row.append(makeEl('span', 'rz-bar-name', g), makeEl('span', 'rz-bar-val', `${numberEs(secs / 60)} min`));
+        bars.append(row);
+      });
+      box.append(bars);
+    } });
+
+    // 6 · Exploración
+    slides.push({ track: genreTrack, render: (box) => {
+      box.append(rz('p', 'rz-kicker', 'Exploraste', 0.2), rz('h1', 'rz-mega', `${d.genresExplored} de ${d.genresTotal}`, 0.5), rz('p', 'rz-unit', 'géneros', 0.7));
+      const cloud = rz('div', 'rz-cloud', null, 1.3);
+      const max = d.genres[0]?.[1] || 1;
+      d.genres.slice(0, 24).forEach(([g, secs], i) => {
+        const chip = makeEl('span', 'rz-chip', g);
+        chip.style.setProperty('--s', String(0.75 + (secs / max) * 0.9));
+        chip.style.setProperty('--i', i);
+        cloud.append(chip);
+      });
+      box.append(cloud, rz('p', 'rz-small', `Y ${numberEs(d.tracksCount)} canciones distintas: el ${Math.round(d.libraryShare * 100)} % de toda la biblioteca de Liquid.`, 3.4));
+    } });
+
+    // 7 · Artista del año
+    if (artist) {
+      slides.push({ track: artistTrack, render: (box) => {
+        box.append(rz('p', 'rz-kicker', 'Tu artista del año', 0.2), rzCover(artistTrack, 300, 'rz-cover rz-cover-xl rz-zoom', 0.6),
+          rz('h1', 'rz-mega', artist.name, 1.3),
+          rz('p', 'rz-lead', `${numberEs(artist.secs / 60)} minutos juntos · ${artist.songs.length} ${artist.songs.length === 1 ? 'canción suya' : 'canciones suyas'}`, 2),
+          rz('p', 'rz-small', `El ${Math.round(d.topArtistShare * 100)} % de todo lo que escuchaste fue suyo.`, 2.8));
+      } });
+      // 8 · Top 5 artistas
+      slides.push({ track: artistTrack, render: (box) => {
+        box.append(rz('p', 'rz-kicker', 'Los que más sonaron', 0.2), rz('h2', 'rz-title', 'Tus 5 artistas', 0.4));
+        const ol = makeEl('ol', 'rz-rank');
+        d.artists.slice(0, 5).forEach((a, i) => {
+          const li = rz('li', 'rz-rank-item', null, 0.8 + i * 0.45);
+          li.append(makeEl('span', 'rz-rank-n', String(i + 1)), rzCover(a.songs[0], 56, 'rz-rank-img'), makeEl('span', 'rz-rank-name', a.name), makeEl('span', 'rz-rank-val', `${numberEs(a.secs / 60)} min`));
+          ol.append(li);
+        });
+        box.append(ol);
+      } });
+    }
+
+    // 9 · Cuenta atrás de canciones (5 → 2)
+    slides.push({ track: top(1), render: (box) => {
+      box.append(rz('p', 'rz-kicker', 'Tus canciones del año', 0.2), rz('h2', 'rz-title', 'La cuenta atrás', 0.4));
+      const ol = makeEl('ol', 'rz-rank');
+      s.slice(1, 5).reverse().forEach((x, i, arr) => {
+        const li = rz('li', 'rz-rank-item', null, 0.9 + i * 1.6);
+        li.append(makeEl('span', 'rz-rank-n', String(arr.length - i + 1)), rzCover(x.track, 56, 'rz-rank-img'));
+        const t = makeEl('span', 'rz-rank-name');
+        t.append(makeEl('b', '', splitTitle(x.track.title).main), makeEl('small', '', x.track.knownArtist || x.track.artist));
+        li.append(t, makeEl('span', 'rz-rank-val', `${x.plays || numberEs(x.secs / 60)}${x.plays ? '×' : ' min'}`));
+        ol.append(li);
+      });
+      box.append(ol, rz('p', 'rz-small', 'Y la número uno…', 8));
+    } });
+
+    // 10 · La canción del año
+    slides.push({ track: top(0), render: (box) => {
+      const x = s[0];
+      box.append(rz('p', 'rz-kicker', 'Tu canción del año', 0.2));
+      const vinyl = rz('div', 'rz-vinyl', null, 0.6);
+      vinyl.append(rzCover(x.track, 300, 'rz-vinyl-label'));
+      box.append(vinyl, rz('h1', 'rz-mega', splitTitle(x.track.title).main, 1.4), rz('p', 'rz-sub', x.track.knownArtist || x.track.artist, 1.7),
+        rz('p', 'rz-lead', x.plays ? `La pusiste ${x.plays} ${x.plays === 1 ? 'vez' : 'veces'}: ${numberEs(x.secs / 60)} minutos con ella.` : `${numberEs(x.secs / 60)} minutos con ella.`, 2.5));
+    } });
+
+    // 11 · Tu reloj
+    slides.push({ track: top(3), render: (box) => {
+      box.append(rz('p', 'rz-kicker', 'Tu reloj musical', 0.2), rz('h2', 'rz-title', `Eres de escuchar ${franja(d.topHour)}`, 0.4));
+      const max = Math.max(...d.hours, 1);
+      const svg = document.createElementNS(SVG_NS, 'svg');
+      svg.setAttribute('viewBox', '-110 -110 220 220');
+      svg.setAttribute('class', 'rz-clock rz-in');
+      svg.style.setProperty('--d', '0.8s');
+      svg.setAttribute('aria-hidden', 'true');
+      d.hours.forEach((v, h) => {
+        const a = (h / 24) * Math.PI * 2 - Math.PI / 2;
+        const len = 14 + (v / max) * 52;
+        const line = document.createElementNS(SVG_NS, 'line');
+        line.setAttribute('x1', String(Math.cos(a) * 26));
+        line.setAttribute('y1', String(Math.sin(a) * 26));
+        line.setAttribute('x2', String(Math.cos(a) * (26 + len)));
+        line.setAttribute('y2', String(Math.sin(a) * (26 + len)));
+        line.setAttribute('class', h === d.topHour ? 'is-top' : '');
+        line.style.setProperty('--i', h);
+        svg.append(line);
+      });
+      [0, 6, 12, 18].forEach((h) => {
+        const a = (h / 24) * Math.PI * 2 - Math.PI / 2;
+        const t = document.createElementNS(SVG_NS, 'text');
+        t.setAttribute('x', String(Math.cos(a) * 102));
+        t.setAttribute('y', String(Math.sin(a) * 102 + 4));
+        t.textContent = String(h);
+        svg.append(t);
+      });
+      box.append(svg, rz('p', 'rz-lead', `Tu hora: las ${String(d.topHour).padStart(2, '0')}:00. Y tu día, los ${WEEKDAYS[d.topWeekday]}.`, 2.6));
+    } });
+
+    // 12 · Tu mes
+    slides.push({ track: top(3), render: (box) => {
+      box.append(rz('p', 'rz-kicker', 'Tu mes', 0.2), rz('h1', 'rz-mega', MESES[d.topMonth], 0.5));
+      const max = Math.max(...d.perMonth, 1);
+      const chart = rz('div', 'rz-months', null, 1.1);
+      d.perMonth.forEach((v, m) => {
+        const col = makeEl('span', `rz-month${m === d.topMonth ? ' is-top' : ''}`);
+        col.style.setProperty('--h', `${Math.max(3, (v / max) * 100)}%`);
+        col.style.setProperty('--i', m);
+        col.append(makeEl('i', '', MESES[m].slice(0, 1)));
+        chart.append(col);
+      });
+      box.append(chart, rz('p', 'rz-lead', `${numberEs(d.perMonth[d.topMonth] / 60)} minutos solo en ${MESES[d.topMonth]}.`, 2.6));
+    } });
+
+    // 13 · Tu día récord
+    slides.push({ track: d.topDayTrack || top(3), render: (box) => {
+      box.append(rz('p', 'rz-kicker', 'Tu día récord', 0.2), rz('h1', 'rz-mega', fechaEs(d.topDay), 0.5),
+        rz('p', 'rz-lead', `${numberEs(d.topDaySecs / 60)} minutos de música en un solo día.`, 1.3));
+      if (d.topDayTrack) {
+        const row = rz('div', 'rz-mini', null, 2.2);
+        row.append(rzCover(d.topDayTrack, 64, 'rz-rank-img'), makeEl('span', '', `Lo que más sonó: «${splitTitle(d.topDayTrack.title).main}», de ${d.topDayTrack.knownArtist || d.topDayTrack.artist}`));
+        box.append(row);
+      }
+    } });
+
+    // 14 · En números
+    slides.push({ track: top(4), render: (box) => {
+      box.append(rz('p', 'rz-kicker', 'Tu año en números', 0.2));
+      const grid = makeEl('div', 'rz-stats');
+      [
+        [numberEs(d.tracksCount), 'canciones distintas'], [numberEs(d.artistsCount), 'artistas'],
+        [String(d.genresExplored), 'géneros'], [String(d.activeDays), 'días con música'],
+        [String(d.favorites), 'favoritas'], [String(d.playlistsMade), d.playlistsMade === 1 ? 'playlist creada' : 'playlists creadas']
+      ].filter(([n], i) => i < 4 || n !== '0').forEach(([n, label], i) => {
+        const tile = rz('div', 'rz-stat', null, 0.5 + i * 0.35);
+        tile.append(makeEl('b', '', n), makeEl('span', '', label));
+        grid.append(tile);
+      });
+      box.append(grid);
+    } });
+
+    // 15 · Personalidad líquida
+    slides.push({ track: top(0), render: (box) => {
+      const a = d.arquetipo;
+      box.append(rz('p', 'rz-kicker', 'Tu personalidad líquida', 0.2));
+      const badge = rz('div', 'rz-badge', null, 0.8);
+      badge.append(svgIcon(a.icon, 'icon'));
+      box.append(badge, rz('h1', 'rz-mega rz-melt', a.name, 1.4), rz('p', 'rz-lead', a.desc, 2.2));
+      if (d.rasgos.length) box.append(rz('p', 'rz-small', `Con toques de ${d.rasgos.map((r) => r.name.toLowerCase()).join(' y ')}.`, 3.2));
+    } });
+
+    // 16 · Final: tarjeta para compartir y tu playlist del año
+    slides.push({ track: top(0), wait: true, render: (box) => {
+      box.append(rz('p', 'rz-kicker', `Hasta aquí tu ${d.year}`, 0.2), rz('h2', 'rz-title', 'Llévatelo contigo', 0.4));
+      const card = rz('img', 'rz-card', null, 0.8);
+      card.alt = `Tarjeta de tu Año Líquido ${d.year}`;
+      resumenCard(d).then((blob) => {
+        if (!blob) return;
+        resumen.cardBlob = blob;
+        if (resumen.cardUrl) URL.revokeObjectURL(resumen.cardUrl);
+        resumen.cardUrl = URL.createObjectURL(blob);
+        card.src = resumen.cardUrl;
+      });
+      const actions = rz('div', 'rz-actions', null, 1.4);
+      const btn = (label, action, primary) => {
+        const b = makeEl('button', `rz-btn${primary ? ' is-primary' : ''}`, label);
+        b.type = 'button';
+        b.dataset.rz = action;
+        return b;
+      };
+      actions.append(btn('Compartir tarjeta', 'share', true), btn(`Guardar «Tu ${d.year} en Liquid»`, 'playlist'), btn('Verlo otra vez', 'again'), btn('Cerrar', 'close'));
+      box.append(card, actions);
+    } });
+
+    return slides.map((slide, i) => ({ ...slide, palette: RESUMEN_PALETAS[i % RESUMEN_PALETAS.length] }));
+  }
+
+  // Tarjeta vertical (1080 × 1920) para Historias y Estados
+  async function resumenCard(d) {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1080;
+      canvas.height = 1920;
+      const ctx = canvas.getContext('2d');
+      const g = ctx.createLinearGradient(0, 0, 1080, 1920);
+      g.addColorStop(0, '#1a0b3d');
+      g.addColorStop(0.5, '#3b0a4f');
+      g.addColorStop(1, '#05030f');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, 1080, 1920);
+      [['#ff3d8b', 180, 260, 520], ['#00e5ff', 960, 900, 560], ['#7a5cff', 300, 1650, 600]].forEach(([c, x, y, r]) => {
+        const rg = ctx.createRadialGradient(x, y, 0, x, y, r);
+        rg.addColorStop(0, `${c}99`);
+        rg.addColorStop(1, `${c}00`);
+        ctx.fillStyle = rg;
+        ctx.fillRect(0, 0, 1080, 1920);
+      });
+      const font = (w, size) => `${w} ${size}px Syne, Inter, system-ui, sans-serif`;
+      const fit = (text, max) => {
+        let t = String(text);
+        while (ctx.measureText(t).width > max && t.length > 4) t = `${t.slice(0, -2)}…`;
+        return t;
+      };
+      // Escribe el texto encogiendo la letra hasta que quepa (y solo entonces lo recorta)
+      const fitText = (text, x, y, max, weight, size, min = size * 0.55) => {
+        let px = size;
+        ctx.font = font(weight, px);
+        while (ctx.measureText(String(text)).width > max && px > min) { px -= 2; ctx.font = font(weight, px); }
+        ctx.fillText(fit(text, max), x, y);
+      };
+      ctx.fillStyle = '#fff';
+      ctx.textBaseline = 'alphabetic';
+      ctx.font = font(700, 40);
+      ctx.fillText('LIQUID BULLET', 90, 140);
+      fitText('Tu Año', 90, 280, 900, 800, 104);
+      fitText(`Líquido ${d.year}`, 90, 390, 900, 800, 104);
+      const top = d.songs[0]?.track;
+      if (top) {
+        const img = new Image();
+        img.src = top.cover || top.thumb;
+        await img.decode().catch(() => null);
+        if (img.naturalWidth) {
+          ctx.save();
+          ctx.beginPath();
+          if (ctx.roundRect) ctx.roundRect(90, 450, 420, 420, 36); else ctx.rect(90, 450, 420, 420);
+          ctx.clip();
+          ctx.drawImage(img, 90, 450, 420, 420);
+          ctx.restore();
+        }
+      }
+      const block = (label, value, x, y) => {
+        ctx.font = font(600, 30);
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.fillText(label, x, y);
+        ctx.fillStyle = '#fff';
+        fitText(value, x, y + 62, 440, 800, 54);
+      };
+      block('Minutos', numberEs(d.total / 60), 560, 520);
+      block('Género', d.genres[0]?.[0] || '—', 560, 680);
+      block('Días con música', String(d.activeDays), 560, 840);
+      ctx.font = font(600, 30);
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.fillText('Tu personalidad líquida', 90, 960);
+      ctx.fillStyle = '#fff';
+      fitText(d.arquetipo.name, 90, 1036, 900, 800, 64);
+      const list = (title, items, y) => {
+        ctx.font = font(700, 32);
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.fillText(title, 90, y);
+        items.forEach((text, i) => {
+          ctx.fillStyle = '#fff';
+          fitText(`${i + 1}  ${text}`, 90, y + 62 + i * 56, 900, 700, 40, 30);
+        });
+      };
+      list('Tus canciones', d.songs.slice(0, 5).map((x) => splitTitle(x.track.title).main), 1130);
+      list('Tus artistas', d.artists.slice(0, 5).map((a) => a.name), 1490);
+      ctx.font = font(600, 30);
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      ctx.fillText('lukoffmon.github.io/LiquidBrush', 90, 1850);
+      return await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+    } catch (error) {
+      console.warn('[LiquidBullet] No se pudo dibujar la tarjeta del resumen:', error);
+      return null;
+    }
+  }
+
+  // Crea (o actualiza) la playlist propia con tus 50 canciones del año
+  function saveResumenPlaylist(d) {
+    const name = `Tu ${d.year} en Liquid`;
+    const ids = d.songs.slice(0, 50).map((x) => x.track.id);
+    let pl = library.local.find((p) => p.name === name);
+    if (pl) pl.trackIds = ids;
+    else {
+      pl = { id: newId(), name, emoji: 'ic:gift', color: '#ff3d8b', trackIds: ids, createdAt: Date.now() };
+      library.local.push(pl);
+    }
+    saveLocalPlaylists();
+    showToast(`Guardada «${name}» con tus ${songsLabel(ids.length)} del año.`, {
+      label: 'Abrir',
+      run: () => { closeResumen(); openPlaylist(`local:${pl.id}`); }
+    });
+  }
+
+  function resumenEl() {
+    if (resumen.el) return resumen.el;
+    const el = document.createElement('dialog');
+    el.className = 'resumen';
+    el.setAttribute('aria-label', 'Tu Año Líquido');
+    el.innerHTML = `
+      <div class="rz-bg" aria-hidden="true"><span class="rz-blob b1"></span><span class="rz-blob b2"></span><span class="rz-blob b3"></span><span class="rz-drips"></span></div>
+      <div class="rz-top">
+        <div class="rz-progress"></div>
+        <div class="rz-tools">
+          <button type="button" class="rz-tool" data-rz="pause" aria-label="Pausar"><svg class="icon" aria-hidden="true"><use href="#i-pause"></use></svg></button>
+          <button type="button" class="rz-tool" data-rz="music" aria-label="Música del resumen: activada"><svg class="icon" aria-hidden="true"><use href="#i-volume-high"></use></svg></button>
+          <button type="button" class="rz-tool" data-rz="close" aria-label="Cerrar"><svg class="icon" aria-hidden="true"><use href="#i-close"></use></svg></button>
+        </div>
+      </div>
+      <div class="rz-stage" aria-live="polite"></div>
+      <button type="button" class="rz-nav rz-prev" data-rz="prev" aria-label="Escena anterior"></button>
+      <button type="button" class="rz-nav rz-next" data-rz="next" aria-label="Escena siguiente"></button>`;
+    document.body.append(el);
+    resumen.el = el;
+    el.addEventListener('cancel', (event) => { event.preventDefault(); closeResumen(); });
+    el.addEventListener('click', (event) => {
+      if (resumen.held) { resumen.held = false; return; }
+      const b = event.target.closest('[data-rz]');
+      if (!b) return;
+      const action = b.dataset.rz;
+      if (action === 'next') goResumen(resumen.index + 1);
+      else if (action === 'prev') goResumen(resumen.index - 1);
+      else if (action === 'start') { resumen.wasPlaying = !els.audio.paused; goResumen(1); }
+      else if (action === 'close') closeResumen();
+      else if (action === 'pause') setResumenPaused(!resumen.paused);
+      else if (action === 'music') toggleResumenMusic();
+      else if (action === 'again') goResumen(0, true);
+      else if (action === 'playlist') saveResumenPlaylist(resumen.data);
+      else if (action === 'share') shareResumenCard();
+    });
+    // Mantener pulsado: pausa (como en las historias)
+    el.addEventListener('pointerdown', (event) => {
+      if (!event.target.closest('.rz-nav')) return;
+      clearTimeout(resumen.holdTimer);
+      resumen.holdTimer = setTimeout(() => { resumen.held = true; setResumenPaused(true, true); }, 260);
+    });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach((type) => el.addEventListener(type, () => {
+      clearTimeout(resumen.holdTimer);
+      if (resumen.held && resumen.holdPause) { resumen.holdPause = false; setResumenPaused(false); }
+    }));
+    el.tabIndex = -1;
+    // En el documento: al desaparecer el botón con foco («Empezar»), las teclas siguen llegando
+    document.addEventListener('keydown', (event) => {
+      if (!el.open || event.ctrlKey || event.metaKey || event.altKey) return;
+      if (event.key === 'ArrowRight') { event.preventDefault(); goResumen(resumen.index + 1); }
+      else if (event.key === 'ArrowLeft') { event.preventDefault(); goResumen(resumen.index - 1); }
+      else if (event.key === ' ' && !event.target.closest('button')) { event.preventDefault(); setResumenPaused(!resumen.paused); }
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (el.open && document.hidden && !resumen.paused) setResumenPaused(true);
+    });
+    return el;
+  }
+
+  async function shareResumenCard() {
+    const blob = resumen.cardBlob;
+    if (!blob) { showToast('La tarjeta aún se está dibujando…'); return; }
+    const file = new File([blob], `tu-ano-liquido-${resumen.data.year}.png`, { type: 'image/png' });
+    try {
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: `Tu Año Líquido ${resumen.data.year}`, text: 'Mi año en Liquid Bullet' });
+        return;
+      }
+    } catch (error) {
+      if (error?.name === 'AbortError') return;
+    }
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = file.name;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    showToast('Tarjeta descargada: súbela a tus Historias o Estados.');
+  }
+
+  function toggleResumenMusic() {
+    resumen.music = !resumen.music;
+    const b = resumen.el.querySelector('[data-rz="music"]');
+    b.setAttribute('aria-label', `Música del resumen: ${resumen.music ? 'activada' : 'desactivada'}`);
+    b.querySelector('use').setAttribute('href', `#i-${resumen.music ? 'volume-high' : 'volume-mute'}`);
+    if (!resumen.music) pauseByUser();
+    else resumenSound(resumen.slides[resumen.index]?.track, true);
+  }
+
+  // La música de cada escena: un fragmento (desde el 30 %) de la canción que le toca
+  function resumenSound(track, force = false) {
+    if (!resumen.music || !track || resumen.index === 0 || !isPlayable(track)) return;
+    if (!force && resumen.playing === track.id) return;
+    resumen.playing = track.id;
+    const list = [...new Set(resumen.slides.map((x) => x.track).filter(Boolean))];
+    if (state.currentTrack?.id === track.id) { if (els.audio.paused) play(); return; }
+    playCollection(list, track.id, `Tu Año Líquido ${resumen.data.year}`, `resumen:${resumen.data.year}`);
+    const at = parseDuration(track.duration) * 0.3;
+    if (at > 5) seekTo(at);
+  }
+
+  function setResumenPaused(paused, fromHold = false) {
+    if (!resumen.el) return;
+    if (paused && !resumen.paused) resumen.elapsed += performance.now() - resumen.started;
+    if (!paused && resumen.paused) resumen.started = performance.now();
+    resumen.paused = paused;
+    resumen.holdPause = fromHold && paused;
+    resumen.el.classList.toggle('is-paused', paused);
+    const b = resumen.el.querySelector('[data-rz="pause"]');
+    b.setAttribute('aria-label', paused ? 'Seguir' : 'Pausar');
+    b.querySelector('use').setAttribute('href', `#i-${paused ? 'play' : 'pause'}`);
+    if (!paused) tickResumen();
+  }
+
+  function tickResumen() {
+    cancelAnimationFrame(resumen.timer);
+    const slide = resumen.slides[resumen.index];
+    const bar = resumen.el.querySelectorAll('.rz-seg i')[resumen.index];
+    const step = () => {
+      if (!resumen.el?.open || resumen.paused) return;
+      const spent = resumen.elapsed + performance.now() - resumen.started;
+      const p = clamp(spent / RESUMEN_SLIDE_MS, 0, 1);
+      if (bar) bar.style.width = `${(slide.wait ? 1 : p) * 100}%`;
+      if (!slide.wait && p >= 1) { goResumen(resumen.index + 1); return; }
+      resumen.timer = requestAnimationFrame(step);
+    };
+    resumen.timer = requestAnimationFrame(step);
+  }
+
+  function goResumen(index, force = false) {
+    const { slides } = resumen;
+    if (index < 0) index = 0;
+    if (index >= slides.length) index = slides.length - 1;
+    // Ya estás ahí (→ en la última escena, ← en la primera): no se vuelve a pintar
+    if (!force && index === resumen.index && resumen.el.querySelector('.rz-slide')) return;
+    resumen.index = index;
+    const slide = slides[index];
+    const el = resumen.el;
+    const [c1, c2, c3] = slide.palette;
+    el.style.setProperty('--c1', c1);
+    el.style.setProperty('--c2', c2);
+    el.style.setProperty('--c3', c3);
+    el.querySelectorAll('.rz-seg i').forEach((bar, i) => { bar.style.width = i < index ? '100%' : '0%'; });
+    const stage = el.querySelector('.rz-stage');
+    const box = makeEl('section', 'rz-slide');
+    box.dataset.n = String(index);
+    slide.render(box);
+    stage.replaceChildren(box);
+    (box.querySelector('.rz-start, .rz-btn') || el).focus({ preventScroll: true });
+    el.classList.toggle('is-first', index === 0);
+    resumen.elapsed = 0;
+    resumen.started = performance.now();
+    if (resumen.paused) setResumenPaused(false);
+    resumenSound(slide.track);
+    tickResumen();
+  }
+
+  function openResumen(year = resumenSeason() ?? new Date().getFullYear()) {
+    const data = resumenData(year);
+    if (data.empty) {
+      showToast(`Aún no hay suficiente música en ${year} para tu Año Líquido (hacen falta ${RESUMEN_MIN_SECONDS / 60} minutos). Escucha un poco más y vuelve.`);
+      return;
+    }
+    const el = resumenEl();
+    resumen.data = data;
+    resumen.slides = resumenSlides(data);
+    resumen.playing = null;
+    resumen.paused = false;
+    resumen.music = true;
+    resumen.cardBlob = null;
+    el.querySelector('.rz-progress').replaceChildren(...resumen.slides.map(() => {
+      const seg = makeEl('span', 'rz-seg');
+      seg.append(makeEl('i'));
+      return seg;
+    }));
+    el.classList.toggle('is-lite', settings.ultra || reducedMotion() || !settings.motion);
+    el.showModal();
+    document.body.classList.add('resumen-open');
+    resumen.index = 0;
+    goResumen(0, true);
+    haptic(20);
+  }
+
+  function closeResumen() {
+    if (!resumen.el?.open) return;
+    cancelAnimationFrame(resumen.timer);
+    resumen.el.close();
+    document.body.classList.remove('resumen-open');
+    resumen.el.querySelector('.rz-stage').replaceChildren();
+  }
+
+  // Tarjeta de Inicio y de Stats: el evento, su cuenta atrás o «volver a verlo»
+  function resumenInvite(where) {
+    const now = new Date();
+    const season = resumenSeason(now);
+    const card = makeEl('div', `rz-invite rz-invite-${where}`);
+    if (season !== null) {
+      if (resumenData(season).empty) return null;
+      card.classList.add('is-live');
+      card.append(makeEl('span', 'rz-invite-kicker', 'Ya está aquí · solo hasta el 15 de enero'), makeEl('span', 'rz-invite-title', `Tu Año Líquido ${season}`),
+        makeEl('span', 'rz-invite-sub', 'Tus canciones, artistas, géneros y lo que dicen de ti. Unos 5 minutos, con música.'));
+      const go = makeButton('rz-invite-btn', 'resumen', `Ver tu Año Líquido ${season}`, 'gift', 'Verlo ahora');
+      go.dataset.value = String(season);
+      card.append(go);
+      return card;
+    }
+    if (where !== 'stats') return null;
+    if (now.getMonth() === 11) {
+      const days = daysToResumen(now);
+      card.append(makeEl('span', 'rz-invite-kicker', 'Se está derritiendo…'), makeEl('span', 'rz-invite-title', `Tu Año Líquido ${now.getFullYear()}`),
+        makeEl('span', 'rz-invite-sub', `Llega el 25 de diciembre: falta${days === 1 ? '' : 'n'} ${days} día${days === 1 ? '' : 's'}. Todo lo que escuches hasta entonces cuenta.`));
+      return card;
+    }
+    const last = now.getFullYear() - 1;
+    if (resumenData(last).empty) return null;
+    card.append(makeEl('span', 'rz-invite-kicker', 'Vuelve cuando quieras'), makeEl('span', 'rz-invite-title', `Tu Año Líquido ${last}`));
+    const again = makeButton('rz-invite-btn', 'resumen', `Volver a ver tu Año Líquido ${last}`, 'gift', 'Volver a verlo');
+    again.dataset.value = String(last);
+    card.append(again);
+    return card;
+  }
+
+  // Al abrir Liquid en temporada (una vez por año): aviso con «Verlo»
+  function resumenAnnounce() {
+    if (LAB_MODE) return;
+    const params = new URLSearchParams(location.search);
+    const asked = Number(params.get('resumen'));
+    if (asked >= 2000 && asked <= 2100) {
+      // Sin tocar antes la página no puede sonar: la portada pide «Empezar»
+      setTimeout(() => openResumen(asked), 400);
+      return;
+    }
+    const season = resumenSeason();
+    if (season === null || storage.get(RESUMEN_SEEN, 0) === season) return;
+    if (resumenData(season).empty) return;
+    storage.set(RESUMEN_SEEN, season);
+    setTimeout(() => showToast(`Tu Año Líquido ${season} ya está aquí.`, { label: 'Verlo', run: () => openResumen(season) }), 2500);
   }
 
   function init() {
