@@ -1,6 +1,16 @@
 {
   "releases": [
     {
+      "version": "v62",
+      "date": "noviembre 2026",
+      "title": "Filtra por género de verdad y tu tema se queda puesto",
+      "items": [
+        "Filtro por género de verdad: en la Biblioteca elige «Género (elige cuál)» en el orden, o toca «Género» junto a los filtros, y escoge Rock, Indie, Pop, Hip hop y rap, Reggaetón, Jazz, Metal… (más de 40 géneros, con cuántas canciones tiene cada uno). Cada canción muestra sus géneros, y si es de varios se ven todos: «Alternativo / Metal / Rock».",
+        "Arreglado: con cuenta, el tema que eliges (Claro, Oscuro o uno tuyo del Taller) ya no vuelve solo al que tenía guardado la cuenta. Ahora se queda el último que pusiste y viaja así a tus otros dispositivos.",
+        "En Stats, «Géneros más escuchados» ahora muestra géneros de verdad (Rock, Indie…) y no el nombre de la playlist."
+      ]
+    },
+    {
       "version": "v61",
       "date": "noviembre 2026",
       "title": "Taller de temas, pide tu canción y 786 canciones nuevas",
