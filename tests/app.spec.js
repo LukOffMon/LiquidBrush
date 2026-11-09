@@ -603,3 +603,23 @@ test('cuenta: el tema elegido en este dispositivo no lo pisa el que estaba guard
   await page.waitForTimeout(3500);
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('liquidbrush:theme')))).toBe('oscuro');
 });
+
+test('Género: se elige cuál (Rock, Indie…) y cada canción dice sus géneros', async ({ page }) => {
+  await page.goto('./');
+  await expect(page.locator('#libCount')).not.toHaveText('0');
+  await page.evaluate(() => document.querySelector('[data-view="library"]')?.click());
+  await page.selectOption('#sortSelect', 'genre');
+  await expect(page.locator('#genreChips')).toBeVisible();
+  await expect(page.locator('#genreChips .chip', { hasText: 'Indie' }).first()).toBeVisible();
+  await page.locator('#genreChips .chip', { hasText: /^Rock/ }).click();
+  await expect(page.locator('.chip-genre')).toContainText('Género: Rock');
+  await expect(page.locator('#listInfo')).toContainText('canciones');
+  // Todas las canciones que quedan son de Rock (aunque sean también de otro género)
+  const artistas = await page.locator('.track-artist').evaluateAll((els) => els.slice(0, 20).map((el) => el.textContent));
+  expect(artistas.length).toBeGreaterThan(0);
+  for (const texto of artistas) expect(texto).toMatch(/Rock/);
+  expect(artistas.some((texto) => texto.includes(' / '))).toBe(true);
+  // Volver a tocarlo quita el filtro
+  await page.locator('#genreChips .chip', { hasText: /^Rock/ }).click();
+  await expect(page.locator('.chip-genre')).toHaveText('Género');
+});

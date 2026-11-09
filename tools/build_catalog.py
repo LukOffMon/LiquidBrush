@@ -503,6 +503,40 @@ def playlist_of(track):
     return None
 
 
+# ---------- Géneros de verdad (tools/generos.py) ----------
+from generos import GENEROS, POR_PLAYLIST, ARTISTAS  # noqa: E402
+
+GENERO_INDICE = {clave: i for i, (clave, _) in enumerate(GENEROS)}
+ARTISTA_GENEROS = {artist_key(a): g.split() for a, g in ARTISTAS.items()}
+
+
+def generos_de(track):
+    """Géneros de una canción: los de su primer artista con géneros apuntados o los de su playlist."""
+    for artist in str(track['artist']).split(','):
+        key = artist_key(artist)
+        if key in ARTISTA_GENEROS:
+            return ARTISTA_GENEROS[key]
+        if key in ARTIST_PLAYLIST:
+            return POR_PLAYLIST[ARTIST_PLAYLIST[key]].split()
+    return POR_PLAYLIST[DEFAULT_PLAYLIST].split()
+
+
+def generos_catalogo(tracks):
+    """{'lista': nombres, 'canciones': {id: '3.7'}} (índices en la lista, el principal primero)."""
+    usadas = {g for v in list(POR_PLAYLIST.values()) + list(ARTISTAS.values()) for g in v.split()}
+    desconocidas = usadas - set(GENERO_INDICE)
+    if desconocidas:
+        raise SystemExit(f'tools/generos.py: géneros que no están en GENEROS: {sorted(desconocidas)}')
+    faltan = {pid for pid, *_ in PLAYLISTS} - set(POR_PLAYLIST)
+    if faltan:
+        raise SystemExit(f'tools/generos.py: playlists sin géneros en POR_PLAYLIST: {sorted(faltan)}')
+    canciones = {}
+    for t in tracks:
+        lista = list(dict.fromkeys(generos_de(t)))
+        canciones[t['id']] = '.'.join(str(GENERO_INDICE[g]) for g in lista)
+    return {'lista': [nombre for _, nombre in GENEROS], 'canciones': canciones}
+
+
 def song_key(t):
     # Títulos en japonés u otros alfabetos: se comparan tal cual (norm los dejaría vacíos)
     title = norm(re.sub(r'\(.*?\)|\[.*?\]', '', t['title'])) or t['title'].strip().lower()
@@ -682,6 +716,8 @@ def main():
         members[pid].append(t)
     # El estilo de cada canción (también de las copias repetidas) es el nombre de su playlist
     genres = {t['id']: names[playlist_of(t) or DEFAULT_PLAYLIST] for t in tracks}
+    # Y sus géneros de verdad (Rock, Indie…), para filtrar la biblioteca: ver tools/generos.py
+    generos = generos_catalogo(tracks)
 
     rng = random.Random(2026)
     order = [i for i, p in enumerate(PLAYLISTS) if p[0] not in FIXED_COVERS]
@@ -725,7 +761,7 @@ def main():
             # Excluida de las playlists (no se ve): un icono fijo según su id
             song_covers[t['id']] = int(hashlib.md5(t['id'].encode()).hexdigest(), 16) % len(song_files)
     nuevas = note_new_music(unique, previous)
-    catalog = {'version': 1, 'genres': genres, 'playlists': out, 'aliases': aliases,
+    catalog = {'version': 1, 'genres': genres, 'generos': generos, 'playlists': out, 'aliases': aliases,
                'songCoverFiles': song_files, 'songCovers': song_covers}
     (ROOT / 'catalog.json').write_text(json.dumps(catalog, ensure_ascii=False, indent=1), encoding='utf-8')
     shared = write_share_pages(tracks, out, {tid: song_files[i] for tid, i in song_covers.items()})

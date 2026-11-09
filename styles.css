@@ -3110,6 +3110,34 @@ textarea {
   background: var(--border);
 }
 
+/* «Género»: abre la fila de géneros de verdad (Rock, Indie…) para elegir uno */
+.chip-genre {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 10px;
+}
+
+.chip-icon {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.2s;
+}
+
+.chip-genre[aria-expanded="true"] .chip-icon {
+  transform: rotate(180deg);
+}
+
+.chips-genres {
+  margin-top: 8px;
+}
+
+.chip-count {
+  margin-left: 6px;
+  font-weight: 600;
+  opacity: 0.65;
+}
+
 /* ---------- Escuchadas hace poco ---------- */
 .recent-row {
   margin: 16px 4px 0;

@@ -210,9 +210,11 @@
     countedId: null,
     statsOffset: 0,
     query: '',
-    // Filtros rápidos de la lista: all | downloaded | favorites | unplayed, y un género
+    // Filtros rápidos de la lista: all | downloaded | favorites | unplayed, y un género de verdad
+    // («Rock», «Indie»…: ver tools/generos.py). genreOpen: se ve la fila para elegir el género
     filter: 'all',
     genre: '',
+    genreOpen: false,
     shuffle: false,
     repeat: 'off',
     isSeeking: false,
@@ -247,6 +249,7 @@
     recentRow: $('recentRow'),
     libraryView: $('libraryView'),
     filterChips: $('filterChips'),
+    genreChips: $('genreChips'),
     searchPlaylists: $('searchPlaylists'),
     bottomNav: $('bottomNav'),
     nowPlaying: document.querySelector('.now-playing'),
@@ -758,7 +761,9 @@
       get thumb() { return coverUrl || (this.photo ? this.photo.replace(/\.jpg$/, '-sm.jpg') : getArt().url); },
       get hue() { return coverUrl || this.photo ? null : getArt().hue; },
       lyrics: typeof t.lyrics === 'string' ? t.lyrics : '',
-      genre: ''
+      // genre: estilo (la playlist de su artista, «Lluvia Lenta»…); generos: géneros de verdad, el principal primero
+      genre: '',
+      generos: []
     };
   }
 
@@ -809,8 +814,12 @@
     state.tracks = data.filter((t) => t && typeof t.src === 'string' && t.src.trim()).map(buildTrack);
     state.trackMap = new Map(state.tracks.map((t) => [t.id, t]));
     applyAliases(library.catalog?.aliases);
+    const generos = library.catalog?.generos;
+    const nombresGenero = Array.isArray(generos?.lista) ? generos.lista : [];
     state.tracks.forEach((t) => {
       t.genre = library.catalog?.genres?.[t.id] || '';
+      const indices = String(generos?.canciones?.[t.id] || '');
+      t.generos = indices ? indices.split('.').map((i) => nombresGenero[Number(i)]).filter(Boolean) : [];
       t.songKey = songKey(t);
     });
     // Respaldo: la foto de su playlist (las copias repetidas, la de la copia que quedó)
@@ -1507,7 +1516,7 @@
   const TOP_LIMIT = 30;
   const SORTS = {
     original: 'Orden original',
-    genre: 'Género',
+    genre: 'Género (elige cuál)',
     title: 'Título (A-Z)',
     artist: 'Artista (A-Z)',
     recent: 'Escuchadas hace poco',
@@ -2535,7 +2544,7 @@
           const track = getTrack(id);
           // Una colaboración suma para todos sus artistas
           creditedArtists(track).forEach((artist) => result.artists.set(artist, (result.artists.get(artist) || 0) + secs));
-          const genre = track?.genre || 'Sin género';
+          const genre = track?.generos[0] || 'Sin género';
           result.genres.set(genre, (result.genres.get(genre) || 0) + secs);
         });
         Object.values(entry.p || {}).forEach((n) => { result.plays += n; });
@@ -3379,7 +3388,8 @@
         if (!a.knownArtist !== !b.knownArtist) return a.knownArtist ? -1 : 1;
         return collator.compare(a.knownArtist, b.knownArtist) || byTitle(a, b);
       });
-      case 'genre': return sorted.sort((a, b) => collator.compare(a.genre || '~', b.genre || '~') || byTitle(a, b));
+      // Agrupadas por su género principal (Alternativo, Bachata…) y, dentro, de la A a la Z
+      case 'genre': return sorted.sort((a, b) => collator.compare(a.generos[0] || '~', b.generos[0] || '~') || byTitle(a, b));
       case 'recent': {
         const order = new Map(library.recent.map((id, i) => [id, i]));
         return sorted.sort((a, b) => (order.get(a.id) ?? 1e9) - (order.get(b.id) ?? 1e9));
@@ -3402,7 +3412,7 @@
 
   /* ---------- Búsqueda: varias palabras, sin acentos, tolerante a erratas y en las letras ---------- */
   const haystackOf = (track) => {
-    if (track.hay === undefined) track.hay = normalize([track.title, track.artist, track.album, track.genre].join(' '));
+    if (track.hay === undefined) track.hay = normalize([track.title, track.artist, track.album, track.genre, ...track.generos].join(' '));
     return track.hay;
   };
 
@@ -5014,9 +5024,12 @@
     if (state.filter === 'downloaded') result = result.filter(isDownloaded);
     else if (state.filter === 'favorites') result = result.filter((t) => state.favorites.has(t.id));
     else if (state.filter === 'unplayed') result = result.filter((t) => !library.plays[t.id]);
-    if (state.genre) result = result.filter((t) => t.genre === state.genre);
+    if (state.genre) result = result.filter((t) => t.generos.includes(state.genre));
     return result;
   }
+
+  // «Indie / Rock»: todos los géneros de la canción, el principal primero
+  const generosDe = (track) => track.generos.join(' / ');
 
   function makeChip(action, value, label, active) {
     const chip = document.createElement('button');
@@ -5033,21 +5046,38 @@
     els.filterChips.hidden = !show;
     if (!show) {
       els.filterChips.replaceChildren();
+      if (els.genreChips) { els.genreChips.hidden = true; els.genreChips.replaceChildren(); }
       return;
     }
     const chips = Object.entries(FILTERS)
       .filter(([key]) => !(key === 'favorites' && state.view === 'favorites') && !(key === 'downloaded' && !offline.supported))
       .map(([key, label]) => makeChip('filter', key, label, state.filter === key && !(key === 'all' && state.genre)));
-    // Géneros de la lista que se ve, de más a menos canciones
+    // Géneros de verdad de la lista que se ve (una canción cuenta en cada uno de sus géneros), de más a menos
     const counts = new Map();
-    baseTracks().forEach((t) => { if (t.genre) counts.set(t.genre, (counts.get(t.genre) || 0) + 1); });
-    const genres = [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([genre]) => genre);
-    if (state.genre && !genres.includes(state.genre)) state.genre = '';
+    baseTracks().forEach((t) => t.generos.forEach((g) => counts.set(g, (counts.get(g) || 0) + 1)));
+    const genres = [...counts.entries()].sort((a, b) => b[1] - a[1] || collator.compare(a[0], b[0]));
+    if (state.genre && !counts.has(state.genre)) state.genre = '';
     if (genres.length > 1) {
+      // «Género» abre la fila de géneros; con uno elegido, el botón dice cuál («Género: Rock»)
       chips.push(makeEl('span', 'chip-sep'));
-      genres.forEach((genre) => chips.push(makeChip('genre', genre, genre, state.genre === genre)));
+      const toggle = makeChip('genre-toggle', '', state.genre ? `Género: ${state.genre}` : 'Género', Boolean(state.genre));
+      toggle.classList.add('chip-genre');
+      toggle.setAttribute('aria-expanded', String(state.genreOpen));
+      toggle.setAttribute('aria-controls', 'genreChips');
+      toggle.append(svgIcon('chevron', 'icon chip-icon'));
+      chips.push(toggle);
     }
     els.filterChips.replaceChildren(...chips);
+    if (!els.genreChips) return;
+    const open = state.genreOpen && genres.length > 1;
+    els.genreChips.hidden = !open;
+    if (!open) { els.genreChips.replaceChildren(); return; }
+    els.genreChips.replaceChildren(...genres.map(([genre, n]) => {
+      const chip = makeChip('genre', genre, genre, state.genre === genre);
+      chip.append(makeEl('span', 'chip-count', String(n)));
+      chip.setAttribute('aria-label', `${genre}: ${songsLabel(n)}`);
+      return chip;
+    }));
   }
 
   /* ---------- «¿No encontraste lo que buscabas?» (buscador sin resultados) ---------- */
@@ -5664,8 +5694,9 @@
     const artist = document.createElement('span');
     artist.className = 'track-artist';
     artist.style.display = 'block';
-    // En la Biblioteca se indica el género (o la playlist de origen) de cada canción
-    const tag = track.genre || track.album;
+    // En la Biblioteca se indican los géneros de cada canción («Indie / Rock»), o la playlist de origen
+    const tag = generosDe(track) || track.album;
+    if (track.generos.length) artist.title = `${track.generos.length > 1 ? 'Géneros' : 'Género'}: ${track.generos.join(', ')}`;
     artist.textContent = track.knownArtist && tag && state.view !== 'playlist'
       ? `${track.knownArtist} · ${tag}`
       : track.knownArtist || tag || track.artist;
@@ -8104,6 +8135,10 @@
           if (state.filter === 'all') state.genre = '';
           renderList();
           break;
+        case 'genre-toggle':
+          state.genreOpen = !state.genreOpen;
+          renderList();
+          break;
         case 'genre':
           state.genre = state.genre === target.dataset.value ? '' : target.dataset.value;
           renderList();
@@ -8163,6 +8198,8 @@
       if (event.target.id !== 'sortSelect') return;
       state.sort = event.target.value;
       storage.set(KEYS.sort, state.sort);
+      // «Género (elige cuál)»: se abre la fila de géneros para escoger Rock, Indie…
+      if (state.sort === 'genre') state.genreOpen = true;
       renderList();
     });
 
