@@ -426,7 +426,12 @@ test.describe('detección de dispositivo, sistema y navegador', () => {
       await page.goto('./');
       await expect(page.locator('#libCount')).not.toHaveText('0');
       for (const view of ['home', 'lab', 'stats']) {
+        const enLab = page.url().includes('lab.html');
         await page.evaluate((v) => document.querySelector(`.nav-btn[data-nav="${v}"], .tab[data-view="${v}"]`)?.click(), view);
+        // Lab es otra página (lab.html): al entrar y al salir se espera a que termine de cargar antes de medir
+        if (view === 'lab') await page.waitForURL(/lab\.html/);
+        else if (enLab) await page.waitForURL((url) => !url.pathname.endsWith('lab.html'));
+        await page.waitForLoadState('load');
         await page.waitForTimeout(300);
         expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), `${view} a ${width} px`).toBeLessThanOrEqual(0);
       }
@@ -638,4 +643,111 @@ test('Biblioteca de imágenes: toda la música en un TXT, con resumen y buscador
   expect(txt).toContain('LIQUID BULLET · TODA LA MÚSICA');
   expect(txt).toContain('RESUMEN POR GÉNERO');
   expect(errors).toEqual([]);
+});
+
+test('detalles: atajos (?), tiempo restante, F/C, resaltado al buscar, cola y canción del día', async ({ page }) => {
+  test.skip(isPhone(page), 'con teclado y ratón');
+  const errors = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.goto('./');
+  await expect(page.locator('#libCount')).not.toHaveText('0');
+  // Canción del día en Inicio
+  await expect(page.locator('.sotd')).toHaveCount(1);
+  // ? abre la ayuda de atajos
+  await page.keyboard.press('Shift+Slash');
+  await expect(page.locator('#shortcutsDialog')).toBeVisible();
+  await page.keyboard.press('Escape');
+  // Poner una canción, Me gusta con F y el tiempo restante al tocar el total
+  await page.evaluate(() => document.querySelector('.tab[data-view="library"]').click());
+  await page.locator('.track-main').nth(2).click();
+  await page.keyboard.press('f');
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('liquidbrush:favorites') || '[]').length)).toBe(1);
+  await page.locator('#totalTime').click();
+  await expect(page.locator('#totalTime')).toHaveText(/^−\d/);
+  // C: la lista va a la que suena
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.keyboard.press('c');
+  await expect(page.locator('.track.is-current')).toBeInViewport();
+  // Buscar resalta las palabras
+  await page.fill('#searchInput', 'radiohead creep');
+  await expect(page.locator('#trackList mark.hl').first()).toBeVisible();
+  await page.locator('#searchInput').press('ArrowDown');
+  await expect(page.locator('#trackList .track-main').first()).toBeFocused();
+  await page.fill('#searchInput', '');
+  // Cola: mezclar y vaciar (con deshacer)
+  await page.locator('#queueBtn').click();
+  await page.locator('[data-action="queue-clear"]').click();
+  await expect(page.locator('#queueInfo')).toContainText('No hay nada más');
+  await page.locator('.toast-action').click();
+  await expect(page.locator('#queueInfo')).toContainText('por delante');
+  expect(errors).toEqual([]);
+});
+
+// Un año de escucha inventado (2026) para Tu Año Líquido
+async function anoDeEscucha(page) {
+  const cat = await (await page.request.get('./catalog.json')).json();
+  const ids = cat.playlists.flatMap((p) => p.trackIds).filter((_, i) => i % 37 === 0).slice(0, 120);
+  const log = {};
+  let n = 0;
+  for (let d = new Date(2026, 0, 3); d <= new Date(2026, 10, 9); d.setDate(d.getDate() + 1)) {
+    n++;
+    if (n % 4 === 0) continue;
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const s = {}; const p = {}; const h = new Array(24).fill(0);
+    for (let k = 0; k < 6; k++) {
+      const id = ids[(n * 7 + k * k) % (k === 0 ? 3 : ids.length)];
+      s[id] = (s[id] || 0) + 180; p[id] = (p[id] || 0) + 1; h[(n + k) % 24] += 180;
+    }
+    log[key] = { s, p, h };
+  }
+  await page.addInitScript((data) => { if (!sessionStorage.getItem('log-puesto')) { localStorage.setItem('liquidbrush:listen', JSON.stringify(data)); sessionStorage.setItem('log-puesto', '1'); } }, log);
+}
+
+test.describe('Tu Año Líquido', () => {
+  test('el 25 de diciembre: aviso, tarjeta en Inicio y las 16 escenas', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    await page.clock.setFixedTime(new Date('2026-12-25T11:00:00'));
+    await anoDeEscucha(page);
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await expect(page.locator('.rz-invite.is-live')).toContainText('Tu Año Líquido 2026');
+    await expect(page.locator('.toast')).toContainText('Tu Año Líquido 2026 ya está aquí', { timeout: 6000 });
+    await page.locator('.rz-invite-btn').click();
+    await expect(page.locator('.resumen[open]')).toBeVisible();
+    await expect(page.locator('.rz-seg')).toHaveCount(16);
+    await expect(page.locator('.rz-mega')).toContainText('Tu Año Líquido');
+    await page.locator('[data-rz="start"]').click({ force: true });
+    await expect(page.locator('.rz-kicker').first()).toContainText('Este año escuchaste');
+    // Mantener pulsado pausa; soltar sigue
+    const next = page.locator('.rz-next');
+    await next.hover();
+    await page.mouse.down();
+    await expect(page.locator('.resumen')).toHaveClass(/is-paused/);
+    await page.mouse.up();
+    await expect(page.locator('.resumen')).not.toHaveClass(/is-paused/);
+    // Avanzar hasta el final tocando a la derecha (las flechas también valen)
+    for (let i = 0; i < 14; i++) await page.keyboard.press('ArrowRight');
+    await expect(page.locator('.rz-title')).toContainText('Llévatelo contigo');
+    await expect(page.locator('.rz-card')).toHaveAttribute('src', /^blob:/);
+    await page.locator('[data-rz="playlist"]').click();
+    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('liquidbrush:playlists') || '[]').some((p) => p.name === 'Tu 2026 en Liquid'))).toBe(true);
+    await page.keyboard.press('Escape');
+    await expect(page.locator('.resumen')).toBeHidden();
+    expect(errors).toEqual([]);
+  });
+
+  test('en diciembre, Stats cuenta los días; después se puede volver a ver', async ({ page }) => {
+    await page.clock.setFixedTime(new Date('2026-12-10T11:00:00'));
+    await anoDeEscucha(page);
+    await page.goto('./?view=stats');
+    await expect(page.locator('.rz-invite')).toContainText('faltan 15 días');
+    await expect(page.locator('.rz-invite-btn')).toHaveCount(0);
+    await page.clock.setFixedTime(new Date('2027-02-03T11:00:00'));
+    // Liquid quita ?view= de la dirección al abrir: se vuelve a pedir Stats
+    await page.goto('./?view=stats');
+    await expect(page.locator('.rz-invite')).toContainText('Tu Año Líquido 2026');
+    await page.locator('.rz-invite-btn').click();
+    await expect(page.locator('.resumen[open]')).toBeVisible();
+  });
 });

@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "v63",
+      "date": "noviembre 2026",
+      "title": "Tu Año Líquido y 40 detalles nuevos",
+      "items": [
+        "Tu Año Líquido: cada 25 de diciembre, Liquid te prepara el resumen de tu año. Son unos 5 minutos a pantalla completa y con música: tus minutos, tu calendario, tu primera canción, tus géneros, tu artista y tu canción del año, tu reloj, tu mes, tu día récord y tu personalidad líquida. Al final, una tarjeta para tus Historias y la playlist de tu año. En diciembre, Stats cuenta los días que faltan; se puede ver hasta el 15 de enero y luego volver a verlo desde Stats.",
+        "Canción del día en Inicio: una distinta cada día, de las que aún no has escuchado. Y «Hace un mes» y «Hace un año» en Hecho para ti: lo que sonaba entonces.",
+        "Reproductor: toca el tiempo total para ver lo que queda (−1:12). Con ratón, pasa por la barra para ver el minuto exacto y usa la rueda para el volumen o para avanzar 5 s. Si cambias la velocidad, se ve en el reproductor (tócala para volver a 1×).",
+        "Doble toque en la portada de Sonando para darle Me gusta, y desliza el mini reproductor a los lados para cambiar de canción.",
+        "Botones flotantes en las listas largas: «La que suena» te lleva a la canción que está sonando y la flecha te sube arriba.",
+        "Buscar resalta las palabras que coinciden; con teclado, ↓ pasa a los resultados e Intro pone el primero. Al pasar el cursor por una canción ves cuántas veces la escuchaste y cuándo. Las que llegaron hace poco llevan la etiqueta «Nueva».",
+        "Letras: cambia el tamaño (A− / A+), cópialas y tradúcelas también cuando van sincronizadas. Si las recorres a mano, dejan de saltar solas unos segundos. Con la letra abierta en Sonando, la pantalla no se apaga.",
+        "Cola: «Mezclar» lo que viene, «Vaciar» (con Deshacer) y a qué hora termina. El temporizador dice a qué hora pausará.",
+        "Atajos nuevos: F (Me gusta), A (menú de la canción), C (ir a la que suena), X (una al azar), Mayús + clic (al final de la cola), Ctrl/⌘ + clic (a continuación) y ? para ver todos (también en Ajustes → Ayuda).",
+        "Stats: descarga todo tu historial de escucha en CSV para Excel o Google Sheets. En el menú de cada canción, «Copiar nombre».",
+        "Arreglos: los avisos con botón (Deshacer, Abrir…) ya se pueden tocar con un diálogo abierto, Sonando muestra los géneros reales bajo el artista y si una canción no carga puedes reintentarla."
+      ]
+    },
+    {
       "version": "v62",
       "date": "noviembre 2026",
       "title": "Filtra por género de verdad y tu tema se queda puesto",
