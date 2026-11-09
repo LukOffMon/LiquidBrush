@@ -359,6 +359,7 @@
     queueEdit: $('queueEdit'),
     queueFoot: $('queueFoot'),
     addShare: $('addShare'),
+    shortcutsBtn: $('shortcutsBtn'),
     plDialog: $('plDialog'),
     plDialogTitle: $('plDialogTitle'),
     plName: $('plName'),
@@ -630,6 +631,10 @@
       // Velocidad de reproducción (0.75×–1.5×) y fundido corto al pausar/reanudar
       speed: [0.75, 1, 1.1, 1.25, 1.5].includes(saved.speed) ? saved.speed : 1,
       softPause: saved.softPause !== false,
+      // El tiempo total del reproductor muestra lo que queda («−1:12»): se cambia tocándolo
+      remaining: saved.remaining === true,
+      // Tamaño de las letras de las canciones (A− / A+ debajo de la letra)
+      lyricsSize: [0.85, 1, 1.15, 1.3, 1.5].includes(saved.lyricsSize) ? saved.lyricsSize : 1,
       // Descargar sola cada canción que marques con el corazón (solo con Wi-Fi o sin ahorro de datos)
       autoFav: saved.autoFav === true,
       // Modo ultraligero: sin vidrio, sombras, animaciones, fondo, visualizador ni letras descargadas
@@ -676,6 +681,10 @@
   let toastTimer = null;
   // Aviso flotante; con «action» lleva un botón (p. ej. Deshacer) y dura un poco más
   function showToast(message, action = null) {
+    // Con un diálogo abierto (cola, menú…) el aviso va dentro de él: si no, quedaría debajo
+    // y su botón («Deshacer», «Abrir»…) no se podría tocar
+    const host = [...document.querySelectorAll('dialog[open]')].pop() || document.body;
+    if (els.toast.parentElement !== host) host.append(els.toast);
     els.toast.replaceChildren(document.createTextNode(message));
     els.toast.classList.toggle('has-action', Boolean(action));
     if (action) {
@@ -2053,6 +2062,7 @@
     saveSettings();
     applySpeed();
     if (els.speedSelect) els.speedSelect.value = String(settings.speed);
+    updateSpeedBadge();
     updatePositionStateNow();
   }
   function stepSpeed(direction) {
@@ -2748,7 +2758,9 @@
 
     const grid = makeEl('div', 'stat-grid');
     grid.append(daily, hours, genres, artists, trend, songs);
-    panel.replaceChildren(tiles, grid);
+    const csv = makeButton('btn btn-ghost stats-csv', 'export-csv', 'Descargar todo tu historial de escucha (CSV, para Excel o Google Sheets)', 'download', 'Descargar mi historial (CSV)');
+    csv.addEventListener('click', exportListeningCsv);
+    panel.replaceChildren(tiles, grid, csv);
     if (!signedIn()) panel.append(makeEl('p', 'pl-note', 'Sin sesión, tus estadísticas se guardan solo en este dispositivo y se pierden si borras los datos del sitio. Para no perderlas, basta con iniciar sesión.'));
   }
 
@@ -4565,6 +4577,10 @@
     const picks = quickPicks(p);
     if (picks.length >= 4) parts.push(quickPicksSection(picks));
 
+    // Canción del día
+    const sotd = songOfTheDay();
+    if (sotd) parts.push(songOfTheDaySection(sotd));
+
     // Mixes del día
     const mixes = dailyMixes(p);
     parts.push(cardRow('Tus mixes del día', p.hasHistory
@@ -4592,6 +4608,8 @@
     add('discover', 'Descubre', 'Descubre semanal', weeklyDiscover(p));
     add('top', 'En repetición', 'Tu último mes', onRepeat(p), coverSrcOf(autoPlaylists()[1].cover, false));
     add('gems', 'Joyas olvidadas', 'Te encantaban y llevan semanas sin sonar', forgottenGems(p));
+    add('memory-month', 'Hace un mes', 'Lo que sonaba hace un mes', memoryTracks(30));
+    add('memory-year', 'Hace un año', 'Lo que sonaba hace un año', memoryTracks(365));
     const recent = library.recent.map(getTrack).filter(Boolean).slice(0, HOME_MIX_SIZE);
     add('recent', 'De nuevo', 'Escuchadas hace poco', recent, coverSrcOf(autoPlaylists()[0].cover, false));
     if (!lite) {
@@ -5570,14 +5588,25 @@
       els.nowPlaying.addEventListener('touchcancel', end);
 
       // Deslizar hacia arriba sobre el mini-reproductor la abre
+      // y deslizarlo a los lados cambia de canción (como la portada de Sonando)
       let miniY = null;
+      let miniX = 0;
       els.player.addEventListener('touchstart', (event) => {
         miniY = isOpen() || event.target.closest('input') ? null : event.touches[0].clientY;
+        miniX = event.touches[0].clientX;
       }, { passive: true });
       els.player.addEventListener('touchend', (event) => {
         if (miniY === null) return;
         const moved = event.changedTouches[0].clientY - miniY;
+        const side = event.changedTouches[0].clientX - miniX;
         miniY = null;
+        if (Math.abs(side) > 70 && Math.abs(side) > Math.abs(moved) * 1.6 && state.currentTrack
+          && event.target.closest('.player-track')) {
+          haptic(10);
+          if (side < 0) next(true);
+          else prev();
+          return;
+        }
         if (moved < -40) open();
       });
     }
@@ -5702,6 +5731,16 @@
       : track.knownArtist || tag || track.artist;
     artist.prepend(svgIcon('download-done', 'icon track-offline'));
     text.append(title, artist);
+    // Llegó hace poco (Novedades): una etiqueta «Nueva» junto al título
+    if (arrivals.added[track.id]) title.append(' ', makeEl('span', 'track-new', 'Nueva'));
+    // Buscando: se resaltan las palabras que coinciden
+    if (state.query.trim()) highlightWords([title, artist], state.query);
+    // Al pasar el cursor: cuántas veces la escuchaste y cuándo fue la última
+    const plays = playsOf(track.id);
+    const heard = Number(taste.heard[track.id]) || 0;
+    main.title = plays || heard
+      ? `${plays ? `Escuchada ${plays} ${plays === 1 ? 'vez' : 'veces'}` : 'Escuchada'}${heard ? ` · la última, ${haceTiempo(heard)}` : ''}`
+      : 'Aún no la has escuchado';
 
     main.append(num, img, text);
 
@@ -5993,7 +6032,7 @@
     const upcoming = state.queue.slice(state.queueIndex + 1);
     const seconds = upcoming.reduce((sum, id) => sum + parseDuration(getTrack(id)?.duration), 0);
     els.queueInfo.textContent = upcoming.length
-      ? `${state.queueContext} · ${songsLabel(upcoming.length)} · ${formatTotal(seconds)} por delante`
+      ? `${state.queueContext} · ${songsLabel(upcoming.length)} · ${formatTotal(seconds)} por delante${queueEndsAt(seconds)}`
       : 'No hay nada más en la cola. Añade canciones con ＋ › «Reproducir a continuación».';
     const rows = [];
     const current = state.currentTrack;
@@ -6092,7 +6131,9 @@
       : sleep.end ? `Temporizador: ${minutesLeft} min` : 'Temporizador de apagado';
     els.sleepBtn.setAttribute('aria-label', label);
     els.sleepBtn.title = `${label} (T)`;
-    els.sleepStatus.textContent = active ? `${label}.` : 'Elige cuándo pausar la música.';
+    els.sleepStatus.textContent = active
+      ? `${label}${sleep.end ? ` · se pausará a las ${clockAt((sleep.end - Date.now()) / 1000, 1)}` : ''}.`
+      : 'Elige cuándo pausar la música.';
     els.sleepOptions.querySelectorAll('[data-sleep]').forEach((b) => {
       const value = Number(b.dataset.sleep);
       b.classList.toggle('is-active', value === -1 ? sleep.endOfTrack : value === 0 ? !active : false);
@@ -6238,16 +6279,19 @@
     els.miniCover.src = track.thumb;
     els.npContext.textContent = state.queueContext;
     setTitle(els.npTitle, track.title);
-    els.npArtist.textContent = track.knownArtist || track.genre || track.artist;
-    els.npAlbum.textContent = track.knownArtist ? track.genre || track.album : '';
+    // Debajo del artista, sus géneros de verdad («Indie · Rock»; antes, el nombre de su playlist)
+    const generos = track.generos.join(' · ');
+    els.npArtist.textContent = track.knownArtist || track.artist || generos;
+    els.npAlbum.textContent = track.knownArtist ? generos || track.genre || track.album : '';
     els.miniTitle.textContent = splitTitle(track.title).main;
-    els.miniArtist.textContent = track.knownArtist || track.genre || track.artist;
+    els.miniArtist.textContent = track.knownArtist || track.artist || generos;
     els.npFavBtn.disabled = false;
     els.npAddBtn.disabled = false;
     els.npShareBtn.disabled = false;
     updateFavButton(els.npFavBtn, state.favorites.has(track.id));
     updateAbout(track);
-    document.title = `${track.title} · ${track.artist} — Liquid Bullet`;
+    state.docTitle = `${track.title} · ${track.artist} — Liquid Bullet`;
+    updateDocTitle();
     // Lectores de pantalla: se anuncia la canción nueva (solo si empieza a sonar)
     if (autoplay && els.announcer) els.announcer.textContent = `Sonando: ${track.title}, de ${track.knownArtist || track.artist}`;
 
@@ -6449,6 +6493,14 @@
     }
     if (isPlaying) visualizer.start();
     syncPlayButtons();
+    updateDocTitle();
+    syncWakeLock();
+  }
+
+  // La pestaña dice si suena (▶) sin tener que abrirla
+  function updateDocTitle() {
+    if (!state.docTitle || LAB_MODE) return;
+    document.title = `${document.body.classList.contains('is-playing') ? '▶ ' : ''}${state.docTitle}`;
   }
 
   /* ---------- Todos los botones de reproducir cambian a la vez ----------
@@ -6535,7 +6587,9 @@
     const percent = hasDuration ? clamp((current / duration) * 100, 0, 100) : 0;
     els.progress.style.setProperty('--fill', `${percent}%`);
     els.currentTime.textContent = formatTime(current);
-    els.totalTime.textContent = formatTime(duration);
+    els.totalTime.textContent = settings.remaining && hasDuration
+      ? `−${formatTime(Math.max(0, duration - current))}`
+      : formatTime(duration);
     els.progress.setAttribute('aria-valuetext', `${formatTime(current)} de ${formatTime(duration)}`);
   }
 
@@ -6639,8 +6693,20 @@
       plus.dataset.delta = '0.5';
       parts.push(minus, makeEl('span', 'lyrics-offset', label), plus);
     }
-    if (state.lyrics?.text && !/Instrumental/.test(state.lyrics.text)) {
-      const text = state.lyrics.synced ? state.lyrics.lines.map((l) => l.text).join('\n') : state.lyrics.text;
+    const lyricText = state.lyrics ? (state.lyrics.synced ? state.lyrics.lines.map((l) => l.text).join('\n') : state.lyrics.text) : '';
+    if (state.lyrics) {
+      // Tamaño de la letra y copiarla
+      const smaller = makeButton('btn btn-ghost lyrics-size', 'lyrics-size', 'Letra más pequeña', '', 'A−');
+      smaller.dataset.delta = '-1';
+      smaller.disabled = settings.lyricsSize <= LYRICS_SIZES[0];
+      const bigger = makeButton('btn btn-ghost lyrics-size', 'lyrics-size', 'Letra más grande', '', 'A+');
+      bigger.dataset.delta = '1';
+      bigger.disabled = settings.lyricsSize >= LYRICS_SIZES[LYRICS_SIZES.length - 1];
+      parts.push(smaller, bigger, makeButton('btn btn-ghost', 'lyrics-copy', 'Copiar la letra', '', 'Copiar'));
+    }
+    // Antes solo salía con la letra sin sincronizar (la sincronizada no tiene .text)
+    if (lyricText && !/Instrumental/.test(lyricText)) {
+      const text = lyricText;
       const link = document.createElement('a');
       link.className = 'btn btn-ghost';
       link.target = '_blank';
@@ -6779,6 +6845,20 @@
     els.lyricsBody.appendChild(fragment);
   }
 
+  // Cuándo se movió la letra a mano por última vez (el seguimiento automático espera 4 s)
+  let lyricsManualScroll = 0;
+  const LYRICS_SIZES = [0.85, 1, 1.15, 1.3, 1.5];
+  function applyLyricsSize() {
+    els.lyricsBody.style.setProperty('--lyrics-scale', String(settings.lyricsSize));
+  }
+  function stepLyricsSize(direction) {
+    const i = clamp(LYRICS_SIZES.indexOf(settings.lyricsSize) + direction, 0, LYRICS_SIZES.length - 1);
+    settings.lyricsSize = LYRICS_SIZES[i];
+    saveSettings();
+    applyLyricsSize();
+    updateLyricsTools();
+  }
+
   function syncLyrics(time, force = false) {
     if (!state.lyrics?.synced) return;
     const lines = state.lyrics.lines;
@@ -6798,7 +6878,7 @@
     if (!current) return;
     current.classList.add('is-active');
 
-    if (els.lyricsPanel.open) {
+    if (els.lyricsPanel.open && Date.now() - lyricsManualScroll > 4000) {
       const body = els.lyricsBody;
       const top = current.offsetTop - body.clientHeight / 2 + current.clientHeight / 2;
       body.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
@@ -8012,9 +8092,13 @@
         setTimeout(() => next(false, 0), 1200);
         return;
       }
+      const failed = state.currentTrack;
       showToast(navigator.onLine
         ? `No se pudo cargar el audio de «${title}».`
-        : 'Sin conexión: esta canción no está descargada.');
+        : 'Sin conexión: esta canción no está descargada.', navigator.onLine && failed ? {
+        label: 'Reintentar',
+        run: () => { if (state.currentTrack === failed) { state.retried = false; loadTrack(failed, true); } }
+      } : null);
     });
     // Guarda el tiempo escuchado antes de cerrar o esconder la app
     document.addEventListener('visibilitychange', () => {
@@ -8873,8 +8957,13 @@
       if (event.code === 'Space' && target.closest('button, summary, a')) return;
       if (target.closest('[role="tablist"], .alpha-rail')) return;
 
+      if (event.key === '?') { event.preventDefault(); openShortcuts(); return; }
       switch (event.code) {
         case 'Space': event.preventDefault(); togglePlay(); break;
+        case 'KeyF': if (state.currentTrack) toggleFavorite(state.currentTrack.id); break;
+        case 'KeyA': if (state.currentTrack) openAddDialog(state.currentTrack.id); break;
+        case 'KeyC': locateCurrent(); break;
+        case 'KeyX': playRandomSong(); break;
         case 'ArrowRight': event.preventDefault(); if (event.shiftKey) next(true); else seekBy(5); break;
         case 'ArrowLeft': event.preventDefault(); if (event.shiftKey) prev(); else seekBy(-5); break;
         // Mayús + ↑/↓: volumen (las flechas solas siguen desplazando la página)
@@ -11222,6 +11311,512 @@
     document.body.append(bar);
   }
 
+  /* ---------- Detalles de uso: atajos, gestos, avisos y pequeñas ayudas ---------- */
+
+  // «22:41»: la hora que será dentro de tantos segundos (a la velocidad de reproducción)
+  function clockAt(seconds, speed = settings.speed || 1) {
+    const at = new Date(Date.now() + (Math.max(0, seconds) / speed) * 1000);
+    return at.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  // « · termina sobre las 22:41» (solo si es hoy o esta noche: con días de música no aporta)
+  function queueEndsAt(upcomingSeconds) {
+    const left = upcomingSeconds + Math.max(0, (getDuration() || 0) - (els.audio.currentTime || 0));
+    return left > 0 && left / (settings.speed || 1) < 20 * 3600 ? ` · termina sobre las ${clockAt(left)}` : '';
+  }
+
+  // «hace 3 días», «ayer», «hace un momento»
+  function haceTiempo(ms) {
+    const seg = Math.max(0, (Date.now() - ms) / 1000);
+    if (seg < 90) return 'hace un momento';
+    if (seg < 3600) return `hace ${Math.round(seg / 60)} min`;
+    if (seg < 86400) return `hace ${Math.round(seg / 3600)} h`;
+    const dias = Math.round(seg / 86400);
+    if (dias === 1) return 'ayer';
+    if (dias < 30) return `hace ${dias} días`;
+    const meses = Math.round(dias / 30);
+    if (meses < 12) return `hace ${meses} ${meses === 1 ? 'mes' : 'meses'}`;
+    const anios = Math.round(dias / 365);
+    return `hace ${anios} ${anios === 1 ? 'año' : 'años'}`;
+  }
+
+  // Envuelve en <mark> las palabras buscadas (sin distinguir acentos ni mayúsculas)
+  function highlightWords(elements, query) {
+    const words = normalize(query).split(/\s+/).filter((w) => w.length > 1);
+    if (!words.length) return;
+    const fold = (c) => { const n = normalize(c); return n.length === 1 ? n : c.toLowerCase().slice(0, 1) || c; };
+    elements.forEach((el) => {
+      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+      const nodes = [];
+      while (walker.nextNode()) nodes.push(walker.currentNode);
+      nodes.forEach((node) => {
+        const text = node.nodeValue;
+        const folded = [...text].map(fold).join('');
+        if (folded.length !== text.length) return;
+        const marks = new Array(text.length).fill(false);
+        words.forEach((w) => {
+          let i = folded.indexOf(w);
+          while (i !== -1) {
+            for (let k = i; k < i + w.length; k++) marks[k] = true;
+            i = folded.indexOf(w, i + w.length);
+          }
+        });
+        if (!marks.includes(true)) return;
+        const frag = document.createDocumentFragment();
+        let i = 0;
+        while (i < text.length) {
+          let j = i;
+          while (j < text.length && marks[j] === marks[i]) j++;
+          const piece = text.slice(i, j);
+          frag.append(marks[i] ? makeEl('mark', 'hl', piece) : document.createTextNode(piece));
+          i = j;
+        }
+        node.replaceWith(frag);
+      });
+    });
+  }
+
+  // Pantalla encendida mientras lees la letra sincronizada en Sonando (teléfono) y suena
+  const wakeLock = { sentinel: null, wanted: false };
+  function syncWakeLock() {
+    if (!('wakeLock' in navigator)) return;
+    const want = document.visibilityState === 'visible'
+      && document.body.classList.contains('is-playing')
+      && document.body.classList.contains('np-open')
+      && els.lyricsPanel.open && Boolean(state.lyrics?.synced);
+    if (want === wakeLock.wanted) return;
+    wakeLock.wanted = want;
+    if (want) {
+      navigator.wakeLock.request('screen').then((sentinel) => {
+        if (!wakeLock.wanted) { sentinel.release().catch(() => {}); return; }
+        wakeLock.sentinel = sentinel;
+        sentinel.addEventListener('release', () => { if (wakeLock.sentinel === sentinel) { wakeLock.sentinel = null; wakeLock.wanted = false; } });
+      }).catch(() => { wakeLock.wanted = false; });
+    } else if (wakeLock.sentinel) {
+      wakeLock.sentinel.release().catch(() => {});
+      wakeLock.sentinel = null;
+    }
+  }
+
+  // Lleva la lista hasta la canción que suena y la hace destellar
+  function locateCurrent() {
+    const id = state.currentTrack?.id;
+    if (!id) { showToast('No está sonando nada.'); return; }
+    const index = list.items.findIndex((t) => t.id === id);
+    if (index < 0) {
+      showToast('La canción que suena no está en esta lista.', state.queueSource ? { label: 'Ir a ella', run: () => els.npContext.click() } : null);
+      return;
+    }
+    if (index >= list.rendered) appendListChunk(index - list.rendered + LIST_CHUNK);
+    const item = els.trackList.querySelector(`.track[data-id="${CSS.escape(id)}"]`);
+    if (!item) return;
+    const center = (tries) => {
+      const rect = item.getBoundingClientRect();
+      const delta = rect.top + rect.height / 2 - window.innerHeight / 2;
+      if (Math.abs(delta) > 2) window.scrollTo({ top: window.scrollY + delta, behavior: 'instant' });
+      if (tries > 0) requestAnimationFrame(() => center(tries - 1));
+      else {
+        item.classList.remove('is-located');
+        void item.offsetWidth;
+        item.classList.add('is-located');
+        item.querySelector('.track-main')?.focus({ preventScroll: true });
+      }
+    };
+    center(4);
+  }
+
+  // Una canción al azar de toda la biblioteca, y luego una radio a partir de ella
+  function playRandomSong() {
+    const pool = state.libraryTracks.filter((t) => isPlayable(t) && !isDisliked(t.id));
+    if (!pool.length) { showToast('No hay canciones para reproducir.'); return; }
+    const track = pool[Math.floor(Math.random() * pool.length)];
+    startRadio(artistKeyOf(track), track);
+    showToast(`Al azar: ${splitTitle(track.title).main} · ${track.knownArtist || track.artist}`);
+  }
+
+  // Canción del día: la misma todo el día, distinta cada día (de las que casi no has escuchado)
+  function songOfTheDay() {
+    const key = todayKey();
+    let hash = 2166136261;
+    for (const c of `cancion-del-dia-${key}`) hash = Math.imul(hash ^ c.charCodeAt(0), 16777619);
+    const pool = state.libraryTracks.filter((t) => !isDisliked(t.id) && playsOf(t.id) <= 1);
+    const list = pool.length >= 20 ? pool : state.libraryTracks;
+    return list.length ? list[(hash >>> 0) % list.length] : null;
+  }
+
+  function songOfTheDaySection(track) {
+    const section = homeSection('Canción del día', 'Una distinta cada día, de las que aún no has escuchado. Tócala y sigue con una radio.');
+    const item = makeEl('button', 'sotd');
+    item.type = 'button';
+    item.dataset.action = 'home-pick';
+    item.dataset.value = track.id;
+    item.setAttribute('aria-label', `Canción del día: ${track.title}, de ${track.artist}`);
+    const text = makeEl('span', 'sotd-text');
+    text.append(
+      makeEl('span', 'sotd-title', splitTitle(track.title).main),
+      makeEl('span', 'sotd-artist', track.knownArtist || track.artist),
+      makeEl('span', 'sotd-genres', track.generos.join(' · ') || track.genre)
+    );
+    const play = makeEl('span', 'sotd-play');
+    play.replaceChildren(svgIcon('play'));
+    item.append(photoImg(track.thumb, 72, 'sotd-cover'), text, play);
+    section.append(item);
+    return section;
+  }
+
+  // «Hace un mes» / «Hace un año»: lo que más sonaba esa semana
+  function memoryTracks(daysAgo) {
+    const secs = new Map();
+    for (let d = daysAgo - 3; d <= daysAgo + 3; d++) {
+      const entry = listen.log[dayKey(new Date(Date.now() - d * 86400000))];
+      Object.entries(entry?.s || {}).forEach(([id, n]) => secs.set(id, (secs.get(id) || 0) + n));
+    }
+    return [...secs.entries()].sort((a, b) => b[1] - a[1])
+      .map(([id]) => getTrack(id)).filter((t) => t && isPlayable(t) && !isDisliked(t.id)).slice(0, 30);
+  }
+
+  // Stats: tu historial de escucha completo en una hoja de cálculo (CSV)
+  function exportListeningCsv() {
+    flushListening();
+    const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const rows = [['fecha', 'cancion', 'artista', 'generos', 'minutos', 'reproducciones'].join(',')];
+    Object.keys(listen.log).sort().forEach((day) => {
+      const entry = listen.log[day];
+      const ids = new Set([...Object.keys(entry.s || {}), ...Object.keys(entry.p || {})]);
+      ids.forEach((id) => {
+        const t = getTrack(id);
+        rows.push([day, esc(t?.title || id), esc(t?.artist || ''), esc(t?.generos.join(' / ') || ''),
+          ((entry.s?.[id] || 0) / 60).toFixed(1), entry.p?.[id] || 0].join(','));
+      });
+    });
+    if (rows.length === 1) { showToast('Aún no hay escuchas que exportar.'); return; }
+    // Con BOM para que Excel lea bien los acentos
+    const blob = new Blob(['﻿' + rows.join('\n') + '\n'], { type: 'text/csv;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `liquid-bullet-historial-${dayKey()}.csv`;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    showToast(`Historial descargado: ${rows.length - 1} filas.`);
+  }
+
+  // Cola: quitar todo lo que viene (con deshacer) o mezclarlo una vez
+  function clearUpcoming() {
+    const rest = state.queue.slice(state.queueIndex + 1);
+    if (!rest.length) { showToast('No hay nada más en la cola.'); return; }
+    state.queue = state.queue.slice(0, state.queueIndex + 1);
+    resume.saveQueue();
+    renderQueue();
+    showToast(`Cola vaciada (${songsLabel(rest.length)}).`, {
+      label: 'Deshacer',
+      run: () => { state.queue = [...state.queue, ...rest]; resume.saveQueue(); if (els.queueDialog.open) renderQueue(); }
+    });
+  }
+
+  function shuffleUpcoming() {
+    const rest = state.queue.slice(state.queueIndex + 1);
+    if (rest.length < 2) { showToast('Hacen falta al menos dos canciones por delante.'); return; }
+    for (let i = rest.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [rest[i], rest[j]] = [rest[j], rest[i]];
+    }
+    state.queue = [...state.queue.slice(0, state.queueIndex + 1), ...rest];
+    resume.saveQueue();
+    renderQueue();
+    haptic(10);
+    showToast('Mezclado lo que viene.');
+  }
+
+  // Velocidad distinta de 1×: se ve en el reproductor (tocarla vuelve a la normal)
+  function updateSpeedBadge() {
+    if (!els.speedBadge) return;
+    const off = settings.speed !== 1;
+    els.speedBadge.hidden = !off;
+    els.speedBadge.textContent = `${String(settings.speed).replace('.', ',')}×`;
+  }
+
+  // Bordes de las filas de chips: se desvanecen donde hay más por ver
+  function updateChipFade(row) {
+    const max = row.scrollWidth - row.clientWidth;
+    row.classList.toggle('fade-l', max > 4 && row.scrollLeft > 4);
+    row.classList.toggle('fade-r', max > 4 && row.scrollLeft < max - 4);
+  }
+
+  const SHORTCUTS = [
+    ['Espacio', 'Reproducir / pausa'], ['← →', 'Atrás / adelante 5 s'], ['Mayús + ← →', 'Canción anterior / siguiente'],
+    ['N · P', 'Siguiente / anterior'], ['Mayús + ↑ ↓', 'Volumen'], ['M', 'Silenciar'], ['0 – 9', 'Saltar al 0 %, 10 %… de la canción'],
+    ['F', 'Me gusta a la que suena'], ['A', 'Menú de la que suena (playlist, cola, radio…)'], ['C', 'Ir a la que suena en la lista'],
+    ['X', 'Una canción al azar'], ['S', 'Aleatorio'], ['R', 'Repetir'], ['D', 'Transiciones DJ'], ['L', 'Letra'], ['Q', 'A continuación'],
+    ['T', 'Temporizador'], ['Mayús + , .', 'Velocidad'], ['/', 'Buscar'], ['↓ en el buscador', 'Ir a los resultados'],
+    ['Intro en el buscador', 'Reproducir el primer resultado'], ['Mayús + clic en una canción', 'Al final de la cola'],
+    ['Ctrl / ⌘ + clic', 'Reproducir a continuación'], ['?', 'Esta ayuda'], ['Esc', 'Cerrar Sonando']
+  ];
+
+  function openShortcuts() {
+    let dialog = document.getElementById('shortcutsDialog');
+    if (!dialog) {
+      dialog = document.createElement('dialog');
+      dialog.id = 'shortcutsDialog';
+      dialog.className = 'sheet';
+      dialog.setAttribute('aria-labelledby', 'shortcutsTitle');
+      const body = makeEl('div', 'sheet-body');
+      const title = makeEl('h2', 'sheet-title', 'Atajos de teclado');
+      title.id = 'shortcutsTitle';
+      const table = makeEl('dl', 'shortcuts');
+      SHORTCUTS.forEach(([keys, what]) => {
+        const row = makeEl('div', 'shortcut');
+        const dt = makeEl('dt');
+        keys.split(/( \+ | · | – )/).forEach((part) => {
+          if (/^( \+ | · | – )$/.test(part)) dt.append(part);
+          else if (part) dt.append(makeEl('kbd', '', part));
+        });
+        row.append(dt, makeEl('dd', '', what));
+        table.append(row);
+      });
+      const actions = makeEl('div', 'sheet-actions');
+      const close = makeEl('button', 'btn', 'Cerrar');
+      close.type = 'button';
+      close.addEventListener('click', () => dialog.close());
+      actions.append(close);
+      body.append(title, makeEl('p', 'sheet-text', 'Funcionan en cualquier vista, salvo mientras escribes.'), table, actions);
+      dialog.append(body);
+      dialog.addEventListener('click', (event) => { if (event.target === dialog) dialog.close(); });
+      document.body.append(dialog);
+    }
+    dialog.showModal();
+  }
+
+  async function copyText(text, done) {
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast(done);
+    } catch {
+      showToast('No se pudo copiar en este navegador.');
+    }
+  }
+
+  function setupExtras() {
+    if (LAB_MODE) return;
+    const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
+
+    // 1. Tocar el tiempo total alterna entre la duración y lo que queda
+    els.totalTime.setAttribute('role', 'button');
+    els.totalTime.tabIndex = 0;
+    els.totalTime.title = 'Tocar: duración / tiempo restante';
+    const toggleRemaining = () => {
+      settings.remaining = !settings.remaining;
+      saveSettings();
+      updateProgressUI(els.audio.currentTime || 0, getDuration());
+    };
+    els.totalTime.addEventListener('click', toggleRemaining);
+    els.totalTime.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggleRemaining(); }
+    });
+
+    // 2. Pasar el ratón por la barra: el minuto exacto donde caerías
+    const tip = makeEl('span', 'seek-tip');
+    tip.setAttribute('aria-hidden', 'true');
+    els.progress.parentElement.append(tip);
+    els.progress.addEventListener('pointermove', (event) => {
+      if (event.pointerType !== 'mouse') return;
+      const duration = getDuration();
+      if (!duration) { tip.classList.remove('is-on'); return; }
+      const rect = els.progress.getBoundingClientRect();
+      const x = clamp(event.clientX - rect.left, 0, rect.width);
+      tip.textContent = formatTime((x / rect.width) * duration);
+      tip.style.left = `${x}px`;
+      tip.classList.add('is-on');
+    });
+    els.progress.addEventListener('pointerleave', () => tip.classList.remove('is-on'));
+
+    // 3-5. Rueda del ratón: volumen (con su porcentaje a la vista) y avanzar/retroceder
+    const volTip = makeEl('span', 'vol-tip');
+    volTip.setAttribute('aria-hidden', 'true');
+    els.volume.parentElement.append(volTip);
+    let volTimer = 0;
+    const flashVolume = () => {
+      const shown = els.audio.muted ? 0 : state.volume;
+      volTip.textContent = `${Math.round(shown * 100)} %`;
+      volTip.classList.add('is-on');
+      els.volume.title = `Volumen: ${Math.round(shown * 100)} %`;
+      clearTimeout(volTimer);
+      volTimer = setTimeout(() => volTip.classList.remove('is-on'), 900);
+    };
+    els.volume.addEventListener('input', flashVolume);
+    els.volume.addEventListener('wheel', (event) => {
+      event.preventDefault();
+      setVolume(clamp(state.volume + (event.deltaY < 0 ? 0.05 : -0.05), 0, 1));
+      flashVolume();
+    }, { passive: false });
+    els.progress.addEventListener('wheel', (event) => {
+      if (!state.currentTrack || !getDuration()) return;
+      event.preventDefault();
+      seekBy(event.deltaY < 0 ? 5 : -5);
+    }, { passive: false });
+    document.addEventListener('keydown', (event) => {
+      if (event.shiftKey && (event.code === 'ArrowUp' || event.code === 'ArrowDown') && !event.target.closest?.('input, textarea, select')) {
+        requestAnimationFrame(flashVolume);
+      }
+    });
+
+    // 6. Doble toque en la portada de Sonando: Me gusta (con un corazón que late)
+    const coverWrap = els.cover.closest('.cover-wrap');
+    if (coverWrap) {
+      const heart = makeEl('span', 'like-burst');
+      heart.setAttribute('aria-hidden', 'true');
+      heart.append(svgIcon('heart-fill'));
+      coverWrap.append(heart);
+      let lastTap = 0;
+      let lastLike = 0;
+      let tapStart = null;
+      const like = () => {
+        const track = state.currentTrack;
+        if (!track || Date.now() - lastLike < 450) return;
+        lastLike = Date.now();
+        if (!state.favorites.has(track.id)) toggleFavorite(track.id);
+        else haptic(10);
+        heart.classList.remove('is-on');
+        void heart.offsetWidth;
+        heart.classList.add('is-on');
+      };
+      coverWrap.addEventListener('touchstart', (event) => {
+        tapStart = event.touches.length === 1 ? { x: event.touches[0].clientX, y: event.touches[0].clientY } : null;
+      }, { passive: true });
+      coverWrap.addEventListener('touchend', (event) => {
+        if (!tapStart) return;
+        const t = event.changedTouches[0];
+        if (Math.hypot(t.clientX - tapStart.x, t.clientY - tapStart.y) > 12) { lastTap = 0; return; }
+        const now = Date.now();
+        if (now - lastTap < 320) { lastTap = 0; like(); } else lastTap = now;
+      });
+      coverWrap.addEventListener('dblclick', (event) => { event.preventDefault(); like(); });
+    }
+
+    // 8. Pantalla encendida con la letra: se revisa al abrir/cerrar Sonando, la letra o la pestaña
+    new MutationObserver(syncWakeLock).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    els.lyricsPanel.addEventListener('toggle', syncWakeLock);
+    document.addEventListener('visibilitychange', syncWakeLock);
+
+    // 16. Mayús + clic: al final de la cola · Ctrl/⌘ + clic: a continuación
+    els.library.addEventListener('click', (event) => {
+      if (!event.shiftKey && !event.ctrlKey && !event.metaKey) return;
+      const main = event.target.closest('.track [data-action="play"]');
+      if (!main) return;
+      event.preventDefault();
+      event.stopPropagation();
+      queueTrack(main.closest('.track').dataset.id, event.shiftKey);
+    }, true);
+
+    // 17-18. Botones flotantes: «Ir a la que suena» y «Volver arriba»
+    const floats = makeEl('div', 'float-actions');
+    const goCurrent = makeButton('float-btn', 'float-current', 'Ir a la canción que suena (C)', '');
+    goCurrent.replaceChildren(makeEl('span', 'float-eq'), makeEl('span', '', 'La que suena'));
+    goCurrent.querySelector('.float-eq').append(...Array.from({ length: 3 }, () => makeEl('span')));
+    const goTop = makeButton('float-btn float-top', 'float-top', 'Volver arriba', 'arrow-up');
+    floats.append(goCurrent, goTop);
+    document.body.append(floats);
+    goCurrent.addEventListener('click', locateCurrent);
+    goTop.addEventListener('click', () => {
+      els.library.scrollIntoView({ block: 'start', behavior: settings.motion && !reducedMotion() ? 'smooth' : 'auto' });
+    });
+    let floatFrame = 0;
+    const updateFloats = () => {
+      floatFrame = 0;
+      const listShown = !els.trackList.closest('[hidden]') && els.trackList.offsetParent !== null && list.items.length > 15;
+      goTop.hidden = !(listShown && window.scrollY > 1400);
+      let showCurrent = false;
+      const id = state.currentTrack?.id;
+      if (listShown && id && list.items.length > 30 && list.items.some((t) => t.id === id)) {
+        const row = els.trackList.querySelector(`.track[data-id="${CSS.escape(id)}"]`);
+        const rect = row?.getBoundingClientRect();
+        showCurrent = !rect || rect.bottom < 60 || rect.top > window.innerHeight - 120;
+      }
+      goCurrent.hidden = !showCurrent;
+      floats.classList.toggle('is-empty', goTop.hidden && goCurrent.hidden);
+    };
+    const queueFloats = () => { if (!floatFrame) floatFrame = requestAnimationFrame(updateFloats); };
+    window.addEventListener('scroll', queueFloats, { passive: true });
+    window.addEventListener('resize', queueFloats);
+    new MutationObserver(queueFloats).observe(els.trackList, { childList: true });
+    els.audio.addEventListener('play', queueFloats);
+    updateFloats();
+
+    // 21-22. Buscador: ↓ pasa a los resultados; Intro reproduce el primero (con teclado físico)
+    els.searchInput.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowDown') {
+        const first = els.trackList.querySelector('.track-main');
+        if (first && state.query.trim()) { event.preventDefault(); first.focus(); }
+      } else if (event.key === 'Enter' && finePointer.matches && state.query.trim() && list.items[0]) {
+        playFromList(list.items[0].id);
+      }
+    });
+    // ↑/↓ entre canciones de la lista (↑ en la primera vuelve al buscador)
+    els.trackList.addEventListener('keydown', (event) => {
+      if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+      const current = event.target.closest('.track-main');
+      if (!current) return;
+      const rows = [...els.trackList.querySelectorAll('.track-main')];
+      const i = rows.indexOf(current);
+      const target = rows[i + (event.key === 'ArrowDown' ? 1 : -1)];
+      event.preventDefault();
+      if (target) target.focus();
+      else if (event.key === 'ArrowUp' && state.query.trim()) els.searchInput.focus();
+    });
+
+    // 23. Filas de chips: bordes que se desvanecen donde hay más
+    document.addEventListener('scroll', (event) => {
+      if (event.target instanceof Element && event.target.classList.contains('chips')) updateChipFade(event.target);
+    }, true);
+    const fadeAll = () => document.querySelectorAll('.chips:not([hidden])').forEach(updateChipFade);
+    new MutationObserver(fadeAll).observe(els.filterChips, { childList: true });
+    if (els.genreChips) new MutationObserver(fadeAll).observe(els.genreChips, { childList: true });
+    window.addEventListener('resize', fadeAll);
+
+    // 24-26. Letra: tamaño, copiar y no saltar mientras la recorres a mano
+    applyLyricsSize();
+    els.lyricsPanel.addEventListener('click', (event) => {
+      const size = event.target.closest('[data-action="lyrics-size"]');
+      if (size) { stepLyricsSize(Number(size.dataset.delta)); return; }
+      if (event.target.closest('[data-action="lyrics-copy"]') && state.lyrics) {
+        const text = state.lyrics.synced ? state.lyrics.lines.map((l) => l.text).join('\n') : state.lyrics.text;
+        const track = state.currentTrack;
+        copyText(`${track ? `${track.title} · ${track.knownArtist || track.artist}\n\n` : ''}${text}`, 'Letra copiada.');
+      }
+    });
+    ['wheel', 'touchmove'].forEach((type) => els.lyricsBody.addEventListener(type, () => { lyricsManualScroll = Date.now(); }, { passive: true }));
+
+    // 28-29. Cola: mezclar o vaciar lo que viene
+    const queueTools = makeEl('div', 'queue-tools');
+    const mix = makeButton('btn btn-ghost', 'queue-mix', 'Mezclar lo que viene', 'shuffle', 'Mezclar');
+    const empty = makeButton('btn btn-ghost', 'queue-clear', 'Quitar todo lo que viene', 'delete', 'Vaciar');
+    queueTools.append(mix, empty);
+    els.queueInfo.after(queueTools);
+    mix.addEventListener('click', shuffleUpcoming);
+    empty.addEventListener('click', clearUpcoming);
+
+    // 30. Menú de la canción: copiar «Artista – Título»
+    if (els.addShare) {
+      const copy = makeButton('btn', 'copy-name', 'Copiar «Artista – Título»', 'link', 'Copiar nombre');
+      els.addShare.after(copy);
+      copy.addEventListener('click', () => {
+        const track = getTrack(addTarget);
+        els.addDialog.close();
+        if (track) copyText(`${track.knownArtist || track.artist} – ${track.title}`, 'Nombre copiado.');
+      });
+    }
+
+    // 38. Velocidad distinta de 1× a la vista
+    els.speedBadge = makeButton('speed-badge', 'speed-reset', 'Volver a la velocidad normal', '', '1×');
+    els.totalTime.after(els.speedBadge);
+    els.speedBadge.addEventListener('click', () => { setSpeed(1); showToast('Velocidad normal.'); });
+    updateSpeedBadge();
+
+    // Ayuda de Ajustes: atajos de teclado
+    if (els.shortcutsBtn) els.shortcutsBtn.addEventListener('click', () => { els.settingsDialog?.close(); openShortcuts(); });
+  }
+
   function init() {
     errorLog.init();
     detectLiteMode();
@@ -11267,6 +11862,7 @@
     pedir.init();
     tour.init();
     install.init();
+    setupExtras();
     inappNotice();
     if (els.deviceInfo) els.deviceInfo.textContent = `Tu dispositivo: ${deviceSummary()}. La app se adapta sola a él.`;
     document.querySelectorAll('.settings-group-title').forEach((title) => title.prepend(sticker(title.textContent)));

@@ -426,7 +426,12 @@ test.describe('detección de dispositivo, sistema y navegador', () => {
       await page.goto('./');
       await expect(page.locator('#libCount')).not.toHaveText('0');
       for (const view of ['home', 'lab', 'stats']) {
+        const enLab = page.url().includes('lab.html');
         await page.evaluate((v) => document.querySelector(`.nav-btn[data-nav="${v}"], .tab[data-view="${v}"]`)?.click(), view);
+        // Lab es otra página (lab.html): al entrar y al salir se espera a que termine de cargar antes de medir
+        if (view === 'lab') await page.waitForURL(/lab\.html/);
+        else if (enLab) await page.waitForURL((url) => !url.pathname.endsWith('lab.html'));
+        await page.waitForLoadState('load');
         await page.waitForTimeout(300);
         expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), `${view} a ${width} px`).toBeLessThanOrEqual(0);
       }
@@ -637,5 +642,43 @@ test('Biblioteca de imágenes: toda la música en un TXT, con resumen y buscador
   const txt = await (await page.request.get('./musica-liquid.txt')).text();
   expect(txt).toContain('LIQUID BULLET · TODA LA MÚSICA');
   expect(txt).toContain('RESUMEN POR GÉNERO');
+  expect(errors).toEqual([]);
+});
+
+test('detalles: atajos (?), tiempo restante, F/C, resaltado al buscar, cola y canción del día', async ({ page }) => {
+  test.skip(isPhone(page), 'con teclado y ratón');
+  const errors = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.goto('./');
+  await expect(page.locator('#libCount')).not.toHaveText('0');
+  // Canción del día en Inicio
+  await expect(page.locator('.sotd')).toHaveCount(1);
+  // ? abre la ayuda de atajos
+  await page.keyboard.press('Shift+Slash');
+  await expect(page.locator('#shortcutsDialog')).toBeVisible();
+  await page.keyboard.press('Escape');
+  // Poner una canción, Me gusta con F y el tiempo restante al tocar el total
+  await page.evaluate(() => document.querySelector('.tab[data-view="library"]').click());
+  await page.locator('.track-main').nth(2).click();
+  await page.keyboard.press('f');
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('liquidbrush:favorites') || '[]').length)).toBe(1);
+  await page.locator('#totalTime').click();
+  await expect(page.locator('#totalTime')).toHaveText(/^−\d/);
+  // C: la lista va a la que suena
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.keyboard.press('c');
+  await expect(page.locator('.track.is-current')).toBeInViewport();
+  // Buscar resalta las palabras
+  await page.fill('#searchInput', 'radiohead creep');
+  await expect(page.locator('#trackList mark.hl').first()).toBeVisible();
+  await page.locator('#searchInput').press('ArrowDown');
+  await expect(page.locator('#trackList .track-main').first()).toBeFocused();
+  await page.fill('#searchInput', '');
+  // Cola: mezclar y vaciar (con deshacer)
+  await page.locator('#queueBtn').click();
+  await page.locator('[data-action="queue-clear"]').click();
+  await expect(page.locator('#queueInfo')).toContainText('No hay nada más');
+  await page.locator('.toast-action').click();
+  await expect(page.locator('#queueInfo')).toContainText('por delante');
   expect(errors).toEqual([]);
 });

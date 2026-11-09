@@ -443,6 +443,7 @@ body.is-playing .cover-wrap {
 .lyrics-static {
   margin: 0;
   color: var(--text-muted);
+  font-size: calc(1rem * var(--lyrics-scale, 1));
   line-height: 1.7;
   white-space: pre-wrap;
 }
@@ -450,7 +451,7 @@ body.is-playing .cover-wrap {
 .lyric-line {
   margin: 0;
   padding: 5px 0;
-  font-size: 1rem;
+  font-size: calc(1rem * var(--lyrics-scale, 1));
   font-weight: 700;
   line-height: 1.45;
   color: var(--text-muted);
@@ -7073,4 +7074,411 @@ textarea {
 .tema-contrast,
 .tema-color-val {
   font-family: var(--song-font);
+}
+
+/* =========================================================
+   Detalles de uso: atajos, gestos, avisos y pequeñas ayudas
+   ========================================================= */
+
+/* Texto seleccionado con el color del tema */
+::selection {
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
+  color: var(--text);
+}
+
+/* Barras de desplazamiento finas con el acento (ratón) */
+@media (hover: hover) and (pointer: fine) {
+  html {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--accent) 45%, transparent) transparent;
+  }
+}
+
+/* Tiempo total: se toca para ver lo que queda */
+#totalTime[role="button"] {
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+#totalTime[role="button"]:hover {
+  color: var(--text);
+}
+
+/* Minuto bajo el cursor en la barra de progreso */
+.seek-tip,
+.vol-tip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  padding: 3px 8px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, 4px);
+  transition: opacity 0.15s, transform 0.15s;
+  z-index: 3;
+}
+
+.seek-tip.is-on,
+.vol-tip.is-on {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.player-volume {
+  position: relative;
+}
+
+.vol-tip {
+  left: auto;
+  right: 0;
+  transform: translate(0, 4px);
+}
+
+.vol-tip.is-on {
+  transform: translate(0, 0);
+}
+
+/* Velocidad distinta de 1× */
+.speed-badge {
+  flex-shrink: 0;
+  padding: 2px 7px;
+  border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--accent);
+  font-size: 0.7rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* Doble toque en la portada: corazón que late */
+.cover-wrap {
+  position: relative;
+}
+
+.like-burst {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.like-burst .icon {
+  width: 34%;
+  height: 34%;
+  fill: #fff;
+  filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.45));
+}
+
+.like-burst.is-on {
+  animation: like-burst 0.9s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes like-burst {
+  0% { opacity: 0; transform: scale(0.4); }
+  20% { opacity: 1; transform: scale(1.15); }
+  40% { transform: scale(0.95); }
+  70% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.1); }
+}
+
+/* Canciones que llegaron hace poco */
+.track-new {
+  display: inline-block;
+  margin-left: 2px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  color: var(--accent);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: 2px;
+}
+
+/* Palabras buscadas */
+mark.hl {
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+  color: inherit;
+  border-radius: 3px;
+  padding: 0 1px;
+}
+
+/* «Ir a la que suena»: la fila destella */
+.track.is-located {
+  animation: track-located 1.6s ease-out;
+}
+
+@keyframes track-located {
+  0%, 30% { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+  100% { background: transparent; }
+}
+
+/* Botones flotantes: la que suena y volver arriba */
+.float-actions {
+  position: fixed;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: calc(var(--player-h, 88px) + 14px + env(safe-area-inset-bottom));
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.float-actions.is-empty {
+  display: none;
+}
+
+.float-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-2) 92%, transparent);
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 700;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  cursor: pointer;
+  pointer-events: auto;
+  animation: float-in 0.25s ease-out;
+}
+
+.float-btn[hidden] {
+  display: none;
+}
+
+.float-top {
+  width: 42px;
+  padding: 0;
+  justify-content: center;
+}
+
+.float-btn .icon {
+  width: 20px;
+  height: 20px;
+}
+
+.float-eq {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+}
+
+.float-eq span {
+  width: 3px;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent);
+  transform-origin: bottom;
+  animation: float-eq 0.9s ease-in-out infinite alternate;
+}
+
+.float-eq span:nth-child(2) { animation-delay: -0.3s; }
+.float-eq span:nth-child(3) { animation-delay: -0.6s; }
+
+body:not(.is-playing) .float-eq span {
+  animation-play-state: paused;
+}
+
+@keyframes float-eq {
+  from { transform: scaleY(0.3); }
+  to { transform: scaleY(1); }
+}
+
+@keyframes float-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+body.np-open .float-actions {
+  display: none;
+}
+
+/* Filas de chips: se desvanecen donde hay más por ver */
+.chips.fade-r {
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent);
+  mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent);
+}
+
+.chips.fade-l {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 36px);
+  mask-image: linear-gradient(90deg, transparent, #000 36px);
+}
+
+.chips.fade-l.fade-r {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 36px, #000 calc(100% - 36px), transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 36px, #000 calc(100% - 36px), transparent);
+}
+
+/* Letra: tamaño y copiar */
+.lyrics-size {
+  min-width: 40px;
+  font-weight: 800;
+}
+
+/* Cola: mezclar y vaciar */
+.queue-tools {
+  display: flex;
+  gap: 8px;
+  margin: -4px 0 10px;
+}
+
+.queue-tools .btn .icon {
+  width: 18px;
+  height: 18px;
+}
+
+/* Canción del día */
+.sotd {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: linear-gradient(120deg, color-mix(in srgb, var(--accent) 16%, var(--surface)) 0%, var(--surface) 70%);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.2s, background-color 0.2s;
+}
+
+.sotd:hover {
+  transform: translateY(-1px);
+}
+
+.sotd-cover {
+  flex-shrink: 0;
+  width: 72px;
+  height: 72px;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.sotd-text {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sotd-title,
+.sotd-artist,
+.sotd-genres {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sotd-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.sotd-artist {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.sotd-genres {
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.sotd-play {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.sotd-play .icon {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+}
+
+/* Stats: descargar el historial */
+.stats-csv {
+  margin: 18px auto 0;
+  display: flex;
+}
+
+/* Atajos de teclado */
+.shortcuts {
+  display: grid;
+  gap: 2px;
+  margin: 0 0 12px;
+  max-height: min(60vh, 520px);
+  overflow-y: auto;
+}
+
+.shortcut {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 2px;
+  border-bottom: 1px solid var(--border);
+}
+
+.shortcut dt {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.shortcut dd {
+  margin: 0;
+  text-align: right;
+  font-size: 0.88rem;
+}
+
+.shortcut kbd {
+  display: inline-block;
+  min-width: 22px;
+  padding: 2px 7px;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--text);
+  font: 700 0.75rem/1.4 inherit;
+  font-family: inherit;
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .like-burst.is-on,
+  .track.is-located,
+  .float-btn,
+  .float-eq span {
+    animation: none;
+  }
 }
