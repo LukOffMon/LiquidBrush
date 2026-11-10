@@ -295,6 +295,21 @@ Liquid está pensada primero para el móvil:
 - **Índice A–Z** a la derecha de la Biblioteca cuando se ordena por título o artista.
 - Avisos con **Deshacer** al quitar canciones o borrar playlists (pasan 30 días en la **Papelera**).
 
+## Liquid ATK (v68)
+
+Modo opcional (**Ajustes → Liquid ATK**, se recuerda como el ultraligero). Al encenderlo, la marca pasa a **Liquid ATK** con una animación corta (sin animación con «reducir movimiento» o en ultraligero).
+
+- **Fuentes** (todas gratis, con CORS, llamadas desde el navegador):
+  - **Audius** (`api.audius.co`, sin clave; `app_name=liquidbullet`): búsqueda, tendencias por género y audio completo.
+  - **Internet Archive** (`archive.org`): solo la Live Music Archive (`mediatype:etree`), netlabels, 78 rpm y Free Music Archive; fuera lo «solo streaming» y colecciones de origen dudoso.
+  - **Jamendo**: se activa poniendo una clave pública gratis (devportal.jamendo.com) en `CONFIG.jamendoClientId` (`app.js`). Vacía, ATK usa solo las otras dos.
+- **Mejor opción**: se consulta a las tres a la vez y se pinta en cuanto responde cada una. Puntúa coincidencia con lo escrito (título y artista), duración razonable, popularidad y fuente; quita duplicados entre fuentes. Descarta pódcasts, episodios, pistas de menos de 40 s, canciones que Liquid ya tiene y subidas no verificadas de Audius a nombre de artistas del catálogo de Liquid.
+- **En Buscar**: si Liquid no tiene nada, el mejor resultado es el de ATK; debajo, «Más allá de Liquid» y el filtro **Liquid ATK**. Sin nada en ninguno, la tarjeta de pedir canción.
+- **En todo Liquid**: Inicio (tendencias de tus géneros), Lab (cuota de ATK según «Descubrimiento»), radios (una de cada cuatro), página de artista («Más de X en Liquid ATK»), Stats (minutos en ATK) y Buscar antes de escribir (lo que suena esta semana). **Nunca** en las playlists de base ni en los mixes del día.
+- **Canciones ATK**: id `atk:au:<id>`, `atk:ia:<identificador>/<archivo>` o `atk:ja:<id>`; portada de `covers/songs/` elegida por el id; etiqueta ATK; sin descarga, sin enlace para compartir, sin ecualizador. Créditos y licencia en el menú + y en «Acerca de ATK».
+- **Guardado**: los datos de las ATK que usas (favoritas, playlists, recientes, cola) van a `liquidbrush:atk-tracks`. La cuenta ya sincroniza sus ids; en otro dispositivo Liquid recupera los datos preguntando a la fuente.
+- **ATK apagado**: no se hace ninguna petición a esas fuentes; las ATK de tus listas salen atenuadas («Solo en Liquid ATK») y no suenan.
+
 ## Buscar (v67)
 
 - **Teléfono**: tocar Buscar (o el buscador) abre un modo propio a pantalla completa: buscador fijo arriba con **Cancelar** (vuelve a la vista de antes), sin barra superior, pestañas ni cabecera. Busca siempre en toda la música.

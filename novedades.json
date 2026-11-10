@@ -1,6 +1,23 @@
 {
   "releases": [
     {
+      "version": "v68",
+      "date": "noviembre 2026",
+      "title": "Liquid ATK: millones de canciones más, cuando las necesites",
+      "items": [
+        "Nuevo modo Liquid ATK (Ajustes → Liquid ATK), que se enciende como el ultraligero y entra con su propia animación: Liquid Bullet pasa a Liquid ATK.",
+        "Buscar: si algo no está en Liquid, ATK lo busca en millones de canciones abiertas y legales (artistas independientes, directos grabados con permiso de las bandas, sellos libres), elige la mejor versión y la reproduce aquí, con portadas de Liquid.",
+        "ATK descarta lo que no vale: pódcasts, audiolibros, pistas sueltas de segundos, copias de canciones que Liquid ya tiene y subidas de cuentas sin verificar a nombre de artistas de Liquid.",
+        "Inicio con ATK: tarjetas con lo que más suena esta semana en tus estilos, fuera de tu biblioteca.",
+        "Lab con ATK: tus mezclas suman canciones de fuera en los estilos que elijas; «Descubrimiento» decide cuántas.",
+        "Radios con ATK: una de cada cuatro canciones llega de fuera, del mismo estilo.",
+        "Páginas de artista con ATK: «Más de este artista en Liquid ATK» (por ejemplo, directos).",
+        "Stats cuenta tus minutos en ATK, y Buscar enseña lo que suena esta semana antes de escribir.",
+        "Las canciones ATK se guardan en favoritas y en tus playlists, viajan con tu cuenta y llevan sus créditos y su licencia en el menú +. Nunca entran en las playlists de Liquid.",
+        "Con ATK apagado, Liquid es el de siempre: las canciones ATK de tus playlists salen atenuadas hasta que lo vuelvas a encender."
+      ]
+    },
+    {
       "version": "v67",
       "date": "noviembre 2026",
       "title": "Buscar, rehecho (sobre todo en el teléfono)",

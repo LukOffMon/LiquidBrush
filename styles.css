@@ -9621,3 +9621,436 @@ body.is-private .np-eyebrow::after {
 [data-theme="minimal"] mark.hl {
   background: color-mix(in srgb, #ffd23f 60%, transparent);
 }
+
+/* =========================================================
+   v68: Liquid ATK
+   ========================================================= */
+:root {
+  --atk: #c6ff3a;
+  --atk-ink: #0b0d06;
+}
+
+/* La etiqueta ATK: pequeña, rotunda y siempre legible */
+.atk-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 6px;
+  padding: 1px 6px 0;
+  border-radius: 5px;
+  background: var(--atk);
+  color: var(--atk-ink);
+  font-family: var(--title-font);
+  font-size: 0.62rem;
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1.5;
+  vertical-align: 2px;
+  -webkit-text-fill-color: currentColor;
+}
+
+.track-title .atk-mark {
+  margin: 0 0 0 4px;
+}
+
+/* La marca «Liquid ATK» en la barra de arriba */
+:root.atk .brand-name span {
+  background: linear-gradient(100deg, var(--atk), #ffffff 55%, var(--atk));
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+:root.atk:not(.no-motion) .brand-name span {
+  animation: atk-shine 6s linear infinite;
+}
+
+@keyframes atk-shine {
+  to { background-position: -200% 0; }
+}
+
+:root.atk .topbar {
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--atk) 55%, transparent);
+}
+
+/* Resultados ATK, debajo de los de Liquid */
+.atk-results {
+  margin: 18px 0 6px;
+  padding: 14px 6px 6px;
+  border-top: 1px solid color-mix(in srgb, var(--atk) 40%, var(--border));
+}
+
+.atk-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 4px 8px;
+}
+
+.atk-title {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  font-family: var(--heading-font, var(--title-font));
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.atk-status {
+  flex: none;
+  color: var(--text-muted);
+  font-family: var(--song-font);
+  font-size: 0.8rem;
+  letter-spacing: normal;
+}
+
+.atk-status.is-busy::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  border: 2px solid var(--atk);
+  border-right-color: transparent;
+  border-radius: 50%;
+  vertical-align: -1px;
+  animation: atk-spin 0.8s linear infinite;
+}
+
+@keyframes atk-spin {
+  to { transform: rotate(360deg); }
+}
+
+.atk-none {
+  margin: 4px 4px 0;
+  color: var(--text-muted);
+  font-family: var(--song-font);
+  font-size: 0.85rem;
+  letter-spacing: normal;
+}
+
+/* Con ATK apagado, sus canciones de tus playlists se ven pero no suenan */
+.track.is-atk-off {
+  opacity: 0.45;
+}
+
+.track.is-atk-off .track-cover {
+  filter: grayscale(1);
+}
+
+/* Ajustes */
+.settings-atk .setting-name::after {
+  content: 'ATK';
+  margin-left: 8px;
+  padding: 1px 6px 0;
+  border-radius: 5px;
+  background: var(--atk);
+  color: var(--atk-ink);
+  font-family: var(--title-font);
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  vertical-align: 2px;
+}
+
+.atk-about-btn {
+  align-self: flex-start;
+  margin-top: 6px;
+}
+
+.add-credit {
+  margin: 0;
+  font-family: var(--song-font);
+  letter-spacing: normal;
+}
+
+.add-credit a,
+.atk-sources a {
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.atk-about .sheet-title {
+  display: flex;
+  align-items: center;
+}
+
+.atk-sources {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding-left: 18px;
+  font-family: var(--song-font);
+  font-size: 0.9rem;
+  letter-spacing: normal;
+}
+
+/* Inicio y Lab con ATK */
+.atk-home .home-section-title::before {
+  content: 'ATK';
+  display: inline-block;
+  margin-right: 8px;
+  padding: 1px 6px 0;
+  border-radius: 5px;
+  background: var(--atk);
+  color: var(--atk-ink);
+  font-family: var(--title-font);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  vertical-align: 3px;
+}
+
+.atk-home.is-loading .home-section-hint::after {
+  content: '';
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-left: 8px;
+  border: 2px solid var(--atk);
+  border-right-color: transparent;
+  border-radius: 50%;
+  vertical-align: -1px;
+  animation: atk-spin 0.8s linear infinite;
+}
+
+.atk-home .home-card-label {
+  background: var(--atk);
+  color: var(--atk-ink);
+}
+
+.atk-lab-note {
+  margin: 0 0 4px;
+  padding: 10px 14px;
+  border: 1px solid color-mix(in srgb, var(--atk) 45%, var(--border));
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--atk) 9%, transparent);
+  font-family: var(--song-font);
+  font-size: 0.86rem;
+  line-height: 1.45;
+  letter-spacing: normal;
+}
+
+/* Buscar (antes de escribir): lo que suena en ATK */
+.atk-trend {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 4px 10px;
+}
+
+.atk-trend-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 6px;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.atk-trend-item:hover {
+  background: var(--surface-hover);
+}
+
+.atk-trend-item img {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.atk-trend-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.atk-trend-title,
+.atk-trend-artist {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.atk-trend-title {
+  font-family: var(--title-font);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.atk-trend-artist {
+  color: var(--text-muted);
+  font-family: var(--song-font);
+  font-size: 0.8rem;
+  letter-spacing: normal;
+}
+
+/* ---------- La entrada de ATK: «Bullet» se funde y «ATK» golpea ---------- */
+.atk-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #050507;
+  color: #fff;
+  cursor: pointer;
+  animation: atk-intro-in 0.28s ease-out both;
+}
+
+.atk-intro.is-leaving {
+  animation: atk-intro-out 0.42s ease-in both;
+}
+
+@keyframes atk-intro-in {
+  from { opacity: 0; }
+}
+
+@keyframes atk-intro-out {
+  to { opacity: 0; transform: scale(1.04); }
+}
+
+.atk-intro-glow {
+  position: absolute;
+  width: 70vmin;
+  height: 70vmin;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--atk) 32%, transparent), transparent 65%);
+  filter: blur(10px);
+  opacity: 0;
+  animation: atk-glow 1.6s 0.55s ease-out both;
+}
+
+.atk-intro.is-off .atk-intro-glow {
+  background: radial-gradient(circle, rgba(200, 214, 234, 0.3), transparent 65%);
+}
+
+@keyframes atk-glow {
+  0% { opacity: 0; transform: scale(0.4); }
+  35% { opacity: 1; transform: scale(1.1); }
+  100% { opacity: 0.55; transform: scale(1); }
+}
+
+.atk-intro-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--atk), #fff, var(--atk), transparent);
+  transform: scaleX(0);
+  opacity: 0;
+  animation: atk-line 0.7s 0.5s cubic-bezier(0.7, 0, 0.2, 1) both;
+}
+
+.atk-intro.is-off .atk-intro-line {
+  background: linear-gradient(90deg, transparent, #c8d6ea, #fff, #c8d6ea, transparent);
+}
+
+@keyframes atk-line {
+  0% { transform: scaleX(0); opacity: 1; }
+  60% { transform: scaleX(1); opacity: 1; }
+  100% { transform: scaleX(1); opacity: 0; }
+}
+
+.atk-intro-word {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: 0.35em;
+  font-family: var(--title-font);
+  font-size: clamp(2rem, 9vw, 5.5rem);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.atk-intro-liquid {
+  animation: atk-liquid 1.6s 0.1s ease-out both;
+}
+
+@keyframes atk-liquid {
+  0% { opacity: 0; letter-spacing: 0.4em; filter: blur(8px); }
+  30% { opacity: 1; letter-spacing: 0.06em; filter: blur(0); }
+}
+
+.atk-intro-swap {
+  position: relative;
+  display: inline-grid;
+}
+
+.atk-intro-old,
+.atk-intro-new {
+  grid-area: 1 / 1;
+}
+
+.atk-intro-old {
+  animation: atk-old 0.5s 0.42s cubic-bezier(0.6, 0, 0.8, 0.4) both;
+}
+
+@keyframes atk-old {
+  to { opacity: 0; transform: translateY(0.3em) scaleY(1.6); filter: blur(10px); }
+}
+
+.atk-intro-new {
+  opacity: 0;
+  animation: atk-new 0.55s 0.78s cubic-bezier(0.2, 0.9, 0.2, 1.25) both;
+}
+
+.atk-intro.is-on .atk-intro-new {
+  color: var(--atk);
+}
+
+@keyframes atk-new {
+  0% { opacity: 0; transform: scale(1.9); filter: blur(12px); text-shadow: -14px 0 #ff2d55, 14px 0 #00e5ff; }
+  60% { opacity: 1; filter: blur(0); text-shadow: -3px 0 #ff2d55, 3px 0 #00e5ff; }
+  100% { opacity: 1; transform: scale(1); text-shadow: 0 0 26px color-mix(in srgb, var(--atk) 60%, transparent); }
+}
+
+.atk-intro.is-off .atk-intro-new {
+  animation-name: atk-new-off;
+}
+
+@keyframes atk-new-off {
+  0% { opacity: 0; transform: translateY(-0.25em); filter: blur(10px); }
+  100% { opacity: 1; transform: none; filter: blur(0); }
+}
+
+.atk-intro-sub {
+  position: absolute;
+  top: calc(50% + clamp(2.4rem, 8vw, 5rem));
+  color: rgba(255, 255, 255, 0.6);
+  font-family: var(--song-font);
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  opacity: 0;
+  animation: atk-sub 0.6s 1.05s ease-out both;
+}
+
+@keyframes atk-sub {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+.atk-intro[popover] {
+  width: 100vw;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  inset: 0;
+}

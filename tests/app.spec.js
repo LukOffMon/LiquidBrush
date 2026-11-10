@@ -1034,3 +1034,135 @@ test.describe('v67: Buscar', () => {
     await expect(page.locator('.artist-hero, .pl-hero').first()).toContainText('Radiohead');
   });
 });
+
+test.describe('v68: Liquid ATK', () => {
+  const audiusTrack = (id, title, user, extra = {}) => ({
+    id, title, duration: 200, genre: 'Electronic', is_streamable: true, access: { stream: true },
+    play_count: 1000, favorite_count: 50, permalink: `/u/${id}`, license: 'All rights reserved',
+    user: { name: user, is_verified: false }, ...extra
+  });
+  // Respuestas falsas de Audius y del Internet Archive (sin red en las pruebas)
+  async function fuentesFalsas(page, seen = []) {
+    await page.route(/api\.audius\.co\/v1\/tracks\/search/, (route) => {
+      seen.push(route.request().url());
+      route.fulfill({ json: { data: [
+        audiusTrack('au1', 'Nébula Prueba', 'Banda Prueba'),
+        audiusTrack('au2', 'Banda Prueba Podcast Ep. 12', 'Banda Prueba', { genre: 'Podcasts' }),
+        audiusTrack('au3', 'Radiohead - Creep', 'Un Fan')
+      ] } });
+    });
+    await page.route(/api\.audius\.co\/v1\/tracks\/trending/, (route) => {
+      seen.push(route.request().url());
+      route.fulfill({ json: { data: Array.from({ length: 10 }, (_, i) => audiusTrack(`tr${i}`, `Tendencia ${i}`, `Artista ${i}`)) } });
+    });
+    await page.route(/archive\.org\/advancedsearch/, (route) => {
+      seen.push(route.request().url());
+      route.fulfill({ json: { response: { numFound: 1, docs: [{ identifier: 'bandaprueba2020', downloads: 500 }] } } });
+    });
+    await page.route(/archive\.org\/metadata\//, (route) => route.fulfill({ json: {
+      metadata: { title: 'Banda Prueba en directo', creator: 'Banda Prueba', mediatype: 'etree', collection: ['BandaPrueba', 'etree'] },
+      files: [
+        { name: 'bp01.mp3', format: 'VBR MP3', title: 'Canción del Directo', length: '245.3' },
+        { name: 'bp02.mp3', format: 'VBR MP3', title: 'Afinando', length: '20.0' }
+      ]
+    } }));
+    await page.route(/audius\.co\/v1\/tracks\/[^/]+\/stream|archive\.org\/download/, (route) => route.abort());
+  }
+  const conAtk = (page) => page.addInitScript(() => {
+    if (!sessionStorage.getItem('atk-puesto')) {
+      localStorage.setItem('liquidbrush:settings', JSON.stringify({ atk: true }));
+      sessionStorage.setItem('atk-puesto', '1');
+    }
+  });
+
+  test('apagado no llama a nadie; encendido desde Ajustes cambia la marca', async ({ page }) => {
+    const seen = [];
+    await fuentesFalsas(page, seen);
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.fill('#searchInput', 'banda prueba');
+    await expect(page.locator('#listInfo')).toContainText('resultado');
+    await page.waitForTimeout(700);
+    await expect(page.locator('#atkResults')).toBeHidden();
+    expect(seen).toEqual([]);
+    // En el teléfono, Buscar esconde la barra de arriba: se sale con «Cancelar»
+    if (await page.locator('#searchCancel').isVisible()) await page.locator('#searchCancel').click();
+    else await page.fill('#searchInput', '');
+    await page.locator('#settingsBtn, [aria-label*="Ajustes"]').first().click();
+    await expect(page.locator('#atkToggle')).not.toBeChecked();
+    await page.locator('.settings-atk .switch').click();
+    await expect(page.locator('html')).toHaveClass(/\batk\b/);
+    await expect(page.locator('.brand-name')).toHaveText('LiquidATK');
+    await expect(page.locator('.toast')).toContainText('Liquid ATK activado');
+    expect(JSON.parse(await page.evaluate(() => localStorage.getItem('liquidbrush:settings'))).atk).toBe(true);
+  });
+
+  test('buscador: elige la mejor opción, sin pódcasts ni impostores, suena y guarda sus créditos', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    await fuentesFalsas(page);
+    await conAtk(page);
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.fill('#searchInput', 'banda prueba');
+    await expect(page.locator('.atk-status')).toHaveText('2 canciones');
+    const titles = await page.locator('.atk-list .track-title').allTextContents();
+    expect(titles.join('|')).toContain('Nébula Prueba');
+    expect(titles.join('|')).toContain('Canción del Directo');
+    // Fuera: el pódcast y la pista de 20 s
+    expect(titles.join('|')).not.toContain('Podcast');
+    expect(titles.join('|')).not.toContain('Afinando');
+    // Liquid no la tiene: el mejor resultado es de ATK, con portada de Liquid
+    await expect(page.locator('.search-top .atk-mark')).toBeVisible();
+    expect(await page.locator('.search-top-img').getAttribute('src')).toMatch(/covers\/songs\/song-\d\d/);
+    const top = (await page.locator('.search-top-title').textContent()).trim();
+    await page.locator('.search-top-play').click();
+    await expect(page.locator('#miniTitle')).toHaveText(top);
+    await expect(page.locator('#npContext')).toHaveText('Liquid ATK');
+    // Créditos en su menú + (y sin compartir, artista ni radio)
+    await page.locator('.atk-list .track [data-action="add"]').first().click();
+    await expect(page.locator('.add-credit')).toContainText('vía');
+    await expect(page.locator('#addShare')).toBeHidden();
+    await page.keyboard.press('Escape');
+    // Favorita: se guarda con sus datos y sigue ahí al recargar
+    await page.locator('.atk-list .track [data-action="fav"]').first().dispatchEvent('click');
+    await expect.poll(() => page.evaluate(() => Object.keys(JSON.parse(localStorage.getItem('liquidbrush:atk-tracks') || '{}')).length)).toBeGreaterThan(0);
+    await page.goto('./?view=favorites');
+    await expect(page.locator('#trackList .track .atk-mark').first()).toBeVisible();
+    // Un artista de Liquid: las subidas sin verificar con su nombre no salen
+    await page.fill('#searchInput', 'radiohead');
+    await page.waitForTimeout(1200);
+    expect(await page.locator('.atk-list .track-title').allTextContents()).not.toContain('Radiohead - Creep');
+    expect(errors).toEqual([]);
+  });
+
+  test('con ATK apagado sus canciones se ven atenuadas y no suenan', async ({ page }) => {
+    await fuentesFalsas(page);
+    await page.addInitScript(() => {
+      if (sessionStorage.getItem('atk-guardada')) return;
+      sessionStorage.setItem('atk-guardada', '1');
+      localStorage.setItem('liquidbrush:atk-tracks', JSON.stringify({ 'atk:au:au1': { t: 'Nébula Prueba', a: 'Banda Prueba', s: 200, u: 'https://api.audius.co/v1/tracks/au1/stream?app_name=liquidbullet' } }));
+      localStorage.setItem('liquidbrush:favorites', JSON.stringify(['atk:au:au1']));
+    });
+    await page.goto('./?view=favorites');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    const row = page.locator('#trackList .track.is-atk-off');
+    await expect(row).toContainText('Solo en Liquid ATK');
+    await row.locator('.track-main').click();
+    await expect(page.locator('.toast')).toContainText('actívalo en Ajustes');
+    await expect(page.locator('#miniTitle')).not.toHaveText('Nébula Prueba');
+  });
+
+  test('ATK en Inicio, Lab y Stats', async ({ page }) => {
+    await fuentesFalsas(page);
+    await conAtk(page);
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await expect(page.locator('.atk-home .home-card').first()).toBeVisible();
+    await expect(page.locator('.atk-home .home-card-label').first()).toContainText('ATK');
+    await page.locator('.atk-home .home-card').first().click();
+    await expect(page.locator('#miniTitle')).toContainText('Tendencia');
+    await page.goto('./lab.html');
+    await expect(page.locator('.atk-lab-note')).toBeVisible();
+  });
+});
