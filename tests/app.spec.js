@@ -475,8 +475,11 @@ test.describe('Liquid Lab: sitio aparte', () => {
     await page.goto('./?view=library');
     await expect(page.locator('#libCount')).not.toHaveText('0');
     await page.locator('.track').nth(5).locator('.track-main').click();
-    await expect.poll(() => page.evaluate(() => (localStorage.getItem('liquidbrush:resume-queue') || '').length)).toBeGreaterThan(0);
-    const before = await page.evaluate(() => localStorage.getItem('liquidbrush:resume-queue'));
+    // La cola se escribe cuando el navegador está libre (hasta ~2 s después): se espera a la de la Biblioteca,
+    // no a la que se guardó al abrir desde Inicio
+    const readQueue = () => page.evaluate(() => localStorage.getItem('liquidbrush:resume-queue') || '');
+    await expect.poll(async () => JSON.parse((await readQueue()) || '{}').source, { timeout: 15000 }).toBe('view:library');
+    const before = await readQueue();
     await page.goto('./lab.html');
     await page.locator('[data-lab-action="recipe"][data-value="variety"]').click();
     // Lab abierto y cerrado sin tocar nada de la cola de Liquid
@@ -484,8 +487,15 @@ test.describe('Liquid Lab: sitio aparte', () => {
     await page.locator('[data-lab-action="play"]').click();
     await expect(page).not.toHaveURL(/lab\.html/);
     await expect(page.locator('#npContext')).toContainText('Lab');
+    // La cola entera es la mezcla de Lab (60). Sin audio en los tests, las que no cargan se saltan
+    // solas, así que en el diálogo se ven las que quedan por delante y no siempre las 60.
+    await expect.poll(() => page.evaluate(() => {
+      const stored = JSON.parse(localStorage.getItem('liquidbrush:resume-queue') || '{}');
+      return stored.context?.startsWith('Lab') ? (stored.q || '').split(',').length : 0;
+    }), { timeout: 10000 }).toBe(60);
     await page.locator('body').press('q');
-    await expect(page.locator('#queueDialog [data-id]')).toHaveCount(60);
+    await expect(page.locator('#queueInfo')).toContainText('Lab');
+    await expect(page.locator('#queueDialog [data-id]').first()).toBeVisible();
   });
 });
 
