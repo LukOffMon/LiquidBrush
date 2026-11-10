@@ -47,7 +47,7 @@
   <link rel="dns-prefetch" href="https://pub-0854e4225565462db16fa787cf2ab81c.r2.dev">
   <link rel="dns-prefetch" href="https://pub-864cd199a5e04cb0b5faf77320b1e47b.r2.dev">
   <link rel="dns-prefetch" href="https://lrclib.net">
-  <link rel="stylesheet" href="styles.css?v=51">
+  <link rel="stylesheet" href="styles.css?v=55">
   <script>
     /* Aplica el tema, la fuente y el tamaño de letra guardados antes de pintar (sin parpadeos) */
     (function () {
@@ -287,6 +287,7 @@
     <symbol id="i-chevron" viewBox="0 0 24 24"><path d="M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></symbol>
     <symbol id="i-disc" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 7.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5z"/></symbol>
     <symbol id="i-headphones" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 3a9 9 0 0 0-9 9v6a3 3 0 0 0 3 3h2v-8H5v-1a7 7 0 0 1 14 0v1h-3v8h2a3 3 0 0 0 3-3v-6a9 9 0 0 0-9-9z"/></symbol>
+    <symbol id="i-car" viewBox="0 0 24 24"><path d="M18.9 6.1A1.5 1.5 0 0 0 17.5 5h-11c-.66 0-1.2.42-1.42 1.01L3 12v7.5c0 .55.45 1 1 1h1c.55 0 1-.45 1-1V18h12v1.500c0 .55.45 1 1 1h1c.55 0 1-.45 1-1V12zM6.5 15.500a1.500 1.500 0 1 1 0-3 1.500 1.500 0 0 1 0 3zm11 0a1.500 1.500 0 1 1 0-3 1.500 1.500 0 0 1 0 3zM5 10.500 6.500 6.500h11l1.500 4z"/></symbol>
     <symbol id="i-flame" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M13.5 1.5s.7 2.5.7 4.5c0 1.9-1.3 3.5-3.2 3.5S7.6 8 7.6 6.1l.03-.34C5.7 8 4.5 11.2 4.5 14.2c0 4.1 3.4 7.3 7.5 7.3s7.5-3.2 7.5-7.3c0-5-2.4-9.5-6-12.7z"/></symbol>
     <symbol id="i-bubbles" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M8 12a5 5 0 1 0 0 10 5 5 0 0 0 0-10zM17 6a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM9 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></symbol>
     <symbol id="i-spark" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 2l2.3 6.7L21 11l-6.7 2.3L12 20l-2.3-6.7L3 11l6.7-2.3zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></symbol>
@@ -457,7 +458,9 @@
             <label for="searchInput" class="sr-only">Buscar canciones</label>
             <input id="searchInput" type="search" placeholder="¿Qué quieres escuchar?" autocomplete="off" spellcheck="false" maxlength="120" enterkeyhint="search">
           </div>
+          <button id="searchCancel" class="search-cancel" type="button">Cancelar</button>
           <div id="searchPanel" class="search-panel" hidden></div>
+          <div id="searchScopes" class="chips search-scopes" role="toolbar" aria-label="Qué buscar" hidden></div>
           <div class="tabs" role="tablist" aria-label="Secciones">
             <button class="tab is-active" type="button" role="tab" aria-controls="libraryView" data-view="home" aria-selected="true">Inicio</button>
             <button class="tab" type="button" role="tab" aria-controls="libraryView" data-view="library" aria-selected="false">
@@ -494,6 +497,7 @@
         </header>
         <div id="labPanel" class="lab" hidden></div>
         <ul id="trackList" class="track-list"></ul>
+        <section id="atkResults" class="atk-results" aria-label="Resultados de Liquid ATK" aria-live="polite" hidden></section>
         <nav id="alphaRail" class="alpha-rail" aria-label="Índice alfabético" hidden></nav>
         </div>
         <input id="importInput" type="file" accept="application/json,.json,.m3u,.m3u8,.txt,text/plain,audio/x-mpegurl" hidden>
@@ -853,6 +857,19 @@
         </label>
       </section>
 
+      <section class="settings-group settings-atk" aria-labelledby="setAtkTitle">
+        <h3 id="setAtkTitle" class="settings-group-title">Liquid ATK</h3>
+        <label class="setting switch">
+          <span class="setting-text">
+            <span class="setting-name">Modo ATK</span>
+            <span class="setting-hint">Si algo no está en Liquid, el buscador lo encuentra en millones de canciones abiertas (artistas independientes, directos, sellos libres), elige la mejor versión y la reproduce aquí. Tus playlists, mixes y radios de Liquid no cambian.</span>
+          </span>
+          <input id="atkToggle" type="checkbox" role="switch">
+          <span class="switch-track" aria-hidden="true"></span>
+        </label>
+        <button id="atkAbout" class="btn btn-ghost btn-small atk-about-btn" type="button">Acerca de ATK y créditos</button>
+      </section>
+
       <section class="settings-group" aria-labelledby="setLookTitle">
         <h3 id="setLookTitle" class="settings-group-title">Apariencia</h3>
         <div class="setting tema-setting">
@@ -1064,6 +1081,6 @@
   <!-- Reproductores para el ecualizador (necesitan CORS en el servidor del audio) -->
   <audio id="audio3" preload="metadata" crossorigin="anonymous"></audio>
   <audio id="audio4" preload="auto" crossorigin="anonymous"></audio>
-  <script src="app.js?v=54" defer></script>
+  <script src="app.js?v=58" defer></script>
 </body>
 </html>

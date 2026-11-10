@@ -1,6 +1,70 @@
 {
   "releases": [
     {
+      "version": "v69",
+      "date": "noviembre 2026",
+      "title": "Jamendo se suma a Liquid ATK",
+      "items": [
+        "ATK también busca en Jamendo: cientos de miles de canciones con licencia Creative Commons, con su licencia enlazada en los créditos.",
+        "«Acerca de ATK» ya lista las tres fuentes."
+      ]
+    },
+    {
+      "version": "v68",
+      "date": "noviembre 2026",
+      "title": "Liquid ATK: millones de canciones más, cuando las necesites",
+      "items": [
+        "Nuevo modo Liquid ATK (Ajustes → Liquid ATK), que se enciende como el ultraligero y entra con su propia animación: Liquid Bullet pasa a Liquid ATK.",
+        "Buscar: si algo no está en Liquid, ATK lo busca en millones de canciones abiertas y legales (artistas independientes, directos grabados con permiso de las bandas, sellos libres), elige la mejor versión y la reproduce aquí, con portadas de Liquid.",
+        "ATK descarta lo que no vale: pódcasts, audiolibros, pistas sueltas de segundos, copias de canciones que Liquid ya tiene y subidas de cuentas sin verificar a nombre de artistas de Liquid.",
+        "Inicio con ATK: tarjetas con lo que más suena esta semana en tus estilos, fuera de tu biblioteca.",
+        "Lab con ATK: tus mezclas suman canciones de fuera en los estilos que elijas; «Descubrimiento» decide cuántas.",
+        "Radios con ATK: una de cada cuatro canciones llega de fuera, del mismo estilo.",
+        "Páginas de artista con ATK: «Más de este artista en Liquid ATK» (por ejemplo, directos).",
+        "Stats cuenta tus minutos en ATK, y Buscar enseña lo que suena esta semana antes de escribir.",
+        "Las canciones ATK se guardan en favoritas y en tus playlists, viajan con tu cuenta y llevan sus créditos y su licencia en el menú +. Nunca entran en las playlists de Liquid.",
+        "Con ATK apagado, Liquid es el de siempre: las canciones ATK de tus playlists salen atenuadas hasta que lo vuelvas a encender."
+      ]
+    },
+    {
+      "version": "v67",
+      "date": "noviembre 2026",
+      "title": "Buscar, rehecho (sobre todo en el teléfono)",
+      "items": [
+        "En el teléfono, Buscar ocupa toda la pantalla: el buscador arriba con «Cancelar» y los resultados justo debajo, sin la barra, las pestañas ni la cabecera de la Biblioteca por medio.",
+        "Antes de escribir: tus búsquedas recientes (cada una se quita con su ×), tus artistas a un toque y los estilos de dos en dos.",
+        "Mejor resultado: el artista o la canción que buscabas, grande y con su botón de reproducir.",
+        "Filtros por tipo con cuántos hay de cada uno: Todo, Canciones, Artistas, Playlists y En la letra. «Artistas» los enseña en lista, uno debajo de otro.",
+        "El buscador y los filtros se quedan arriba mientras bajas por los resultados; el teclado se esconde al desplazar o al pulsar «Buscar».",
+        "Si escribes con una errata, Liquid te dice que son resultados parecidos; las canciones que salen por su letra llevan «En la letra».",
+        "Las recientes guardan lo que de verdad buscaste (lo que tocaste o confirmaste), no cada palabra a medio escribir.",
+        "«Cancelar» te devuelve a donde estabas.",
+        "Arreglado: en el teléfono el panel de Buscar podía ensanchar la página hacia la derecha."
+      ]
+    },
+    {
+      "version": "v66",
+      "date": "noviembre 2026",
+      "title": "15 ideas nuevas: letra gigante, bucle, modo coche y tus hitos",
+      "items": [
+        "Letra a pantalla completa (tecla K o «Letra grande» en Sonando): la línea que suena, enorme; toca cualquier línea para saltar a ella.",
+        "Bucle A–B (tecla B): marca el principio y el final de un trozo y se repite solo. Para aprenderte una letra, un solo o un paso de baile.",
+        "Modo coche (tecla G): carátula, título y tres botones enormes, con la pantalla siempre encendida.",
+        "Sesión privada: lo que suene no cuenta para tus Stats, tus mixes ni tus recomendaciones. Se apaga sola al cerrar Liquid.",
+        "Tu historia con cada canción: cuántas veces la has puesto, cuántos minutos, desde cuándo y qué puesto ocupa entre tus más escuchadas.",
+        "Notas: escribe un recuerdo en cualquier canción («la del viaje a la playa»). Solo lo ves tú.",
+        "«Luego»: la siguiente canción de la cola, siempre a la vista en Sonando.",
+        "La pestaña del navegador lleva la carátula de lo que suena.",
+        "Racha en Inicio: los días seguidos que llevas con música y los minutos de hoy.",
+        "¿Qué te gusta?: al empezar, elige 3 artistas y tus mixes se parecen a ti desde el primer día.",
+        "Progreso de cada playlist: cuántas canciones llevas escuchadas, con su barra.",
+        "«Lo que te falta»: un botón que reproduce solo las canciones de la playlist que aún no has puesto nunca.",
+        "Hitos en Stats: 12 metas que se desbloquean escuchando (Cien gotas, Semana completa, Explorador, Completista…), con aviso al conseguir cada una.",
+        "En el teléfono, desliza una canción hacia la derecha para mandarla a la cola.",
+        "En escritorio, el buscador y las pestañas se quedan arriba mientras bajas por una lista."
+      ]
+    },
+    {
       "version": "v65",
       "date": "noviembre 2026",
       "title": "Pulido general: más limpio y más fácil de leer",

@@ -52,7 +52,10 @@
     tracksUrl: 'tracks.json',
     // Playlists de base (por género y mezclas), su portada y el género de cada canción.
     // Lo genera tools/build_catalog.py.
-    catalogUrl: 'catalog.json'
+    catalogUrl: 'catalog.json',
+    // Liquid ATK: clave pública (client_id) de la API de Jamendo. Gratis en devportal.jamendo.com;
+    // vacía, ATK busca solo en Audius y en el Internet Archive
+    jamendoClientId: '85dd9033'
     // El ecualizador (y el visualizador con frecuencias reales) usa la Web Audio API, que solo
     // puede leer el audio si su servidor envía la cabecera "Access-Control-Allow-Origin".
     // Las canciones de servidores sin CORS suenan igual, pero sin ecualizar.
@@ -129,6 +132,7 @@
   const goToLab = () => location.assign(LAB_URL);
   // action: 'play' | 'queue' | 'saved' | 'radio'
   function sendToLiquid(handoff) {
+    atk.rememberIds(handoff.ids);
     try { localStorage.setItem(LAB_HANDOFF, JSON.stringify({ ...handoff, at: Date.now() })); } catch { /* sin almacenamiento */ }
     location.assign(LIQUID_URL);
   }
@@ -202,6 +206,10 @@
     favorites: new Set(),
     // home | library | playlists | artists | favorites | stats | lab, o playlist / artist (uno abierto)
     view: LAB_MODE ? 'lab' : 'home',
+    // Buscar: tipo de resultado elegido, modo búsqueda abierto (teléfono) y de dónde se vino
+    searchScope: 'all',
+    searchOpen: false,
+    searchPrev: null,
     openPlaylist: null,
     // Artista abierto (vista "artist") y radio en curso
     openArtist: null,
@@ -324,6 +332,8 @@
     npAbout: $('npAbout'),
     homePanel: $('homePanel'),
     searchPanel: $('searchPanel'),
+    searchScopes: $('searchScopes'),
+    searchCancel: $('searchCancel'),
     playerTrack: document.querySelector('.player-track'),
     player: document.querySelector('.player'),
     speedSelect: $('speedSelect'),
@@ -344,6 +354,9 @@
     hiddenEmpty: $('hiddenEmpty'),
     hiddenShowAll: $('hiddenShowAll'),
     ultraToggle: $('ultraToggle'),
+    atkToggle: $('atkToggle'),
+    atkAbout: $('atkAbout'),
+    atkResults: $('atkResults'),
     clearDownloads: $('clearDownloads'),
     autoFavToggle: $('autoFavToggle'),
     softPauseToggle: $('softPauseToggle'),
@@ -406,6 +419,9 @@
   };
 
   /* ---------- Utilidades ---------- */
+  // Liquid ATK guarda los datos de sus canciones cuando cambian favoritas, playlists, recientes o la cola
+  const ATK_WATCHED = new Set([KEYS.favorites, KEYS.playlists, KEYS.recent, KEYS.resumeQueue]);
+  let atkPersistTimer = 0;
   const storage = {
     get(key, fallback) {
       try {
@@ -416,6 +432,7 @@
       }
     },
     set(key, value) {
+      if (ATK_WATCHED.has(key)) { clearTimeout(atkPersistTimer); atkPersistTimer = setTimeout(() => atk.persist(), 300); }
       let raw;
       try { raw = JSON.stringify(value); } catch { return false; }
       let quotaFull = false;
@@ -639,6 +656,8 @@
       autoFav: saved.autoFav === true,
       // Modo ultraligero: sin vidrio, sombras, animaciones, fondo, visualizador ni letras descargadas
       ultra: saved.ultra === true,
+      // Liquid ATK: el buscador llega más allá de la biblioteca (Audius, Internet Archive, Jamendo)
+      atk: saved.atk === true,
       lastBackup: Number(saved.lastBackup) || 0,
       backupNagAt: Number(saved.backupNagAt) || 0
     };
@@ -841,6 +860,7 @@
     const previousId = state.currentTrack?.id;
     state.tracks = data.filter((t) => t && typeof t.src === 'string' && t.src.trim()).map(buildTrack);
     state.trackMap = new Map(state.tracks.map((t) => [t.id, t]));
+    atk.reattach();
     applyAliases(library.catalog?.aliases);
     const generos = library.catalog?.generos;
     const nombresGenero = Array.isArray(generos?.lista) ? generos.lista : [];
@@ -1130,7 +1150,11 @@
 
   const cacheKey = (src) => new URL(src, location.href).href;
   const isDownloaded = (track) => offline.downloaded.has(cacheKey(track.src));
-  const isPlayable = (track) => navigator.onLine || isDownloaded(track);
+  // Las de Liquid ATK suenan solo con ATK encendido y con conexión (no se descargan)
+  const isPlayable = (track) => (track?.atk ? settings.atk === true && navigator.onLine : navigator.onLine || isDownloaded(track));
+  const unplayableMessage = (track) => (track?.atk && !settings.atk
+    ? 'Esta canción es de Liquid ATK: actívalo en Ajustes para escucharla.'
+    : 'Sin conexión: esta canción no está descargada.');
   const playlistTracks = (key) => playlistTracksOf(getPlaylist(key));
 
   async function refreshDownloads() {
@@ -1218,7 +1242,7 @@
 
   // Descarga una sola canción (corazón con «Descargar favoritas» activado)
   async function downloadTrack(track) {
-    if (!offline.supported || !track || isDownloaded(track) || !navigator.onLine) return false;
+    if (!offline.supported || !track || track.atk || isDownloaded(track) || !navigator.onLine) return false;
     const connection = navigator.connection;
     if (connection?.saveData || ['slow-2g', '2g'].includes(connection?.effectiveType)) return false;
     try {
@@ -1632,6 +1656,7 @@
   const findLocal = (id) => library.local.find((p) => p.id === id);
 
   function recordPlay(id) {
+    if (plus.private) return;
     library.recent = [id, ...library.recent.filter((x) => x !== id)].slice(0, RECENT_LIMIT);
     library.plays[id] = (library.plays[id] || 0) + 1;
     storage.set(KEYS.recent, library.recent);
@@ -1639,6 +1664,7 @@
     countPlayInLog(id);
     taste.markHeard(id);
     if (state.view === 'library') renderRecentRow();
+    plus.checkHitos();
   }
 
   async function loadCatalog() {
@@ -1922,6 +1948,7 @@
     if (!track) return;
     addTarget = trackId;
     els.addTrackName.textContent = `${track.title} · ${track.artist}`;
+    atk.decorateAdd(track);
     if (!library.local.length) {
       const li = document.createElement('li');
       li.className = 'add-empty';
@@ -2248,6 +2275,8 @@
   function trackListening(time) {
     const id = state.currentTrack?.id;
     if (!id) return;
+    // Sesión privada: nada de lo que suena se apunta
+    if (plus.private) { listen.pendingId = null; return; }
     if (listen.pendingId !== id) {
       flushListening();
       listen.pendingId = id;
@@ -2672,7 +2701,7 @@
     if (current.seconds < 60) {
       panel.replaceChildren(...[invite].filter(Boolean), emptyState('p', 'chart', state.statsOffset === 0
         ? 'Todavía no hay suficiente música este mes. Escucha un rato y vuelve: aquí verás tus minutos, géneros y artistas.'
-        : `No hay registros de ${info.label}.`));
+        : `No hay registros de ${info.label}.`), ...(state.statsOffset === 0 ? [plus.hitosCard()] : []));
       return;
     }
 
@@ -2693,7 +2722,8 @@
       statTile(String(current.tracks.size), 'canciones distintas'),
       statTile(String(current.artists.size), 'artistas'),
       statTile(`${streak} día${streak === 1 ? '' : 's'}`, 'racha más larga'),
-      statTile(`${String(topHour).padStart(2, '0')}:00`, `tu hora · más los ${WEEKDAYS[topWeekday]}`)
+      statTile(`${String(topHour).padStart(2, '0')}:00`, `tu hora · más los ${WEEKDAYS[topWeekday]}`),
+      ...[atk.statTile(current)].filter(Boolean)
     );
 
     const daily = statCard('Minutos por día', `${activeDays.length} de ${info.keys.length} días con música`);
@@ -2782,7 +2812,7 @@
     songs.append(songList);
 
     const grid = makeEl('div', 'stat-grid');
-    grid.append(daily, hours, genres, artists, trend, songs);
+    grid.append(daily, hours, genres, artists, trend, songs, plus.hitosCard());
     const csv = makeButton('btn btn-ghost stats-csv', 'export-csv', 'Descargar todo tu historial de escucha (CSV, para Excel o Google Sheets)', 'download', 'Descargar mi historial (CSV)');
     csv.addEventListener('click', exportListeningCsv);
     panel.replaceChildren(...[invite, tiles, grid, csv].filter(Boolean));
@@ -2957,11 +2987,11 @@
     }
     if (lab.order === 'journey') {
       // Viaje de estilos: un bloque por grupo, cada uno bien repartido por dentro
-      return [...new Set(picked.map((t) => groupOf.get(t.id)))]
-        .flatMap((group) => spaceOut(picked.filter((t) => groupOf.get(t.id) === group)));
+      return atk.labBlend([...new Set(picked.map((t) => groupOf.get(t.id)))]
+        .flatMap((group) => spaceOut(picked.filter((t) => groupOf.get(t.id) === group))), groups);
     }
     const seeds = picked.slice(0, lab.seeds.length);
-    return [...seeds, ...spaceOut(seededShuffle(picked.slice(seeds.length), String(Date.now())))];
+    return atk.labBlend([...seeds, ...spaceOut(seededShuffle(picked.slice(seeds.length), String(Date.now())))], groups);
   }
 
   // Recetas de un toque
@@ -3093,7 +3123,9 @@
     btn.dataset.labAction = action;
     btn.dataset.value = track.id;
     const text = makeEl('span', 'lab-track-text');
-    text.append(makeEl('span', 'lab-track-title', track.title), makeEl('span', 'lab-track-artist', `${track.artist}${track.genre ? ` · ${track.genre}` : ''}`));
+    const labTitle = makeEl('span', 'lab-track-title', track.title);
+    if (track.atk) labTitle.append(' ', makeEl('span', 'atk-mark', 'ATK'));
+    text.append(labTitle, makeEl('span', 'lab-track-artist', `${track.artist}${track.genre ? ` · ${track.genre}` : ''}`));
     btn.append(photoImg(track.thumb, 40), text, makeEl('span', 'lab-track-time', track.duration || ''));
     li.append(btn);
     if (extraButton) li.append(extraButton);
@@ -3307,6 +3339,13 @@
     like.append(likeRow, recs);
     blocks.push(like, renderDna(p));
 
+    // Liquid ATK encendido: las mezclas suman música de fuera en los estilos elegidos
+    if (atk.on()) {
+      atk.labPrefetch();
+      const note = makeEl('p', 'atk-lab-note');
+      note.append(makeEl('span', 'atk-mark', 'ATK'), ' Liquid ATK está encendido: cada estilo que elijas suma canciones de fuera de Liquid. Entran como «nuevas», así que «Descubrimiento» decide cuántas.');
+      blocks.unshift(note);
+    }
     panel.replaceChildren(...blocks);
     syncPlayButtons(panel);
   }
@@ -3443,7 +3482,11 @@
   }
 
   function baseTracks() {
-    if (state.view === 'favorites') return state.tracks.filter((t) => state.favorites.has(t.id));
+    if (state.view === 'favorites') {
+      // Las favoritas de Liquid ATK van al final
+      const atkFavs = [...state.favorites].filter((id) => id.startsWith('atk:')).map(getTrack).filter(Boolean);
+      return [...state.tracks.filter((t) => state.favorites.has(t.id)), ...atkFavs];
+    }
     if (state.view === 'playlist') return playlistTracksOf(getPlaylist(state.openPlaylist));
     if (state.view === 'artist') return artistTracks(state.openArtist);
     return sortTracks(state.libraryTracks);
@@ -3507,18 +3550,28 @@
     const exactIds = new Set(exact.map((t) => t.id));
     // Frases de la letra (4+ letras): se suman al final
     const byLyrics = q.length >= 4 ? list.filter((t) => !exactIds.has(t.id) && lyricsMatch(t, q)) : [];
-    if (exact.length || byLyrics.length) {
-      byLyrics.forEach((t) => { t.matchedLyrics = true; });
-      return [...exact, ...byLyrics];
-    }
+    searchMeta.lyricIds = new Set(byLyrics.map((t) => t.id));
+    searchMeta.fuzzy = false;
+    if (exact.length || byLyrics.length) return [...exact, ...byLyrics];
     // Sin resultados: se prueba con erratas («beyonse» → Beyoncé)
+    searchMeta.fuzzy = true;
     return list.filter((track) => tokens.every((token) => haystackOf(track).includes(token) || fuzzyToken(token, track)));
   }
 
   function getVisibleTracks() {
     const list = applyFilters(baseTracks());
     if (!normalize(state.query)) return list;
-    return searchTracks(list, state.query);
+    const found = searchTracks(list, state.query);
+    if (!isGlobalSearch()) return found;
+    // Buscar: solo el tipo elegido (Canciones, En la letra…)
+    switch (state.searchScope) {
+      case 'songs': return found.filter((t) => !searchMeta.lyricIds.has(t.id));
+      case 'lyrics': return found.filter((t) => searchMeta.lyricIds.has(t.id));
+      case 'artists':
+      case 'playlists':
+      case 'atk': return [];
+      default: return found;
+    }
   }
 
   // Icono SVG del sprite: se clona de un modelo en vez de usar innerHTML (cada fila de la Biblioteca
@@ -3723,6 +3776,8 @@
     text.append(makeEl('span', `pl-kind pl-kind-${pl.kind}`, pl.kind === 'local' && signedIn() ? 'Guardada en tu cuenta' : KIND_LABELS[pl.kind]), makeEl('h2', 'pl-hero-name', pl.name));
     if (pl.description) text.append(makeEl('p', 'pl-hero-desc', pl.description));
     text.append(meta);
+    const progress = plus.playlistProgress(pl, tracks);
+    if (progress) text.append(progress);
     header.append(playlistCover(pl, 112), text);
 
     const actions = makeEl('div', 'pl-actions');
@@ -3730,6 +3785,9 @@
       markPlayable(makeButton('icon-btn play-btn view-play', 'play-view', `Reproducir ${pl.name}`, 'play'), `pl:${pl.key}`, pl.name),
       makeButton('icon-btn', 'shuffle-view', 'Reproducir en aleatorio', 'shuffle')
     );
+    // Lo que te falta: solo las canciones de esta playlist que aún no has puesto nunca
+    const missing = progress ? plus.unheardOf(pl).length : 0;
+    if (missing && missing < tracks.length) actions.append(makeButton('btn btn-small pl-unheard', 'play-unheard', `Reproducir solo las ${missing} que aún no has escuchado`, 'spark', `Lo que te falta · ${missing}`));
     if (offline.supported && tracks.length) actions.append(makeButton('icon-btn playlist-download', 'download-playlist', 'Descargar', 'download'));
     const pinned = isPinned(pl.key);
     const pin = makeButton(`icon-btn pin-btn${pinned ? ' is-active' : ''}`, 'pin-playlist', pinned ? 'Dejar de fijar' : 'Fijar arriba en Playlists', 'pin');
@@ -3930,7 +3988,7 @@
     const start = getTrack(startId);
     if (!start) return;
     if (!isPlayable(start)) {
-      showToast('Sin conexión: esta canción no está descargada.');
+      showToast(unplayableMessage(start));
       return;
     }
     state.radio = null;
@@ -3974,6 +4032,10 @@
   function shareTrack(id) {
     const track = getTrack(id);
     if (!track) return;
+    if (track.atk) {
+      showToast('Las canciones de Liquid ATK no se comparten con enlace: búscala en Liquid ATK.');
+      return;
+    }
     const who = track.knownArtist ? ` de ${track.knownArtist}` : '';
     // Si es la que suena y vas por la mitad, el enlace empieza en ese segundo (#at=)
     const now = state.currentTrack?.id === id ? Math.floor(els.audio.currentTime || 0) : 0;
@@ -4226,7 +4288,7 @@
     };
     let tracks = pick(false);
     if (tracks.length < 8) tracks = pick(true);
-    return spreadArtists(tracks);
+    return atk.mixRadio(spreadArtists(tracks), seedKey);
   }
 
   function startRadio(seedKey, startTrack = null) {
@@ -4591,7 +4653,7 @@
     home.collections.clear();
     const p = tasteProfile();
     const lite = settings.ultra;
-    const parts = [homeHeader(p)];
+    const parts = [homeHeader(p), plus.homeStreak(), plus.homeTaste(p)];
     // Del 25 de diciembre al 15 de enero: Tu Año Líquido, lo primero
     const invite = resumenInvite('home');
     if (invite) parts.push(invite);
@@ -4608,6 +4670,10 @@
     }
     quickTiles().forEach((tile) => quick.append(quickTile(tile)));
     parts.push(quick);
+
+    // Liquid ATK: lo más fresco de tus estilos, fuera de la biblioteca
+    const atkHome = atk.homeSection();
+    if (atkHome) parts.push(atkHome);
 
     // Tu daylist (lo que te va a esta hora)
     const day = daylist(p);
@@ -4828,7 +4894,7 @@
   /* ---------- Acerca del artista (debajo de la letra) ---------- */
   // Sonando: cada artista de la canción tiene su enlace y su ficha (una colaboración es de todos)
   function updateAbout(track) {
-    const entries = track ? artistKeysOf(track).map(getArtist).filter(Boolean) : [];
+    const entries = track && !track.atk ? artistKeysOf(track).map(getArtist).filter(Boolean) : [];
     const main = entries[0] || null;
     els.npArtist.classList.toggle('is-link', entries.length === 1);
     els.npArtist.dataset.artist = main ? main.key : '';
@@ -4886,6 +4952,181 @@
   }
 
   /* ---------- Búsquedas recientes y explorar (al tocar el buscador) ---------- */
+  /* ---------- Buscar (v67) ----------
+     En el teléfono, Buscar es un modo propio: el buscador arriba con «Cancelar», sin barra ni
+     pestañas, y los resultados empiezan justo debajo. Sin texto: recientes, tus artistas y estilos.
+     Con texto: «Mejor resultado», filtros por tipo (con cuántos hay) y la lista. */
+  const SEARCH_SCOPES = [['all', 'Todo'], ['songs', 'Canciones'], ['artists', 'Artistas'], ['playlists', 'Playlists'], ['lyrics', 'En la letra'], ['atk', 'Liquid ATK']];
+  const searchMeta = { lyricIds: new Set(), fuzzy: false, counts: {} };
+  const phoneSearch = () => window.matchMedia('(max-width: 860px)').matches;
+  const isGlobalSearch = () => !LAB_MODE && state.view === 'library' && Boolean(normalize(state.query));
+
+  function searchArtistsFor(q) {
+    // La clave del artista ya es su nombre normalizado: no se normalizan ~1.800 nombres en cada tecla
+    return [...labArtists().values()].filter((a) => a.key.includes(q))
+      .sort((a, b) => (b.key.startsWith(q) - a.key.startsWith(q)) || artistPlays(b) - artistPlays(a) || b.tracks.length - a.tracks.length);
+  }
+
+  function searchPlaylistsFor(q) {
+    return [...pinnedFirst(shownPls([...systemPlaylists(), ...localPlaylists()]))]
+      .filter((pl) => normalize(`${pl.name} ${pl.description || ''}`).includes(q));
+  }
+
+  // El mejor resultado: el artista si su nombre empieza por lo escrito (y no hay una canción que se
+  // llame exactamente así); si no, la canción que mejor encaja
+  function searchTopResult(q, artists, songs) {
+    if (q.length < 2) return null;
+    const artist = artists[0];
+    const titleOf = (t) => normalize(splitTitle(t.title).main);
+    const exactSong = songs.find((t) => titleOf(t) === q);
+    if (artist && (artist.key === q || (artist.key.startsWith(q) && !exactSong))) return { kind: 'artist', entry: artist };
+    const song = exactSong || songs.find((t) => titleOf(t).startsWith(q)) || songs[0];
+    if (song) return { kind: 'track', track: song };
+    return artist ? { kind: 'artist', entry: artist } : null;
+  }
+
+  function searchTopCard(top) {
+    const card = makeEl('div', 'search-top');
+    const open = makeEl('button', 'search-top-open');
+    open.type = 'button';
+    const text = makeEl('span', 'search-top-text');
+    let title;
+    let img;
+    let meta;
+    if (top.kind === 'artist') {
+      const entry = top.entry;
+      title = entry.name;
+      open.dataset.action = 'open-artist';
+      open.dataset.value = entry.key;
+      img = photoImg(entry.tracks[0]?.thumb, 96, 'search-top-img is-round');
+      const plays = artistPlays(entry);
+      meta = `Artista · ${songsLabel(entry.tracks.length)}${plays ? ` · ${plays} escucha${plays === 1 ? '' : 's'}` : ''}`;
+    } else {
+      const track = top.track;
+      title = splitTitle(track.title).main;
+      open.dataset.action = 'search-play-track';
+      open.dataset.value = track.id;
+      img = photoImg(track.cover || track.thumb, 96, 'search-top-img');
+      meta = `Canción · ${track.knownArtist || track.artist}`;
+    }
+    const eyebrow = makeEl('span', 'search-top-eyebrow', 'Mejor resultado');
+    if (top.track?.atk) eyebrow.append(' ', makeEl('span', 'atk-mark', 'ATK'));
+    text.append(eyebrow, makeEl('span', 'search-top-title', title), makeEl('span', 'search-top-meta', meta));
+    open.append(img, text);
+    const play = makeButton('icon-btn play-btn search-top-play', top.kind === 'artist' ? 'search-play-artist' : 'search-play-track', `Reproducir ${title}`, 'play');
+    play.dataset.value = top.kind === 'artist' ? top.entry.key : top.track.id;
+    card.append(open, play);
+    return card;
+  }
+
+  function searchArtistRow(entry) {
+    const row = makeEl('button', 'search-artist-row');
+    row.type = 'button';
+    row.dataset.action = 'open-artist';
+    row.dataset.value = entry.key;
+    const plays = artistPlays(entry);
+    const text = makeEl('span', 'search-artist-text');
+    text.append(
+      makeEl('span', 'search-artist-name', entry.name),
+      makeEl('span', 'search-artist-meta', `${isFollowing(entry.key) ? 'Siguiendo · ' : ''}${songsLabel(entry.tracks.length)}${plays ? ` · ${plays} escucha${plays === 1 ? '' : 's'}` : ''}`)
+    );
+    row.append(photoImg(entry.tracks[0]?.thumb, 52, 'search-artist-photo'), text, svgIcon('chevron', 'icon search-row-go'));
+    return row;
+  }
+
+  function searchSectionHead(title, icon, total, shown, scope) {
+    const head = makeEl('div', 'search-sec-head');
+    const heading = makeEl('h3', 'pl-section-title');
+    heading.append(sticker(icon), title);
+    head.append(heading);
+    if (total > shown) {
+      const more = makeButton('btn btn-ghost btn-small search-more', 'search-scope', `Ver ${total} ${title.toLowerCase()}`, '', `Ver todos · ${total}`);
+      more.dataset.value = scope;
+      head.append(more);
+    }
+    return head;
+  }
+
+  // Resultados que no son canciones: filtros por tipo, mejor resultado, artistas y playlists
+  function renderSearchPlaylists(q) {
+    const global = Boolean(q) && !LAB_MODE && state.view === 'library';
+    const matches = q ? searchPlaylistsFor(q) : [];
+    const artists = q && state.view !== 'artists' ? searchArtistsFor(q) : [];
+    els.searchScopes.hidden = true;
+    if (!global) {
+      // Dentro de Favoritas o Artistas: como siempre, unas pocas tarjetas
+      const parts = [];
+      if (artists.length) {
+        const heading = makeEl('h3', 'pl-section-title');
+        heading.append(sticker(`${q}a`), 'Artistas');
+        const row = makeEl('div', 'home-row is-artists');
+        artists.slice(0, 10).forEach((entry) => row.append(artistCard(entry)));
+        parts.push(heading, row);
+      }
+      if (matches.length) {
+        const row = makeEl('div', 'search-pl-row');
+        matches.slice(0, 12).forEach((pl) => row.append(createPlaylistCard(pl)));
+        const heading = makeEl('h3', 'pl-section-title');
+        heading.append(sticker(q), 'Playlists');
+        parts.push(heading, row);
+      }
+      els.searchPlaylists.hidden = !parts.length;
+      els.searchPlaylists.replaceChildren(...parts);
+      return;
+    }
+
+    const found = searchTracks(applyFilters(baseTracks()), state.query);
+    const lyricCount = found.filter((t) => searchMeta.lyricIds.has(t.id)).length;
+    const songs = found.filter((t) => !searchMeta.lyricIds.has(t.id));
+    const atkCount = atk.countFor(state.query);
+    const counts = { all: found.length + artists.length + matches.length + atkCount, songs: songs.length, artists: artists.length, playlists: matches.length, lyrics: lyricCount, atk: atkCount };
+    searchMeta.counts = counts;
+    if (state.searchScope !== 'all' && !counts[state.searchScope]) state.searchScope = 'all';
+    // Filtros por tipo, solo si hay más de un tipo de resultado. Sin la fila de filtros a la vista se
+    // enseña todo (el filtro elegido vuelve cuando haya otra vez varios tipos)
+    const kinds = SEARCH_SCOPES.filter(([key]) => key !== 'all' && counts[key]);
+    const scope = kinds.length >= 2 ? state.searchScope : 'all';
+    if (kinds.length >= 2) {
+      els.searchScopes.replaceChildren(...SEARCH_SCOPES.filter(([key]) => key === 'all' || counts[key]).map(([key, label]) => {
+        const chip = makeChip('search-scope', key, label, scope === key);
+        if (key !== 'all') chip.append(makeEl('span', 'chip-count', String(counts[key])));
+        return chip;
+      }));
+      els.searchScopes.hidden = false;
+    }
+
+    const parts = [];
+    if (scope === 'all') {
+      // Si Liquid no lo tiene, el mejor resultado es la mejor opción de Liquid ATK
+      const atkBest = atk.bestFor(state.query);
+      const top = searchTopResult(q, artists, songs) || (atkBest ? { kind: 'track', track: atkBest } : null);
+      if (top) parts.push(searchTopCard(top));
+      const otherArtists = artists.filter((a) => top?.kind !== 'artist' || a !== top.entry);
+      if (otherArtists.length) {
+        const row = makeEl('div', 'home-row is-artists');
+        otherArtists.slice(0, 10).forEach((entry) => row.append(artistCard(entry)));
+        parts.push(searchSectionHead('Artistas', `${q}a`, otherArtists.length, 10, 'artists'), row);
+      }
+      if (matches.length) {
+        const row = makeEl('div', 'search-pl-row');
+        matches.slice(0, 12).forEach((pl) => row.append(createPlaylistCard(pl)));
+        parts.push(searchSectionHead('Playlists', q, matches.length, 12, 'playlists'), row);
+      }
+      if (parts.length && found.length) parts.push(searchSectionHead('Canciones', `${q}c`, 0, 0, 'songs'));
+      else if (parts.length && atkCount && !found.length) parts.push(makeEl('p', 'atk-none', `Nada de esto está en Liquid todavía: lo encontró Liquid ATK.`));
+    } else if (scope === 'artists') {
+      const list = makeEl('div', 'search-artist-list');
+      artists.slice(0, 80).forEach((entry) => list.append(searchArtistRow(entry)));
+      parts.push(list);
+    } else if (scope === 'playlists') {
+      const grid = makeEl('div', 'search-pl-grid');
+      matches.forEach((pl) => grid.append(createPlaylistCard(pl)));
+      parts.push(grid);
+    }
+    els.searchPlaylists.hidden = !parts.length;
+    els.searchPlaylists.replaceChildren(...parts);
+  }
+
   function rememberSearch(text) {
     const q = String(text || '').trim();
     if (q.length < 2) return;
@@ -4893,29 +5134,137 @@
     storage.set(KEYS.searches, library.searches);
   }
 
+  // Clases del cuerpo: modo búsqueda (teléfono) y pantalla de inicio de Buscar
+  function updateSearchMode() {
+    const landing = !els.searchPanel.hidden;
+    const open = landing || isGlobalSearch() || (state.searchOpen && phoneSearch());
+    document.body.classList.toggle('search-mode', open);
+    document.body.classList.toggle('search-landing', landing);
+  }
+
   function renderSearchPanel() {
-    const show = document.activeElement === els.searchInput && !els.searchInput.value.trim();
+    const focused = document.activeElement === els.searchInput;
+    const show = !LAB_MODE && (focused || (state.searchOpen && phoneSearch())) && !els.searchInput.value.trim();
     els.searchPanel.hidden = !show;
+    updateSearchMode();
     if (!show) return;
     const parts = [];
     if (library.searches.length) {
       const head = makeEl('div', 'search-panel-head');
       head.append(makeEl('h3', 'search-panel-title', 'Búsquedas recientes'));
-      const clear = makeEl('button', 'btn btn-ghost search-clear', 'Borrar');
+      const clear = makeEl('button', 'btn btn-ghost search-clear', 'Borrar todo');
       clear.type = 'button';
       clear.dataset.clearSearches = '1';
       head.append(clear);
-      const list = makeEl('div', 'chips');
+      const list = makeEl('ul', 'search-recent');
       library.searches.forEach((q) => {
-        const chip = makeEl('button', 'chip', q);
-        chip.type = 'button';
-        chip.dataset.q = q;
-        list.append(chip);
+        const li = document.createElement('li');
+        const go = makeEl('button', 'search-recent-q');
+        go.type = 'button';
+        go.dataset.q = q;
+        go.append(svgIcon('clock'), makeEl('span', '', q));
+        const remove = makeEl('button', 'icon-btn search-recent-x');
+        remove.type = 'button';
+        remove.dataset.removeSearch = q;
+        remove.setAttribute('aria-label', `Quitar «${q}» de las recientes`);
+        remove.append(svgIcon('close'));
+        li.append(go, remove);
+        list.append(li);
       });
       parts.push(head, list);
     }
+    if (state.libraryTracks.length) {
+      const artists = topArtists(10).filter(Boolean);
+      if (artists.length) {
+        const row = makeEl('div', 'search-mini-artists');
+        artists.forEach((entry) => {
+          const b = makeEl('button', 'search-mini-artist');
+          b.type = 'button';
+          b.dataset.action = 'open-artist';
+          b.dataset.value = entry.key;
+          b.append(photoImg(entry.tracks[0]?.thumb, 68, ''), makeEl('span', '', entry.name));
+          row.append(b);
+        });
+        parts.push(makeEl('h3', 'search-panel-title', 'Tus artistas'), row);
+      }
+    }
+    parts.push(...atk.searchLanding());
     parts.push(makeEl('h3', 'search-panel-title', 'Explora tus estilos'), exploreGrid());
     els.searchPanel.replaceChildren(...parts);
+  }
+
+  // Entrar en Buscar (botón de la barra de abajo, o tocar el buscador en el teléfono)
+  function enterSearch() {
+    if (LAB_MODE || state.searchOpen || !phoneSearch()) return;
+    state.searchPrev = { view: state.view, playlist: state.openPlaylist, artist: state.openArtist };
+    state.searchOpen = true;
+    state.searchScope = 'all';
+    if (state.view !== 'library') setView('library');
+    else if (state.filter !== 'all' || state.genre) {
+      // Buscar busca en todo: sin el filtro que hubiera en la Biblioteca
+      state.filter = 'all';
+      state.genre = '';
+      renderList();
+    }
+  }
+
+  function cancelSearch() {
+    const prev = state.searchPrev;
+    state.searchOpen = false;
+    state.searchPrev = null;
+    state.query = '';
+    els.searchInput.value = '';
+    els.searchInput.blur();
+    if (prev && prev.view !== 'library') {
+      if (prev.view === 'artist') state.openArtist = prev.artist;
+      setView(prev.view, { playlist: prev.playlist });
+    } else renderList();
+    renderSearchPanel();
+    updateNav();
+    window.scrollTo({ top: 0 });
+  }
+
+  function setupSearch() {
+    if (LAB_MODE) return;
+    els.searchCancel.addEventListener('click', cancelSearch);
+    // En el teléfono, tocar el buscador es entrar en Buscar (busca en todo, no dentro de la vista)
+    els.searchInput.addEventListener('focus', () => {
+      enterSearch();
+      renderSearchPanel();
+      updateNav();
+    });
+    // El teclado se esconde al pulsar «Buscar» en él o al empezar a desplazar los resultados
+    els.searchInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' && phoneSearch()) els.searchInput.blur();
+    });
+    els.library.addEventListener('touchmove', (event) => {
+      if (document.activeElement === els.searchInput && !event.target.closest('.search')) els.searchInput.blur();
+    }, { passive: true });
+    // Lo que de verdad buscabas (lo que tocaste) va a las recientes; no cada letra a medio escribir
+    els.library.addEventListener('click', (event) => {
+      if (!state.query.trim()) return;
+      if (!event.target.closest('.track-main, .artist-card, .pl-card, .search-top, .search-artist-row')) return;
+      rememberSearch(els.searchInput.value);
+      if (phoneSearch() && document.activeElement === els.searchInput) els.searchInput.blur();
+    }, true);
+    els.searchPanel.addEventListener('click', (event) => {
+      const remove = event.target.closest('[data-remove-search]');
+      if (remove) {
+        event.stopPropagation();
+        library.searches = library.searches.filter((s) => s !== remove.dataset.removeSearch);
+        storage.set(KEYS.searches, library.searches);
+        renderSearchPanel();
+        return;
+      }
+      if (event.target.closest('[data-action="open-artist"]')) els.searchInput.blur();
+    }, true);
+    // Al cambiar lo escrito, los resultados empiezan arriba (el buscador sigue fijo)
+    els.searchInput.addEventListener('input', () => {
+      if (!phoneSearch()) return;
+      const top = els.library.getBoundingClientRect().top;
+      if (top < 0) window.scrollTo({ top: window.scrollY + top });
+    });
+    updateSearchMode();
   }
 
   /* ---------- Tarjeta para compartir (Historias, Estados, chats) ---------- */
@@ -5156,42 +5505,6 @@
     return card;
   }
 
-  /* ---------- Playlists que coinciden con la búsqueda ---------- */
-  function renderSearchPlaylists(q) {
-    const matches = q
-      ? [...pinnedFirst(shownPls([...systemPlaylists(), ...localPlaylists()]))]
-        .filter((pl) => normalize(`${pl.name} ${pl.description || ''}`).includes(q))
-        .slice(0, 12)
-      : [];
-    const artists = q && state.view !== 'artists'
-      // La clave del artista ya es su nombre normalizado: no se normalizan ~1.800 nombres en cada tecla
-      ? [...labArtists().values()].filter((a) => a.key.includes(q))
-        .sort((a, b) => (b.key.startsWith(q) - a.key.startsWith(q)) || artistPlays(b) - artistPlays(a) || b.tracks.length - a.tracks.length)
-        .slice(0, 10)
-      : [];
-    els.searchPlaylists.hidden = !matches.length && !artists.length;
-    if (!matches.length && !artists.length) {
-      els.searchPlaylists.replaceChildren();
-      return;
-    }
-    const parts = [];
-    if (artists.length) {
-      const heading = makeEl('h3', 'pl-section-title');
-      heading.append(sticker(`${q}a`), 'Artistas');
-      const row = makeEl('div', 'home-row is-artists');
-      artists.forEach((entry) => row.append(artistCard(entry)));
-      parts.push(heading, row);
-    }
-    if (matches.length) {
-      const row = makeEl('div', 'search-pl-row');
-      matches.forEach((pl) => row.append(createPlaylistCard(pl)));
-      const heading = makeEl('h3', 'pl-section-title');
-      heading.append(sticker(q), 'Playlists');
-      parts.push(heading, row);
-    }
-    els.searchPlaylists.replaceChildren(...parts);
-  }
-
   const pinnedFirst = (playlists) => [
     ...playlists.filter((pl) => isPinned(pl.key)),
     ...playlists.filter((pl) => !isPinned(pl.key))
@@ -5239,6 +5552,7 @@
 
   function renderList() {
     renderListInner();
+    atk.update();
     syncPlayButtons(els.library);
   }
 
@@ -5304,6 +5618,9 @@
     if (!visible.length) {
       let li = makeEl('li', 'list-empty');
       if (!state.tracks.length) li = emptyState('li', 'library', 'La biblioteca está vacía por ahora.');
+      else if (searching && isGlobalSearch() && ['artists', 'playlists', 'atk'].includes(state.searchScope)) li = null;
+      // Con ATK, la tarjeta de pedir sale debajo de los resultados ATK si tampoco allí hay nada
+      else if (searching && isGlobalSearch() && atk.on()) li = null;
       else if (searching) li.append(tarjetaPedir(state.query));
       else if (state.filter !== 'all' || state.genre) li = emptyState('li', 'search', 'Ninguna canción coincide con este filtro.');
       else if (state.view === 'favorites') {
@@ -5319,7 +5636,7 @@
         li.append(go);
       }
       else li = emptyState('li', 'note', 'Todavía no hay canciones aquí.');
-      fragment.appendChild(li);
+      if (li) fragment.appendChild(li);
     }
     els.trackList.replaceChildren(fragment);
     if (visible.length) appendListChunk(LIST_FIRST_CHUNK);
@@ -5327,8 +5644,18 @@
 
     const total = visible.length;
     const seconds = visible.reduce((sum, t) => sum + parseDuration(t.duration), 0);
-    els.listInfo.textContent = searching
-      ? `${total} resultado${total === 1 ? '' : 's'} para «${state.query.trim()}»`
+    const typed = state.query.trim();
+    const scopeOnly = isGlobalSearch() && ['artists', 'playlists', 'atk'].includes(state.searchScope);
+    const others = searchMeta.counts[state.searchScope] || 0;
+    const scopeNoun = { artists: ['artista', 'artistas'], playlists: ['playlist', 'playlists'], atk: ['canción en Liquid ATK', 'canciones en Liquid ATK'] }[state.searchScope] || [];
+    els.listInfo.textContent = scopeOnly
+      ? `${others} ${scopeNoun[others === 1 ? 0 : 1]} para «${typed}»`
+      : searching && !total && isGlobalSearch() && atk.on()
+        ? `Nada en Liquid para «${typed}» todavía`
+      : searching && searchMeta.fuzzy && total
+        ? `${total} resultado${total === 1 ? '' : 's'} parecido${total === 1 ? '' : 's'} a «${typed}» (sin coincidencias exactas)`
+        : searching
+      ? `${total} resultado${total === 1 ? '' : 's'} para «${typed}»`
       : state.view === 'playlist' || state.view === 'artist' ? '' : `${songsLabel(total)} · ${formatTotal(seconds)}`;
     // Con resultados también: quizá no era esa versión o ese artista
     if (searching && total && !LAB_MODE) {
@@ -5425,6 +5752,13 @@
     if (LAB_MODE && view !== 'lab') {
       location.assign(VIEWS.includes(view) && view !== 'home' ? `${LIQUID_URL}?view=${view}` : LIQUID_URL);
       return;
+    }
+    if (view !== 'library' && state.searchOpen) {
+      state.searchOpen = false;
+      state.searchPrev = null;
+      state.query = '';
+      els.searchInput.value = '';
+      if (document.activeElement === els.searchInput) els.searchInput.blur();
     }
     const previous = state.view;
     const previousPlaylist = state.openPlaylist;
@@ -5773,6 +6107,16 @@
     text.append(title, artist);
     // Llegó hace poco (Novedades): una etiqueta «Nueva» junto al título
     if (arrivals.added[track.id]) title.append(' ', makeEl('span', 'track-new', 'Nueva'));
+    // Liquid ATK: su etiqueta; con ATK apagado, la fila atenuada
+    if (track.atk) {
+      title.append(' ', makeEl('span', 'atk-mark', 'ATK'));
+      if (!settings.atk) {
+        li.classList.add('is-atk-off');
+        artist.textContent = `Solo en Liquid ATK · ${track.knownArtist || track.artist}`;
+      }
+    }
+    // Buscando: la canción salió por su letra
+    if (state.query.trim() && searchMeta.lyricIds.has(track.id)) artist.prepend(makeEl('span', 'track-lyric', 'En la letra'));
     // Buscando: se resaltan las palabras que coinciden
     if (state.query.trim()) highlightWords([title, artist], state.query);
     // Al pasar el cursor: cuántas veces la escuchaste y cuándo fue la última
@@ -5808,7 +6152,7 @@
 
   function highlightCurrent() {
     const currentId = state.currentTrack?.id;
-    els.trackList.querySelectorAll('.track').forEach((li) => {
+    els.library.querySelectorAll('#trackList .track, .atk-list .track').forEach((li) => {
       li.classList.toggle('is-current', li.dataset.id === currentId);
     });
   }
@@ -5943,9 +6287,11 @@
     }
     const track = getTrack(id);
     if (track && !isPlayable(track)) {
-      showToast('Sin conexión: descarga la playlist para escucharla offline.');
+      showToast(track.atk ? unplayableMessage(track) : 'Sin conexión: descarga la playlist para escucharla offline.');
       return;
     }
+    // Resultado de Liquid ATK: suena con los demás resultados ATK detrás
+    if (track?.atk && !list.items.some((t) => t.id === id) && atk.play(id)) return;
     buildQueue(id);
     loadTrack(getTrack(id), true, dj.enabled ? 1.5 : 0);
   }
@@ -6364,6 +6710,7 @@
     resume.save(true);
     resume.saveQueue();
     if (els.queueDialog.open) renderQueue();
+    plus.onTrack(track);
 
     if (autoplay) play();
   }
@@ -6376,6 +6723,10 @@
       if (!state.tracks.length) return;
       buildQueue(state.tracks[0].id);
       loadTrack(getTrack(state.queue[state.queueIndex]), false);
+    }
+    if (state.currentTrack?.atk && !isPlayable(state.currentTrack)) {
+      if (!quiet) showToast(unplayableMessage(state.currentTrack));
+      return;
     }
     if (eq.ctx && eq.ctx.state !== 'running') eq.ctx.resume().catch(() => {});
     const deck = els.audio;
@@ -6851,6 +7202,7 @@
   function renderLyrics(text, emptyMessage = 'Letra no disponible para esta canción.') {
     state.lyrics = parseLyrics(text);
     state.activeLyric = -1;
+    if (plus.ui.karaoke?.open) plus.renderKaraoke();
     if (typeof text === 'string' && text && state.currentTrack) delete state.currentTrack.lyricsHay;
     queueMicrotask(updateLyricsTools);
     els.lyricsBody.replaceChildren();
@@ -7082,6 +7434,7 @@
     try { return new URL(src, location.href).origin; } catch { return ''; }
   };
   function eqCanPlay(track) {
+    if (track.atk) return false;
     if (/^(data|blob):/i.test(track.src)) return true;
     const origin = originOf(track.src);
     return origin === location.origin || eq.cors.get(origin) === true;
@@ -8296,6 +8649,33 @@
           else playTracks(getVisibleTracks());
           break;
         case 'shuffle-view': playTracks(getVisibleTracks(), true); break;
+        case 'search-scope':
+          state.searchScope = target.dataset.value;
+          renderList();
+          if (els.library.getBoundingClientRect().top < 0) window.scrollTo({ top: window.scrollY + els.library.getBoundingClientRect().top });
+          break;
+        case 'search-play-track': {
+          const track = getTrack(target.dataset.value);
+          if (!track) break;
+          if (track.atk) playFromList(track.id);
+          else if (list.items.some((t) => t.id === track.id)) playFromList(track.id);
+          else if (state.currentTrack?.id === track.id) togglePlay();
+          else { buildQueue(track.id); loadTrack(track, true, dj.enabled ? 1.5 : 0); }
+          break;
+        }
+        case 'search-play-artist': {
+          const entry = getArtist(target.dataset.value);
+          const tracks = entry ? artistTracks(entry) : [];
+          const start = tracks.find(isPlayable);
+          if (start) playCollection(tracks, start.id, entry.name, `search-artist:${entry.key}`);
+          break;
+        }
+        case 'play-unheard': {
+          const pl = getPlaylist(state.openPlaylist);
+          const rest = pl ? plus.unheardOf(pl) : [];
+          if (rest.length) playCollection(rest, rest[0].id, `${pl.name} · lo que te falta`);
+          break;
+        }
         case 'download-playlist': toggleDownload(state.openPlaylist); break;
         case 'new-playlist':
           createPlaylist().then((created) => { if (created) openPlaylist(`local:${created.id}`); });
@@ -8537,13 +8917,11 @@
 
     // Buscador en tiempo real
     let searchFrame = null;
-    let searchMemory = 0;
     els.searchInput.addEventListener('input', () => {
+      if (!state.query.trim()) state.searchScope = 'all';
       state.query = els.searchInput.value;
       // En Stats y Lab no hay lista que filtrar: la búsqueda se hace en la Biblioteca
       renderSearchPanel();
-      clearTimeout(searchMemory);
-      if (state.query.trim()) searchMemory = setTimeout(() => rememberSearch(els.searchInput.value), 1800);
       if (state.query.trim() && ['stats', 'lab', 'home'].includes(state.view)) {
         setView('library');
         return;
@@ -8731,13 +9109,20 @@
       const target = button.dataset.nav;
       npSheet.close();
       // Cambiar de sección deja atrás la búsqueda (antes el texto seguía escrito en Inicio y Lab sin filtrar nada)
-      if (target !== 'search') clearSearch();
+      if (target !== 'search') {
+        state.searchOpen = false;
+        state.searchPrev = null;
+        clearSearch();
+      }
       if (target === 'home' && state.view !== 'home') setView('home');
       if (target === 'library' && state.view !== 'library') setView('library');
       if (target === 'playlists' && state.view !== 'playlists') setView('playlists');
       if (target === 'lab' && state.view !== 'lab') setView('lab');
       // El foco va primero (iOS solo abre el teclado dentro del toque)
-      if (target === 'search') els.searchInput.focus({ preventScroll: true });
+      if (target === 'search') {
+        enterSearch();
+        els.searchInput.focus({ preventScroll: true });
+      }
       els.library.scrollIntoView({ block: 'start', behavior: settings.motion ? 'smooth' : 'auto' });
       updateNav();
     });
@@ -11126,7 +11511,7 @@
   const nav = { nowVisible: true };
 
   function updateNav() {
-    const searching = document.activeElement === els.searchInput;
+    const searching = document.activeElement === els.searchInput || state.searchOpen;
     const active = searching ? 'search'
       : state.view === 'home' ? 'home'
       : state.view === 'playlists' || state.view === 'playlist' ? 'playlists'
@@ -11590,7 +11975,7 @@
     ['N · P', 'Siguiente / anterior'], ['Mayús + ↑ ↓', 'Volumen'], ['M', 'Silenciar'], ['0 – 9', 'Saltar al 0 %, 10 %… de la canción'],
     ['F', 'Me gusta a la que suena'], ['A', 'Menú de la que suena (playlist, cola, radio…)'], ['C', 'Ir a la que suena en la lista'],
     ['X', 'Una canción al azar'], ['S', 'Aleatorio'], ['R', 'Repetir'], ['D', 'Transiciones DJ'], ['L', 'Letra'], ['Q', 'A continuación'],
-    ['T', 'Temporizador'], ['Mayús + , .', 'Velocidad'], ['/', 'Buscar'], ['↓ en el buscador', 'Ir a los resultados'],
+    ['T', 'Temporizador'], ['K', 'Letra a pantalla completa'], ['B', 'Bucle A–B (principio, final, quitar)'], ['G', 'Modo coche'], ['Mayús + , .', 'Velocidad'], ['/', 'Buscar'], ['↓ en el buscador', 'Ir a los resultados'],
     ['Intro en el buscador', 'Reproducir el primer resultado'], ['Mayús + clic en una canción', 'Al final de la cola'],
     ['Ctrl / ⌘ + clic', 'Reproducir a continuación'], ['?', 'Esta ayuda'], ['Esc', 'Cerrar Sonando']
   ];
@@ -12652,6 +13037,1348 @@
     setTimeout(() => showToast(`Tu Año Líquido ${season} ya está aquí.`, { label: 'Verlo', run: () => openResumen(season) }), 2500);
   }
 
+  /* ---------- Liquid ATK (v68) ----------
+     Un modo que se enciende en Ajustes, como el ultraligero. Con ATK encendido, cuando algo no está en
+     Liquid el buscador lo busca a la vez en tres fuentes de música abierta y legal (Audius, Internet
+     Archive y, con su clave, Jamendo), se queda con la mejor versión de cada canción y la reproduce aquí.
+     - Las canciones ATK llevan portadas de Liquid y la etiqueta ATK; en la interfaz no se dice de qué
+       fuente vienen (los créditos y la licencia están en su menú + y en «Acerca de ATK»).
+     - Nunca entran en las playlists de base, los mixes, las radios ni Lab: solo en lo que tú elijas.
+     - Con ATK apagado, Liquid es exactamente el de siempre: las ATK de tus playlists salen atenuadas.
+     - Tus favoritas y playlists con canciones ATK viajan con la cuenta: en otro dispositivo, Liquid
+       recupera los datos de cada canción preguntando a su fuente. */
+  const ATK_STORE = 'liquidbrush:atk-tracks';
+  const ATK_APP = 'liquidbullet';
+  const ATK_SONG_COVERS = 52;
+  // Solo lo del Archive con permiso o licencia abierta: sellos libres (netlabels), discos de 78 rpm,
+  // Free Music Archive y la Live Music Archive (directos grabados con permiso de las bandas: mediatype etree).
+  // Fuera lo «solo streaming» (no se puede reproducir fuera de su web) y lo de origen dudoso
+  const ATK_IA_FILTER = '((mediatype:(audio) AND collection:(netlabels OR 78rpm OR georgeblood OR freemusicarchive)) OR mediatype:(etree)) AND -collection:(roiocollection OR fringe OR deemphasize OR stream_only)';
+  const ATK_JUNK = /\b(type beat|sped ?up|slowed|nightcore|8d audio|karaoke|instrumental|remix|edit|cover|bootleg|mashup|flip|reverb)\b/;
+
+  const atk = {
+    cache: new Map(),
+    results: new Map(),
+    pending: null,
+    timer: 0,
+    lastQ: '',
+    ui: {},
+
+    on: () => settings.atk === true,
+
+    /* --- Modelo: una canción ATK se ve y se usa como cualquier otra de Liquid --- */
+    make(d) {
+      const n = (hashString(d.id) % ATK_SONG_COVERS) + 1;
+      const pad = String(n).padStart(2, '0');
+      const genre = d.genre ? String(d.genre).trim() : '';
+      return {
+        id: d.id,
+        title: d.title || 'Sin título',
+        artist: d.artist || 'Artista desconocido',
+        knownArtist: d.artist || '',
+        album: d.album || '',
+        duration: d.seconds ? formatTime(d.seconds) : '',
+        src: d.url,
+        photo: '',
+        cover: `covers/songs/song-${pad}.jpg`,
+        thumb: `covers/songs/song-${pad}-sm.jpg`,
+        hue: null,
+        lyrics: '',
+        genre,
+        generos: genre ? [genre] : [],
+        songKey: `atk|${normalize(String(d.title || '').replace(/\(.*?\)|\[.*?\]/g, ''))}|${normalize(d.artist || '')}`,
+        atk: true,
+        atkSource: d.src,
+        seconds: d.seconds || 0,
+        popularity: d.popularity || 0,
+        verified: Boolean(d.verified),
+        credit: d.credit || null
+      };
+    },
+    register(track) {
+      const known = this.cache.get(track.id);
+      if (known) return known;
+      this.cache.set(track.id, track);
+      state.trackMap.set(track.id, track);
+      return track;
+    },
+    // Al reconstruir la biblioteca (lista nueva de canciones), las ATK vuelven al mapa
+    reattach() {
+      this.cache.forEach((track, id) => { if (!state.trackMap.has(id)) state.trackMap.set(id, track); });
+    },
+
+    /* --- Memoria: solo se guardan las ATK que usas (favoritas, playlists, recientes, cola) --- */
+    referenced() {
+      const ids = new Set();
+      const add = (id) => { if (typeof id === 'string' && id.startsWith('atk:')) ids.add(id); };
+      state.favorites.forEach(add);
+      library.local.forEach((p) => p.trackIds.forEach(add));
+      library.recent.forEach(add);
+      state.queue.forEach(add);
+      add(state.currentTrack?.id);
+      return ids;
+    },
+    persist() {
+      const out = {};
+      const before = storage.get(ATK_STORE, {}) || {};
+      Object.entries(before).forEach(([id, d]) => { if (d?.at && Date.now() - d.at < DAY_MS) out[id] = d; });
+      this.referenced().forEach((id) => {
+        const t = this.cache.get(id);
+        if (!t) return;
+        out[id] = { t: t.title, a: t.knownArtist, al: t.album, s: t.seconds, u: t.src, g: t.genre, c: t.credit };
+      });
+      storage.set(ATK_STORE, out);
+    },
+    load() {
+      const saved = storage.get(ATK_STORE, {}) || {};
+      Object.entries(saved).forEach(([id, d]) => {
+        if (!d || typeof d.u !== 'string') return;
+        const src = id.split(':')[1];
+        this.register(this.make({ id, src, title: d.t, artist: d.a, album: d.al, seconds: d.s, url: d.u, genre: d.g, credit: d.c }));
+      });
+    },
+    // En otro dispositivo (cuenta) llegan ids ATK sin sus datos: se piden a la fuente
+    async hydrate() {
+      if (!this.on() || !navigator.onLine) return;
+      const missing = [...this.referenced()].filter((id) => !this.cache.has(id)).slice(0, 60);
+      if (!missing.length) return;
+      const found = await Promise.all(missing.map((id) => this.fetchOne(id).catch(() => null)));
+      if (!found.some(Boolean)) return;
+      found.filter(Boolean).forEach((t) => this.register(t));
+      this.persist();
+      renderList();
+    },
+    async fetchOne(id) {
+      const [, src, ...rest] = id.split(':');
+      const raw = rest.join(':');
+      if (src === 'au') {
+        const data = await this.json(`https://api.audius.co/v1/tracks/${encodeURIComponent(raw)}?app_name=${ATK_APP}`);
+        return data?.data ? this.fromAudius(data.data) : null;
+      }
+      if (src === 'ia') {
+        const slash = raw.indexOf('/');
+        const identifier = raw.slice(0, slash);
+        const file = raw.slice(slash + 1);
+        const meta = await this.json(`https://archive.org/metadata/${encodeURIComponent(identifier)}`);
+        const f = meta?.files?.find((x) => x.name === file);
+        return f ? this.fromArchiveFile(identifier, meta, f) : null;
+      }
+      if (src === 'ja' && CONFIG.jamendoClientId) {
+        const data = await this.json(`https://api.jamendo.com/v3.0/tracks/?client_id=${CONFIG.jamendoClientId}&format=json&id=${encodeURIComponent(raw)}&audioformat=mp32`);
+        return data?.results?.[0] ? this.fromJamendo(data.results[0]) : null;
+      }
+      return null;
+    },
+
+    async json(url, signal, ms = 6000) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), ms);
+      const stop = () => controller.abort();
+      signal?.addEventListener('abort', stop, { once: true });
+      try {
+        const response = await fetch(url, { signal: controller.signal });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return await response.json();
+      } finally {
+        clearTimeout(timer);
+        signal?.removeEventListener('abort', stop);
+      }
+    },
+
+    /* --- Fuentes --- */
+    fromAudius(t) {
+      if (!t || t.is_streamable === false || t.is_stream_gated || t.access?.stream === false || t.is_delete || t.is_unlisted) return null;
+      // Solo música: fuera pódcasts, audiolibros, episodios y comedia
+      if (/^(podcasts?|spoken word|audiobooks?|comedy|kids|devotional)$/i.test(String(t.genre || '').trim())) return null;
+      if (/\bep(isode|\.)?\s*\d+\b/i.test(String(t.title || ''))) return null;
+      return this.make({
+        id: `atk:au:${t.id}`,
+        src: 'au',
+        title: t.title,
+        artist: t.user?.name || '',
+        album: '',
+        seconds: Number(t.duration) || 0,
+        url: `https://api.audius.co/v1/tracks/${encodeURIComponent(t.id)}/stream?app_name=${ATK_APP}`,
+        genre: t.genre || '',
+        popularity: (Number(t.play_count) || 0) + 20 * (Number(t.favorite_count) || 0),
+        verified: Boolean(t.user?.is_verified),
+        credit: { author: t.user?.name || '', license: t.license || 'Todos los derechos reservados por su autor', link: `https://audius.co${t.permalink || ''}`, service: 'Audius' }
+      });
+    },
+    async audius(q, signal) {
+      const data = await this.json(`https://api.audius.co/v1/tracks/search?query=${encodeURIComponent(q)}&app_name=${ATK_APP}&limit=25`, signal, 6000);
+      return (data?.data || []).map((t) => this.fromAudius(t)).filter(Boolean);
+    },
+
+    fromArchiveFile(identifier, meta, f) {
+      const seconds = this.iaSeconds(f.length);
+      const item = meta.metadata || {};
+      const first = (v) => (Array.isArray(v) ? v[0] : v) || '';
+      const name = f.name.replace(/\.[a-z0-9]+$/i, '').replace(/[_]+/g, ' ').replace(/^\d+\s*[-.]\s*/, '');
+      const collections = [].concat(item.collection || []);
+      const license = item.licenseurl
+        || (collections.includes('etree') || item.mediatype === 'etree' ? 'Grabación en directo compartida con permiso de la banda (Live Music Archive)'
+          : collections.includes('78rpm') || collections.includes('georgeblood') ? 'Disco de 78 rpm preservado por el Internet Archive' : '');
+      return this.make({
+        id: `atk:ia:${identifier}/${f.name}`,
+        src: 'ia',
+        title: String(first(f.title) || name).replace(/^\d+\s*[-.]\s*/, ''),
+        artist: String(first(f.creator) || first(f.artist) || first(item.creator) || ''),
+        album: String(first(f.album) || first(item.title) || ''),
+        seconds,
+        url: `https://archive.org/download/${encodeURIComponent(identifier)}/${f.name.split('/').map(encodeURIComponent).join('/')}`,
+        genre: '',
+        popularity: Number(item.downloads) || 0,
+        credit: { author: String(first(f.creator) || first(item.creator) || ''), license, link: `https://archive.org/details/${identifier}`, service: 'Internet Archive' }
+      });
+    },
+    iaSeconds(length) {
+      const s = String(length || '');
+      if (s.includes(':')) return s.split(':').reduce((acc, part) => acc * 60 + Number(part || 0), 0);
+      return Math.round(Number(s) || 0);
+    },
+    async archive(q, signal) {
+      const words = q.replace(/[^\p{L}\p{N}\s]+/gu, ' ').trim();
+      if (!words) return [];
+      const query = `(${words}) AND ${ATK_IA_FILTER}`;
+      const url = `https://archive.org/advancedsearch.php?q=${encodeURIComponent(query)}&fl[]=identifier&fl[]=downloads&rows=6&output=json`;
+      const docs = (await this.json(url, signal, 7000))?.response?.docs || [];
+      const tokens = normalize(q).split(/\s+/).filter(Boolean);
+      const items = await Promise.all(docs.slice(0, 5).map((d) => this.json(`https://archive.org/metadata/${encodeURIComponent(d.identifier)}`, signal, 7000)
+        .then((meta) => ({ d, meta })).catch(() => null)));
+      const out = [];
+      items.filter(Boolean).forEach(({ d, meta }) => {
+        const files = meta?.files || [];
+        const vbr = files.filter((f) => f.format === 'VBR MP3');
+        const mp3 = vbr.length ? vbr : files.filter((f) => /\.mp3$/i.test(f.name) && f.source !== 'metadata');
+        meta.metadata = { ...(meta.metadata || {}), downloads: d.downloads };
+        const tracks = mp3.map((f) => this.fromArchiveFile(d.identifier, meta, f)).filter((t) => t.seconds >= 40 && t.seconds <= 1500);
+        // De cada disco o concierto, las pistas que encajan con lo buscado (o las primeras si encaja el disco)
+        const hits = tracks.filter((t) => tokens.some((tok) => normalize(`${t.title} ${t.knownArtist}`).includes(tok)));
+        out.push(...(hits.length ? hits.slice(0, 4) : tracks.slice(0, 2)));
+      });
+      return out;
+    },
+
+    fromJamendo(t) {
+      if (!t?.audio) return null;
+      return this.make({
+        id: `atk:ja:${t.id}`,
+        src: 'ja',
+        title: t.name,
+        artist: t.artist_name || '',
+        album: t.album_name || '',
+        seconds: Number(t.duration) || 0,
+        url: t.audio,
+        genre: t.musicinfo?.tags?.genres?.[0] || '',
+        popularity: Number(t.stats?.listened || 0),
+        credit: { author: t.artist_name || '', license: t.license_ccurl || 'Creative Commons', link: t.shareurl || '', service: 'Jamendo' }
+      });
+    },
+    async jamendo(q, signal) {
+      if (!CONFIG.jamendoClientId) return [];
+      const data = await this.json(`https://api.jamendo.com/v3.0/tracks/?client_id=${CONFIG.jamendoClientId}&format=json&limit=20&search=${encodeURIComponent(q)}&audioformat=mp32&include=musicinfo+stats&order=relevance`, signal, 6000);
+      return (data?.results || []).map((t) => this.fromJamendo(t)).filter(Boolean);
+    },
+
+    /* --- La mejor opción: la que mejor encaja con lo escrito, completa, con buena pinta y sin copias --- */
+    score(t, qn, tokens) {
+      const title = normalize(t.title);
+      const artist = normalize(t.knownArtist);
+      const album = normalize(t.album);
+      const main = `${title} ${artist}`;
+      const hay = `${main} ${album}`;
+      const hit = tokens.filter((tok) => hay.includes(tok)).length / tokens.length;
+      if (hit < 1 && !(tokens.length >= 3 && hit >= 0.66)) return 0;
+      let s = hit * 50;
+      const plain = normalize(splitTitle(t.title).main);
+      // Buscar a un artista: sus canciones primero
+      if (artist === qn) s += 26;
+      if (plain === qn || `${artist} ${plain}` === qn || `${plain} ${artist}` === qn) s += 32;
+      else if (title.startsWith(qn) || main.startsWith(qn) || `${artist} ${title}`.startsWith(qn)) s += 18;
+      else if (tokens.every((tok) => main.includes(tok))) s += 10;
+      if (!ATK_JUNK.test(qn) && ATK_JUNK.test(title)) s -= 16;
+      if (t.seconds && t.seconds < 60) s -= 12;
+      if (t.seconds > 900) s -= 10;
+      s += Math.min(12, Math.log10(1 + t.popularity) * 2);
+      s += { au: 3, ja: 2, ia: 0 }[t.atkSource] || 0;
+      return s;
+    },
+    // Lo que Liquid ya tiene (título + artista) y los artistas de su catálogo
+    liquidIndex() {
+      if (this.index?.n === state.libraryTracks.length) return this.index;
+      const songs = new Set();
+      const artists = new Set();
+      state.libraryTracks.forEach((t) => {
+        songs.add(`${normalize(splitTitle(t.title).main)}|${normalize(t.knownArtist)}`);
+        creditedArtists(t).forEach((name) => artists.add(normalize(name)));
+      });
+      this.index = { n: state.libraryTracks.length, songs, artists };
+      return this.index;
+    },
+    rank(q, lists) {
+      const qn = normalize(q);
+      const tokens = qn.split(/\s+/).filter(Boolean);
+      const best = new Map();
+      const known = this.liquidIndex();
+      // Artistas de Liquid que salen en lo buscado: de ellos, en Audius solo vale su cuenta verificada
+      // (las demás subidas con su nombre son resubidas o remixes de canciones comerciales)
+      const named = [...known.artists].filter((a) => a.length >= 4 && qn.includes(a));
+      lists.flat().forEach((t) => {
+        if (t.atkSource === 'au' && !t.verified && named.some((a) => normalize(`${t.title} ${t.knownArtist}`).includes(a))) return;
+        // «Suponiendo que Liquid no lo tiene»: lo que ya está en Liquid no se repite desde fuera
+        if (known.songs.has(`${normalize(splitTitle(t.title).main)}|${normalize(t.knownArtist)}`)) return;
+        // Una cuenta sin verificar con el nombre de un artista de Liquid casi siempre es un impostor
+        if (t.atkSource === 'au' && !t.verified && known.artists.has(normalize(t.knownArtist))) return;
+        const s = this.score(t, qn, tokens);
+        if (s <= 0) return;
+        // La misma canción en varias fuentes: se queda la mejor
+        const key = `${normalize(splitTitle(t.title).main.replace(/\(.*?\)|\[.*?\]/g, ''))}|${normalize(t.knownArtist)}`;
+        const prev = best.get(key);
+        if (!prev || s > prev.s) best.set(key, { t, s });
+      });
+      return [...best.values()].sort((a, b) => b.s - a.s).slice(0, 24).map((x) => x.t);
+    },
+
+    /* --- Búsqueda: se pide a las tres a la vez y se pinta en cuanto responde cada una --- */
+    entry(q) {
+      return this.results.get(normalize(q)) || null;
+    },
+    countFor(q) {
+      const e = this.on() ? this.entry(q) : null;
+      return e ? e.tracks.length : 0;
+    },
+    bestFor(q) {
+      const e = this.on() ? this.entry(q) : null;
+      return e?.tracks[0] || null;
+    },
+    request(q) {
+      const qn = normalize(q);
+      if (!this.on() || qn.length < 2) return;
+      if (this.results.has(qn) || this.pending?.qn === qn) return;
+      clearTimeout(this.timer);
+      this.pending?.controller.abort();
+      this.pending = null;
+      this.timer = setTimeout(() => this.run(q, qn), 320);
+    },
+    async run(q, qn) {
+      if (!navigator.onLine) return;
+      const controller = new AbortController();
+      const entry = { tracks: [], done: false, lists: [] };
+      this.pending = { qn, controller };
+      this.results.set(qn, entry);
+      if (this.results.size > 40) this.results.delete(this.results.keys().next().value);
+      this.render();
+      const sources = [this.audius(q, controller.signal), this.jamendo(q, controller.signal), this.archive(q, controller.signal)];
+      let left = sources.length;
+      await new Promise((resolve) => {
+        sources.forEach((p) => p.then((list) => {
+          if (controller.signal.aborted) return;
+          entry.lists.push(list);
+          entry.tracks = this.rank(q, entry.lists).map((t) => this.register(t));
+          this.refresh(qn);
+        }).catch(() => {}).finally(() => { if (--left === 0) resolve(); }));
+      });
+      if (controller.signal.aborted) return;
+      entry.done = true;
+      if (this.pending?.qn === qn) this.pending = null;
+      this.refresh(qn);
+    },
+    refresh(qn) {
+      if (normalize(state.query) !== qn || !isGlobalSearch()) return;
+      renderSearchPlaylists(qn);
+      this.render();
+    },
+
+
+    /* --- ATK en todo Liquid: Inicio, Lab, radios, artistas, Stats y Buscar ---
+       Las tendencias de cada estilo (Audius) se piden una vez por sesión y se reutilizan. */
+    pools: new Map(),
+    poolsShown: new Set(),
+    GENRES: {
+      Rock: 'Rock', Alternativo: 'Alternative', Indie: 'Alternative', Pop: 'Pop', 'Dream pop y shoegaze': 'Alternative',
+      Psicodelia: 'Alternative', 'Synth pop': 'Electronic', 'Punk y post-punk': 'Punk', Metal: 'Metal', Emo: 'Punk',
+      Folk: 'Folk', Blues: 'Blues', Ska: 'Reggae', Reggae: 'Reggae', 'R&B': 'R&B/Soul', Soul: 'R&B/Soul', Funk: 'Funk',
+      Disco: 'Disco', 'Hip hop y rap': 'Hip-Hop/Rap', Trap: 'Trap', Reggaetón: 'Latin', 'Pop latino': 'Latin',
+      'Cumbia y tropical': 'Latin', Salsa: 'Latin', Bachata: 'Latin', 'Regional mexicano': 'Latin', 'Funk brasileño': 'Latin',
+      'Balada y bolero': 'Latin', Electrónica: 'Electronic', House: 'House', 'Dance y EDM': 'Electronic',
+      'Club y jersey': 'Jersey Club', 'Hardtekk y jumpstyle': 'Hardstyle', Hyperpop: 'Hyperpop', Ambient: 'Ambient',
+      Jazz: 'Jazz', Swing: 'Jazz', 'Bossa nova': 'Jazz', 'Lo-fi y jazzhop': 'Lo-Fi', 'K-pop': 'Pop', 'J-pop y city pop': 'Pop'
+    },
+    LABELS: {
+      Rock: 'Rock', Alternative: 'Alternativo', Pop: 'Pop', Electronic: 'Electrónica', Punk: 'Punk', Metal: 'Metal',
+      Folk: 'Folk', Blues: 'Blues', Reggae: 'Reggae', 'R&B/Soul': 'R&B', Funk: 'Funk', Disco: 'Disco',
+      'Hip-Hop/Rap': 'Hip hop', Trap: 'Trap', Latin: 'Latino', House: 'House', 'Jersey Club': 'Jersey club',
+      Hardstyle: 'Hardstyle', Hyperpop: 'Hyperpop', Ambient: 'Ambient', Jazz: 'Jazz', 'Lo-Fi': 'Lo-fi', '': 'Lo más fuerte'
+    },
+    audiusGenreOf(track) {
+      return (track?.generos || []).map((g) => this.GENRES[g]).find(Boolean) || '';
+    },
+    // Estilo de Liquid («Sueño Pastel») → su género más común → el de Audius
+    genreOfStyle(style) {
+      const counts = new Map();
+      state.libraryTracks.forEach((t) => {
+        if (t.genre !== style) return;
+        const g = this.audiusGenreOf(t);
+        if (g) counts.set(g, (counts.get(g) || 0) + 1);
+      });
+      return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || '';
+    },
+    // Tus géneros: lo que más escuchas (o, sin historial, unos cuantos para empezar)
+    yourGenres(n = 3) {
+      const weight = new Map();
+      Object.entries(library.plays).forEach(([id, plays]) => {
+        const g = this.audiusGenreOf(getTrack(id));
+        if (g) weight.set(g, (weight.get(g) || 0) + Number(plays));
+      });
+      const mine = [...weight.entries()].sort((a, b) => b[1] - a[1]).map(([g]) => g);
+      return [...new Set([...mine, 'Hip-Hop/Rap', 'Electronic', 'Lo-Fi', 'Alternative'])].slice(0, n);
+    },
+    pool(genre) {
+      const p = this.pools.get(genre);
+      if (!p) this.fetchPool(genre);
+      return p?.tracks || [];
+    },
+    fetchPool(genre) {
+      if (!this.on() || this.pools.has(genre) || !navigator.onLine) return Promise.resolve([]);
+      const entry = { tracks: [], loading: true };
+      this.pools.set(genre, entry);
+      const url = `https://api.audius.co/v1/tracks/trending?app_name=${ATK_APP}&time=week${genre ? `&genre=${encodeURIComponent(genre)}` : ''}`;
+      entry.promise = this.json(url, null, 7000).then((data) => {
+        const seen = new Set();
+        entry.tracks = (data?.data || []).map((t) => this.fromAudius(t)).filter((t) => {
+          if (!t || t.seconds < 60 || t.seconds > 720) return false;
+          // Una por artista y sin «type beats»: tendencias de verdad
+          const artist = normalize(t.knownArtist);
+          if (seen.has(artist) || /type beat/i.test(t.title)) return false;
+          seen.add(artist);
+          return true;
+        }).slice(0, 30).map((t) => this.register(t));
+        return entry.tracks;
+      }).catch(() => []).finally(() => { entry.loading = false; });
+      return entry.promise;
+    },
+    play(id) {
+      const e = this.entry(state.query);
+      let list = e?.tracks.some((t) => t.id === id) ? e.tracks : null;
+      if (!list) this.pools.forEach((p) => { if (!list && p.tracks.some((t) => t.id === id)) list = p.tracks; });
+      if (!list && this.artistEntry?.tracks.some((t) => t.id === id)) list = this.artistEntry.tracks;
+      list ||= [getTrack(id)].filter(Boolean);
+      if (!list.length) return false;
+      if (state.currentTrack?.id === id) togglePlay();
+      else playCollection(list, id, 'Liquid ATK', `atk:${id}`);
+      return true;
+    },
+
+    // Inicio: lo más fresco de ATK en tus estilos (tarjetas que se tocan y suenan)
+    homeSection() {
+      if (!this.on() || settings.ultra) return null;
+      const genres = ['', ...this.yourGenres(4)];
+      const pending = genres.filter((g) => !this.pools.has(g) || this.pools.get(g).loading);
+      if (pending.length) {
+        Promise.all(genres.map((g) => this.fetchPool(g).then(() => this.pools.get(g)?.promise))).then(() => {
+          if (state.view === 'home' && !this.poolsShown.has('home')) { this.poolsShown.add('home'); renderList(); }
+        });
+      }
+      const cards = genres.map((g) => {
+        const tracks = this.pool(g);
+        if (tracks.length < 6) return null;
+        const label = g ? `ATK ${this.LABELS[g] || g}` : 'ATK hoy';
+        return collectionCard(`atk-${g || 'hoy'}`, label, g ? `Lo nuevo de ${this.LABELS[g] || g}` : 'Lo que más suena esta semana', tracks[0].cover, tracks);
+      }).filter(Boolean);
+      if (!cards.length) {
+        if (!pending.length) return null;
+        const wait = homeSection('Liquid ATK', 'Trayendo lo más fresco de tus estilos…');
+        wait.classList.add('atk-home', 'is-loading');
+        return wait;
+      }
+      const section = cardRow('Liquid ATK · más allá de tu biblioteca', 'Lo que está sonando esta semana en tus estilos, fuera de Liquid. Se renueva cada día.', cards);
+      section?.classList.add('atk-home');
+      return section;
+    },
+
+    // Lab: con ATK, los estilos elegidos suman canciones de fuera. Cuántas lo decide «Descubrimiento»:
+    // ninguna con «Solo conocidas», una de cada cuatro con «Mitad y mitad», la mitad con «Solo nuevas»
+    labBlend(list, groups) {
+      if (!this.on() || groups || !lab.genres.length || !lab.mix || !list.length) return list;
+      const want = Math.round(list.length * (lab.mix / 4) * 0.5);
+      const pool = new Map();
+      lab.genres.forEach((style) => {
+        const g = this.genreOfStyle(style);
+        if (g) this.pool(g).forEach((t) => pool.set(t.id, t));
+      });
+      const extra = seededShuffle([...pool.values()].filter((t) => isPlayable(t) && !isDisliked(t.id)), String(Date.now())).slice(0, want);
+      if (!extra.length) return list;
+      const out = list.slice();
+      const from = Math.min(lab.seeds.length, out.length - 1);
+      const step = (out.length - from) / extra.length;
+      extra.forEach((t, k) => out.splice(Math.min(out.length - 1, Math.floor(from + k * step + step / 2)), 1, t));
+      return out;
+    },
+    labPrefetch() {
+      if (!this.on()) return;
+      lab.genres.forEach((style) => { const g = this.genreOfStyle(style); if (g) this.fetchPool(g); });
+    },
+
+    // Radios: una de cada cuatro, de ATK y del mismo estilo
+    mixRadio(tracks, seedKey) {
+      if (!this.on() || tracks.length < 4) return tracks;
+      const base = getArtist(seedKey);
+      const g = this.audiusGenreOf(base?.tracks.find((t) => t.generos.length));
+      const extra = g ? this.pool(g).filter((t) => recencyFactor(t.id) > 0.5) : [];
+      if (!extra.length) return tracks;
+      const start = Math.floor(Math.random() * extra.length);
+      const out = [];
+      let k = 0;
+      tracks.forEach((t, i) => {
+        out.push(t);
+        if (i % 4 === 3 && k < extra.length) out.push(extra[(start + k++) % extra.length]);
+      });
+      return out;
+    },
+
+    // Página de artista: «Más de X en Liquid ATK» (directos del Archive, sus subidas en Audius…)
+    artistEntry: null,
+    async loadArtist(entry) {
+      const key = entry.key;
+      if (this.artistEntry?.key === key) return;
+      this.artistEntry = { key, name: entry.name, tracks: [], done: false };
+      const ae = this.artistEntry;
+      const lists = await Promise.all([this.audius(entry.name).catch(() => []), this.archive(entry.name).catch(() => []), this.jamendo(entry.name).catch(() => [])]);
+      if (this.artistEntry !== ae) return;
+      const own = new Set(entry.tracks.map((t) => t.songKey));
+      ae.tracks = this.rank(entry.name, lists)
+        .filter((t) => normalize(t.knownArtist).includes(key) || key.includes(normalize(t.knownArtist)))
+        .filter((t) => !own.has(t.songKey))
+        .slice(0, 15).map((t) => this.register(t));
+      ae.done = true;
+      if (state.view === 'artist' && state.openArtist === key) this.render();
+    },
+
+    // Stats: minutos del mes en ATK
+    statTile(current) {
+      let secs = 0;
+      current.tracks.forEach((s, id) => { if (id.startsWith('atk:')) secs += s; });
+      return secs >= 60 ? statTile(minutesLabel(secs), 'en Liquid ATK') : null;
+    },
+
+    // Buscar (antes de escribir): lo que más suena en ATK
+    searchLanding() {
+      if (!this.on() || settings.ultra) return [];
+      const tracks = this.pool('').slice(0, 6);
+      if (!tracks.length) {
+        this.fetchPool('').then(() => { if (!els.searchPanel.hidden && !this.poolsShown.has('search')) { this.poolsShown.add('search'); renderSearchPanel(); } });
+        return [];
+      }
+      const list = makeEl('div', 'atk-trend');
+      tracks.forEach((t) => {
+        const b = makeEl('button', 'atk-trend-item');
+        b.type = 'button';
+        b.dataset.action = 'search-play-track';
+        b.dataset.value = t.id;
+        const text = makeEl('span', 'atk-trend-text');
+        text.append(makeEl('span', 'atk-trend-title', splitTitle(t.title).main), makeEl('span', 'atk-trend-artist', t.knownArtist));
+        b.append(photoImg(t.thumb, 44, ''), text);
+        list.append(b);
+      });
+      const title = makeEl('h3', 'search-panel-title');
+      title.append(makeEl('span', 'atk-mark', 'ATK'), ' Lo que suena esta semana');
+      return [title, list];
+    },
+    // Lab → Liquid: las ATK de la mezcla viajan con sus datos
+    rememberIds(ids) {
+      if (!Array.isArray(ids)) return;
+      const saved = storage.get(ATK_STORE, {}) || {};
+      ids.forEach((id) => {
+        const t = this.cache.get(id);
+        if (t) saved[id] = { t: t.title, a: t.knownArtist, al: t.album, s: t.seconds, u: t.src, g: t.genre, c: t.credit, at: Date.now() };
+      });
+      try { localStorage.setItem(ATK_STORE, JSON.stringify(saved)); } catch { /* sin espacio */ }
+    },
+
+    /* --- Resultados ATK, debajo de los de Liquid --- */
+    update() {
+      const box = this.ui.results;
+      if (!box) return;
+      if (this.on() && state.view === 'artist' && !normalize(state.query)) {
+        const entry = getArtist(state.openArtist);
+        if (entry) this.loadArtist(entry);
+        this.render();
+        return;
+      }
+      if (!this.on() || !isGlobalSearch()) { box.hidden = true; return; }
+      this.request(state.query);
+      this.render();
+    },
+    render() {
+      const box = this.ui.results;
+      if (!box) return;
+      const artistPage = this.on() && state.view === 'artist' && !normalize(state.query);
+      const show = artistPage || (this.on() && isGlobalSearch() && ['all', 'songs', 'atk'].includes(state.searchScope));
+      const e = artistPage ? (this.artistEntry?.key === state.openArtist ? this.artistEntry : null) : this.entry(state.query);
+      // Sin nada que añadir a lo que ya trae Liquid, la sección ATK no sale
+      box.hidden = !show || (!e && !this.pending) || (e?.done && !e.tracks.length && (artistPage || list.items.length > 0));
+      if (box.hidden) return;
+      const head = makeEl('div', 'atk-head');
+      const mark = makeEl('span', 'atk-mark', 'ATK');
+      mark.setAttribute('aria-hidden', 'true');
+      const title = makeEl('h3', 'atk-title');
+      title.append(mark, artistPage ? `Más de ${e?.name || ''} en Liquid ATK` : 'Más allá de Liquid');
+      const status = makeEl('span', 'atk-status');
+      const tracks = e?.tracks || [];
+      const searching = !e?.done;
+      status.textContent = searching ? (tracks.length ? 'Buscando en más sitios…' : 'Buscando…') : tracks.length ? songsLabel(tracks.length) : 'Nada por aquí';
+      status.classList.toggle('is-busy', searching);
+      head.append(title, status);
+      const parts = [head];
+      if (tracks.length) {
+        const ul = makeEl('ul', 'track-list atk-list');
+        tracks.forEach((t, i) => ul.append(createTrackItem(t, i)));
+        parts.push(ul);
+      } else if (searching) {
+        const sk = makeEl('ul', 'track-list atk-list');
+        sk.setAttribute('aria-hidden', 'true');
+        for (let i = 0; i < 3; i++) {
+          const li = makeEl('li', 'track-skeleton');
+          li.append(makeEl('span', 'sk-cover'), makeEl('span', 'sk-lines'));
+          sk.append(li);
+        }
+        parts.push(sk);
+      } else if (!artistPage && !list.items.length) {
+        parts.push(tarjetaPedir(state.query));
+      }
+      box.replaceChildren(...parts);
+      highlightCurrent();
+    },
+
+    /* --- Encender y apagar (con su animación) --- */
+    apply() {
+      const on = this.on();
+      document.documentElement.classList.toggle('atk', on);
+      const brand = document.querySelector('.brand-name span');
+      if (brand && !LAB_MODE) brand.textContent = on ? 'ATK' : 'Bullet';
+      if (this.ui.toggle) this.ui.toggle.checked = on;
+    },
+    set(on) {
+      if (LAB_MODE || on === this.on()) return;
+      settings.atk = on;
+      saveSettings();
+      this.intro(on);
+      this.apply();
+      if (on) this.hydrate();
+      else {
+        clearTimeout(this.timer);
+        this.pending?.controller.abort();
+        this.pending = null;
+        // Lo que suena de ATK se para: Liquid vuelve a ser el de siempre
+        if (state.currentTrack?.atk && !els.audio.paused) pauseByUser();
+      }
+      renderList();
+      showToast(on ? 'Liquid ATK activado: si algo no está en Liquid, el buscador va a buscarlo.' : 'Liquid ATK desactivado: vuelves a Liquid Bullet.');
+    },
+    intro(on) {
+      if (!settings.motion || settings.ultra || reducedMotion()) return;
+      document.querySelector('.atk-intro')?.remove();
+      const box = makeEl('div', `atk-intro ${on ? 'is-on' : 'is-off'}`);
+      box.setAttribute('aria-hidden', 'true');
+      const word = makeEl('div', 'atk-intro-word');
+      const swap = makeEl('span', 'atk-intro-swap');
+      swap.append(makeEl('span', 'atk-intro-old', on ? 'BULLET' : 'ATK'), makeEl('span', 'atk-intro-new', on ? 'ATK' : 'BULLET'));
+      word.append(makeEl('span', 'atk-intro-liquid', 'LIQUID'), swap);
+      box.append(makeEl('span', 'atk-intro-glow'), makeEl('span', 'atk-intro-line'), word, makeEl('span', 'atk-intro-sub', on ? 'Más allá de tu biblioteca' : 'Tu biblioteca, como siempre'));
+      const close = () => {
+        box.classList.add('is-leaving');
+        setTimeout(() => box.remove(), 420);
+      };
+      box.addEventListener('click', close, { once: true });
+      setTimeout(close, 1850);
+      document.body.append(box);
+      // Por encima de Ajustes (las ventanas abiertas van en la capa superior: un popover también)
+      if (typeof box.showPopover === 'function') {
+        box.popover = 'manual';
+        try { box.showPopover(); } catch { /* sin popover */ }
+      }
+      haptic([12, 40, 24]);
+    },
+
+    /* --- Acerca de ATK y créditos --- */
+    openAbout() {
+      if (!this.ui.about) {
+        const d = makeEl('dialog', 'sheet atk-about');
+        d.setAttribute('aria-labelledby', 'atkAboutTitle');
+        const body = makeEl('div', 'sheet-body');
+        const title = makeEl('h2', 'sheet-title');
+        title.id = 'atkAboutTitle';
+        title.append(makeEl('span', 'atk-mark', 'ATK'), 'Acerca de Liquid ATK');
+        const sources = makeEl('ul', 'atk-sources');
+        [['Audius', 'https://audius.co', 'música subida por sus propios artistas'],
+          ['Internet Archive', 'https://archive.org/details/audio', 'sellos libres, directos grabados con permiso de las bandas y discos de 78 rpm'],
+          ...(CONFIG.jamendoClientId ? [['Jamendo', 'https://www.jamendo.com', 'música con licencia Creative Commons']] : [])]
+          .forEach(([name, href, what]) => {
+            const li = document.createElement('li');
+            const a = makeEl('a', '', name);
+            a.href = href;
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+            li.append(a, ` · ${what}`);
+            sources.append(li);
+          });
+        const close = makeEl('button', 'btn btn-primary', 'Entendido');
+        close.type = 'button';
+        close.addEventListener('click', () => d.close());
+        const actions = makeEl('div', 'sheet-actions');
+        actions.append(close);
+        body.append(
+          title,
+          makeEl('p', 'sheet-text', 'Con ATK encendido, cuando algo no está en Liquid el buscador lo encuentra en millones de canciones abiertas y legales, elige la mejor versión y la reproduce aquí, con portadas de Liquid.'),
+          makeEl('p', 'sheet-text', 'Lo que suena en ATK viene de:'),
+          sources,
+          makeEl('p', 'sheet-note', 'Cada canción es de su autor y conserva su licencia: la ves en «Créditos» dentro del menú + de la canción. ATK nunca se mezcla con las playlists de Liquid, los mixes ni las radios. Las canciones ATK no se descargan ni se comparten con enlace.'),
+          actions
+        );
+        d.append(body);
+        d.addEventListener('click', (event) => { if (event.target === d) d.close(); });
+        document.body.append(d);
+        this.ui.about = d;
+      }
+      this.ui.about.showModal();
+    },
+    // En el menú + de una canción ATK: créditos y licencia (y sin lo que no aplica)
+    decorateAdd(track) {
+      const atkTrack = Boolean(track?.atk);
+      [els.addArtist, els.addRadio, els.addShare].forEach((b) => { if (b) b.hidden = atkTrack; });
+      let credit = els.addDialog.querySelector('.add-credit');
+      if (!credit) {
+        credit = makeEl('p', 'sheet-note add-credit');
+        els.addTrackName.after(credit);
+      }
+      credit.hidden = !atkTrack || !track.credit;
+      if (credit.hidden) return;
+      const c = track.credit;
+      const link = makeEl('a', '', c.link ? 'ver original' : '');
+      if (c.link) {
+        link.href = c.link;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+      }
+      const license = /^https?:/.test(c.license || '') ? 'licencia Creative Commons' : c.license || 'licencia de su autor';
+      credit.replaceChildren(makeEl('span', 'atk-mark', 'ATK'), ` Créditos: ${c.author || 'su autor'} · ${license} · vía ${c.service}${c.link ? ' · ' : ''}`, ...(c.link ? [link] : []));
+      if (/^https?:/.test(c.license || '')) {
+        const lic = makeEl('a', '', ' (ver licencia)');
+        lic.href = c.license;
+        lic.target = '_blank';
+        lic.rel = 'noopener noreferrer';
+        credit.append(lic);
+      }
+    },
+
+    init() {
+      this.load();
+      if (LAB_MODE) return;
+      this.ui.results = els.atkResults;
+      this.ui.toggle = els.atkToggle;
+      els.atkToggle?.addEventListener('change', () => this.set(els.atkToggle.checked));
+      els.atkAbout?.addEventListener('click', () => this.openAbout());
+      this.apply();
+      if (this.on()) setTimeout(() => this.hydrate(), 1500);
+      window.addEventListener('pagehide', () => this.persist());
+    }
+  };
+
+  /* ---------- v66: 15 ideas para quedarse en Liquid ----------
+     Letra a pantalla completa, bucle A–B, modo coche, sesión privada, notas, la historia de cada canción,
+     «Luego» a la vista, la carátula en la pestaña, racha en Inicio, elegir gustos al empezar, progreso de
+     cada playlist, «Lo que te falta», hitos, pestañas siempre a mano y deslizar una canción a la cola. */
+  const PLUS_KEYS = { notes: 'liquidbrush:notes', hitos: 'liquidbrush:hitos', gustos: 'liquidbrush:gustos-hecho' };
+  const fechaLarga = (key) => {
+    const [y, m, d] = key.split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' });
+  };
+
+  const plus = {
+    notes: (() => { const n = storage.get(PLUS_KEYS.notes, {}); return n && typeof n === 'object' ? n : {}; })(),
+    loop: { a: null, b: null },
+    private: false,
+    ui: {},
+    lock: null,
+
+    /* --- Sesión privada: lo que suene no cuenta para Stats, mixes ni recomendaciones --- */
+    setPrivate(on) {
+      if (on) flushListening();
+      this.private = on;
+      try { if (on) sessionStorage.setItem('liquid-privada', '1'); else sessionStorage.removeItem('liquid-privada'); } catch { /* sin almacenamiento */ }
+      document.body.classList.toggle('is-private', on);
+      this.syncButtons();
+    },
+
+    /* --- Bucle A–B: repite un trozo (para aprenderse una letra, un solo o un paso de baile) --- */
+    cycleLoop() {
+      if (!state.currentTrack || !getDuration()) { showToast('Pon una canción para marcar el bucle.'); return; }
+      const now = els.audio.currentTime || 0;
+      const l = this.loop;
+      if (l.a === null) {
+        l.a = now;
+        showToast(`Bucle: empieza en ${formatTime(now)}. Pulsa otra vez donde termine.`);
+      } else if (l.b === null) {
+        if (now - l.a < 1) { showToast('El final del bucle va al menos 1 s después del principio.'); return; }
+        l.b = now;
+        seekTo(l.a);
+        showToast(`Bucle ${formatTime(l.a)} – ${formatTime(l.b)} en marcha. Pulsa otra vez para quitarlo.`);
+      } else {
+        this.clearLoop();
+        showToast('Bucle quitado.');
+      }
+      haptic(10);
+      this.syncButtons();
+    },
+    clearLoop() {
+      this.loop.a = null;
+      this.loop.b = null;
+      this.syncButtons();
+    },
+    tick(time) {
+      const l = this.loop;
+      // Solo al llegar al final (si la persona se va antes del principio, se la deja llegar sola)
+      if (l.b !== null && time >= l.b && time < l.b + 3) seekTo(l.a);
+      if (this.ui.karaoke?.open) this.syncKaraoke(time);
+    },
+
+    /* --- Pantalla encendida mientras está abierta la letra grande o el modo coche --- */
+    keepAwake(on) {
+      if (!('wakeLock' in navigator)) return;
+      if (on && !this.lock) {
+        navigator.wakeLock.request('screen').then((s) => {
+          if (!this.ui.karaoke?.open && !this.ui.car?.open) { s.release().catch(() => {}); return; }
+          this.lock = s;
+          s.addEventListener('release', () => { if (this.lock === s) this.lock = null; });
+        }).catch(() => {});
+      } else if (!on && this.lock && !this.ui.karaoke?.open && !this.ui.car?.open) {
+        this.lock.release().catch(() => {});
+        this.lock = null;
+      }
+    },
+
+    overlay(className, label) {
+      const dialog = makeEl('dialog', `plus-overlay ${className}`);
+      dialog.setAttribute('aria-label', label);
+      const close = makeButton('icon-btn plus-close', 'plus-close', 'Cerrar', 'close');
+      close.addEventListener('click', () => dialog.close());
+      dialog.append(close);
+      dialog.addEventListener('close', () => this.keepAwake(false));
+      document.body.append(dialog);
+      return dialog;
+    },
+
+    /* --- Letra a pantalla completa (modo karaoke) --- */
+    openKaraoke() {
+      if (!state.currentTrack) { showToast('Pon una canción para ver su letra en grande.'); return; }
+      if (!this.ui.karaoke) {
+        const d = this.overlay('karaoke', 'Letra a pantalla completa');
+        d.append(makeEl('p', 'karaoke-song'), makeEl('div', 'karaoke-lines'));
+        d.querySelector('.karaoke-lines').addEventListener('click', (event) => {
+          const line = event.target.closest('[data-time]');
+          if (line) seekTo(Number(line.dataset.time));
+        });
+        this.ui.karaoke = d;
+      }
+      // La letra se pide aunque el panel de Sonando esté cerrado
+      flushPendingLyrics();
+      this.renderKaraoke();
+      if (!this.ui.karaoke.open) this.ui.karaoke.showModal();
+      this.keepAwake(true);
+      this.syncKaraoke(els.audio.currentTime || 0);
+    },
+    renderKaraoke() {
+      const d = this.ui.karaoke;
+      const track = state.currentTrack;
+      if (!d || !track) return;
+      d.querySelector('.karaoke-song').textContent = `${splitTitle(track.title).main} · ${track.knownArtist || track.artist}`;
+      const box = d.querySelector('.karaoke-lines');
+      const ly = state.lyrics;
+      this.kLines = null;
+      if (ly?.synced) {
+        box.replaceChildren(...ly.lines.map((line) => {
+          const p = makeEl('p', 'karaoke-line', line.text || '♪');
+          p.dataset.time = String(line.time);
+          return p;
+        }));
+        this.kLines = [...box.children];
+      } else if (ly?.text) {
+        box.replaceChildren(...ly.text.split('\n').map((text) => makeEl('p', 'karaoke-line is-plain', text || ' ')));
+      } else {
+        box.replaceChildren(makeEl('p', 'karaoke-line is-plain is-empty', 'Todavía no hay letra para esta canción. Si aparece, saldrá aquí.'));
+      }
+      this.kActive = -1;
+      box.scrollTop = 0;
+    },
+    syncKaraoke(time) {
+      const lines = this.kLines;
+      if (!lines || !state.lyrics?.synced) return;
+      const at = time + lyricsOffset();
+      let index = -1;
+      for (let i = 0; i < lines.length; i++) {
+        if (Number(lines[i].dataset.time) <= at + 0.15) index = i; else break;
+      }
+      if (index === this.kActive) return;
+      lines[this.kActive]?.classList.remove('is-active');
+      this.kActive = index;
+      const el = lines[index];
+      if (!el) return;
+      el.classList.add('is-active');
+      el.scrollIntoView({ block: 'center', behavior: settings.motion && !reducedMotion() ? 'smooth' : 'auto' });
+    },
+
+    /* --- Modo coche: tres botones enormes y nada más --- */
+    openCar() {
+      if (!this.ui.car) {
+        const d = this.overlay('car', 'Modo coche');
+        const cover = document.createElement('img');
+        cover.className = 'car-cover';
+        cover.alt = '';
+        const big = (cls, label, icon, run) => {
+          const b = makeButton(`car-btn ${cls}`, 'car', label, icon);
+          b.addEventListener('click', () => { haptic(12); run(); });
+          return b;
+        };
+        const row = makeEl('div', 'car-controls');
+        row.append(big('car-prev', 'Canción anterior', 'prev', () => prev()), big('car-play', 'Reproducir o pausar', 'play', () => togglePlay()), big('car-next', 'Canción siguiente', 'next', () => next(true)));
+        const fav = big('car-fav', 'Me gusta', 'heart', () => { if (state.currentTrack) { toggleFavorite(state.currentTrack.id); this.syncCar(); } });
+        d.append(cover, makeEl('p', 'car-title'), makeEl('p', 'car-artist'), row, fav);
+        d.addEventListener('keydown', (event) => {
+          if (event.code === 'Space' && !event.target.closest('button')) { event.preventDefault(); togglePlay(); }
+          if (event.code === 'ArrowRight') next(true);
+          if (event.code === 'ArrowLeft') prev();
+        });
+        this.ui.car = d;
+      }
+      this.syncCar();
+      if (!this.ui.car.open) this.ui.car.showModal();
+      this.keepAwake(true);
+    },
+    syncCar() {
+      const d = this.ui.car;
+      if (!d) return;
+      const track = state.currentTrack;
+      d.querySelector('.car-cover').src = track ? track.cover : PLACEHOLDER_COVER;
+      d.querySelector('.car-title').textContent = track ? splitTitle(track.title).main : 'Nada sonando';
+      d.querySelector('.car-artist').textContent = track ? track.knownArtist || track.artist || '' : 'Elige una canción en Liquid';
+      const playing = document.body.classList.contains('is-playing');
+      setIcon(d.querySelector('.car-play'), playing ? 'pause' : 'play');
+      const liked = Boolean(track && state.favorites.has(track.id));
+      const fav = d.querySelector('.car-fav');
+      setIcon(fav, liked ? 'heart-fill' : 'heart');
+      fav.classList.toggle('is-active', liked);
+      fav.setAttribute('aria-pressed', String(liked));
+    },
+
+    /* --- Notas: un recuerdo por canción («la del viaje a la playa») --- */
+    openNote() {
+      const track = state.currentTrack;
+      if (!track) { showToast('Pon una canción para escribirle una nota.'); return; }
+      if (!this.ui.note) {
+        const d = makeEl('dialog', 'sheet note-sheet');
+        d.setAttribute('aria-labelledby', 'noteTitle');
+        const body = makeEl('form', 'sheet-body');
+        body.method = 'dialog';
+        const title = makeEl('h2', 'sheet-title', 'Tu nota');
+        title.id = 'noteTitle';
+        const area = document.createElement('textarea');
+        area.className = 'note-area';
+        area.maxLength = 280;
+        area.rows = 4;
+        area.placeholder = '¿A qué te recuerda? ¿Quién te la enseñó?';
+        area.setAttribute('aria-label', 'Nota sobre esta canción');
+        const actions = makeEl('div', 'sheet-actions');
+        const cancel = makeEl('button', 'btn', 'Cancelar');
+        cancel.type = 'button';
+        cancel.addEventListener('click', () => d.close());
+        const erase = makeEl('button', 'btn note-erase', 'Borrar');
+        erase.type = 'button';
+        erase.addEventListener('click', () => { area.value = ''; d.close('save'); });
+        const save = makeEl('button', 'btn btn-primary', 'Guardar');
+        save.value = 'save';
+        actions.append(cancel, erase, save);
+        body.append(title, makeEl('p', 'sheet-text note-for'), area, makeEl('p', 'sheet-note', 'Solo la ves tú: se guarda en este navegador.'), actions);
+        d.append(body);
+        d.addEventListener('click', (event) => { if (event.target === d) d.close(); });
+        d.addEventListener('close', () => {
+          if (d.returnValue !== 'save' || !d.dataset.id) return;
+          const text = area.value.trim().slice(0, 280);
+          if (text) this.notes[d.dataset.id] = text; else delete this.notes[d.dataset.id];
+          storage.set(PLUS_KEYS.notes, this.notes);
+          showToast(text ? 'Nota guardada.' : 'Nota borrada.');
+          this.renderStory();
+        });
+        document.body.append(d);
+        this.ui.note = d;
+      }
+      const d = this.ui.note;
+      d.dataset.id = track.id;
+      d.querySelector('.note-for').textContent = `${splitTitle(track.title).main} · ${track.knownArtist || track.artist}`;
+      d.querySelector('.note-area').value = this.notes[track.id] || '';
+      d.querySelector('.note-erase').hidden = !this.notes[track.id];
+      d.returnValue = '';
+      d.showModal();
+    },
+
+    /* --- Tu historia con la canción que suena: veces, minutos, primera vez, puesto --- */
+    songStory(track) {
+      const plays = playsOf(track.id);
+      let seconds = 0;
+      let first = null;
+      Object.keys(listen.log).sort().forEach((key) => {
+        const s = listen.log[key]?.s?.[track.id];
+        if (s) { seconds += s; if (!first) first = key; }
+      });
+      const heard = Number(taste.heard[track.id]) || 0;
+      const facts = [];
+      if (plays) facts.push(`${plays} ${plays === 1 ? 'vez' : 'veces'}`);
+      if (seconds >= 60) facts.push(minutesLabel(seconds));
+      if (first) facts.push(`desde el ${fechaLarga(first)}`);
+      if (heard) facts.push(`la última, ${haceTiempo(heard)}`);
+      let rank = 0;
+      if (plays >= 3) {
+        rank = 1 + Object.values(library.plays).filter((n) => Number(n) > plays).length;
+        if (rank <= 50) facts.push(`tu n.º ${rank}`);
+      }
+      return { plays, seconds, first, heard, rank, facts };
+    },
+    renderStory() {
+      const box = this.ui.story;
+      const track = state.currentTrack;
+      if (!box) return;
+      box.hidden = !track;
+      if (!track) return;
+      const story = this.songStory(track);
+      const head = makeEl('p', 'about-eyebrow', 'Tu historia con esta canción');
+      const line = makeEl('p', 'story-facts', story.facts.length ? story.facts.join(' · ') : 'Es la primera vez que la pones. Aquí verás cuánto la escuchas.');
+      const parts = [head, line];
+      const note = this.notes[track.id];
+      const edit = makeEl('button', `story-note${note ? ' has-note' : ''}`, note || 'Añadir una nota');
+      edit.type = 'button';
+      edit.setAttribute('aria-label', note ? `Tu nota: ${note}. Tocar para editarla` : 'Añadir una nota a esta canción');
+      edit.prepend(svgIcon('edit'));
+      edit.addEventListener('click', () => this.openNote());
+      parts.push(edit);
+      box.replaceChildren(...parts);
+    },
+
+    /* --- «Luego»: lo siguiente de la cola, siempre a la vista --- */
+    renderNext() {
+      const el = this.ui.next;
+      if (!el) return;
+      const track = state.currentTrack ? getTrack(state.queue[state.queueIndex + 1]) : null;
+      el.hidden = !track;
+      if (!track) return;
+      el.querySelector('.np-next-name').textContent = `${splitTitle(track.title).main} · ${track.knownArtist || track.artist}`;
+      el.querySelector('img').src = track.thumb;
+    },
+
+    /* --- La pestaña del navegador lleva la carátula de lo que suena --- */
+    setFavicon(track) {
+      const link = document.querySelector('link[rel="icon"]');
+      if (!link || !track?.thumb || /^data:/.test(track.thumb)) return;
+      link.type = 'image/jpeg';
+      link.href = track.thumb;
+    },
+
+    syncButtons() {
+      const b = this.ui.buttons;
+      if (!b) return;
+      const l = this.loop;
+      const loopOn = l.a !== null;
+      b.loop.classList.toggle('is-active', loopOn);
+      b.loop.setAttribute('aria-pressed', String(loopOn));
+      b.loop.querySelector('span').textContent = l.b !== null ? `${formatTime(l.a)} – ${formatTime(l.b)}` : loopOn ? `Desde ${formatTime(l.a)}…` : 'Bucle A–B';
+      b.private.classList.toggle('is-active', this.private);
+      b.private.setAttribute('aria-pressed', String(this.private));
+    },
+
+    onTrack(track) {
+      this.clearLoop();
+      this.renderStory();
+      this.renderNext();
+      this.setFavicon(track);
+      if (this.ui.car?.open) this.syncCar();
+      if (this.ui.karaoke?.open) this.renderKaraoke();
+    },
+
+    /* --- Racha y minutos de hoy --- */
+    streak() {
+      const secs = (date) => Object.values(listen.log[dayKey(date)]?.s || {}).reduce((a, b) => a + b, 0);
+      const day = new Date();
+      const today = secs(day);
+      let days = 0;
+      if (today < 60) day.setDate(day.getDate() - 1);
+      while (secs(day) >= 60) { days++; day.setDate(day.getDate() - 1); }
+      return { days, today };
+    },
+    homeStreak() {
+      const { days, today } = this.streak();
+      if (days < 2 && today < 60) return null;
+      const chip = makeEl('button', 'home-streak');
+      chip.type = 'button';
+      chip.dataset.action = 'go-view';
+      chip.dataset.value = 'stats';
+      chip.title = 'Ver tus estadísticas';
+      const bits = [];
+      if (days >= 2) bits.push(`${days} días seguidos con música`);
+      if (today >= 60) bits.push(`hoy, ${minutesLabel(today)}`);
+      const text = bits.join(' · ');
+      chip.append(svgIcon('flame'), makeEl('span', '', text.charAt(0).toUpperCase() + text.slice(1)));
+      if (days >= 2 && today < 60) chip.append(makeEl('span', 'home-streak-hint', 'Pon algo hoy para no perderla'));
+      return chip;
+    },
+
+    /* --- Elegir gustos al empezar: seguir a unos cuantos artistas afina Inicio desde el primer día --- */
+    homeTaste(p) {
+      if (p.hasHistory || library.follows.length >= 3 || storage.get(PLUS_KEYS.gustos, false)) return null;
+      const artists = [...labArtists().values()].filter((a) => a.tracks.length >= 8).sort((a, b) => b.tracks.length - a.tracks.length).slice(0, 18);
+      if (artists.length < 6) return null;
+      const card = makeEl('section', 'home-taste');
+      const left = 3 - library.follows.length;
+      card.append(
+        makeEl('h3', 'home-section-title', '¿Qué te gusta?'),
+        makeEl('p', 'home-section-hint', `Elige ${left === 3 ? '3 artistas' : left === 1 ? '1 más' : `${left} más`} y tus mixes empiezan a parecerse a ti desde hoy.`)
+      );
+      const row = makeEl('div', 'home-taste-row');
+      artists.forEach((entry) => {
+        const on = isFollowing(entry.key);
+        const chip = makeEl('button', `chip taste-chip${on ? ' is-active' : ''}`);
+        chip.type = 'button';
+        chip.dataset.action = 'follow-artist';
+        chip.dataset.value = entry.key;
+        chip.setAttribute('aria-pressed', String(on));
+        chip.append(photoImg(entry.tracks[0]?.thumb, 28, 'taste-photo'), makeEl('span', '', entry.name));
+        row.append(chip);
+      });
+      const skip = makeEl('button', 'btn btn-ghost btn-small home-taste-skip', 'Ahora no');
+      skip.type = 'button';
+      skip.addEventListener('click', () => { storage.set(PLUS_KEYS.gustos, true); card.remove(); });
+      card.append(row, skip);
+      return card;
+    },
+
+    /* --- Progreso de cada playlist y «Lo que te falta» --- */
+    playlistProgress(pl, tracks) {
+      if (pl.kind === 'auto' || tracks.length < 5) return null;
+      const heard = tracks.filter((t) => playsOf(t.id) > 0).length;
+      if (!heard) return null;
+      const box = makeEl('div', 'pl-progress');
+      const done = heard === tracks.length;
+      box.setAttribute('role', 'img');
+      box.setAttribute('aria-label', `Has escuchado ${heard} de ${tracks.length} canciones`);
+      const bar = makeEl('span', 'pl-progress-bar');
+      const fill = makeEl('span', 'pl-progress-fill');
+      fill.style.width = `${Math.max(3, Math.round((heard / tracks.length) * 100))}%`;
+      bar.append(fill);
+      box.append(bar, makeEl('span', 'pl-progress-text', done ? 'Completa: las has escuchado todas' : `Has escuchado ${heard} de ${tracks.length}`));
+      box.classList.toggle('is-done', done);
+      return box;
+    },
+    unheardOf(pl) {
+      return playlistTracksOf(pl).filter((t) => playsOf(t.id) === 0 && !isDisliked(t.id));
+    },
+
+    /* --- Hitos: pequeñas metas que se desbloquean escuchando --- */
+    hitos() {
+      let seconds = 0;
+      let best = 0;
+      let run = 0;
+      let prev = null;
+      Object.keys(listen.log).sort().forEach((key) => {
+        const s = Object.values(listen.log[key]?.s || {}).reduce((a, b) => a + b, 0);
+        seconds += s;
+        if (s < 60) return;
+        const [y, m, d] = key.split('-').map(Number);
+        const date = new Date(y, m - 1, d).getTime();
+        run = prev !== null && Math.round((date - prev) / DAY_MS) === 1 ? run + 1 : 1;
+        prev = date;
+        best = Math.max(best, run);
+      });
+      const counts = Object.values(library.plays).map(Number).filter((n) => n > 0);
+      const plays = counts.reduce((a, b) => a + b, 0);
+      const hours = seconds / 3600;
+      const complete = systemPlaylists().some((pl) => pl.trackIds.length >= 5 && pl.trackIds.every((id) => playsOf(id) > 0)) ? 1 : 0;
+      return [
+        ['primera', 'Primera gota', 'Tu primera canción en Liquid', 'note', plays, 1],
+        ['cien', 'Cien gotas', '100 reproducciones', 'disc', plays, 100],
+        ['mil', 'Mil gotas', '1.000 reproducciones', 'trophy', plays, 1000],
+        ['diez-horas', 'Diez horas líquidas', '10 horas de música', 'clock', hours, 10],
+        ['cien-horas', 'Cien horas líquidas', '100 horas de música', 'headphones', hours, 100],
+        ['semana', 'Semana completa', '7 días seguidos con música', 'flame', best, 7],
+        ['mes', 'Mes sin fallar', '30 días seguidos con música', 'bolt', best, 30],
+        ['explorador', 'Explorador', '100 canciones distintas', 'compass', counts.length, 100],
+        ['coleccionista', 'Coleccionista', '25 favoritas', 'heart', state.favorites.size, 25],
+        ['curador', 'Curador', '3 playlists tuyas', 'playlist-add', library.local.length, 3],
+        ['fan', 'Fan declarado', 'Sigues a 5 artistas', 'star', library.follows.length, 5],
+        ['completista', 'Completista', 'Una playlist de Liquid escuchada entera', 'check', complete, 1]
+      ].map(([id, name, desc, icon, value, goal]) => ({ id, name, desc, icon, value, goal, done: value >= goal }));
+    },
+    hitosCard() {
+      const list = this.hitos();
+      const done = list.filter((h) => h.done).length;
+      const card = statCard('Tus hitos', `${done} de ${list.length} conseguidos`);
+      card.classList.add('hitos-card');
+      const grid = makeEl('ul', 'hitos');
+      list.forEach((h) => {
+        const li = makeEl('li', `hito${h.done ? ' is-done' : ''}`);
+        const badge = makeEl('span', 'hito-badge');
+        badge.setAttribute('aria-hidden', 'true');
+        badge.append(svgIcon(h.done ? h.icon : 'lock'));
+        const text = makeEl('span', 'hito-text');
+        const pct = clamp(h.value / h.goal, 0, 1);
+        text.append(makeEl('span', 'hito-name', h.name), makeEl('span', 'hito-desc', h.done ? h.desc : `${h.desc} · ${Math.floor(pct * 100)} %`));
+        li.append(badge, text);
+        if (!h.done) {
+          const bar = makeEl('span', 'hito-bar');
+          const fill = makeEl('span', 'hito-fill');
+          fill.style.width = `${Math.round(pct * 100)}%`;
+          bar.append(fill);
+          li.append(bar);
+        }
+        grid.append(li);
+      });
+      card.append(grid);
+      return card;
+    },
+    // Tras cada reproducción: si se acaba de conseguir un hito, se celebra una vez
+    checkHitos() {
+      const seen = new Set(storage.get(PLUS_KEYS.hitos, []) || []);
+      const fresh = this.hitos().filter((h) => h.done && !seen.has(h.id));
+      if (!fresh.length) return;
+      fresh.forEach((h) => seen.add(h.id));
+      storage.set(PLUS_KEYS.hitos, [...seen]);
+      // La primera vez que se calcula (ya había historial) no se avisa de todos de golpe
+      if (fresh.length > 2) return;
+      const h = fresh[fresh.length - 1];
+      haptic(20);
+      showToast(`Hito conseguido: ${h.name} (${h.desc.toLowerCase()}).`, { label: 'Ver hitos', run: () => setView('stats') }, { background: true });
+    },
+
+    /* --- Deslizar una canción hacia la derecha la manda a la cola (teléfono) --- */
+    setupSwipe() {
+      let drag = null;
+      const reset = (item) => { item.style.transform = ''; item.classList.remove('is-swiping', 'will-queue'); };
+      els.trackList.addEventListener('pointerdown', (event) => {
+        if (event.pointerType === 'mouse') return;
+        const item = event.target.closest('.track');
+        if (!item || !item.dataset.id) return;
+        drag = { item, x: event.clientX, y: event.clientY, dx: 0, on: false };
+      });
+      els.trackList.addEventListener('pointermove', (event) => {
+        if (!drag) return;
+        const dx = event.clientX - drag.x;
+        const dy = event.clientY - drag.y;
+        if (!drag.on) {
+          if (Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) { drag = null; return; }
+          if (dx < 16 || Math.abs(dx) < Math.abs(dy) * 1.6) return;
+          drag.on = true;
+          drag.item.classList.add('is-swiping');
+        }
+        drag.dx = clamp(dx, 0, 140);
+        drag.item.style.transform = `translateX(${drag.dx}px)`;
+        drag.item.classList.toggle('will-queue', drag.dx >= 84);
+      });
+      const end = (event) => {
+        if (!drag) return;
+        const { item, dx, on } = drag;
+        drag = null;
+        if (!on) return;
+        reset(item);
+        // El toque que termina el gesto no reproduce la canción
+        const stop = (e) => { e.preventDefault(); e.stopPropagation(); };
+        els.trackList.addEventListener('click', stop, { capture: true, once: true });
+        setTimeout(() => els.trackList.removeEventListener('click', stop, true), 350);
+        if (event.type === 'pointerup' && dx >= 84) { haptic(14); queueTrack(item.dataset.id); }
+      };
+      ['pointerup', 'pointercancel'].forEach((type) => els.trackList.addEventListener(type, end));
+    },
+
+    init() {
+      if (LAB_MODE) return;
+      // Botones nuevos de Sonando
+      const row = makeEl('div', 'np-plus');
+      row.setAttribute('role', 'toolbar');
+      row.setAttribute('aria-label', 'Más formas de escuchar');
+      const chip = (cls, label, icon, text, run) => {
+        const b = makeButton(`np-plus-btn ${cls}`, 'plus', label, icon, text);
+        b.addEventListener('click', run);
+        return b;
+      };
+      const buttons = {
+        karaoke: chip('plus-karaoke', 'Letra a pantalla completa (K)', 'lyrics', 'Letra grande', () => this.openKaraoke()),
+        loop: chip('plus-loop', 'Bucle A–B: repetir un trozo (B)', 'repeat-alt', 'Bucle A–B', () => this.cycleLoop()),
+        car: chip('plus-car', 'Modo coche: botones enormes (G)', 'car', 'Modo coche', () => this.openCar()),
+        private: chip('plus-private', 'Sesión privada: lo que suene no cuenta para tus estadísticas ni recomendaciones', 'eye-off', 'Sesión privada', () => {
+          this.setPrivate(!this.private);
+          showToast(this.private ? 'Sesión privada: lo que suene ahora no cuenta. Se apaga al cerrar Liquid.' : 'Sesión privada apagada: lo que suene vuelve a contar.');
+        })
+      };
+      buttons.loop.setAttribute('aria-pressed', 'false');
+      buttons.private.setAttribute('aria-pressed', 'false');
+      row.append(buttons.karaoke, buttons.loop, buttons.car, buttons.private);
+      this.ui.buttons = buttons;
+
+      // «Luego»: lo siguiente de la cola
+      const nextUp = makeEl('button', 'np-next');
+      nextUp.type = 'button';
+      nextUp.hidden = true;
+      nextUp.title = 'Ver la cola (Q)';
+      const thumb = document.createElement('img');
+      thumb.alt = '';
+      thumb.width = 32;
+      thumb.height = 32;
+      const nextText = makeEl('span', 'np-next-text');
+      nextText.append(makeEl('span', 'np-next-label', 'Luego'), makeEl('span', 'np-next-name'));
+      nextUp.append(thumb, nextText);
+      nextUp.addEventListener('click', () => openQueue());
+      this.ui.next = nextUp;
+
+      const story = makeEl('div', 'np-story');
+      story.hidden = true;
+      this.ui.story = story;
+
+      const tools = els.nowPlaying.querySelector('.np-tools');
+      tools.after(row, nextUp);
+      els.npAbout.before(story);
+
+      // Cada cambio en la cola refresca «Luego»
+      const saveQueue = resume.saveQueue;
+      resume.saveQueue = (...args) => { saveQueue.apply(resume, args); this.renderNext(); };
+
+      decks.forEach((deck) => {
+        deck.addEventListener('timeupdate', () => { if (deck === els.audio) this.tick(deck.currentTime); });
+        ['play', 'pause'].forEach((type) => deck.addEventListener(type, () => { if (this.ui.car?.open) setTimeout(() => this.syncCar(), 0); }));
+      });
+
+      document.addEventListener('keydown', (event) => {
+        if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
+        if (event.target.closest?.('input, textarea, select, [contenteditable="true"]')) return;
+        const open = document.querySelector('dialog[open]');
+        if (event.code === 'KeyK' && (!open || open === this.ui.karaoke)) {
+          if (this.ui.karaoke?.open) this.ui.karaoke.close(); else this.openKaraoke();
+        } else if (event.code === 'KeyB' && (!open || open === this.ui.karaoke)) this.cycleLoop();
+        else if (event.code === 'KeyG' && (!open || open === this.ui.car)) {
+          if (this.ui.car?.open) this.ui.car.close(); else this.openCar();
+        } else if (event.code === 'Space' && open === this.ui.karaoke && !event.target.closest('button')) { event.preventDefault(); togglePlay(); }
+      });
+
+      // Escritorio: el buscador y las pestañas se quedan arriba; al despegarse del panel ganan fondo
+      const head = els.library.querySelector('.library-head');
+      const stuck = () => head.classList.toggle('is-stuck', head.getBoundingClientRect().top <= 79 && window.scrollY > 40);
+      window.addEventListener('scroll', stuck, { passive: true });
+      stuck();
+
+      let wasPrivate = false;
+      try { wasPrivate = sessionStorage.getItem('liquid-privada') === '1'; } catch { /* sin almacenamiento */ }
+      if (wasPrivate) this.setPrivate(true);
+      this.setupSwipe();
+      this.syncButtons();
+      if (state.currentTrack) this.onTrack(state.currentTrack);
+    }
+  };
+
   function init() {
     errorLog.init();
     detectLiteMode();
@@ -12665,6 +14392,7 @@
     if (window.matchMedia('(max-width: 860px)').matches) els.lyricsPanel.open = false;
 
     restorePreferences();
+    atk.init();
     updateModeButtons();
     updateVolumeUI();
     updateProgressUI(0, 0);
@@ -12698,6 +14426,8 @@
     tour.init();
     install.init();
     setupExtras();
+    plus.init();
+    setupSearch();
     inappNotice();
     if (els.deviceInfo) els.deviceInfo.textContent = `Tu dispositivo: ${deviceSummary()}. La app se adapta sola a él.`;
     document.querySelectorAll('.settings-group-title').forEach((title) => title.prepend(sticker(title.textContent)));

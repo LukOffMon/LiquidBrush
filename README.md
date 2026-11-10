@@ -273,6 +273,9 @@ python3 -m http.server 8000
 | L | Mostrar / ocultar letra |
 | Q | Cola «A continuación» |
 | T | Temporizador de apagado |
+| K | Letra a pantalla completa |
+| B | Bucle A–B (principio, final, quitar) |
+| G | Modo coche |
 | / | Buscar |
 | Mayús + ← / → | Canción anterior / siguiente |
 | Mayús + ↑ / ↓ | Subir / bajar volumen |
@@ -291,6 +294,45 @@ Liquid está pensada primero para el móvil:
 - **Gestos**: desliza la portada a los lados para cambiar de canción; mantén pulsada una canción para abrir su menú +.
 - **Índice A–Z** a la derecha de la Biblioteca cuando se ordena por título o artista.
 - Avisos con **Deshacer** al quitar canciones o borrar playlists (pasan 30 días en la **Papelera**).
+
+## Liquid ATK (v68)
+
+Modo opcional (**Ajustes → Liquid ATK**, se recuerda como el ultraligero). Al encenderlo, la marca pasa a **Liquid ATK** con una animación corta (sin animación con «reducir movimiento» o en ultraligero).
+
+- **Fuentes** (todas gratis, con CORS, llamadas desde el navegador):
+  - **Audius** (`api.audius.co`, sin clave; `app_name=liquidbullet`): búsqueda, tendencias por género y audio completo.
+  - **Internet Archive** (`archive.org`): solo la Live Music Archive (`mediatype:etree`), netlabels, 78 rpm y Free Music Archive; fuera lo «solo streaming» y colecciones de origen dudoso.
+  - **Jamendo** (`api.jamendo.com`): canciones con licencia Creative Commons. Usa el Client ID público de la app «Liquid ATK» (devportal.jamendo.com, uso no comercial) en `CONFIG.jamendoClientId` (`app.js`); el Client Secret no se usa ni debe ir en el código. Vacío, ATK usa solo las otras dos.
+- **Mejor opción**: se consulta a las tres a la vez y se pinta en cuanto responde cada una. Puntúa coincidencia con lo escrito (título y artista), duración razonable, popularidad y fuente; quita duplicados entre fuentes. Descarta pódcasts, episodios, pistas de menos de 40 s, canciones que Liquid ya tiene y subidas no verificadas de Audius a nombre de artistas del catálogo de Liquid.
+- **En Buscar**: si Liquid no tiene nada, el mejor resultado es el de ATK; debajo, «Más allá de Liquid» y el filtro **Liquid ATK**. Sin nada en ninguno, la tarjeta de pedir canción.
+- **En todo Liquid**: Inicio (tendencias de tus géneros), Lab (cuota de ATK según «Descubrimiento»), radios (una de cada cuatro), página de artista («Más de X en Liquid ATK»), Stats (minutos en ATK) y Buscar antes de escribir (lo que suena esta semana). **Nunca** en las playlists de base ni en los mixes del día.
+- **Canciones ATK**: id `atk:au:<id>`, `atk:ia:<identificador>/<archivo>` o `atk:ja:<id>`; portada de `covers/songs/` elegida por el id; etiqueta ATK; sin descarga, sin enlace para compartir, sin ecualizador. Créditos y licencia en el menú + y en «Acerca de ATK».
+- **Guardado**: los datos de las ATK que usas (favoritas, playlists, recientes, cola) van a `liquidbrush:atk-tracks`. La cuenta ya sincroniza sus ids; en otro dispositivo Liquid recupera los datos preguntando a la fuente.
+- **ATK apagado**: no se hace ninguna petición a esas fuentes; las ATK de tus listas salen atenuadas («Solo en Liquid ATK») y no suenan.
+
+## Buscar (v67)
+
+- **Teléfono**: tocar Buscar (o el buscador) abre un modo propio a pantalla completa: buscador fijo arriba con **Cancelar** (vuelve a la vista de antes), sin barra superior, pestañas ni cabecera. Busca siempre en toda la música.
+- **Antes de escribir**: búsquedas recientes (con × para quitar cada una y «Borrar todo»), **Tus artistas** y **Explora tus estilos**.
+- **Resultados**: **Mejor resultado** (el artista si su nombre empieza por lo escrito, salvo que una canción se llame exactamente así), filtros por tipo con su número (**Todo, Canciones, Artistas, Playlists, En la letra**), artistas y playlists en filas y después las canciones. El filtro elegido se mantiene al cambiar lo escrito.
+- **Teclado**: se esconde al desplazar los resultados o al pulsar «Buscar».
+- **Erratas**: si no hay coincidencias exactas, la lista avisa de que son resultados parecidos.
+- **Recientes**: se guarda lo buscado al tocar un resultado, al pulsar Intro o al salir del buscador.
+
+## Lo que Liquid hace y Spotify no (v66)
+
+- **Letra a pantalla completa** (K o «Letra grande» en Sonando): la línea que suena, enorme; tocar una línea salta a ella. Mantiene la pantalla encendida.
+- **Bucle A–B** (B): el primer toque marca el principio, el segundo el final y el tercero lo quita. Se quita solo al cambiar de canción.
+- **Modo coche** (G): carátula, título, anterior / reproducir / siguiente enormes y Me gusta. También con ← → y Espacio.
+- **Sesión privada**: mientras está encendida no se apunta nada (ni Stats, ni «Escuchadas hace poco», ni el motor de gustos). Dura lo que la pestaña.
+- **Tu historia con la canción** y **notas**: en Sonando, veces, minutos, primera fecha registrada, última vez y puesto; debajo, una nota tuya de hasta 280 caracteres (`liquidbrush:notes`, solo en este navegador; no viaja a la cuenta).
+- **«Luego»**: la siguiente de la cola a la vista; tocarla abre «A continuación».
+- **Carátula en la pestaña**: el icono de la pestaña es la portada de lo que suena.
+- **Racha en Inicio** y **¿Qué te gusta?**: días seguidos con música y minutos de hoy; quien empieza sin historial elige 3 artistas (los sigue) para que los mixes arranquen afinados.
+- **Progreso de playlist** y **«Lo que te falta»**: barra con las canciones ya escuchadas y un botón que reproduce solo las que nunca has puesto.
+- **Hitos** (Stats): 12 metas calculadas con tu historial; al conseguir una sale un aviso (`liquidbrush:hitos` recuerda las ya celebradas).
+- **Deslizar a la cola** (teléfono): arrastra una canción hacia la derecha y suena a continuación.
+- **Cabecera fija** (escritorio): buscador y pestañas siguen arriba al bajar por una lista.
 
 ## Más funciones
 
