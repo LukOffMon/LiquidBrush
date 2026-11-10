@@ -1,6 +1,22 @@
 {
   "releases": [
     {
+      "version": "v67",
+      "date": "noviembre 2026",
+      "title": "Buscar, rehecho (sobre todo en el teléfono)",
+      "items": [
+        "En el teléfono, Buscar ocupa toda la pantalla: el buscador arriba con «Cancelar» y los resultados justo debajo, sin la barra, las pestañas ni la cabecera de la Biblioteca por medio.",
+        "Antes de escribir: tus búsquedas recientes (cada una se quita con su ×), tus artistas a un toque y los estilos de dos en dos.",
+        "Mejor resultado: el artista o la canción que buscabas, grande y con su botón de reproducir.",
+        "Filtros por tipo con cuántos hay de cada uno: Todo, Canciones, Artistas, Playlists y En la letra. «Artistas» los enseña en lista, uno debajo de otro.",
+        "El buscador y los filtros se quedan arriba mientras bajas por los resultados; el teclado se esconde al desplazar o al pulsar «Buscar».",
+        "Si escribes con una errata, Liquid te dice que son resultados parecidos; las canciones que salen por su letra llevan «En la letra».",
+        "Las recientes guardan lo que de verdad buscaste (lo que tocaste o confirmaste), no cada palabra a medio escribir.",
+        "«Cancelar» te devuelve a donde estabas.",
+        "Arreglado: en el teléfono el panel de Buscar podía ensanchar la página hacia la derecha."
+      ]
+    },
+    {
       "version": "v66",
       "date": "noviembre 2026",
       "title": "15 ideas nuevas: letra gigante, bucle, modo coche y tus hitos",

@@ -9160,3 +9160,464 @@ body.is-private .np-eyebrow::after {
     font-size: 0.8rem;
   }
 }
+
+/* =========================================================
+   v67: Buscar
+   ========================================================= */
+.search-cancel {
+  display: none;
+  flex: none;
+  padding: 10px 4px 10px 8px;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font-family: var(--song-font);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: normal;
+  cursor: pointer;
+}
+
+/* Filtros por tipo: Todo, Canciones, Artistas, Playlists, En la letra */
+.search-scopes {
+  flex: 1 1 100%;
+  margin: 0;
+}
+
+.chip-count {
+  margin-left: 6px;
+  opacity: 0.6;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Mejor resultado */
+.search-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 2px 0 16px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--dyn) 24%, var(--surface-2)), var(--surface-2) 70%);
+}
+
+.search-top-open {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.search-top-img {
+  flex: none;
+  width: 88px;
+  height: 88px;
+  border-radius: 14px;
+  object-fit: cover;
+  box-shadow: var(--shadow);
+}
+
+.search-top-img.is-round {
+  border-radius: 50%;
+}
+
+.search-top-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.search-top-eyebrow {
+  color: var(--text-muted);
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.search-top-title {
+  display: -webkit-box;
+  overflow: hidden;
+  font-family: var(--title-font);
+  font-size: 1.45rem;
+  font-weight: 800;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.search-top-meta {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-family: var(--song-font);
+  font-size: 0.85rem;
+  letter-spacing: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-top-play {
+  flex: none;
+  width: 52px;
+  height: 52px;
+}
+
+.search-sec-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.search-sec-head .pl-section-title {
+  margin: 0;
+}
+
+.search-more {
+  flex: none;
+}
+
+/* Artistas como lista (filtro Artistas) */
+.search-artist-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.search-artist-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 8px 6px;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.search-artist-row:hover,
+.search-artist-row:focus-visible {
+  background: var(--surface-hover);
+}
+
+.search-artist-photo {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.search-artist-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.search-artist-name {
+  overflow: hidden;
+  font-family: var(--title-font);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-artist-meta {
+  color: var(--text-muted);
+  font-family: var(--song-font);
+  font-size: 0.82rem;
+  letter-spacing: normal;
+}
+
+.search-row-go {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  color: var(--text-muted);
+  transform: rotate(-90deg);
+}
+
+.search-pl-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+/* «En la letra»: la canción salió por un verso */
+.track-lyric {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+  color: var(--text);
+  font-size: 0.7rem;
+  font-weight: 700;
+  vertical-align: 1px;
+}
+
+/* La versión de la canción con la palabra buscada: sin caja gris encima de la píldora */
+.title-version mark.hl {
+  background: none;
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-underline-offset: 2px;
+}
+
+/* Pantalla de inicio de Buscar: recientes, tus artistas y estilos */
+.search-recent {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.search-recent li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.search-recent-q {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 6px 6px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--text);
+  font-family: var(--song-font);
+  font-size: 0.95rem;
+  letter-spacing: normal;
+  text-align: left;
+  cursor: pointer;
+}
+
+.search-recent-q:hover {
+  background: var(--surface-hover);
+}
+
+.search-recent-q .icon {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  color: var(--text-muted);
+}
+
+.search-recent-q span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-recent-x .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.search-mini-artists {
+  display: flex;
+  gap: 10px;
+  margin: 0 -4px;
+  padding: 2px 4px 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+
+.search-mini-artists::-webkit-scrollbar {
+  display: none;
+}
+
+.search-mini-artist {
+  display: flex;
+  flex: 0 0 78px;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.76rem;
+  cursor: pointer;
+}
+
+.search-mini-artist img {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: var(--shadow);
+}
+
+.search-mini-artist span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:root:not(.no-motion) .search-mini-artist:active,
+:root:not(.no-motion) .search-top-open:active,
+:root:not(.no-motion) .search-artist-row:active {
+  transform: scale(0.97);
+}
+
+/* ---------- Teléfono: Buscar a pantalla completa ---------- */
+@media (max-width: 860px) {
+  body.search-mode .topbar,
+  body.search-mode .tabs,
+  body.search-mode #viewHead,
+  body.search-mode #filterChips,
+  body.search-mode #genreChips,
+  body.search-mode #recentRow,
+  body.search-mode .float-actions,
+  body.search-landing #libraryView {
+    display: none !important;
+  }
+
+  body.search-mode .layout {
+    padding-top: calc(8px + env(safe-area-inset-top));
+  }
+
+  body.search-mode .search-cancel {
+    display: inline-flex;
+  }
+
+  body.search-mode .search {
+    flex: 1 1 0;
+  }
+
+  /* Con resultados, el buscador (y los filtros por tipo) se quedan arriba al bajar */
+  body.search-mode:not(.search-landing) .library-head {
+    position: sticky;
+    top: 0;
+    z-index: 8;
+    margin: -14px -10px 0;
+    padding: calc(12px + env(safe-area-inset-top)) 12px 10px;
+    border-radius: 22px 22px 0 0;
+    background: color-mix(in srgb, var(--surface) 90%, transparent);
+    -webkit-backdrop-filter: blur(20px) saturate(1.3);
+    backdrop-filter: blur(20px) saturate(1.3);
+  }
+
+  body.search-mode .search input {
+    font-size: 16px; /* iOS no hace zoom al escribir */
+  }
+
+  body.search-landing .search-panel {
+    gap: 12px;
+    margin-top: 4px;
+    padding: 4px 2px 8px;
+    border: 0;
+    background: none;
+  }
+
+  body.search-mode .list-info {
+    margin-top: 10px;
+  }
+
+  body.search-mode .search-playlists {
+    margin: 10px 0 4px;
+  }
+
+  #searchPlaylists .artist-card {
+    flex-basis: 96px;
+  }
+
+  #searchPlaylists .artist-photo {
+    width: 80px;
+    height: 80px;
+  }
+
+  .search-pl-row .pl-card {
+    flex-basis: 128px;
+  }
+
+  .search-pl-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .search-top-img {
+    width: 76px;
+    height: 76px;
+  }
+
+  .search-top-title {
+    font-size: 1.3rem;
+  }
+}
+
+/* El panel de Buscar no se estira con la fila de artistas (antes ensanchaba la página) */
+.search-panel {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.search-mini-artists {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Mejor resultado: el nombre se parte entre palabras, no a media palabra */
+.search-top-title {
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: auto;
+}
+
+@media (max-width: 520px) {
+  .search-top-title {
+    font-size: 1.15rem;
+  }
+
+  .search-top {
+    padding: 12px;
+  }
+
+  .search-top-img {
+    width: 68px;
+    height: 68px;
+  }
+}
+
+.search-recent-x {
+  flex: none;
+  background: none !important;
+  box-shadow: none !important;
+}
+
+/* En escritorio los filtros de Buscar van debajo de las pestañas */
+.search-scopes {
+  order: 5;
+}
+
+/* Tema Claro: el acento es negro, así que el resaltado va en amarillo de rotulador */
+[data-theme="minimal"] mark.hl {
+  background: color-mix(in srgb, #ffd23f 60%, transparent);
+}

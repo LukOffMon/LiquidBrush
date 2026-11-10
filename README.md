@@ -295,6 +295,15 @@ Liquid está pensada primero para el móvil:
 - **Índice A–Z** a la derecha de la Biblioteca cuando se ordena por título o artista.
 - Avisos con **Deshacer** al quitar canciones o borrar playlists (pasan 30 días en la **Papelera**).
 
+## Buscar (v67)
+
+- **Teléfono**: tocar Buscar (o el buscador) abre un modo propio a pantalla completa: buscador fijo arriba con **Cancelar** (vuelve a la vista de antes), sin barra superior, pestañas ni cabecera. Busca siempre en toda la música.
+- **Antes de escribir**: búsquedas recientes (con × para quitar cada una y «Borrar todo»), **Tus artistas** y **Explora tus estilos**.
+- **Resultados**: **Mejor resultado** (el artista si su nombre empieza por lo escrito, salvo que una canción se llame exactamente así), filtros por tipo con su número (**Todo, Canciones, Artistas, Playlists, En la letra**), artistas y playlists en filas y después las canciones. El filtro elegido se mantiene al cambiar lo escrito.
+- **Teclado**: se esconde al desplazar los resultados o al pulsar «Buscar».
+- **Erratas**: si no hay coincidencias exactas, la lista avisa de que son resultados parecidos.
+- **Recientes**: se guarda lo buscado al tocar un resultado, al pulsar Intro o al salir del buscador.
+
 ## Lo que Liquid hace y Spotify no (v66)
 
 - **Letra a pantalla completa** (K o «Letra grande» en Sonando): la línea que suena, enorme; tocar una línea salta a ella. Mantiene la pantalla encendida.

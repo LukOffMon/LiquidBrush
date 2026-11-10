@@ -945,3 +945,92 @@ test.describe('v66: 15 ideas', () => {
     await expect(page.locator('.tab[data-view="playlists"]')).toHaveClass(/is-active/);
   });
 });
+
+test.describe('v67: Buscar', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      if (!sessionStorage.getItem('busquedas-puestas')) {
+        localStorage.setItem('liquidbrush:searches', JSON.stringify(['tame impala', 'gorillaz']));
+        sessionStorage.setItem('busquedas-puestas', '1');
+      }
+    });
+  });
+
+  test('teléfono: Buscar a pantalla completa, mejor resultado, filtros por tipo y Cancelar', async ({ page }) => {
+    test.skip(!isPhone(page), 'solo en el teléfono');
+    const errors = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.locator('.nav-btn[data-nav="search"]').click();
+    // Pantalla de inicio de Buscar: sin barra de arriba ni pestañas, con recientes y artistas
+    await expect(page.locator('body')).toHaveClass(/search-landing/);
+    await expect(page.locator('.topbar')).toBeHidden();
+    await expect(page.locator('.tabs')).toBeHidden();
+    await expect(page.locator('#searchCancel')).toBeVisible();
+    await expect(page.locator('.search-recent-q')).toHaveCount(2);
+    await expect(page.locator('.search-mini-artist').first()).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    // Quitar una búsqueda reciente
+    await page.locator('[data-remove-search="gorillaz"]').click();
+    await expect(page.locator('.search-recent-q')).toHaveCount(1);
+    // Resultados: el artista que empieza así es el mejor resultado, y hay filtros por tipo
+    await page.fill('#searchInput', 'radio');
+    await expect(page.locator('.search-top')).toContainText('Radiohead');
+    await expect(page.locator('.search-top')).toContainText('Artista');
+    await expect(page.locator('#viewHead')).toBeHidden();
+    await page.locator('.search-scopes [data-value="artists"]').click();
+    await expect(page.locator('.search-artist-row').first()).toBeVisible();
+    await expect(page.locator('#trackList .track')).toHaveCount(0);
+    await expect(page.locator('#listInfo')).toContainText('artistas para «radio»');
+    await page.locator('.search-scopes [data-value="songs"]').click();
+    await expect(page.locator('#trackList .track').first()).toBeVisible();
+    await expect(page.locator('.search-top')).toHaveCount(0);
+    // El filtro elegido se mantiene al cambiar lo escrito; «Todo» vuelve a enseñarlo todo
+    await page.fill('#searchInput', 'creep');
+    // Solo hay canciones: sin filtros a la vista, se ve todo (con su mejor resultado)
+    await expect(page.locator('.search-scopes')).toBeHidden();
+    await expect(page.locator('.search-top')).toBeVisible();
+    await page.fill('#searchInput', 'radio');
+    await expect(page.locator('.search-scopes [data-value="songs"]')).toHaveAttribute('aria-pressed', 'true');
+    await page.locator('.search-scopes [data-value="all"]').click();
+    // Una canción con ese nombre exacto gana al artista
+    await page.fill('#searchInput', 'creep');
+    await expect(page.locator('.search-top')).toContainText('Canción');
+    await expect(page.locator('.search-top-title')).toHaveText('Creep');
+    await page.locator('.search-top-play').click();
+    await expect(page.locator('#miniTitle')).toHaveText('Creep');
+    // Lo que tocaste va a las recientes
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('liquidbrush:searches'))[0])).toBe('creep');
+    // Cancelar vuelve a donde estabas
+    await page.locator('#searchCancel').click();
+    await expect(page.locator('body')).not.toHaveClass(/search-mode/);
+    await expect(page.locator('#searchInput')).toHaveValue('');
+    await expect(page.locator('.nav-btn[data-nav="home"]')).toHaveClass(/is-active/);
+    await expect(page.locator('.home-tile').first()).toBeVisible();
+    expect(errors).toEqual([]);
+  });
+
+  test('erratas: avisa de que son resultados parecidos', async ({ page }) => {
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.fill('#searchInput', 'gorilaz feel');
+    await expect(page.locator('#listInfo')).toContainText('parecido');
+    await expect(page.locator('.track').first()).toContainText('Feel Good');
+  });
+
+  test('escritorio: mejor resultado y filtros también, y el panel deja quitar recientes', async ({ page }) => {
+    test.skip(isPhone(page), 'solo escritorio');
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.locator('#searchInput').click();
+    await expect(page.locator('#searchPanel')).toBeVisible();
+    await page.locator('[data-remove-search="tame impala"]').click();
+    await expect(page.locator('.search-recent-q')).toHaveCount(1);
+    await page.fill('#searchInput', 'radio');
+    await expect(page.locator('.search-top')).toContainText('Radiohead');
+    await expect(page.locator('#searchScopes')).toBeVisible();
+    await page.locator('.search-top-open').click();
+    await expect(page.locator('.artist-hero, .pl-hero').first()).toContainText('Radiohead');
+  });
+});

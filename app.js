@@ -202,6 +202,10 @@
     favorites: new Set(),
     // home | library | playlists | artists | favorites | stats | lab, o playlist / artist (uno abierto)
     view: LAB_MODE ? 'lab' : 'home',
+    // Buscar: tipo de resultado elegido, modo búsqueda abierto (teléfono) y de dónde se vino
+    searchScope: 'all',
+    searchOpen: false,
+    searchPrev: null,
     openPlaylist: null,
     // Artista abierto (vista "artist") y radio en curso
     openArtist: null,
@@ -324,6 +328,8 @@
     npAbout: $('npAbout'),
     homePanel: $('homePanel'),
     searchPanel: $('searchPanel'),
+    searchScopes: $('searchScopes'),
+    searchCancel: $('searchCancel'),
     playerTrack: document.querySelector('.player-track'),
     player: document.querySelector('.player'),
     speedSelect: $('speedSelect'),
@@ -3511,18 +3517,27 @@
     const exactIds = new Set(exact.map((t) => t.id));
     // Frases de la letra (4+ letras): se suman al final
     const byLyrics = q.length >= 4 ? list.filter((t) => !exactIds.has(t.id) && lyricsMatch(t, q)) : [];
-    if (exact.length || byLyrics.length) {
-      byLyrics.forEach((t) => { t.matchedLyrics = true; });
-      return [...exact, ...byLyrics];
-    }
+    searchMeta.lyricIds = new Set(byLyrics.map((t) => t.id));
+    searchMeta.fuzzy = false;
+    if (exact.length || byLyrics.length) return [...exact, ...byLyrics];
     // Sin resultados: se prueba con erratas («beyonse» → Beyoncé)
+    searchMeta.fuzzy = true;
     return list.filter((track) => tokens.every((token) => haystackOf(track).includes(token) || fuzzyToken(token, track)));
   }
 
   function getVisibleTracks() {
     const list = applyFilters(baseTracks());
     if (!normalize(state.query)) return list;
-    return searchTracks(list, state.query);
+    const found = searchTracks(list, state.query);
+    if (!isGlobalSearch()) return found;
+    // Buscar: solo el tipo elegido (Canciones, En la letra…)
+    switch (state.searchScope) {
+      case 'songs': return found.filter((t) => !searchMeta.lyricIds.has(t.id));
+      case 'lyrics': return found.filter((t) => searchMeta.lyricIds.has(t.id));
+      case 'artists':
+      case 'playlists': return [];
+      default: return found;
+    }
   }
 
   // Icono SVG del sprite: se clona de un modelo en vez de usar innerHTML (cada fila de la Biblioteca
@@ -4895,6 +4910,175 @@
   }
 
   /* ---------- Búsquedas recientes y explorar (al tocar el buscador) ---------- */
+  /* ---------- Buscar (v67) ----------
+     En el teléfono, Buscar es un modo propio: el buscador arriba con «Cancelar», sin barra ni
+     pestañas, y los resultados empiezan justo debajo. Sin texto: recientes, tus artistas y estilos.
+     Con texto: «Mejor resultado», filtros por tipo (con cuántos hay) y la lista. */
+  const SEARCH_SCOPES = [['all', 'Todo'], ['songs', 'Canciones'], ['artists', 'Artistas'], ['playlists', 'Playlists'], ['lyrics', 'En la letra']];
+  const searchMeta = { lyricIds: new Set(), fuzzy: false, counts: {} };
+  const phoneSearch = () => window.matchMedia('(max-width: 860px)').matches;
+  const isGlobalSearch = () => !LAB_MODE && state.view === 'library' && Boolean(normalize(state.query));
+
+  function searchArtistsFor(q) {
+    // La clave del artista ya es su nombre normalizado: no se normalizan ~1.800 nombres en cada tecla
+    return [...labArtists().values()].filter((a) => a.key.includes(q))
+      .sort((a, b) => (b.key.startsWith(q) - a.key.startsWith(q)) || artistPlays(b) - artistPlays(a) || b.tracks.length - a.tracks.length);
+  }
+
+  function searchPlaylistsFor(q) {
+    return [...pinnedFirst(shownPls([...systemPlaylists(), ...localPlaylists()]))]
+      .filter((pl) => normalize(`${pl.name} ${pl.description || ''}`).includes(q));
+  }
+
+  // El mejor resultado: el artista si su nombre empieza por lo escrito (y no hay una canción que se
+  // llame exactamente así); si no, la canción que mejor encaja
+  function searchTopResult(q, artists, songs) {
+    if (q.length < 2) return null;
+    const artist = artists[0];
+    const titleOf = (t) => normalize(splitTitle(t.title).main);
+    const exactSong = songs.find((t) => titleOf(t) === q);
+    if (artist && (artist.key === q || (artist.key.startsWith(q) && !exactSong))) return { kind: 'artist', entry: artist };
+    const song = exactSong || songs.find((t) => titleOf(t).startsWith(q)) || songs[0];
+    if (song) return { kind: 'track', track: song };
+    return artist ? { kind: 'artist', entry: artist } : null;
+  }
+
+  function searchTopCard(top) {
+    const card = makeEl('div', 'search-top');
+    const open = makeEl('button', 'search-top-open');
+    open.type = 'button';
+    const text = makeEl('span', 'search-top-text');
+    let title;
+    let img;
+    let meta;
+    if (top.kind === 'artist') {
+      const entry = top.entry;
+      title = entry.name;
+      open.dataset.action = 'open-artist';
+      open.dataset.value = entry.key;
+      img = photoImg(entry.tracks[0]?.thumb, 96, 'search-top-img is-round');
+      const plays = artistPlays(entry);
+      meta = `Artista · ${songsLabel(entry.tracks.length)}${plays ? ` · ${plays} escucha${plays === 1 ? '' : 's'}` : ''}`;
+    } else {
+      const track = top.track;
+      title = splitTitle(track.title).main;
+      open.dataset.action = 'search-play-track';
+      open.dataset.value = track.id;
+      img = photoImg(track.cover || track.thumb, 96, 'search-top-img');
+      meta = `Canción · ${track.knownArtist || track.artist}`;
+    }
+    text.append(makeEl('span', 'search-top-eyebrow', 'Mejor resultado'), makeEl('span', 'search-top-title', title), makeEl('span', 'search-top-meta', meta));
+    open.append(img, text);
+    const play = makeButton('icon-btn play-btn search-top-play', top.kind === 'artist' ? 'search-play-artist' : 'search-play-track', `Reproducir ${title}`, 'play');
+    play.dataset.value = top.kind === 'artist' ? top.entry.key : top.track.id;
+    card.append(open, play);
+    return card;
+  }
+
+  function searchArtistRow(entry) {
+    const row = makeEl('button', 'search-artist-row');
+    row.type = 'button';
+    row.dataset.action = 'open-artist';
+    row.dataset.value = entry.key;
+    const plays = artistPlays(entry);
+    const text = makeEl('span', 'search-artist-text');
+    text.append(
+      makeEl('span', 'search-artist-name', entry.name),
+      makeEl('span', 'search-artist-meta', `${isFollowing(entry.key) ? 'Siguiendo · ' : ''}${songsLabel(entry.tracks.length)}${plays ? ` · ${plays} escucha${plays === 1 ? '' : 's'}` : ''}`)
+    );
+    row.append(photoImg(entry.tracks[0]?.thumb, 52, 'search-artist-photo'), text, svgIcon('chevron', 'icon search-row-go'));
+    return row;
+  }
+
+  function searchSectionHead(title, icon, total, shown, scope) {
+    const head = makeEl('div', 'search-sec-head');
+    const heading = makeEl('h3', 'pl-section-title');
+    heading.append(sticker(icon), title);
+    head.append(heading);
+    if (total > shown) {
+      const more = makeButton('btn btn-ghost btn-small search-more', 'search-scope', `Ver ${total} ${title.toLowerCase()}`, '', `Ver todos · ${total}`);
+      more.dataset.value = scope;
+      head.append(more);
+    }
+    return head;
+  }
+
+  // Resultados que no son canciones: filtros por tipo, mejor resultado, artistas y playlists
+  function renderSearchPlaylists(q) {
+    const global = Boolean(q) && !LAB_MODE && state.view === 'library';
+    const matches = q ? searchPlaylistsFor(q) : [];
+    const artists = q && state.view !== 'artists' ? searchArtistsFor(q) : [];
+    els.searchScopes.hidden = true;
+    if (!global) {
+      // Dentro de Favoritas o Artistas: como siempre, unas pocas tarjetas
+      const parts = [];
+      if (artists.length) {
+        const heading = makeEl('h3', 'pl-section-title');
+        heading.append(sticker(`${q}a`), 'Artistas');
+        const row = makeEl('div', 'home-row is-artists');
+        artists.slice(0, 10).forEach((entry) => row.append(artistCard(entry)));
+        parts.push(heading, row);
+      }
+      if (matches.length) {
+        const row = makeEl('div', 'search-pl-row');
+        matches.slice(0, 12).forEach((pl) => row.append(createPlaylistCard(pl)));
+        const heading = makeEl('h3', 'pl-section-title');
+        heading.append(sticker(q), 'Playlists');
+        parts.push(heading, row);
+      }
+      els.searchPlaylists.hidden = !parts.length;
+      els.searchPlaylists.replaceChildren(...parts);
+      return;
+    }
+
+    const found = searchTracks(applyFilters(baseTracks()), state.query);
+    const lyricCount = found.filter((t) => searchMeta.lyricIds.has(t.id)).length;
+    const songs = found.filter((t) => !searchMeta.lyricIds.has(t.id));
+    const counts = { all: found.length + artists.length + matches.length, songs: songs.length, artists: artists.length, playlists: matches.length, lyrics: lyricCount };
+    searchMeta.counts = counts;
+    if (state.searchScope !== 'all' && !counts[state.searchScope]) state.searchScope = 'all';
+    // Filtros por tipo, solo si hay más de un tipo de resultado. Sin la fila de filtros a la vista se
+    // enseña todo (el filtro elegido vuelve cuando haya otra vez varios tipos)
+    const kinds = SEARCH_SCOPES.filter(([key]) => key !== 'all' && counts[key]);
+    const scope = kinds.length >= 2 ? state.searchScope : 'all';
+    if (kinds.length >= 2) {
+      els.searchScopes.replaceChildren(...SEARCH_SCOPES.filter(([key]) => key === 'all' || counts[key]).map(([key, label]) => {
+        const chip = makeChip('search-scope', key, label, scope === key);
+        if (key !== 'all') chip.append(makeEl('span', 'chip-count', String(counts[key])));
+        return chip;
+      }));
+      els.searchScopes.hidden = false;
+    }
+
+    const parts = [];
+    if (scope === 'all') {
+      const top = searchTopResult(q, artists, songs);
+      if (top) parts.push(searchTopCard(top));
+      const otherArtists = artists.filter((a) => top?.kind !== 'artist' || a !== top.entry);
+      if (otherArtists.length) {
+        const row = makeEl('div', 'home-row is-artists');
+        otherArtists.slice(0, 10).forEach((entry) => row.append(artistCard(entry)));
+        parts.push(searchSectionHead('Artistas', `${q}a`, otherArtists.length, 10, 'artists'), row);
+      }
+      if (matches.length) {
+        const row = makeEl('div', 'search-pl-row');
+        matches.slice(0, 12).forEach((pl) => row.append(createPlaylistCard(pl)));
+        parts.push(searchSectionHead('Playlists', q, matches.length, 12, 'playlists'), row);
+      }
+      if (parts.length && found.length) parts.push(searchSectionHead('Canciones', `${q}c`, 0, 0, 'songs'));
+    } else if (scope === 'artists') {
+      const list = makeEl('div', 'search-artist-list');
+      artists.slice(0, 80).forEach((entry) => list.append(searchArtistRow(entry)));
+      parts.push(list);
+    } else if (scope === 'playlists') {
+      const grid = makeEl('div', 'search-pl-grid');
+      matches.forEach((pl) => grid.append(createPlaylistCard(pl)));
+      parts.push(grid);
+    }
+    els.searchPlaylists.hidden = !parts.length;
+    els.searchPlaylists.replaceChildren(...parts);
+  }
+
   function rememberSearch(text) {
     const q = String(text || '').trim();
     if (q.length < 2) return;
@@ -4902,29 +5086,136 @@
     storage.set(KEYS.searches, library.searches);
   }
 
+  // Clases del cuerpo: modo búsqueda (teléfono) y pantalla de inicio de Buscar
+  function updateSearchMode() {
+    const landing = !els.searchPanel.hidden;
+    const open = landing || isGlobalSearch() || (state.searchOpen && phoneSearch());
+    document.body.classList.toggle('search-mode', open);
+    document.body.classList.toggle('search-landing', landing);
+  }
+
   function renderSearchPanel() {
-    const show = document.activeElement === els.searchInput && !els.searchInput.value.trim();
+    const focused = document.activeElement === els.searchInput;
+    const show = !LAB_MODE && (focused || (state.searchOpen && phoneSearch())) && !els.searchInput.value.trim();
     els.searchPanel.hidden = !show;
+    updateSearchMode();
     if (!show) return;
     const parts = [];
     if (library.searches.length) {
       const head = makeEl('div', 'search-panel-head');
       head.append(makeEl('h3', 'search-panel-title', 'Búsquedas recientes'));
-      const clear = makeEl('button', 'btn btn-ghost search-clear', 'Borrar');
+      const clear = makeEl('button', 'btn btn-ghost search-clear', 'Borrar todo');
       clear.type = 'button';
       clear.dataset.clearSearches = '1';
       head.append(clear);
-      const list = makeEl('div', 'chips');
+      const list = makeEl('ul', 'search-recent');
       library.searches.forEach((q) => {
-        const chip = makeEl('button', 'chip', q);
-        chip.type = 'button';
-        chip.dataset.q = q;
-        list.append(chip);
+        const li = document.createElement('li');
+        const go = makeEl('button', 'search-recent-q');
+        go.type = 'button';
+        go.dataset.q = q;
+        go.append(svgIcon('clock'), makeEl('span', '', q));
+        const remove = makeEl('button', 'icon-btn search-recent-x');
+        remove.type = 'button';
+        remove.dataset.removeSearch = q;
+        remove.setAttribute('aria-label', `Quitar «${q}» de las recientes`);
+        remove.append(svgIcon('close'));
+        li.append(go, remove);
+        list.append(li);
       });
       parts.push(head, list);
     }
+    if (state.libraryTracks.length) {
+      const artists = topArtists(10).filter(Boolean);
+      if (artists.length) {
+        const row = makeEl('div', 'search-mini-artists');
+        artists.forEach((entry) => {
+          const b = makeEl('button', 'search-mini-artist');
+          b.type = 'button';
+          b.dataset.action = 'open-artist';
+          b.dataset.value = entry.key;
+          b.append(photoImg(entry.tracks[0]?.thumb, 68, ''), makeEl('span', '', entry.name));
+          row.append(b);
+        });
+        parts.push(makeEl('h3', 'search-panel-title', 'Tus artistas'), row);
+      }
+    }
     parts.push(makeEl('h3', 'search-panel-title', 'Explora tus estilos'), exploreGrid());
     els.searchPanel.replaceChildren(...parts);
+  }
+
+  // Entrar en Buscar (botón de la barra de abajo, o tocar el buscador en el teléfono)
+  function enterSearch() {
+    if (LAB_MODE || state.searchOpen || !phoneSearch()) return;
+    state.searchPrev = { view: state.view, playlist: state.openPlaylist, artist: state.openArtist };
+    state.searchOpen = true;
+    state.searchScope = 'all';
+    if (state.view !== 'library') setView('library');
+    else if (state.filter !== 'all' || state.genre) {
+      // Buscar busca en todo: sin el filtro que hubiera en la Biblioteca
+      state.filter = 'all';
+      state.genre = '';
+      renderList();
+    }
+  }
+
+  function cancelSearch() {
+    const prev = state.searchPrev;
+    state.searchOpen = false;
+    state.searchPrev = null;
+    state.query = '';
+    els.searchInput.value = '';
+    els.searchInput.blur();
+    if (prev && prev.view !== 'library') {
+      if (prev.view === 'artist') state.openArtist = prev.artist;
+      setView(prev.view, { playlist: prev.playlist });
+    } else renderList();
+    renderSearchPanel();
+    updateNav();
+    window.scrollTo({ top: 0 });
+  }
+
+  function setupSearch() {
+    if (LAB_MODE) return;
+    els.searchCancel.addEventListener('click', cancelSearch);
+    // En el teléfono, tocar el buscador es entrar en Buscar (busca en todo, no dentro de la vista)
+    els.searchInput.addEventListener('focus', () => {
+      enterSearch();
+      renderSearchPanel();
+      updateNav();
+    });
+    // El teclado se esconde al pulsar «Buscar» en él o al empezar a desplazar los resultados
+    els.searchInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' && phoneSearch()) els.searchInput.blur();
+    });
+    els.library.addEventListener('touchmove', (event) => {
+      if (document.activeElement === els.searchInput && !event.target.closest('.search')) els.searchInput.blur();
+    }, { passive: true });
+    // Lo que de verdad buscabas (lo que tocaste) va a las recientes; no cada letra a medio escribir
+    els.library.addEventListener('click', (event) => {
+      if (!state.query.trim()) return;
+      if (!event.target.closest('.track-main, .artist-card, .pl-card, .search-top, .search-artist-row')) return;
+      rememberSearch(els.searchInput.value);
+      if (phoneSearch() && document.activeElement === els.searchInput) els.searchInput.blur();
+    }, true);
+    els.searchPanel.addEventListener('click', (event) => {
+      const remove = event.target.closest('[data-remove-search]');
+      if (remove) {
+        event.stopPropagation();
+        library.searches = library.searches.filter((s) => s !== remove.dataset.removeSearch);
+        storage.set(KEYS.searches, library.searches);
+        renderSearchPanel();
+        return;
+      }
+      if (event.target.closest('[data-action="open-artist"]')) els.searchInput.blur();
+    }, true);
+    // Al cambiar lo escrito, los resultados empiezan arriba (el buscador sigue fijo)
+    els.searchInput.addEventListener('input', () => {
+      if (!phoneSearch()) return;
+      const top = els.library.getBoundingClientRect().top;
+      if (top < 0) window.scrollTo({ top: window.scrollY + top });
+    });
+    updateSearchMode();
   }
 
   /* ---------- Tarjeta para compartir (Historias, Estados, chats) ---------- */
@@ -5165,42 +5456,6 @@
     return card;
   }
 
-  /* ---------- Playlists que coinciden con la búsqueda ---------- */
-  function renderSearchPlaylists(q) {
-    const matches = q
-      ? [...pinnedFirst(shownPls([...systemPlaylists(), ...localPlaylists()]))]
-        .filter((pl) => normalize(`${pl.name} ${pl.description || ''}`).includes(q))
-        .slice(0, 12)
-      : [];
-    const artists = q && state.view !== 'artists'
-      // La clave del artista ya es su nombre normalizado: no se normalizan ~1.800 nombres en cada tecla
-      ? [...labArtists().values()].filter((a) => a.key.includes(q))
-        .sort((a, b) => (b.key.startsWith(q) - a.key.startsWith(q)) || artistPlays(b) - artistPlays(a) || b.tracks.length - a.tracks.length)
-        .slice(0, 10)
-      : [];
-    els.searchPlaylists.hidden = !matches.length && !artists.length;
-    if (!matches.length && !artists.length) {
-      els.searchPlaylists.replaceChildren();
-      return;
-    }
-    const parts = [];
-    if (artists.length) {
-      const heading = makeEl('h3', 'pl-section-title');
-      heading.append(sticker(`${q}a`), 'Artistas');
-      const row = makeEl('div', 'home-row is-artists');
-      artists.forEach((entry) => row.append(artistCard(entry)));
-      parts.push(heading, row);
-    }
-    if (matches.length) {
-      const row = makeEl('div', 'search-pl-row');
-      matches.forEach((pl) => row.append(createPlaylistCard(pl)));
-      const heading = makeEl('h3', 'pl-section-title');
-      heading.append(sticker(q), 'Playlists');
-      parts.push(heading, row);
-    }
-    els.searchPlaylists.replaceChildren(...parts);
-  }
-
   const pinnedFirst = (playlists) => [
     ...playlists.filter((pl) => isPinned(pl.key)),
     ...playlists.filter((pl) => !isPinned(pl.key))
@@ -5313,6 +5568,7 @@
     if (!visible.length) {
       let li = makeEl('li', 'list-empty');
       if (!state.tracks.length) li = emptyState('li', 'library', 'La biblioteca está vacía por ahora.');
+      else if (searching && isGlobalSearch() && ['artists', 'playlists'].includes(state.searchScope)) li = null;
       else if (searching) li.append(tarjetaPedir(state.query));
       else if (state.filter !== 'all' || state.genre) li = emptyState('li', 'search', 'Ninguna canción coincide con este filtro.');
       else if (state.view === 'favorites') {
@@ -5328,7 +5584,7 @@
         li.append(go);
       }
       else li = emptyState('li', 'note', 'Todavía no hay canciones aquí.');
-      fragment.appendChild(li);
+      if (li) fragment.appendChild(li);
     }
     els.trackList.replaceChildren(fragment);
     if (visible.length) appendListChunk(LIST_FIRST_CHUNK);
@@ -5336,8 +5592,15 @@
 
     const total = visible.length;
     const seconds = visible.reduce((sum, t) => sum + parseDuration(t.duration), 0);
-    els.listInfo.textContent = searching
-      ? `${total} resultado${total === 1 ? '' : 's'} para «${state.query.trim()}»`
+    const typed = state.query.trim();
+    const scopeOnly = isGlobalSearch() && ['artists', 'playlists'].includes(state.searchScope);
+    const others = searchMeta.counts[state.searchScope] || 0;
+    els.listInfo.textContent = scopeOnly
+      ? `${others} ${state.searchScope === 'artists' ? `artista${others === 1 ? '' : 's'}` : `playlist${others === 1 ? '' : 's'}`} para «${typed}»`
+      : searching && searchMeta.fuzzy && total
+        ? `${total} resultado${total === 1 ? '' : 's'} parecido${total === 1 ? '' : 's'} a «${typed}» (sin coincidencias exactas)`
+        : searching
+      ? `${total} resultado${total === 1 ? '' : 's'} para «${typed}»`
       : state.view === 'playlist' || state.view === 'artist' ? '' : `${songsLabel(total)} · ${formatTotal(seconds)}`;
     // Con resultados también: quizá no era esa versión o ese artista
     if (searching && total && !LAB_MODE) {
@@ -5434,6 +5697,13 @@
     if (LAB_MODE && view !== 'lab') {
       location.assign(VIEWS.includes(view) && view !== 'home' ? `${LIQUID_URL}?view=${view}` : LIQUID_URL);
       return;
+    }
+    if (view !== 'library' && state.searchOpen) {
+      state.searchOpen = false;
+      state.searchPrev = null;
+      state.query = '';
+      els.searchInput.value = '';
+      if (document.activeElement === els.searchInput) els.searchInput.blur();
     }
     const previous = state.view;
     const previousPlaylist = state.openPlaylist;
@@ -5782,6 +6052,8 @@
     text.append(title, artist);
     // Llegó hace poco (Novedades): una etiqueta «Nueva» junto al título
     if (arrivals.added[track.id]) title.append(' ', makeEl('span', 'track-new', 'Nueva'));
+    // Buscando: la canción salió por su letra
+    if (state.query.trim() && searchMeta.lyricIds.has(track.id)) artist.prepend(makeEl('span', 'track-lyric', 'En la letra'));
     // Buscando: se resaltan las palabras que coinciden
     if (state.query.trim()) highlightWords([title, artist], state.query);
     // Al pasar el cursor: cuántas veces la escuchaste y cuándo fue la última
@@ -8307,6 +8579,26 @@
           else playTracks(getVisibleTracks());
           break;
         case 'shuffle-view': playTracks(getVisibleTracks(), true); break;
+        case 'search-scope':
+          state.searchScope = target.dataset.value;
+          renderList();
+          if (els.library.getBoundingClientRect().top < 0) window.scrollTo({ top: window.scrollY + els.library.getBoundingClientRect().top });
+          break;
+        case 'search-play-track': {
+          const track = getTrack(target.dataset.value);
+          if (!track) break;
+          if (list.items.some((t) => t.id === track.id)) playFromList(track.id);
+          else if (state.currentTrack?.id === track.id) togglePlay();
+          else { buildQueue(track.id); loadTrack(track, true, dj.enabled ? 1.5 : 0); }
+          break;
+        }
+        case 'search-play-artist': {
+          const entry = getArtist(target.dataset.value);
+          const tracks = entry ? artistTracks(entry) : [];
+          const start = tracks.find(isPlayable);
+          if (start) playCollection(tracks, start.id, entry.name, `search-artist:${entry.key}`);
+          break;
+        }
         case 'play-unheard': {
           const pl = getPlaylist(state.openPlaylist);
           const rest = pl ? plus.unheardOf(pl) : [];
@@ -8554,13 +8846,11 @@
 
     // Buscador en tiempo real
     let searchFrame = null;
-    let searchMemory = 0;
     els.searchInput.addEventListener('input', () => {
+      if (!state.query.trim()) state.searchScope = 'all';
       state.query = els.searchInput.value;
       // En Stats y Lab no hay lista que filtrar: la búsqueda se hace en la Biblioteca
       renderSearchPanel();
-      clearTimeout(searchMemory);
-      if (state.query.trim()) searchMemory = setTimeout(() => rememberSearch(els.searchInput.value), 1800);
       if (state.query.trim() && ['stats', 'lab', 'home'].includes(state.view)) {
         setView('library');
         return;
@@ -8748,13 +9038,20 @@
       const target = button.dataset.nav;
       npSheet.close();
       // Cambiar de sección deja atrás la búsqueda (antes el texto seguía escrito en Inicio y Lab sin filtrar nada)
-      if (target !== 'search') clearSearch();
+      if (target !== 'search') {
+        state.searchOpen = false;
+        state.searchPrev = null;
+        clearSearch();
+      }
       if (target === 'home' && state.view !== 'home') setView('home');
       if (target === 'library' && state.view !== 'library') setView('library');
       if (target === 'playlists' && state.view !== 'playlists') setView('playlists');
       if (target === 'lab' && state.view !== 'lab') setView('lab');
       // El foco va primero (iOS solo abre el teclado dentro del toque)
-      if (target === 'search') els.searchInput.focus({ preventScroll: true });
+      if (target === 'search') {
+        enterSearch();
+        els.searchInput.focus({ preventScroll: true });
+      }
       els.library.scrollIntoView({ block: 'start', behavior: settings.motion ? 'smooth' : 'auto' });
       updateNav();
     });
@@ -11143,7 +11440,7 @@
   const nav = { nowVisible: true };
 
   function updateNav() {
-    const searching = document.activeElement === els.searchInput;
+    const searching = document.activeElement === els.searchInput || state.searchOpen;
     const active = searching ? 'search'
       : state.view === 'home' ? 'home'
       : state.view === 'playlists' || state.view === 'playlist' ? 'playlists'
@@ -13310,6 +13607,7 @@
     install.init();
     setupExtras();
     plus.init();
+    setupSearch();
     inappNotice();
     if (els.deviceInfo) els.deviceInfo.textContent = `Tu dispositivo: ${deviceSummary()}. La app se adapta sola a él.`;
     document.querySelectorAll('.settings-group-title').forEach((title) => title.prepend(sticker(title.textContent)));
