@@ -889,14 +889,17 @@
     if (!handoff) return;
     const drop = () => { try { localStorage.removeItem(LAB_HANDOFF); } catch { /* nada */ } };
     if (!handoff.at || Date.now() - handoff.at > LAB_HANDOFF_TTL) { drop(); return; }
-    const tracks = (Array.isArray(handoff.ids) ? handoff.ids : []).map(getTrack).filter(Boolean);
+    const ids = Array.isArray(handoff.ids) ? handoff.ids : [];
+    const tracks = ids.map(getTrack).filter(Boolean);
     if (handoff.action === 'radio') {
       drop();
       if (handoff.artist) startRadio(handoff.artist);
       return;
     }
-    // Con la biblioteca guardada puede faltar alguna canción nueva: se espera a la lista fresca
-    if (!tracks.length) { if (final) drop(); return; }
+    // Con la biblioteca guardada puede faltar alguna canción (nueva, o de una lista que no respondió):
+    // se espera a la lista fresca para no quedarse con media mezcla
+    if (!final && tracks.length < ids.length) return;
+    if (!tracks.length) { drop(); return; }
     drop();
     const name = String(handoff.name || 'Mezcla de Lab').slice(0, 80);
     if (handoff.action === 'saved' && handoff.playlist && getPlaylist(`local:${handoff.playlist}`)) {
@@ -1061,7 +1064,7 @@
       const freshSig = await librarySignature(fresh);
       const unchanged = freshSig === cachedSig;
       if (!unchanged) await applyTrackData(rows, true);
-      else openIncomingLink(true);
+      else { openIncomingLink(true); receiveFromLab(true); }
       // Se guarda en IndexedDB; al lograrlo se borra la copia de localStorage (libera ~2 MB)
       let savedInIdb = unchanged && Boolean(cached?.sig);
       if (!savedInIdb) {
@@ -1085,7 +1088,8 @@
       }
     } catch (error) {
       console.error('[LiquidBullet] Error al cargar las canciones:', error);
-      if (shown) return;
+      // Sin lista fresca, lo que llegó de Lab se pone con la biblioteca guardada
+      if (shown) { receiveFromLab(true); return; }
       els.listInfo.textContent = '';
       els.npContext.textContent = 'Error de carga';
       const li = document.createElement('li');
