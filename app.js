@@ -889,17 +889,14 @@
     if (!handoff) return;
     const drop = () => { try { localStorage.removeItem(LAB_HANDOFF); } catch { /* nada */ } };
     if (!handoff.at || Date.now() - handoff.at > LAB_HANDOFF_TTL) { drop(); return; }
-    const ids = Array.isArray(handoff.ids) ? handoff.ids : [];
-    const tracks = ids.map(getTrack).filter(Boolean);
+    const tracks = (Array.isArray(handoff.ids) ? handoff.ids : []).map(getTrack).filter(Boolean);
     if (handoff.action === 'radio') {
       drop();
       if (handoff.artist) startRadio(handoff.artist);
       return;
     }
-    // Con la biblioteca guardada puede faltar alguna canción (nueva, o de una lista que no respondió):
-    // se espera a la lista fresca para no quedarse con media mezcla
-    if (!final && tracks.length < ids.length) return;
-    if (!tracks.length) { drop(); return; }
+    // Con la biblioteca guardada puede faltar alguna canción nueva: se espera a la lista fresca
+    if (!tracks.length) { if (final) drop(); return; }
     drop();
     const name = String(handoff.name || 'Mezcla de Lab').slice(0, 80);
     if (handoff.action === 'saved' && handoff.playlist && getPlaylist(`local:${handoff.playlist}`)) {
@@ -1064,7 +1061,7 @@
       const freshSig = await librarySignature(fresh);
       const unchanged = freshSig === cachedSig;
       if (!unchanged) await applyTrackData(rows, true);
-      else { openIncomingLink(true); receiveFromLab(true); }
+      else openIncomingLink(true);
       // Se guarda en IndexedDB; al lograrlo se borra la copia de localStorage (libera ~2 MB)
       let savedInIdb = unchanged && Boolean(cached?.sig);
       if (!savedInIdb) {
@@ -1088,8 +1085,7 @@
       }
     } catch (error) {
       console.error('[LiquidBullet] Error al cargar las canciones:', error);
-      // Sin lista fresca, lo que llegó de Lab se pone con la biblioteca guardada
-      if (shown) { receiveFromLab(true); return; }
+      if (shown) return;
       els.listInfo.textContent = '';
       els.npContext.textContent = 'Error de carga';
       const li = document.createElement('li');
@@ -2981,7 +2977,9 @@
       case 'deep': result = withSettings({ genres: (top.length ? top : fallback).slice(0, 5), mix: 4, cap: 1, size: 40 }); break;
       case 'gems': result = forgottenGems(p); break;
       case 'daylist': result = daylist(p)?.tracks || []; break;
-      case 'variety': result = withSettings({ genres: (top.length ? top : fallback).slice(0, 6), mix: 2, cap: 1, size: 60 }); break;
+      // Un artista por canción: con pocos estilos escuchados no llega a 60 artistas distintos, así que tras
+      // los tuyos se suman otros hasta completar 6
+      case 'variety': result = withSettings({ genres: [...new Set([...top, ...fallback])].slice(0, 6), mix: 2, cap: 1, size: 60 }); break;
       case 'surprise': {
         const least = visible.filter((g) => !top.slice(0, 6).includes(g));
         result = withSettings({ genres: seededShuffle(least.length ? least : visible, String(Date.now())).slice(0, 3), mix: 4, cap: 2, size: 40 });

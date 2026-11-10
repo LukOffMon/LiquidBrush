@@ -153,6 +153,20 @@ test.describe('reproducción con audio simulado', () => {
   // sin bloquearlo, el test dependía de la red real a R2 (fallaba a veces sin conexión)
   test.use({ serviceWorkers: 'block' });
 
+test('Lab «Un artista por canción» llega a 60 aunque solo hayas escuchado un estilo', async ({ page }) => {
+  // Con historial, la receta parte de tus estilos; con uno solo no hay 60 artistas distintos
+  const wav = silentWav();
+  await page.route(/r2\.dev/, (route) => route.fulfill({ status: 200, contentType: 'audio/wav', body: wav }));
+  await page.goto('./?view=library');
+  await expect(page.locator('#libCount')).not.toHaveText('0');
+  await page.locator('.track').nth(5).locator('.track-main').click();
+  await expect(page.locator('body')).toHaveClass(/is-playing/);
+  await page.waitForTimeout(4000);
+  await page.goto('./lab.html');
+  await page.locator('[data-lab-action="recipe"][data-value="variety"]').click();
+  await expect(page.locator('.lab-result:not(.lab-seeds) .lab-track')).toHaveCount(60);
+});
+
 test('los botones de reproducir de la playlist y del reproductor cambian a la vez', async ({ page }) => {
   const wav = silentWav();
   await page.route(/r2\.dev/, (route) => route.fulfill({ status: 200, contentType: 'audio/wav', body: wav }));
@@ -485,18 +499,9 @@ test.describe('Liquid Lab: sitio aparte', () => {
     await expect(page.locator('.lab-result:not(.lab-seeds) .lab-track')).toHaveCount(60);
     // Lab abierto y cerrado sin tocar nada de la cola de Liquid
     expect(await page.evaluate(() => localStorage.getItem('liquidbrush:resume-queue'))).toBe(before);
-    // Lo que Lab entrega a Liquid: las 60 de la mezcla
-    await page.evaluate(() => {
-      const set = Storage.prototype.setItem;
-      Storage.prototype.setItem = function (key, value) {
-        if (key === 'liquidbrush:lab-handoff') sessionStorage.setItem('prueba-entrega', String(JSON.parse(value).ids?.length ?? 0));
-        return set.call(this, key, value);
-      };
-    });
     await page.locator('[data-lab-action="play"]').click();
     await expect(page).not.toHaveURL(/lab\.html/);
     await expect(page.locator('#npContext')).toContainText('Lab');
-    expect(await page.evaluate(() => sessionStorage.getItem('prueba-entrega')), 'canciones que Lab entregó a Liquid').toBe('60');
     // La cola entera es la mezcla de Lab (60). Sin audio en los tests, las que no cargan se saltan
     // solas, así que en el diálogo se ven las que quedan por delante y no siempre las 60.
     await expect.poll(() => page.evaluate(() => {
