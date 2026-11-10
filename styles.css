@@ -135,6 +135,12 @@
   box-sizing: border-box;
 }
 
+/* El atributo hidden manda siempre: sin esto, cualquier regla con display (flex, grid…)
+   dejaba el elemento oculto ocupando sitio (márgenes y huecos vacíos entre secciones) */
+[hidden] {
+  display: none !important;
+}
+
 html {
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
@@ -7062,7 +7068,7 @@ textarea {
   letter-spacing: 0.08em;
 }
 
-@media (max-width: 380px) {
+@media (max-width: 480px) {
   .tema-strip {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -8296,5 +8302,222 @@ body.resumen-open {
   .rz-invite::before,
   .resumen[open] {
     animation: none;
+  }
+}
+
+/* =========================================================
+   v65: pulido visual y de uso
+   ========================================================= */
+
+/* Títulos cromados: más luz arriba y una sombra fina que los separa del fondo
+   (antes la franja oscura del degradado los dejaba borrosos sobre fondos medios) */
+[data-theme="chrome"] .view-title,
+[data-theme="chrome"] .pl-hero-name {
+  background: linear-gradient(180deg, #ffffff 0%, #eef2f8 50%, #b9c2d3 64%, #f7f9fc 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  filter: drop-shadow(0 1px 1px rgba(4, 6, 12, 0.75)) drop-shadow(0 0 12px rgba(4, 6, 12, 0.35));
+}
+
+/* Reproductor de escritorio: los botones de la derecha ya no se aplastan;
+   lo que cede es la barra de volumen */
+.player-volume .icon-btn {
+  flex: none;
+}
+
+@media (min-width: 861px) {
+  .player {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr) minmax(max-content, 1fr);
+  }
+
+  .volume {
+    flex: 1 1 72px;
+    width: auto;
+    min-width: 56px;
+    max-width: 120px;
+  }
+}
+
+@media (min-width: 861px) and (max-width: 1100px) {
+  /* En pantallas estrechas el DJ ya está en el panel de la canción */
+  .player .dj-btn {
+    display: none;
+  }
+}
+
+/* Estados vacíos: icono en un medallón y texto en letra clásica, centrado y corto */
+.list-empty {
+  font-family: var(--song-font);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  text-wrap: balance;
+}
+
+.list-empty.has-icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 48px 16px;
+}
+
+.list-empty-icon {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--text) 7%, transparent);
+  color: var(--text);
+}
+
+.list-empty-icon .icon {
+  width: 28px;
+  height: 28px;
+}
+
+.list-empty-text {
+  max-width: 44ch;
+}
+
+.list-empty.has-icon .list-empty-cta {
+  margin-top: 2px;
+}
+
+/* Cabecera de playlist y artista en el móvil: la portada arriba, a la altura del título */
+@media (max-width: 860px) {
+  .pl-hero {
+    align-items: start;
+  }
+}
+
+/* Listas en teléfonos: sin la columna del número, el título gana sitio.
+   La canción que suena lleva el ecualizador sobre su carátula. */
+@media (max-width: 520px) {
+  .track-main {
+    grid-template-columns: 46px minmax(0, 1fr);
+    padding-left: 8px;
+  }
+
+  .track-main .track-num {
+    display: none;
+  }
+
+  .track.is-current .track-main .track-num {
+    display: grid;
+    grid-area: 1 / 1;
+    z-index: 1;
+    width: 46px;
+    height: 46px;
+    border-radius: 8px;
+    background: rgba(8, 10, 16, 0.55);
+    color: #fff;
+  }
+
+  /* La versión («Radio Edit», «Remaster»…) va como texto suave en la misma línea:
+     como píldora no cabía y se llevaba medio título por delante */
+  .track-title .title-version {
+    display: inline;
+    margin-left: 4px;
+    padding: 0;
+    border: 0;
+    font-size: 0.78em;
+    vertical-align: baseline;
+  }
+
+  .track.is-current .track-main .track-cover {
+    grid-area: 1 / 1;
+  }
+
+  .track.is-current .track-main .track-text {
+    grid-area: 1 / 2;
+  }
+}
+
+/* Inicio: las filas con pocas tarjetas («Hecho para ti») ya no se estiran a medio panel */
+@media (min-width: 1100px) {
+  .home-row:not(.is-artists) {
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  }
+}
+
+/* Estilos de Inicio: sombra más firme bajo el nombre (se perdía sobre portadas claras) */
+.explore-tile::after {
+  background: linear-gradient(180deg, transparent 22%, rgba(7, 6, 12, 0.55) 60%, rgba(7, 6, 12, 0.92));
+}
+
+.explore-name {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85), 0 0 10px rgba(0, 0, 0, 0.55);
+}
+
+/* Canciones y artistas de Inicio: la misma letra clásica que en las listas */
+.qp-title,
+.sotd-title {
+  font-family: var(--title-font);
+}
+
+.qp-artist,
+.sotd-artist,
+.sotd-genres {
+  font-family: var(--song-font);
+}
+
+.qp-title,
+.qp-artist,
+.sotd-title,
+.sotd-artist,
+.sotd-genres {
+  font-synthesis: weight;
+  letter-spacing: normal;
+}
+
+/* Estilos en el teléfono (Inicio y Buscar): siempre dos columnas, no una tarjeta gigante por fila */
+@media (max-width: 520px) {
+  .explore-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .explore-tile {
+    aspect-ratio: 4 / 3;
+  }
+}
+
+/* Textos de apoyo de las ventanas (qué canción es, cuánto queda en la cola, letra pequeña):
+   en letra clásica, como el resto de textos largos */
+.sheet-text,
+.add-empty,
+.cuenta-pie {
+  font-family: var(--song-font);
+  font-synthesis: weight;
+  letter-spacing: normal;
+}
+
+/* Detalles: selección de texto con el color del tema y barra de desplazamiento discreta */
+::selection {
+  background: color-mix(in srgb, var(--accent) 38%, transparent);
+  color: var(--text);
+}
+
+html {
+  scrollbar-color: color-mix(in srgb, var(--text) 26%, transparent) transparent;
+}
+
+.view-title,
+.home-section-title,
+.pl-hero-name {
+  text-wrap: balance;
+}
+
+/* Al llevar algo a la vista (Tab, «ir a la que suena», enlaces) no queda escondido
+   debajo de la barra de arriba ni del reproductor fijo */
+html {
+  scroll-padding-top: 84px;
+  scroll-padding-bottom: 150px;
+}
+
+@media (min-width: 861px) {
+  html {
+    scroll-padding-bottom: 116px;
   }
 }

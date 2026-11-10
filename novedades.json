@@ -1,6 +1,22 @@
 {
   "releases": [
     {
+      "version": "v65",
+      "date": "noviembre 2026",
+      "title": "Pulido general: más limpio y más fácil de leer",
+      "items": [
+        "Adiós a los huecos vacíos entre el título de cada sección y su contenido (Inicio, Playlists, Artistas, Stats y las páginas de playlist y artista).",
+        "Reproductor de escritorio: los botones de la derecha (DJ, cola, temporizador, letra, volumen) vuelven a ser redondos; en pantallas estrechas se aplastaban.",
+        "Títulos cromados más nítidos sobre cualquier fondo.",
+        "Listas en el teléfono: los títulos tienen más sitio, la versión («Radio Edit», «Remaster»…) ya no se come el nombre y la canción que suena lleva el ecualizador sobre su carátula.",
+        "Estados vacíos (Favoritas, Stats, filtros sin resultados) con icono y texto claro.",
+        "Inicio: «Hecho para ti» con tarjetas del mismo tamaño que los mixes, nombres de estilos legibles sobre portadas claras y canciones en letra clásica.",
+        "Buscar en el teléfono: los estilos se ven de dos en dos, no una tarjeta gigante por fila.",
+        "Cabecera de playlist en el móvil con la portada alineada arriba, y los nombres de los temas en Ajustes ya no se cortan.",
+        "El aviso con «Deshacer» ya no desaparece si justo llega otro aviso automático (por ejemplo, un error de audio): el segundo espera su turno."
+      ]
+    },
+    {
       "version": "v64",
       "date": "noviembre 2026",
       "title": "53 playlists nuevas, ordenadas por género",

@@ -754,7 +754,8 @@ test.describe('Tu Año Líquido', () => {
     // Avanzar hasta el final tocando a la derecha (las flechas también valen)
     for (let i = 0; i < 14; i++) await page.keyboard.press('ArrowRight');
     await expect(page.locator('.rz-title')).toContainText('Llévatelo contigo');
-    await expect(page.locator('.rz-card')).toHaveAttribute('src', /^blob:/);
+    // canvas.toBlob codifica el PNG en ratos libres: con la escena animada de escritorio puede tardar más de 5 s
+    await expect(page.locator('.rz-card')).toHaveAttribute('src', /^blob:/, { timeout: 15000 });
     await page.locator('[data-rz="playlist"]').click();
     await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('liquidbrush:playlists') || '[]').some((p) => p.name === 'Tu 2026 en Liquid'))).toBe(true);
     await page.keyboard.press('Escape');
@@ -775,4 +776,30 @@ test.describe('Tu Año Líquido', () => {
     await page.locator('.rz-invite-btn').click();
     await expect(page.locator('.resumen[open]')).toBeVisible();
   });
+});
+
+test('pulido: lo oculto no ocupa sitio, los botones del reproductor son redondos y los vacíos llevan icono', async ({ page }) => {
+  await page.goto('./');
+  await expect(page.locator('#libCount')).not.toHaveText('0');
+  // Los filtros ocultos de Inicio no dejan hueco entre el saludo y las tarjetas
+  await expect(page.locator('#filterChips')).toBeHidden();
+  const hueco = await page.evaluate(() => {
+    const head = document.querySelector('#viewHead').getBoundingClientRect();
+    const panel = document.querySelector('#homePanel').getBoundingClientRect();
+    return panel.top - head.bottom;
+  });
+  expect(hueco).toBeLessThan(32);
+  // Ningún elemento con hidden se queda con tamaño
+  const visibles = await page.evaluate(() => [...document.querySelectorAll('[hidden]')]
+    .filter((el) => el.getBoundingClientRect().height > 0).map((el) => el.id || el.className));
+  expect(visibles).toEqual([]);
+  if (!isPhone(page)) {
+    const anchos = await page.evaluate(() => [...document.querySelectorAll('.player-volume .icon-btn')]
+      .filter((el) => el.offsetParent).map((el) => Math.round(el.getBoundingClientRect().width)));
+    expect(anchos.length).toBeGreaterThan(2);
+    expect(Math.min(...anchos)).toBeGreaterThanOrEqual(40);
+  }
+  await page.evaluate(() => document.querySelector('.tab[data-view="favorites"]').click());
+  await expect(page.locator('.list-empty .list-empty-icon')).toBeVisible();
+  await expect(page.locator('.list-empty')).toContainText('Aún no tienes favoritas');
 });
