@@ -97,7 +97,7 @@ test('ocultar una playlist y volver a mostrarla desde Ajustes', async ({ page })
   await page.goto('./');
   await expect(page.locator('#libCount')).not.toHaveText('0');
   await page.evaluate(() => document.querySelector('.tab[data-view="playlists"]').click());
-  const card = page.locator('#playlistGrid .pl-card[data-key="sys:luna-swing"]');
+  const card = page.locator('#playlistGrid .pl-card[data-key="sys:swing-de-salon"]');
   await expect(card).toHaveCount(1);
   await card.click();
   await page.locator('[data-action="hide-playlist"]').click();
@@ -105,13 +105,13 @@ test('ocultar una playlist y volver a mostrarla desde Ajustes', async ({ page })
   await expect(card).toHaveCount(0);
   await expect(page.locator('.pl-hidden-note')).toContainText('1 playlist oculta');
   // No sale en la búsqueda de playlists
-  await page.fill('#searchInput', 'luna swing');
-  await expect(page.locator('#searchPlaylists .pl-card[data-key="sys:luna-swing"]')).toHaveCount(0);
+  await page.fill('#searchInput', 'swing de salon');
+  await expect(page.locator('#searchPlaylists .pl-card[data-key="sys:swing-de-salon"]')).toHaveCount(0);
   await page.fill('#searchInput', '');
   // Se recupera desde Ajustes → Contenido oculto (y sigue así al recargar)
   await page.reload();
   await page.locator('#settingsBtn').click();
-  await expect(page.locator('#hiddenList')).toContainText('Luna Swing');
+  await expect(page.locator('#hiddenList')).toContainText('Swing de Salón');
   await page.locator('#hiddenList [data-action="unhide-playlist"]').click();
   await expect(page.locator('#hiddenEmpty')).toBeVisible();
   await page.keyboard.press('Escape');
@@ -638,7 +638,7 @@ test('Biblioteca de imágenes: toda la música en un TXT, con resumen y buscador
   await page.fill('#musicSearch', 'linkin park faint');
   await expect(page.locator('#musicResults')).toBeVisible();
   await expect(page.locator('#musicResults')).toContainText('Géneros (3): Alternativo (principal), Metal, Rock');
-  await expect(page.locator('#musicResults')).toContainText('Playlist: Trueno Clásico');
+  await expect(page.locator('#musicResults')).toContainText('Playlist: Metal Pesado');
   const txt = await (await page.request.get('./musica-liquid.txt')).text();
   expect(txt).toContain('LIQUID BULLET · TODA LA MÚSICA');
   expect(txt).toContain('RESUMEN POR GÉNERO');

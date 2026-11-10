@@ -61,7 +61,7 @@
    "small": "covers/cover-01-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 01",
-   "usage": "Seúl Brillante",
+   "usage": "Club Jersey",
    "notes": ""
   },
   {
@@ -69,7 +69,7 @@
    "small": "covers/cover-02-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 02",
-   "usage": "Humo Dorado",
+   "usage": "Sueño Pastel",
    "notes": ""
   },
   {
@@ -77,7 +77,7 @@
    "small": "covers/cover-03-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 03",
-   "usage": "Lluvia Lenta",
+   "usage": "Emo Pixelado",
    "notes": ""
   },
   {
@@ -85,7 +85,7 @@
    "small": "covers/cover-04-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 04",
-   "usage": "Tokio Eléctrico",
+   "usage": "French Touch",
    "notes": ""
   },
   {
@@ -93,7 +93,7 @@
    "small": "covers/cover-05-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 05",
-   "usage": "Rima Cruda",
+   "usage": "Trap Español",
    "notes": ""
   },
   {
@@ -101,7 +101,7 @@
    "small": "covers/cover-06-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 06",
-   "usage": "Brillo Disco",
+   "usage": "Cripta Digital",
    "notes": ""
   },
   {
@@ -109,7 +109,7 @@
    "small": "covers/cover-07-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 07",
-   "usage": "Ácido Lento",
+   "usage": "Pop Estelar",
    "notes": ""
   },
   {
@@ -117,7 +117,7 @@
    "small": "covers/cover-08-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 08",
-   "usage": "Dembow Añejo",
+   "usage": "Rock Hispano",
    "notes": ""
   },
   {
@@ -125,7 +125,7 @@
    "small": "covers/cover-09-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 09",
-   "usage": "Seda Nocturna",
+   "usage": "Pop 2000",
    "notes": ""
   },
   {
@@ -133,7 +133,7 @@
    "small": "covers/cover-10-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 10",
-   "usage": "Vinilo Rosa",
+   "usage": "R&B Nocturno",
    "notes": ""
   },
   {
@@ -141,7 +141,7 @@
    "small": "covers/cover-11-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 11",
-   "usage": "Trap Lunar",
+   "usage": "Rocola Dorada",
    "notes": ""
   },
   {
@@ -149,7 +149,7 @@
    "small": "covers/cover-12-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 12",
-   "usage": "Trueno Clásico",
+   "usage": "Rap Americano",
    "notes": ""
   },
   {
@@ -157,7 +157,7 @@
    "small": "covers/cover-13-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 13",
-   "usage": "Cuarto Pastel",
+   "usage": "Invierno Ruso",
    "notes": ""
   },
   {
@@ -165,7 +165,7 @@
    "small": "covers/cover-14-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 14",
-   "usage": "Perreo Nocturno",
+   "usage": "Latino Alterno",
    "notes": ""
   },
   {
@@ -173,7 +173,7 @@
    "small": "covers/cover-15-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 15",
-   "usage": "Neón Eterno",
+   "usage": "Damas del Jazz",
    "notes": ""
   },
   {
@@ -181,7 +181,7 @@
    "small": "covers/cover-16-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 16",
-   "usage": "Riviera Francesa",
+   "usage": "Perreo Clandestino",
    "notes": ""
   },
   {
@@ -189,7 +189,7 @@
    "small": "covers/cover-17-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 17",
-   "usage": "Verano Tropical",
+   "usage": "Vieja Escuela",
    "notes": ""
   },
   {
@@ -197,7 +197,7 @@
    "small": "covers/cover-18-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 18",
-   "usage": "Ciudad Furia",
+   "usage": "Neón 80",
    "notes": ""
   },
   {
@@ -205,7 +205,7 @@
    "small": "covers/cover-19-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 19",
-   "usage": "Nube Púrpura",
+   "usage": "Rock Clásico",
    "notes": ""
   },
   {
@@ -213,7 +213,7 @@
    "small": "covers/cover-20-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 20",
-   "usage": "Ghost Case",
+   "usage": "Indie Mexa",
    "notes": ""
   },
   {
@@ -221,7 +221,7 @@
    "small": "covers/cover-21-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 21",
-   "usage": "Señal Rota",
+   "usage": "Reverb Infinito",
    "notes": ""
   },
   {
@@ -229,7 +229,7 @@
    "small": "covers/cover-22-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 22",
-   "usage": "Corazón Roto",
+   "usage": "Bola Disco",
    "notes": ""
   },
   {
@@ -237,7 +237,7 @@
    "small": "covers/cover-23-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 23",
-   "usage": "Ola Fría",
+   "usage": "Cosmos Ácido",
    "notes": ""
   },
   {
@@ -245,7 +245,7 @@
    "small": "covers/cover-24-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 24",
-   "usage": "Barrio Sur",
+   "usage": "Garaje Indie",
    "notes": ""
   },
   {
@@ -253,7 +253,7 @@
    "small": "covers/cover-25-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 25",
-   "usage": "Calle Cromo",
+   "usage": "Rock Austral",
    "notes": ""
   },
   {
@@ -261,7 +261,7 @@
    "small": "covers/cover-26-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 26",
-   "usage": "Alma Latina",
+   "usage": "Jazz Lounge",
    "notes": ""
   },
   {
@@ -285,7 +285,7 @@
    "small": "covers/cover-29-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 29",
-   "usage": "Velo Sónico",
+   "usage": "Brillo K-pop",
    "notes": ""
   },
   {
@@ -293,7 +293,7 @@
    "small": "covers/cover-30-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 30",
-   "usage": "Niebla Pesada",
+   "usage": "Metal Pesado",
    "notes": ""
   },
   {
@@ -301,7 +301,7 @@
    "small": "covers/cover-31-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 31",
-   "usage": "Vampiro Digital",
+   "usage": "Nueva Escuela",
    "notes": ""
   },
   {
@@ -309,7 +309,7 @@
    "small": "covers/cover-32-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 32",
-   "usage": "Chicle Tóxico",
+   "usage": "Niebla Triste",
    "notes": ""
   },
   {
@@ -317,7 +317,7 @@
    "small": "covers/cover-33-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 33",
-   "usage": "Verso Azul",
+   "usage": "Trap Sureño",
    "notes": ""
   },
   {
@@ -325,7 +325,7 @@
    "small": "covers/cover-34-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 34",
-   "usage": "Otoño Modal",
+   "usage": "Swing de Salón",
    "notes": ""
   },
   {
@@ -333,7 +333,7 @@
    "small": "covers/cover-35-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 35",
-   "usage": "Café Lento",
+   "usage": "Cumbia Indie",
    "notes": ""
   },
   {
@@ -341,7 +341,7 @@
    "small": "covers/cover-36-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 36",
-   "usage": "Beat Nipón",
+   "usage": "Japón Nocturno",
    "notes": ""
   },
   {
@@ -349,7 +349,7 @@
    "small": "covers/cover-37-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 37",
-   "usage": "Sol Sintético",
+   "usage": "Funk Eterno",
    "notes": ""
   },
   {
@@ -357,7 +357,7 @@
    "small": "covers/cover-38-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 38",
-   "usage": "Londres Rosa",
+   "usage": "Reggaetón Hoy",
    "notes": ""
   },
   {
@@ -365,7 +365,7 @@
    "small": "covers/cover-39-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 39",
-   "usage": "Ola Tibia",
+   "usage": "Verano Lo-fi",
    "notes": ""
   },
   {
@@ -373,7 +373,7 @@
    "small": "covers/cover-40-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 40",
-   "usage": "Cereza Suave",
+   "usage": "Rock Alterno",
    "notes": ""
   },
   {
@@ -381,7 +381,7 @@
    "small": "covers/cover-41-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 41",
-   "usage": "Terciopelo Azul",
+   "usage": "Bolero Eterno",
    "notes": ""
   },
   {
@@ -389,7 +389,7 @@
    "small": "covers/cover-42-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 42",
-   "usage": "Luna Swing",
+   "usage": "Jazz y Rima",
    "notes": ""
   },
   {
@@ -397,7 +397,7 @@
    "small": "covers/cover-43-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 43",
-   "usage": "Infierno Rosa",
+   "usage": "Reggaetón Clásico",
    "notes": ""
   },
   {
@@ -405,7 +405,7 @@
    "small": "covers/cover-44-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 44",
-   "usage": "Cuenta Atrás",
+   "usage": "Euforia Dance",
    "notes": ""
   },
   {
@@ -413,7 +413,7 @@
    "small": "covers/cover-45-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 45",
-   "usage": "Balada Eterna",
+   "usage": "Alma Blues",
    "notes": ""
   },
   {
@@ -421,7 +421,7 @@
    "small": "covers/cover-46-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 46",
-   "usage": "Euforia Ibiza",
+   "usage": "Pista House",
    "notes": ""
   },
   {
@@ -429,7 +429,7 @@
    "small": "covers/cover-47-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 47",
-   "usage": "Fiebre Latina",
+   "usage": "Pop Sombrío",
    "notes": ""
   },
   {
@@ -437,7 +437,7 @@
    "small": "covers/cover-48-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 48",
-   "usage": "Era Dorada",
+   "usage": "R&B Dorado",
    "notes": ""
   },
   {
@@ -445,7 +445,7 @@
    "small": "covers/cover-49-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 49",
-   "usage": "Pista Infinita",
+   "usage": "Indie Soleado",
    "notes": ""
   },
   {
@@ -453,7 +453,7 @@
    "small": "covers/cover-50-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 50",
-   "usage": "Diva Pop",
+   "usage": "Pop Latino",
    "notes": ""
   },
   {
@@ -461,7 +461,7 @@
    "small": "covers/cover-51-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 51",
-   "usage": "Milenio Soul",
+   "usage": "Humo Plugg",
    "notes": ""
   },
   {
@@ -469,7 +469,7 @@
    "small": "covers/cover-52-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 52",
-   "usage": "Oro Latino",
+   "usage": "Domingo Lento",
    "notes": ""
   },
   {
@@ -477,27 +477,24 @@
    "small": "covers/cover-53-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 53",
-   "usage": "Reservada: lista para una playlist nueva en una futura entrega de música",
-   "notes": "",
-   "reserved": true
+   "usage": "Glitch Pop",
+   "notes": ""
   },
   {
    "file": "covers/cover-54.jpg",
    "small": "covers/cover-54-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 54",
-   "usage": "Reservada: lista para una playlist nueva en una futura entrega de música",
-   "notes": "",
-   "reserved": true
+   "usage": "Rave Fantasma",
+   "notes": ""
   },
   {
    "file": "covers/cover-55.jpg",
    "small": "covers/cover-55-sm.jpg",
    "type": "portada-playlist",
    "label": "Portada 55",
-   "usage": "Reservada: lista para una playlist nueva en una futura entrega de música",
-   "notes": "",
-   "reserved": true
+   "usage": "Rap Latino",
+   "notes": ""
   },
   {
    "file": "covers/propias/propia-01.jpg",

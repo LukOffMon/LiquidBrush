@@ -770,7 +770,7 @@
       get thumb() { return coverUrl || (this.photo ? this.photo.replace(/\.jpg$/, '-sm.jpg') : getArt().url); },
       get hue() { return coverUrl || this.photo ? null : getArt().hue; },
       lyrics: typeof t.lyrics === 'string' ? t.lyrics : '',
-      // genre: estilo (la playlist de su artista, «Lluvia Lenta»…); generos: géneros de verdad, el principal primero
+      // genre: estilo (la playlist de su artista, «Niebla Triste»…); generos: géneros de verdad, el principal primero
       genre: '',
       generos: []
     };
