@@ -680,7 +680,15 @@
 
   let toastTimer = null;
   // Aviso flotante; con «action» lleva un botón (p. ej. Deshacer) y dura un poco más
-  function showToast(message, action = null) {
+  // background: avisos que nadie pidió (p. ej. un error de audio). Si hay en pantalla un aviso
+  // con botón («Deshacer»…), esperan a que termine en vez de borrarlo antes de poder tocarlo.
+  let toastWaiting = null;
+  function showToast(message, action = null, { background = false } = {}) {
+    if (background && els.toast.classList.contains('is-visible') && els.toast.classList.contains('has-action')) {
+      toastWaiting = [message, action];
+      return;
+    }
+    toastWaiting = null;
     // Con un diálogo abierto (cola, menú…) el aviso va dentro de él: si no, quedaría debajo
     // y su botón («Deshacer», «Abrir»…) no se podría tocar
     const host = [...document.querySelectorAll('dialog[open]')].pop() || document.body;
@@ -695,12 +703,23 @@
       button.addEventListener('click', () => {
         els.toast.classList.remove('is-visible');
         action.run();
+        showWaitingToast();
       }, { once: true });
       els.toast.append(button);
     }
     els.toast.classList.add('is-visible');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => els.toast.classList.remove('is-visible'), action ? 5500 : 3200);
+    toastTimer = setTimeout(() => {
+      els.toast.classList.remove('is-visible');
+      showWaitingToast();
+    }, action ? 5500 : 3200);
+  }
+
+  function showWaitingToast() {
+    if (!toastWaiting || els.toast.classList.contains('is-visible')) return;
+    const [message, action] = toastWaiting;
+    toastWaiting = null;
+    showToast(message, action);
   }
 
   /* ---------- Carga de datos ---------- */
@@ -1342,6 +1361,8 @@
     updater.waiting = worker;
     if (!els.updateBanner) return;
     els.updateBanner.hidden = false;
+    // Leer el ancho obliga a pintar el estado de partida: así la entrada se anima
+    void els.updateBanner.offsetWidth;
     requestAnimationFrame(() => els.updateBanner.classList.add('is-visible'));
   }
 
@@ -2649,7 +2670,7 @@
     const panel = els.statsPanel;
 
     if (current.seconds < 60) {
-      panel.replaceChildren(...[invite].filter(Boolean), makeEl('p', 'list-empty', state.statsOffset === 0
+      panel.replaceChildren(...[invite].filter(Boolean), emptyState('p', 'chart', state.statsOffset === 0
         ? 'Todavía no hay suficiente música este mes. Escucha un rato y vuelve: aquí verás tus minutos, géneros y artistas.'
         : `No hay registros de ${info.label}.`));
       return;
@@ -3539,6 +3560,16 @@
     const el = document.createElement(tag);
     if (className) el.className = className;
     if (text !== undefined) el.textContent = text;
+    return el;
+  }
+
+  // Estado vacío: un icono en su medallón y el texto debajo (más fácil de leer que una frase suelta)
+  function emptyState(tag, icon, text) {
+    const el = makeEl(tag, 'list-empty has-icon');
+    const badge = makeEl('span', 'list-empty-icon');
+    badge.setAttribute('aria-hidden', 'true');
+    badge.append(svgIcon(icon));
+    el.append(badge, makeEl('span', 'list-empty-text', text));
     return el;
   }
 
@@ -4723,7 +4754,7 @@
     const grid = makeEl('div', 'artist-grid');
     all.slice(0, home.artistsShown).forEach((entry) => grid.append(artistCard(entry)));
     const parts = [grid];
-    if (!all.length) parts.unshift(makeEl('p', 'list-empty', 'Ningún artista coincide con la búsqueda.'));
+    if (!all.length) parts.unshift(emptyState('p', 'person', 'Ningún artista coincide con la búsqueda.'));
     if (all.length > home.artistsShown) {
       parts.push(makeButton('btn artist-more', 'more-artists', 'Ver más artistas', 'grid', `Ver más (${all.length - home.artistsShown})`));
     }
@@ -5271,23 +5302,23 @@
     list.rendered = 0;
 
     if (!visible.length) {
-      const li = makeEl('li', 'list-empty');
-      if (!state.tracks.length) li.textContent = 'La biblioteca está vacía por ahora.';
+      let li = makeEl('li', 'list-empty');
+      if (!state.tracks.length) li = emptyState('li', 'library', 'La biblioteca está vacía por ahora.');
       else if (searching) li.append(tarjetaPedir(state.query));
-      else if (state.filter !== 'all' || state.genre) li.textContent = 'Ninguna canción coincide con este filtro.';
+      else if (state.filter !== 'all' || state.genre) li = emptyState('li', 'search', 'Ninguna canción coincide con este filtro.');
       else if (state.view === 'favorites') {
-        li.textContent = 'Aún no tienes favoritas. Toca el corazón de una canción para guardarla aquí.';
+        li = emptyState('li', 'heart', 'Aún no tienes favoritas. Toca el corazón de una canción para guardarla aquí.');
         const go = makeButton('btn btn-primary list-empty-cta', 'go-view', 'Ir a la Biblioteca', 'library', 'Explorar la Biblioteca');
         go.dataset.value = 'library';
         li.append(go);
       }
       else if (pl?.kind === 'local') {
-        li.textContent = 'Playlist vacía. Pulsa el ＋ de cualquier canción en la Biblioteca (o mantenla pulsada) para añadirla aquí.';
+        li = emptyState('li', 'playlist-add', 'Playlist vacía. Pulsa el ＋ de cualquier canción en la Biblioteca (o mantenla pulsada) para añadirla aquí.');
         const go = makeButton('btn btn-primary list-empty-cta', 'go-view', 'Ir a la Biblioteca', 'library', 'Buscar canciones');
         go.dataset.value = 'library';
         li.append(go);
       }
-      else li.textContent = 'Todavía no hay canciones aquí.';
+      else li = emptyState('li', 'note', 'Todavía no hay canciones aquí.');
       fragment.appendChild(li);
     }
     els.trackList.replaceChildren(fragment);
@@ -8097,7 +8128,7 @@
       const title = state.currentTrack?.title ?? 'la canción';
       if (navigator.onLine && wasPlaying && errorSkips < 3 && state.queue.length > 1) {
         errorSkips++;
-        showToast(`No se pudo cargar «${title}»: pasamos a la siguiente.`);
+        showToast(`No se pudo cargar «${title}»: pasamos a la siguiente.`, null, { background: true });
         setTimeout(() => next(false, 0), 1200);
         return;
       }
@@ -8107,7 +8138,7 @@
         : 'Sin conexión: esta canción no está descargada.', navigator.onLine && failed ? {
         label: 'Reintentar',
         run: () => { if (state.currentTrack === failed) { state.retried = false; loadTrack(failed, true); } }
-      } : null);
+      } : null, { background: true });
     });
     // Guarda el tiempo escuchado antes de cerrar o esconder la app
     document.addEventListener('visibilitychange', () => {
