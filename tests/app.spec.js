@@ -482,11 +482,21 @@ test.describe('Liquid Lab: sitio aparte', () => {
     const before = await readQueue();
     await page.goto('./lab.html');
     await page.locator('[data-lab-action="recipe"][data-value="variety"]').click();
+    await expect(page.locator('.lab-result:not(.lab-seeds) .lab-track')).toHaveCount(60);
     // Lab abierto y cerrado sin tocar nada de la cola de Liquid
     expect(await page.evaluate(() => localStorage.getItem('liquidbrush:resume-queue'))).toBe(before);
+    // Lo que Lab entrega a Liquid: las 60 de la mezcla
+    await page.evaluate(() => {
+      const set = Storage.prototype.setItem;
+      Storage.prototype.setItem = function (key, value) {
+        if (key === 'liquidbrush:lab-handoff') sessionStorage.setItem('prueba-entrega', String(JSON.parse(value).ids?.length ?? 0));
+        return set.call(this, key, value);
+      };
+    });
     await page.locator('[data-lab-action="play"]').click();
     await expect(page).not.toHaveURL(/lab\.html/);
     await expect(page.locator('#npContext')).toContainText('Lab');
+    expect(await page.evaluate(() => sessionStorage.getItem('prueba-entrega')), 'canciones que Lab entregó a Liquid').toBe('60');
     // La cola entera es la mezcla de Lab (60). Sin audio en los tests, las que no cargan se saltan
     // solas, así que en el diálogo se ven las que quedan por delante y no siempre las 60.
     await expect.poll(() => page.evaluate(() => {
