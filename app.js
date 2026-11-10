@@ -1632,6 +1632,7 @@
   const findLocal = (id) => library.local.find((p) => p.id === id);
 
   function recordPlay(id) {
+    if (plus.private) return;
     library.recent = [id, ...library.recent.filter((x) => x !== id)].slice(0, RECENT_LIMIT);
     library.plays[id] = (library.plays[id] || 0) + 1;
     storage.set(KEYS.recent, library.recent);
@@ -1639,6 +1640,7 @@
     countPlayInLog(id);
     taste.markHeard(id);
     if (state.view === 'library') renderRecentRow();
+    plus.checkHitos();
   }
 
   async function loadCatalog() {
@@ -2248,6 +2250,8 @@
   function trackListening(time) {
     const id = state.currentTrack?.id;
     if (!id) return;
+    // Sesión privada: nada de lo que suena se apunta
+    if (plus.private) { listen.pendingId = null; return; }
     if (listen.pendingId !== id) {
       flushListening();
       listen.pendingId = id;
@@ -2672,7 +2676,7 @@
     if (current.seconds < 60) {
       panel.replaceChildren(...[invite].filter(Boolean), emptyState('p', 'chart', state.statsOffset === 0
         ? 'Todavía no hay suficiente música este mes. Escucha un rato y vuelve: aquí verás tus minutos, géneros y artistas.'
-        : `No hay registros de ${info.label}.`));
+        : `No hay registros de ${info.label}.`), ...(state.statsOffset === 0 ? [plus.hitosCard()] : []));
       return;
     }
 
@@ -2782,7 +2786,7 @@
     songs.append(songList);
 
     const grid = makeEl('div', 'stat-grid');
-    grid.append(daily, hours, genres, artists, trend, songs);
+    grid.append(daily, hours, genres, artists, trend, songs, plus.hitosCard());
     const csv = makeButton('btn btn-ghost stats-csv', 'export-csv', 'Descargar todo tu historial de escucha (CSV, para Excel o Google Sheets)', 'download', 'Descargar mi historial (CSV)');
     csv.addEventListener('click', exportListeningCsv);
     panel.replaceChildren(...[invite, tiles, grid, csv].filter(Boolean));
@@ -3723,6 +3727,8 @@
     text.append(makeEl('span', `pl-kind pl-kind-${pl.kind}`, pl.kind === 'local' && signedIn() ? 'Guardada en tu cuenta' : KIND_LABELS[pl.kind]), makeEl('h2', 'pl-hero-name', pl.name));
     if (pl.description) text.append(makeEl('p', 'pl-hero-desc', pl.description));
     text.append(meta);
+    const progress = plus.playlistProgress(pl, tracks);
+    if (progress) text.append(progress);
     header.append(playlistCover(pl, 112), text);
 
     const actions = makeEl('div', 'pl-actions');
@@ -3730,6 +3736,9 @@
       markPlayable(makeButton('icon-btn play-btn view-play', 'play-view', `Reproducir ${pl.name}`, 'play'), `pl:${pl.key}`, pl.name),
       makeButton('icon-btn', 'shuffle-view', 'Reproducir en aleatorio', 'shuffle')
     );
+    // Lo que te falta: solo las canciones de esta playlist que aún no has puesto nunca
+    const missing = progress ? plus.unheardOf(pl).length : 0;
+    if (missing && missing < tracks.length) actions.append(makeButton('btn btn-small pl-unheard', 'play-unheard', `Reproducir solo las ${missing} que aún no has escuchado`, 'spark', `Lo que te falta · ${missing}`));
     if (offline.supported && tracks.length) actions.append(makeButton('icon-btn playlist-download', 'download-playlist', 'Descargar', 'download'));
     const pinned = isPinned(pl.key);
     const pin = makeButton(`icon-btn pin-btn${pinned ? ' is-active' : ''}`, 'pin-playlist', pinned ? 'Dejar de fijar' : 'Fijar arriba en Playlists', 'pin');
@@ -4591,7 +4600,7 @@
     home.collections.clear();
     const p = tasteProfile();
     const lite = settings.ultra;
-    const parts = [homeHeader(p)];
+    const parts = [homeHeader(p), plus.homeStreak(), plus.homeTaste(p)];
     // Del 25 de diciembre al 15 de enero: Tu Año Líquido, lo primero
     const invite = resumenInvite('home');
     if (invite) parts.push(invite);
@@ -6364,6 +6373,7 @@
     resume.save(true);
     resume.saveQueue();
     if (els.queueDialog.open) renderQueue();
+    plus.onTrack(track);
 
     if (autoplay) play();
   }
@@ -6851,6 +6861,7 @@
   function renderLyrics(text, emptyMessage = 'Letra no disponible para esta canción.') {
     state.lyrics = parseLyrics(text);
     state.activeLyric = -1;
+    if (plus.ui.karaoke?.open) plus.renderKaraoke();
     if (typeof text === 'string' && text && state.currentTrack) delete state.currentTrack.lyricsHay;
     queueMicrotask(updateLyricsTools);
     els.lyricsBody.replaceChildren();
@@ -8296,6 +8307,12 @@
           else playTracks(getVisibleTracks());
           break;
         case 'shuffle-view': playTracks(getVisibleTracks(), true); break;
+        case 'play-unheard': {
+          const pl = getPlaylist(state.openPlaylist);
+          const rest = pl ? plus.unheardOf(pl) : [];
+          if (rest.length) playCollection(rest, rest[0].id, `${pl.name} · lo que te falta`);
+          break;
+        }
         case 'download-playlist': toggleDownload(state.openPlaylist); break;
         case 'new-playlist':
           createPlaylist().then((created) => { if (created) openPlaylist(`local:${created.id}`); });
@@ -11590,7 +11607,7 @@
     ['N · P', 'Siguiente / anterior'], ['Mayús + ↑ ↓', 'Volumen'], ['M', 'Silenciar'], ['0 – 9', 'Saltar al 0 %, 10 %… de la canción'],
     ['F', 'Me gusta a la que suena'], ['A', 'Menú de la que suena (playlist, cola, radio…)'], ['C', 'Ir a la que suena en la lista'],
     ['X', 'Una canción al azar'], ['S', 'Aleatorio'], ['R', 'Repetir'], ['D', 'Transiciones DJ'], ['L', 'Letra'], ['Q', 'A continuación'],
-    ['T', 'Temporizador'], ['Mayús + , .', 'Velocidad'], ['/', 'Buscar'], ['↓ en el buscador', 'Ir a los resultados'],
+    ['T', 'Temporizador'], ['K', 'Letra a pantalla completa'], ['B', 'Bucle A–B (principio, final, quitar)'], ['G', 'Modo coche'], ['Mayús + , .', 'Velocidad'], ['/', 'Buscar'], ['↓ en el buscador', 'Ir a los resultados'],
     ['Intro en el buscador', 'Reproducir el primer resultado'], ['Mayús + clic en una canción', 'Al final de la cola'],
     ['Ctrl / ⌘ + clic', 'Reproducir a continuación'], ['?', 'Esta ayuda'], ['Esc', 'Cerrar Sonando']
   ];
@@ -12652,6 +12669,600 @@
     setTimeout(() => showToast(`Tu Año Líquido ${season} ya está aquí.`, { label: 'Verlo', run: () => openResumen(season) }), 2500);
   }
 
+  /* ---------- v66: 15 ideas para quedarse en Liquid ----------
+     Letra a pantalla completa, bucle A–B, modo coche, sesión privada, notas, la historia de cada canción,
+     «Luego» a la vista, la carátula en la pestaña, racha en Inicio, elegir gustos al empezar, progreso de
+     cada playlist, «Lo que te falta», hitos, pestañas siempre a mano y deslizar una canción a la cola. */
+  const PLUS_KEYS = { notes: 'liquidbrush:notes', hitos: 'liquidbrush:hitos', gustos: 'liquidbrush:gustos-hecho' };
+  const fechaLarga = (key) => {
+    const [y, m, d] = key.split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' });
+  };
+
+  const plus = {
+    notes: (() => { const n = storage.get(PLUS_KEYS.notes, {}); return n && typeof n === 'object' ? n : {}; })(),
+    loop: { a: null, b: null },
+    private: false,
+    ui: {},
+    lock: null,
+
+    /* --- Sesión privada: lo que suene no cuenta para Stats, mixes ni recomendaciones --- */
+    setPrivate(on) {
+      if (on) flushListening();
+      this.private = on;
+      try { if (on) sessionStorage.setItem('liquid-privada', '1'); else sessionStorage.removeItem('liquid-privada'); } catch { /* sin almacenamiento */ }
+      document.body.classList.toggle('is-private', on);
+      this.syncButtons();
+    },
+
+    /* --- Bucle A–B: repite un trozo (para aprenderse una letra, un solo o un paso de baile) --- */
+    cycleLoop() {
+      if (!state.currentTrack || !getDuration()) { showToast('Pon una canción para marcar el bucle.'); return; }
+      const now = els.audio.currentTime || 0;
+      const l = this.loop;
+      if (l.a === null) {
+        l.a = now;
+        showToast(`Bucle: empieza en ${formatTime(now)}. Pulsa otra vez donde termine.`);
+      } else if (l.b === null) {
+        if (now - l.a < 1) { showToast('El final del bucle va al menos 1 s después del principio.'); return; }
+        l.b = now;
+        seekTo(l.a);
+        showToast(`Bucle ${formatTime(l.a)} – ${formatTime(l.b)} en marcha. Pulsa otra vez para quitarlo.`);
+      } else {
+        this.clearLoop();
+        showToast('Bucle quitado.');
+      }
+      haptic(10);
+      this.syncButtons();
+    },
+    clearLoop() {
+      this.loop.a = null;
+      this.loop.b = null;
+      this.syncButtons();
+    },
+    tick(time) {
+      const l = this.loop;
+      // Solo al llegar al final (si la persona se va antes del principio, se la deja llegar sola)
+      if (l.b !== null && time >= l.b && time < l.b + 3) seekTo(l.a);
+      if (this.ui.karaoke?.open) this.syncKaraoke(time);
+    },
+
+    /* --- Pantalla encendida mientras está abierta la letra grande o el modo coche --- */
+    keepAwake(on) {
+      if (!('wakeLock' in navigator)) return;
+      if (on && !this.lock) {
+        navigator.wakeLock.request('screen').then((s) => {
+          if (!this.ui.karaoke?.open && !this.ui.car?.open) { s.release().catch(() => {}); return; }
+          this.lock = s;
+          s.addEventListener('release', () => { if (this.lock === s) this.lock = null; });
+        }).catch(() => {});
+      } else if (!on && this.lock && !this.ui.karaoke?.open && !this.ui.car?.open) {
+        this.lock.release().catch(() => {});
+        this.lock = null;
+      }
+    },
+
+    overlay(className, label) {
+      const dialog = makeEl('dialog', `plus-overlay ${className}`);
+      dialog.setAttribute('aria-label', label);
+      const close = makeButton('icon-btn plus-close', 'plus-close', 'Cerrar', 'close');
+      close.addEventListener('click', () => dialog.close());
+      dialog.append(close);
+      dialog.addEventListener('close', () => this.keepAwake(false));
+      document.body.append(dialog);
+      return dialog;
+    },
+
+    /* --- Letra a pantalla completa (modo karaoke) --- */
+    openKaraoke() {
+      if (!state.currentTrack) { showToast('Pon una canción para ver su letra en grande.'); return; }
+      if (!this.ui.karaoke) {
+        const d = this.overlay('karaoke', 'Letra a pantalla completa');
+        d.append(makeEl('p', 'karaoke-song'), makeEl('div', 'karaoke-lines'));
+        d.querySelector('.karaoke-lines').addEventListener('click', (event) => {
+          const line = event.target.closest('[data-time]');
+          if (line) seekTo(Number(line.dataset.time));
+        });
+        this.ui.karaoke = d;
+      }
+      // La letra se pide aunque el panel de Sonando esté cerrado
+      flushPendingLyrics();
+      this.renderKaraoke();
+      if (!this.ui.karaoke.open) this.ui.karaoke.showModal();
+      this.keepAwake(true);
+      this.syncKaraoke(els.audio.currentTime || 0);
+    },
+    renderKaraoke() {
+      const d = this.ui.karaoke;
+      const track = state.currentTrack;
+      if (!d || !track) return;
+      d.querySelector('.karaoke-song').textContent = `${splitTitle(track.title).main} · ${track.knownArtist || track.artist}`;
+      const box = d.querySelector('.karaoke-lines');
+      const ly = state.lyrics;
+      this.kLines = null;
+      if (ly?.synced) {
+        box.replaceChildren(...ly.lines.map((line) => {
+          const p = makeEl('p', 'karaoke-line', line.text || '♪');
+          p.dataset.time = String(line.time);
+          return p;
+        }));
+        this.kLines = [...box.children];
+      } else if (ly?.text) {
+        box.replaceChildren(...ly.text.split('\n').map((text) => makeEl('p', 'karaoke-line is-plain', text || ' ')));
+      } else {
+        box.replaceChildren(makeEl('p', 'karaoke-line is-plain is-empty', 'Todavía no hay letra para esta canción. Si aparece, saldrá aquí.'));
+      }
+      this.kActive = -1;
+      box.scrollTop = 0;
+    },
+    syncKaraoke(time) {
+      const lines = this.kLines;
+      if (!lines || !state.lyrics?.synced) return;
+      const at = time + lyricsOffset();
+      let index = -1;
+      for (let i = 0; i < lines.length; i++) {
+        if (Number(lines[i].dataset.time) <= at + 0.15) index = i; else break;
+      }
+      if (index === this.kActive) return;
+      lines[this.kActive]?.classList.remove('is-active');
+      this.kActive = index;
+      const el = lines[index];
+      if (!el) return;
+      el.classList.add('is-active');
+      el.scrollIntoView({ block: 'center', behavior: settings.motion && !reducedMotion() ? 'smooth' : 'auto' });
+    },
+
+    /* --- Modo coche: tres botones enormes y nada más --- */
+    openCar() {
+      if (!this.ui.car) {
+        const d = this.overlay('car', 'Modo coche');
+        const cover = document.createElement('img');
+        cover.className = 'car-cover';
+        cover.alt = '';
+        const big = (cls, label, icon, run) => {
+          const b = makeButton(`car-btn ${cls}`, 'car', label, icon);
+          b.addEventListener('click', () => { haptic(12); run(); });
+          return b;
+        };
+        const row = makeEl('div', 'car-controls');
+        row.append(big('car-prev', 'Canción anterior', 'prev', () => prev()), big('car-play', 'Reproducir o pausar', 'play', () => togglePlay()), big('car-next', 'Canción siguiente', 'next', () => next(true)));
+        const fav = big('car-fav', 'Me gusta', 'heart', () => { if (state.currentTrack) { toggleFavorite(state.currentTrack.id); this.syncCar(); } });
+        d.append(cover, makeEl('p', 'car-title'), makeEl('p', 'car-artist'), row, fav);
+        d.addEventListener('keydown', (event) => {
+          if (event.code === 'Space' && !event.target.closest('button')) { event.preventDefault(); togglePlay(); }
+          if (event.code === 'ArrowRight') next(true);
+          if (event.code === 'ArrowLeft') prev();
+        });
+        this.ui.car = d;
+      }
+      this.syncCar();
+      if (!this.ui.car.open) this.ui.car.showModal();
+      this.keepAwake(true);
+    },
+    syncCar() {
+      const d = this.ui.car;
+      if (!d) return;
+      const track = state.currentTrack;
+      d.querySelector('.car-cover').src = track ? track.cover : PLACEHOLDER_COVER;
+      d.querySelector('.car-title').textContent = track ? splitTitle(track.title).main : 'Nada sonando';
+      d.querySelector('.car-artist').textContent = track ? track.knownArtist || track.artist || '' : 'Elige una canción en Liquid';
+      const playing = document.body.classList.contains('is-playing');
+      setIcon(d.querySelector('.car-play'), playing ? 'pause' : 'play');
+      const liked = Boolean(track && state.favorites.has(track.id));
+      const fav = d.querySelector('.car-fav');
+      setIcon(fav, liked ? 'heart-fill' : 'heart');
+      fav.classList.toggle('is-active', liked);
+      fav.setAttribute('aria-pressed', String(liked));
+    },
+
+    /* --- Notas: un recuerdo por canción («la del viaje a la playa») --- */
+    openNote() {
+      const track = state.currentTrack;
+      if (!track) { showToast('Pon una canción para escribirle una nota.'); return; }
+      if (!this.ui.note) {
+        const d = makeEl('dialog', 'sheet note-sheet');
+        d.setAttribute('aria-labelledby', 'noteTitle');
+        const body = makeEl('form', 'sheet-body');
+        body.method = 'dialog';
+        const title = makeEl('h2', 'sheet-title', 'Tu nota');
+        title.id = 'noteTitle';
+        const area = document.createElement('textarea');
+        area.className = 'note-area';
+        area.maxLength = 280;
+        area.rows = 4;
+        area.placeholder = '¿A qué te recuerda? ¿Quién te la enseñó?';
+        area.setAttribute('aria-label', 'Nota sobre esta canción');
+        const actions = makeEl('div', 'sheet-actions');
+        const cancel = makeEl('button', 'btn', 'Cancelar');
+        cancel.type = 'button';
+        cancel.addEventListener('click', () => d.close());
+        const erase = makeEl('button', 'btn note-erase', 'Borrar');
+        erase.type = 'button';
+        erase.addEventListener('click', () => { area.value = ''; d.close('save'); });
+        const save = makeEl('button', 'btn btn-primary', 'Guardar');
+        save.value = 'save';
+        actions.append(cancel, erase, save);
+        body.append(title, makeEl('p', 'sheet-text note-for'), area, makeEl('p', 'sheet-note', 'Solo la ves tú: se guarda en este navegador.'), actions);
+        d.append(body);
+        d.addEventListener('click', (event) => { if (event.target === d) d.close(); });
+        d.addEventListener('close', () => {
+          if (d.returnValue !== 'save' || !d.dataset.id) return;
+          const text = area.value.trim().slice(0, 280);
+          if (text) this.notes[d.dataset.id] = text; else delete this.notes[d.dataset.id];
+          storage.set(PLUS_KEYS.notes, this.notes);
+          showToast(text ? 'Nota guardada.' : 'Nota borrada.');
+          this.renderStory();
+        });
+        document.body.append(d);
+        this.ui.note = d;
+      }
+      const d = this.ui.note;
+      d.dataset.id = track.id;
+      d.querySelector('.note-for').textContent = `${splitTitle(track.title).main} · ${track.knownArtist || track.artist}`;
+      d.querySelector('.note-area').value = this.notes[track.id] || '';
+      d.querySelector('.note-erase').hidden = !this.notes[track.id];
+      d.returnValue = '';
+      d.showModal();
+    },
+
+    /* --- Tu historia con la canción que suena: veces, minutos, primera vez, puesto --- */
+    songStory(track) {
+      const plays = playsOf(track.id);
+      let seconds = 0;
+      let first = null;
+      Object.keys(listen.log).sort().forEach((key) => {
+        const s = listen.log[key]?.s?.[track.id];
+        if (s) { seconds += s; if (!first) first = key; }
+      });
+      const heard = Number(taste.heard[track.id]) || 0;
+      const facts = [];
+      if (plays) facts.push(`${plays} ${plays === 1 ? 'vez' : 'veces'}`);
+      if (seconds >= 60) facts.push(minutesLabel(seconds));
+      if (first) facts.push(`desde el ${fechaLarga(first)}`);
+      if (heard) facts.push(`la última, ${haceTiempo(heard)}`);
+      let rank = 0;
+      if (plays >= 3) {
+        rank = 1 + Object.values(library.plays).filter((n) => Number(n) > plays).length;
+        if (rank <= 50) facts.push(`tu n.º ${rank}`);
+      }
+      return { plays, seconds, first, heard, rank, facts };
+    },
+    renderStory() {
+      const box = this.ui.story;
+      const track = state.currentTrack;
+      if (!box) return;
+      box.hidden = !track;
+      if (!track) return;
+      const story = this.songStory(track);
+      const head = makeEl('p', 'about-eyebrow', 'Tu historia con esta canción');
+      const line = makeEl('p', 'story-facts', story.facts.length ? story.facts.join(' · ') : 'Es la primera vez que la pones. Aquí verás cuánto la escuchas.');
+      const parts = [head, line];
+      const note = this.notes[track.id];
+      const edit = makeEl('button', `story-note${note ? ' has-note' : ''}`, note || 'Añadir una nota');
+      edit.type = 'button';
+      edit.setAttribute('aria-label', note ? `Tu nota: ${note}. Tocar para editarla` : 'Añadir una nota a esta canción');
+      edit.prepend(svgIcon('edit'));
+      edit.addEventListener('click', () => this.openNote());
+      parts.push(edit);
+      box.replaceChildren(...parts);
+    },
+
+    /* --- «Luego»: lo siguiente de la cola, siempre a la vista --- */
+    renderNext() {
+      const el = this.ui.next;
+      if (!el) return;
+      const track = state.currentTrack ? getTrack(state.queue[state.queueIndex + 1]) : null;
+      el.hidden = !track;
+      if (!track) return;
+      el.querySelector('.np-next-name').textContent = `${splitTitle(track.title).main} · ${track.knownArtist || track.artist}`;
+      el.querySelector('img').src = track.thumb;
+    },
+
+    /* --- La pestaña del navegador lleva la carátula de lo que suena --- */
+    setFavicon(track) {
+      const link = document.querySelector('link[rel="icon"]');
+      if (!link || !track?.thumb || /^data:/.test(track.thumb)) return;
+      link.type = 'image/jpeg';
+      link.href = track.thumb;
+    },
+
+    syncButtons() {
+      const b = this.ui.buttons;
+      if (!b) return;
+      const l = this.loop;
+      const loopOn = l.a !== null;
+      b.loop.classList.toggle('is-active', loopOn);
+      b.loop.setAttribute('aria-pressed', String(loopOn));
+      b.loop.querySelector('span').textContent = l.b !== null ? `${formatTime(l.a)} – ${formatTime(l.b)}` : loopOn ? `Desde ${formatTime(l.a)}…` : 'Bucle A–B';
+      b.private.classList.toggle('is-active', this.private);
+      b.private.setAttribute('aria-pressed', String(this.private));
+    },
+
+    onTrack(track) {
+      this.clearLoop();
+      this.renderStory();
+      this.renderNext();
+      this.setFavicon(track);
+      if (this.ui.car?.open) this.syncCar();
+      if (this.ui.karaoke?.open) this.renderKaraoke();
+    },
+
+    /* --- Racha y minutos de hoy --- */
+    streak() {
+      const secs = (date) => Object.values(listen.log[dayKey(date)]?.s || {}).reduce((a, b) => a + b, 0);
+      const day = new Date();
+      const today = secs(day);
+      let days = 0;
+      if (today < 60) day.setDate(day.getDate() - 1);
+      while (secs(day) >= 60) { days++; day.setDate(day.getDate() - 1); }
+      return { days, today };
+    },
+    homeStreak() {
+      const { days, today } = this.streak();
+      if (days < 2 && today < 60) return null;
+      const chip = makeEl('button', 'home-streak');
+      chip.type = 'button';
+      chip.dataset.action = 'go-view';
+      chip.dataset.value = 'stats';
+      chip.title = 'Ver tus estadísticas';
+      const bits = [];
+      if (days >= 2) bits.push(`${days} días seguidos con música`);
+      if (today >= 60) bits.push(`hoy, ${minutesLabel(today)}`);
+      const text = bits.join(' · ');
+      chip.append(svgIcon('flame'), makeEl('span', '', text.charAt(0).toUpperCase() + text.slice(1)));
+      if (days >= 2 && today < 60) chip.append(makeEl('span', 'home-streak-hint', 'Pon algo hoy para no perderla'));
+      return chip;
+    },
+
+    /* --- Elegir gustos al empezar: seguir a unos cuantos artistas afina Inicio desde el primer día --- */
+    homeTaste(p) {
+      if (p.hasHistory || library.follows.length >= 3 || storage.get(PLUS_KEYS.gustos, false)) return null;
+      const artists = [...labArtists().values()].filter((a) => a.tracks.length >= 8).sort((a, b) => b.tracks.length - a.tracks.length).slice(0, 18);
+      if (artists.length < 6) return null;
+      const card = makeEl('section', 'home-taste');
+      const left = 3 - library.follows.length;
+      card.append(
+        makeEl('h3', 'home-section-title', '¿Qué te gusta?'),
+        makeEl('p', 'home-section-hint', `Elige ${left === 3 ? '3 artistas' : left === 1 ? '1 más' : `${left} más`} y tus mixes empiezan a parecerse a ti desde hoy.`)
+      );
+      const row = makeEl('div', 'home-taste-row');
+      artists.forEach((entry) => {
+        const on = isFollowing(entry.key);
+        const chip = makeEl('button', `chip taste-chip${on ? ' is-active' : ''}`);
+        chip.type = 'button';
+        chip.dataset.action = 'follow-artist';
+        chip.dataset.value = entry.key;
+        chip.setAttribute('aria-pressed', String(on));
+        chip.append(photoImg(entry.tracks[0]?.thumb, 28, 'taste-photo'), makeEl('span', '', entry.name));
+        row.append(chip);
+      });
+      const skip = makeEl('button', 'btn btn-ghost btn-small home-taste-skip', 'Ahora no');
+      skip.type = 'button';
+      skip.addEventListener('click', () => { storage.set(PLUS_KEYS.gustos, true); card.remove(); });
+      card.append(row, skip);
+      return card;
+    },
+
+    /* --- Progreso de cada playlist y «Lo que te falta» --- */
+    playlistProgress(pl, tracks) {
+      if (pl.kind === 'auto' || tracks.length < 5) return null;
+      const heard = tracks.filter((t) => playsOf(t.id) > 0).length;
+      if (!heard) return null;
+      const box = makeEl('div', 'pl-progress');
+      const done = heard === tracks.length;
+      box.setAttribute('role', 'img');
+      box.setAttribute('aria-label', `Has escuchado ${heard} de ${tracks.length} canciones`);
+      const bar = makeEl('span', 'pl-progress-bar');
+      const fill = makeEl('span', 'pl-progress-fill');
+      fill.style.width = `${Math.max(3, Math.round((heard / tracks.length) * 100))}%`;
+      bar.append(fill);
+      box.append(bar, makeEl('span', 'pl-progress-text', done ? 'Completa: las has escuchado todas' : `Has escuchado ${heard} de ${tracks.length}`));
+      box.classList.toggle('is-done', done);
+      return box;
+    },
+    unheardOf(pl) {
+      return playlistTracksOf(pl).filter((t) => playsOf(t.id) === 0 && !isDisliked(t.id));
+    },
+
+    /* --- Hitos: pequeñas metas que se desbloquean escuchando --- */
+    hitos() {
+      let seconds = 0;
+      let best = 0;
+      let run = 0;
+      let prev = null;
+      Object.keys(listen.log).sort().forEach((key) => {
+        const s = Object.values(listen.log[key]?.s || {}).reduce((a, b) => a + b, 0);
+        seconds += s;
+        if (s < 60) return;
+        const [y, m, d] = key.split('-').map(Number);
+        const date = new Date(y, m - 1, d).getTime();
+        run = prev !== null && Math.round((date - prev) / DAY_MS) === 1 ? run + 1 : 1;
+        prev = date;
+        best = Math.max(best, run);
+      });
+      const counts = Object.values(library.plays).map(Number).filter((n) => n > 0);
+      const plays = counts.reduce((a, b) => a + b, 0);
+      const hours = seconds / 3600;
+      const complete = systemPlaylists().some((pl) => pl.trackIds.length >= 5 && pl.trackIds.every((id) => playsOf(id) > 0)) ? 1 : 0;
+      return [
+        ['primera', 'Primera gota', 'Tu primera canción en Liquid', 'note', plays, 1],
+        ['cien', 'Cien gotas', '100 reproducciones', 'disc', plays, 100],
+        ['mil', 'Mil gotas', '1.000 reproducciones', 'trophy', plays, 1000],
+        ['diez-horas', 'Diez horas líquidas', '10 horas de música', 'clock', hours, 10],
+        ['cien-horas', 'Cien horas líquidas', '100 horas de música', 'headphones', hours, 100],
+        ['semana', 'Semana completa', '7 días seguidos con música', 'flame', best, 7],
+        ['mes', 'Mes sin fallar', '30 días seguidos con música', 'bolt', best, 30],
+        ['explorador', 'Explorador', '100 canciones distintas', 'compass', counts.length, 100],
+        ['coleccionista', 'Coleccionista', '25 favoritas', 'heart', state.favorites.size, 25],
+        ['curador', 'Curador', '3 playlists tuyas', 'playlist-add', library.local.length, 3],
+        ['fan', 'Fan declarado', 'Sigues a 5 artistas', 'star', library.follows.length, 5],
+        ['completista', 'Completista', 'Una playlist de Liquid escuchada entera', 'check', complete, 1]
+      ].map(([id, name, desc, icon, value, goal]) => ({ id, name, desc, icon, value, goal, done: value >= goal }));
+    },
+    hitosCard() {
+      const list = this.hitos();
+      const done = list.filter((h) => h.done).length;
+      const card = statCard('Tus hitos', `${done} de ${list.length} conseguidos`);
+      card.classList.add('hitos-card');
+      const grid = makeEl('ul', 'hitos');
+      list.forEach((h) => {
+        const li = makeEl('li', `hito${h.done ? ' is-done' : ''}`);
+        const badge = makeEl('span', 'hito-badge');
+        badge.setAttribute('aria-hidden', 'true');
+        badge.append(svgIcon(h.done ? h.icon : 'lock'));
+        const text = makeEl('span', 'hito-text');
+        const pct = clamp(h.value / h.goal, 0, 1);
+        text.append(makeEl('span', 'hito-name', h.name), makeEl('span', 'hito-desc', h.done ? h.desc : `${h.desc} · ${Math.floor(pct * 100)} %`));
+        li.append(badge, text);
+        if (!h.done) {
+          const bar = makeEl('span', 'hito-bar');
+          const fill = makeEl('span', 'hito-fill');
+          fill.style.width = `${Math.round(pct * 100)}%`;
+          bar.append(fill);
+          li.append(bar);
+        }
+        grid.append(li);
+      });
+      card.append(grid);
+      return card;
+    },
+    // Tras cada reproducción: si se acaba de conseguir un hito, se celebra una vez
+    checkHitos() {
+      const seen = new Set(storage.get(PLUS_KEYS.hitos, []) || []);
+      const fresh = this.hitos().filter((h) => h.done && !seen.has(h.id));
+      if (!fresh.length) return;
+      fresh.forEach((h) => seen.add(h.id));
+      storage.set(PLUS_KEYS.hitos, [...seen]);
+      // La primera vez que se calcula (ya había historial) no se avisa de todos de golpe
+      if (fresh.length > 2) return;
+      const h = fresh[fresh.length - 1];
+      haptic(20);
+      showToast(`Hito conseguido: ${h.name} (${h.desc.toLowerCase()}).`, { label: 'Ver hitos', run: () => setView('stats') }, { background: true });
+    },
+
+    /* --- Deslizar una canción hacia la derecha la manda a la cola (teléfono) --- */
+    setupSwipe() {
+      let drag = null;
+      const reset = (item) => { item.style.transform = ''; item.classList.remove('is-swiping', 'will-queue'); };
+      els.trackList.addEventListener('pointerdown', (event) => {
+        if (event.pointerType === 'mouse') return;
+        const item = event.target.closest('.track');
+        if (!item || !item.dataset.id) return;
+        drag = { item, x: event.clientX, y: event.clientY, dx: 0, on: false };
+      });
+      els.trackList.addEventListener('pointermove', (event) => {
+        if (!drag) return;
+        const dx = event.clientX - drag.x;
+        const dy = event.clientY - drag.y;
+        if (!drag.on) {
+          if (Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) { drag = null; return; }
+          if (dx < 16 || Math.abs(dx) < Math.abs(dy) * 1.6) return;
+          drag.on = true;
+          drag.item.classList.add('is-swiping');
+        }
+        drag.dx = clamp(dx, 0, 140);
+        drag.item.style.transform = `translateX(${drag.dx}px)`;
+        drag.item.classList.toggle('will-queue', drag.dx >= 84);
+      });
+      const end = (event) => {
+        if (!drag) return;
+        const { item, dx, on } = drag;
+        drag = null;
+        if (!on) return;
+        reset(item);
+        // El toque que termina el gesto no reproduce la canción
+        const stop = (e) => { e.preventDefault(); e.stopPropagation(); };
+        els.trackList.addEventListener('click', stop, { capture: true, once: true });
+        setTimeout(() => els.trackList.removeEventListener('click', stop, true), 350);
+        if (event.type === 'pointerup' && dx >= 84) { haptic(14); queueTrack(item.dataset.id); }
+      };
+      ['pointerup', 'pointercancel'].forEach((type) => els.trackList.addEventListener(type, end));
+    },
+
+    init() {
+      if (LAB_MODE) return;
+      // Botones nuevos de Sonando
+      const row = makeEl('div', 'np-plus');
+      row.setAttribute('role', 'toolbar');
+      row.setAttribute('aria-label', 'Más formas de escuchar');
+      const chip = (cls, label, icon, text, run) => {
+        const b = makeButton(`np-plus-btn ${cls}`, 'plus', label, icon, text);
+        b.addEventListener('click', run);
+        return b;
+      };
+      const buttons = {
+        karaoke: chip('plus-karaoke', 'Letra a pantalla completa (K)', 'lyrics', 'Letra grande', () => this.openKaraoke()),
+        loop: chip('plus-loop', 'Bucle A–B: repetir un trozo (B)', 'repeat-alt', 'Bucle A–B', () => this.cycleLoop()),
+        car: chip('plus-car', 'Modo coche: botones enormes (G)', 'car', 'Modo coche', () => this.openCar()),
+        private: chip('plus-private', 'Sesión privada: lo que suene no cuenta para tus estadísticas ni recomendaciones', 'eye-off', 'Sesión privada', () => {
+          this.setPrivate(!this.private);
+          showToast(this.private ? 'Sesión privada: lo que suene ahora no cuenta. Se apaga al cerrar Liquid.' : 'Sesión privada apagada: lo que suene vuelve a contar.');
+        })
+      };
+      buttons.loop.setAttribute('aria-pressed', 'false');
+      buttons.private.setAttribute('aria-pressed', 'false');
+      row.append(buttons.karaoke, buttons.loop, buttons.car, buttons.private);
+      this.ui.buttons = buttons;
+
+      // «Luego»: lo siguiente de la cola
+      const nextUp = makeEl('button', 'np-next');
+      nextUp.type = 'button';
+      nextUp.hidden = true;
+      nextUp.title = 'Ver la cola (Q)';
+      const thumb = document.createElement('img');
+      thumb.alt = '';
+      thumb.width = 32;
+      thumb.height = 32;
+      const nextText = makeEl('span', 'np-next-text');
+      nextText.append(makeEl('span', 'np-next-label', 'Luego'), makeEl('span', 'np-next-name'));
+      nextUp.append(thumb, nextText);
+      nextUp.addEventListener('click', () => openQueue());
+      this.ui.next = nextUp;
+
+      const story = makeEl('div', 'np-story');
+      story.hidden = true;
+      this.ui.story = story;
+
+      const tools = els.nowPlaying.querySelector('.np-tools');
+      tools.after(row, nextUp);
+      els.npAbout.before(story);
+
+      // Cada cambio en la cola refresca «Luego»
+      const saveQueue = resume.saveQueue;
+      resume.saveQueue = (...args) => { saveQueue.apply(resume, args); this.renderNext(); };
+
+      decks.forEach((deck) => {
+        deck.addEventListener('timeupdate', () => { if (deck === els.audio) this.tick(deck.currentTime); });
+        ['play', 'pause'].forEach((type) => deck.addEventListener(type, () => { if (this.ui.car?.open) setTimeout(() => this.syncCar(), 0); }));
+      });
+
+      document.addEventListener('keydown', (event) => {
+        if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
+        if (event.target.closest?.('input, textarea, select, [contenteditable="true"]')) return;
+        const open = document.querySelector('dialog[open]');
+        if (event.code === 'KeyK' && (!open || open === this.ui.karaoke)) {
+          if (this.ui.karaoke?.open) this.ui.karaoke.close(); else this.openKaraoke();
+        } else if (event.code === 'KeyB' && (!open || open === this.ui.karaoke)) this.cycleLoop();
+        else if (event.code === 'KeyG' && (!open || open === this.ui.car)) {
+          if (this.ui.car?.open) this.ui.car.close(); else this.openCar();
+        } else if (event.code === 'Space' && open === this.ui.karaoke && !event.target.closest('button')) { event.preventDefault(); togglePlay(); }
+      });
+
+      // Escritorio: el buscador y las pestañas se quedan arriba; al despegarse del panel ganan fondo
+      const head = els.library.querySelector('.library-head');
+      const stuck = () => head.classList.toggle('is-stuck', head.getBoundingClientRect().top <= 79 && window.scrollY > 40);
+      window.addEventListener('scroll', stuck, { passive: true });
+      stuck();
+
+      let wasPrivate = false;
+      try { wasPrivate = sessionStorage.getItem('liquid-privada') === '1'; } catch { /* sin almacenamiento */ }
+      if (wasPrivate) this.setPrivate(true);
+      this.setupSwipe();
+      this.syncButtons();
+      if (state.currentTrack) this.onTrack(state.currentTrack);
+    }
+  };
+
   function init() {
     errorLog.init();
     detectLiteMode();
@@ -12698,6 +13309,7 @@
     tour.init();
     install.init();
     setupExtras();
+    plus.init();
     inappNotice();
     if (els.deviceInfo) els.deviceInfo.textContent = `Tu dispositivo: ${deviceSummary()}. La app se adapta sola a él.`;
     document.querySelectorAll('.settings-group-title').forEach((title) => title.prepend(sticker(title.textContent)));

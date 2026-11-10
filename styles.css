@@ -8521,3 +8521,642 @@ html {
     scroll-padding-bottom: 116px;
   }
 }
+
+/* =========================================================
+   v66: 15 ideas para quedarse en Liquid
+   ========================================================= */
+
+/* ---------- Botones nuevos de Sonando: letra grande, bucle, coche, sesión privada ---------- */
+.np-plus {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.np-plus-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 42px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface-2) 80%, transparent);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.84rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s, transform 0.12s;
+}
+
+.np-plus-btn .icon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--text-muted);
+}
+
+.np-plus-btn span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.np-plus-btn:hover {
+  background: var(--surface-hover);
+}
+
+.np-plus-btn:active {
+  transform: scale(0.97);
+}
+
+.np-plus-btn.is-active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.np-plus-btn.is-active .icon {
+  color: var(--accent);
+}
+
+body.is-private .np-eyebrow::after {
+  content: ' · sesión privada';
+}
+
+/* ---------- «Luego»: lo siguiente de la cola ---------- */
+.np-next {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.np-next:hover {
+  background: var(--surface-hover);
+}
+
+.np-next img {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.np-next-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.np-next-label {
+  color: var(--text-muted);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.np-next-name {
+  overflow: hidden;
+  font-family: var(--song-font);
+  font-size: 0.86rem;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- Tu historia con la canción (y su nota) ---------- */
+.np-story {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface-2);
+}
+
+.story-facts {
+  font-family: var(--song-font);
+  font-size: 0.88rem;
+  line-height: 1.45;
+  letter-spacing: normal;
+}
+
+.story-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--song-font);
+  font-size: 0.84rem;
+  line-height: 1.4;
+  letter-spacing: normal;
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.story-note .icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+}
+
+.story-note.has-note {
+  border-style: solid;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  color: var(--text);
+  font-style: italic;
+}
+
+.story-note:hover {
+  background: var(--surface-hover);
+}
+
+.note-area {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 1rem;
+  line-height: 1.45;
+  resize: vertical;
+}
+
+.note-area:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+.note-sheet .sheet-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ---------- Pantallas completas: letra grande y modo coche ---------- */
+.plus-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: calc(20px + env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+  border: 0;
+  background:
+    radial-gradient(120% 90% at 15% 0%, color-mix(in srgb, var(--dyn) 55%, transparent), transparent 62%),
+    radial-gradient(110% 80% at 100% 100%, color-mix(in srgb, var(--dyn) 30%, transparent), transparent 60%),
+    #08090d;
+  color: #fff;
+  overflow: hidden;
+}
+
+.plus-overlay[open] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.plus-overlay::backdrop {
+  background: #08090d;
+}
+
+:root:not(.no-motion) .plus-overlay[open] {
+  animation: plus-in 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes plus-in {
+  from { opacity: 0; transform: scale(1.03); }
+  to { opacity: 1; transform: none; }
+}
+
+.plus-close {
+  position: absolute;
+  top: calc(14px + env(safe-area-inset-top));
+  right: max(14px, env(safe-area-inset-right));
+  z-index: 2;
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.karaoke-song {
+  flex: none;
+  max-width: calc(100% - 120px);
+  margin-top: 6px;
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.72);
+  font-family: var(--song-font);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.karaoke-lines {
+  flex: 1;
+  width: min(100%, 900px);
+  margin-top: 12px;
+  padding: 36vh 4px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 18%, #000 82%, transparent);
+  mask-image: linear-gradient(180deg, transparent, #000 18%, #000 82%, transparent);
+}
+
+.karaoke-lines::-webkit-scrollbar {
+  display: none;
+}
+
+.karaoke-line {
+  margin: 0 0 0.7em;
+  color: rgba(255, 255, 255, 0.34);
+  font-family: var(--title-font);
+  font-size: clamp(1.5rem, 4.6vw, 3rem);
+  font-weight: 800;
+  line-height: 1.18;
+  letter-spacing: -0.01em;
+  text-align: center;
+  text-wrap: balance;
+  transition: color 0.3s, transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.karaoke-line[data-time] {
+  cursor: pointer;
+}
+
+.karaoke-line.is-active {
+  color: #fff;
+  transform: scale(1.04);
+  text-shadow: 0 0 28px color-mix(in srgb, var(--dyn) 70%, transparent);
+}
+
+.karaoke-line.is-plain {
+  color: rgba(255, 255, 255, 0.88);
+  font-size: clamp(1.2rem, 3vw, 1.9rem);
+  font-weight: 700;
+  min-height: 0.6em;
+}
+
+.karaoke-line.is-empty {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.car[open] {
+  justify-content: center;
+  gap: clamp(10px, 2.4vh, 22px);
+  text-align: center;
+}
+
+.car-cover {
+  width: min(34vh, 52vw, 300px);
+  aspect-ratio: 1;
+  border-radius: 22px;
+  object-fit: cover;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+}
+
+.car-title {
+  max-width: 100%;
+  overflow: hidden;
+  font-family: var(--title-font);
+  font-size: clamp(1.6rem, 6vw, 2.8rem);
+  font-weight: 800;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.car-artist {
+  max-width: 100%;
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.72);
+  font-family: var(--song-font);
+  font-size: clamp(1.05rem, 3.4vw, 1.5rem);
+  letter-spacing: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.car-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(14px, 5vw, 44px);
+  width: 100%;
+}
+
+.car-btn {
+  display: grid;
+  place-items: center;
+  width: clamp(84px, 24vw, 132px);
+  aspect-ratio: 1;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  cursor: pointer;
+  transition: transform 0.12s, background-color 0.2s;
+}
+
+.car-btn:active {
+  transform: scale(0.93);
+  background: rgba(255, 255, 255, 0.26);
+}
+
+.car-btn .icon {
+  width: 46%;
+  height: 46%;
+}
+
+.car-play {
+  width: clamp(108px, 30vw, 168px);
+  background: #fff;
+  color: #08090d;
+}
+
+.car-btn {
+  flex: none;
+}
+
+.car-fav {
+  width: 72px;
+  height: 72px;
+}
+
+.car-fav.is-active {
+  color: #ff5c8a;
+}
+
+@media (orientation: landscape) and (max-height: 520px) {
+  .car-cover {
+    display: none;
+  }
+
+  .car-fav {
+    position: absolute;
+    left: max(14px, env(safe-area-inset-left));
+    top: calc(14px + env(safe-area-inset-top));
+    width: 48px;
+  }
+}
+
+/* ---------- Inicio: racha y elegir gustos ---------- */
+.home-streak {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  align-self: flex-start;
+  gap: 4px 8px;
+  padding: 7px 14px 7px 10px;
+  border: 1px solid color-mix(in srgb, #ff9a3d 45%, var(--border));
+  border-radius: 999px;
+  background: color-mix(in srgb, #ff9a3d 14%, transparent);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.84rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.home-streak .icon {
+  width: 18px;
+  height: 18px;
+  color: #ff9a3d;
+}
+
+.home-streak-hint {
+  color: var(--text-muted);
+  font-family: var(--song-font);
+  font-size: 0.78rem;
+  letter-spacing: normal;
+}
+
+.home-taste {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 12%, transparent), transparent 70%);
+}
+
+.home-taste .home-section-title {
+  margin: 0;
+}
+
+.home-taste-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.taste-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 14px 4px 4px;
+}
+
+.taste-photo {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* ---------- Progreso de cada playlist y «Lo que te falta» ---------- */
+.pl-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  max-width: 420px;
+}
+
+.pl-progress-bar {
+  flex: 1;
+  min-width: 60px;
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 14%, transparent);
+  overflow: hidden;
+}
+
+.pl-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+}
+
+.pl-progress-text {
+  flex: none;
+  color: var(--text-muted);
+  font-family: var(--song-font);
+  font-size: 0.78rem;
+  letter-spacing: normal;
+}
+
+.pl-progress.is-done .pl-progress-text {
+  color: var(--text);
+}
+
+/* ---------- Hitos (Stats) ---------- */
+.hitos-card {
+  grid-column: 1 / -1;
+}
+
+.hitos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 10px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hito {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  align-items: center;
+  gap: 6px 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  opacity: 0.72;
+}
+
+.hito.is-done {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  opacity: 1;
+}
+
+.hito-badge {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--text) 9%, transparent);
+  color: var(--text-muted);
+}
+
+.hito.is-done .hito-badge {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.hito-badge .icon {
+  width: 22px;
+  height: 22px;
+}
+
+.hito-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.hito-name {
+  font-size: 0.92rem;
+}
+
+.hito-desc {
+  color: var(--text-muted);
+  font-family: var(--song-font);
+  font-size: 0.78rem;
+  letter-spacing: normal;
+}
+
+.hito-bar {
+  grid-column: 1 / -1;
+  height: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+  overflow: hidden;
+}
+
+.hito-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--text-muted);
+}
+
+/* ---------- Deslizar una canción a la cola (teléfono) ---------- */
+.track.is-swiping {
+  transition: none;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  touch-action: none;
+}
+
+.track.will-queue {
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+@media (pointer: coarse) {
+  .track {
+    touch-action: pan-y;
+  }
+}
+
+/* ---------- Escritorio: buscador y pestañas siempre a mano al bajar por una lista ---------- */
+@media (min-width: 861px) {
+  .library-head {
+    position: sticky;
+    top: 78px;
+    z-index: 6;
+    margin: -6px -2px 0;
+    padding: 8px 6px;
+    border-radius: 18px;
+  }
+
+  .library-head.is-stuck {
+    background: color-mix(in srgb, var(--surface) 86%, transparent);
+    -webkit-backdrop-filter: blur(18px) saturate(1.3);
+    backdrop-filter: blur(18px) saturate(1.3);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+  }
+}
+
+@media (max-width: 520px) {
+  /* En el teléfono, una docena de artistas basta para elegir */
+  .taste-chip:nth-child(n + 13) {
+    display: none;
+  }
+
+  .np-plus-btn {
+    padding: 8px 10px;
+    font-size: 0.8rem;
+  }
+}

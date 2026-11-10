@@ -1,6 +1,28 @@
 {
   "releases": [
     {
+      "version": "v66",
+      "date": "noviembre 2026",
+      "title": "15 ideas nuevas: letra gigante, bucle, modo coche y tus hitos",
+      "items": [
+        "Letra a pantalla completa (tecla K o «Letra grande» en Sonando): la línea que suena, enorme; toca cualquier línea para saltar a ella.",
+        "Bucle A–B (tecla B): marca el principio y el final de un trozo y se repite solo. Para aprenderte una letra, un solo o un paso de baile.",
+        "Modo coche (tecla G): carátula, título y tres botones enormes, con la pantalla siempre encendida.",
+        "Sesión privada: lo que suene no cuenta para tus Stats, tus mixes ni tus recomendaciones. Se apaga sola al cerrar Liquid.",
+        "Tu historia con cada canción: cuántas veces la has puesto, cuántos minutos, desde cuándo y qué puesto ocupa entre tus más escuchadas.",
+        "Notas: escribe un recuerdo en cualquier canción («la del viaje a la playa»). Solo lo ves tú.",
+        "«Luego»: la siguiente canción de la cola, siempre a la vista en Sonando.",
+        "La pestaña del navegador lleva la carátula de lo que suena.",
+        "Racha en Inicio: los días seguidos que llevas con música y los minutos de hoy.",
+        "¿Qué te gusta?: al empezar, elige 3 artistas y tus mixes se parecen a ti desde el primer día.",
+        "Progreso de cada playlist: cuántas canciones llevas escuchadas, con su barra.",
+        "«Lo que te falta»: un botón que reproduce solo las canciones de la playlist que aún no has puesto nunca.",
+        "Hitos en Stats: 12 metas que se desbloquean escuchando (Cien gotas, Semana completa, Explorador, Completista…), con aviso al conseguir cada una.",
+        "En el teléfono, desliza una canción hacia la derecha para mandarla a la cola.",
+        "En escritorio, el buscador y las pestañas se quedan arriba mientras bajas por una lista."
+      ]
+    },
+    {
       "version": "v65",
       "date": "noviembre 2026",
       "title": "Pulido general: más limpio y más fácil de leer",

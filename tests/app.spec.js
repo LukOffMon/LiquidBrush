@@ -803,3 +803,145 @@ test('pulido: lo oculto no ocupa sitio, los botones del reproductor son redondos
   await expect(page.locator('.list-empty .list-empty-icon')).toBeVisible();
   await expect(page.locator('.list-empty')).toContainText('Aún no tienes favoritas');
 });
+
+test.describe('v66: 15 ideas', () => {
+  // Una semana de escucha y 40 canciones ya oídas de la primera playlist
+  async function conHistorial(page) {
+    const cat = await (await page.request.get('./catalog.json')).json();
+    const pl = cat.playlists[0];
+    const ids = pl.trackIds.slice(0, 40);
+    await page.addInitScript((list) => {
+      if (sessionStorage.getItem('historial-puesto')) return;
+      sessionStorage.setItem('historial-puesto', '1');
+      const log = {}; const plays = {};
+      for (let d = 1; d <= 6; d++) {
+        const dt = new Date(); dt.setDate(dt.getDate() - d);
+        const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+        const s = {}; const p = {};
+        list.slice(0, 12).forEach((id) => { s[id] = 200; p[id] = 1; plays[id] = (plays[id] || 0) + 3; });
+        log[key] = { s, p, h: new Array(24).fill(100) };
+      }
+      list.forEach((id) => { plays[id] = plays[id] || 1; });
+      localStorage.setItem('liquidbrush:listen', JSON.stringify(log));
+      localStorage.setItem('liquidbrush:plays', JSON.stringify(plays));
+    }, ids);
+    return pl;
+  }
+
+  test('Inicio: racha con historial; sin historial se eligen gustos', async ({ page }) => {
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    // Persona nueva: tarjeta para elegir 3 artistas, que desaparece al terminar
+    await expect(page.locator('.home-taste')).toBeVisible();
+    await expect(page.locator('.home-streak')).toHaveCount(0);
+    for (let i = 0; i < 3; i++) await page.locator('.taste-chip:not(.is-active)').first().click();
+    await expect(page.locator('.home-taste')).toHaveCount(0);
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('liquidbrush:follows')).length)).toBe(3);
+  });
+
+  test('racha en Inicio, progreso de la playlist, «Lo que te falta» e hitos', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    const pl = await conHistorial(page);
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await expect(page.locator('.home-streak')).toContainText('6 días seguidos');
+    await expect(page.locator('.home-taste')).toHaveCount(0);
+    await page.evaluate(() => document.querySelector('.tab[data-view="playlists"]').click());
+    await page.locator('.pl-card, .playlist-card').first().click();
+    await expect(page.locator('.pl-progress-text')).toContainText(`Has escuchado 40 de ${pl.trackIds.length}`);
+    await expect(page.locator('.pl-unheard')).toContainText(`Lo que te falta · ${pl.trackIds.length - 40}`);
+    await page.locator('.pl-unheard').click();
+    await expect(page.locator('#npContext')).toContainText('lo que te falta');
+    // La canción que empieza es una de las que faltaban
+    const current = await page.evaluate(() => JSON.parse(localStorage.getItem('liquidbrush:resume')).id);
+    expect(pl.trackIds.slice(40)).toContain(current);
+    await page.evaluate(() => document.querySelector('.tab[data-view="stats"]').click());
+    await expect(page.locator('.hitos .hito')).toHaveCount(12);
+    await expect(page.locator('.hito.is-done')).toHaveCount(2);
+    await expect(page.locator('.hito.is-done').first()).toContainText('Primera gota');
+    expect(errors).toEqual([]);
+  });
+
+  test('Sonando: Luego, historia y nota, bucle, sesión privada, letra grande y modo coche', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    await conHistorial(page);
+    await page.goto('./?view=library');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.locator('.track .track-main').nth(1).click();
+    if (isPhone(page)) {
+      await page.locator('.player-track').click();
+      await expect(page.locator('body')).toHaveClass(/np-open/);
+    }
+    // «Luego» enseña la siguiente de la cola y la pestaña lleva la carátula
+    await expect(page.locator('.np-next')).toBeVisible();
+    await expect(page.locator('.np-next-name')).not.toBeEmpty();
+    expect(await page.evaluate(() => document.querySelector('link[rel="icon"]').getAttribute('href'))).toMatch(/covers\//);
+    // Historia y nota
+    await expect(page.locator('.np-story')).toContainText('Tu historia con esta canción');
+    await page.locator('.story-note').click();
+    await page.locator('.note-area').fill('La del viaje a la playa');
+    await page.locator('.note-sheet .btn-primary').click();
+    await expect(page.locator('.story-note.has-note')).toContainText('La del viaje a la playa');
+    expect(await page.evaluate(() => Object.values(JSON.parse(localStorage.getItem('liquidbrush:notes'))))).toEqual(['La del viaje a la playa']);
+    // Bucle: el primer toque marca el principio
+    await page.locator('.plus-loop').click();
+    await expect(page.locator('.plus-loop')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('.plus-loop')).toContainText('Desde');
+    // Sesión privada: lo que suena no se apunta
+    await page.locator('.plus-private').click();
+    await expect(page.locator('body')).toHaveClass(/is-private/);
+    const antes = await page.evaluate(() => localStorage.getItem('liquidbrush:plays'));
+    await page.evaluate(() => document.querySelector('#nextBtn').click());
+    await page.waitForTimeout(400);
+    expect(await page.evaluate(() => localStorage.getItem('liquidbrush:plays'))).toBe(antes);
+    // Cambiar de canción quita el bucle
+    await expect(page.locator('.plus-loop')).toHaveAttribute('aria-pressed', 'false');
+    await page.locator('.plus-private').click();
+    await expect(page.locator('body')).not.toHaveClass(/is-private/);
+    // Letra grande y modo coche se abren y se cierran
+    await page.locator('.plus-karaoke').click();
+    await expect(page.locator('dialog.karaoke[open]')).toBeVisible();
+    await expect(page.locator('.karaoke-line').first()).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('dialog.karaoke')).toBeHidden();
+    await page.locator('.plus-car').click();
+    await expect(page.locator('dialog.car[open] .car-play')).toBeVisible();
+    await expect(page.locator('.car-title')).not.toHaveText('Nada sonando');
+    const titulo = await page.locator('.car-title').textContent();
+    await page.locator('.car-next').click();
+    await expect(page.locator('.car-title')).not.toHaveText(titulo || '');
+    await page.keyboard.press('Escape');
+    await expect(page.locator('dialog.car')).toBeHidden();
+    expect(errors).toEqual([]);
+  });
+
+  test('deslizar una canción a la derecha la manda a la cola', async ({ page }) => {
+    test.skip(!isPhone(page), 'gesto táctil');
+    await page.goto('./?view=library');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await expect(page.locator('#miniTitle')).not.toHaveText('Sin reproducción');
+    const row = page.locator('.track').nth(4);
+    const box = await row.boundingBox();
+    const y = box.y + box.height / 2;
+    const fire = (type, x) => row.evaluate((el, o) => el.dispatchEvent(new PointerEvent(o.type, { bubbles: true, pointerType: 'touch', clientX: o.x, clientY: o.y, pointerId: 5 })), { type, x, y });
+    await fire('pointerdown', box.x + 40);
+    for (const dx of [12, 40, 80, 120]) await fire('pointermove', box.x + 40 + dx);
+    await expect(row).toHaveClass(/will-queue/);
+    await fire('pointerup', box.x + 160);
+    await expect(page.locator('.toast')).toContainText('Sonará a continuación');
+    await expect(row).not.toHaveClass(/is-swiping/);
+  });
+
+  test('escritorio: el buscador y las pestañas se quedan arriba al bajar', async ({ page }) => {
+    test.skip(isPhone(page), 'solo escritorio');
+    await page.goto('./?view=library');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.evaluate(() => window.scrollTo(0, 1200));
+    await expect(page.locator('.library-head')).toHaveClass(/is-stuck/);
+    await expect(page.locator('.tab[data-view="playlists"]')).toBeInViewport();
+    await page.locator('.tab[data-view="playlists"]').click();
+    await expect(page.locator('.tab[data-view="playlists"]')).toHaveClass(/is-active/);
+  });
+});

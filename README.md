@@ -273,6 +273,9 @@ python3 -m http.server 8000
 | L | Mostrar / ocultar letra |
 | Q | Cola «A continuación» |
 | T | Temporizador de apagado |
+| K | Letra a pantalla completa |
+| B | Bucle A–B (principio, final, quitar) |
+| G | Modo coche |
 | / | Buscar |
 | Mayús + ← / → | Canción anterior / siguiente |
 | Mayús + ↑ / ↓ | Subir / bajar volumen |
@@ -291,6 +294,21 @@ Liquid está pensada primero para el móvil:
 - **Gestos**: desliza la portada a los lados para cambiar de canción; mantén pulsada una canción para abrir su menú +.
 - **Índice A–Z** a la derecha de la Biblioteca cuando se ordena por título o artista.
 - Avisos con **Deshacer** al quitar canciones o borrar playlists (pasan 30 días en la **Papelera**).
+
+## Lo que Liquid hace y Spotify no (v66)
+
+- **Letra a pantalla completa** (K o «Letra grande» en Sonando): la línea que suena, enorme; tocar una línea salta a ella. Mantiene la pantalla encendida.
+- **Bucle A–B** (B): el primer toque marca el principio, el segundo el final y el tercero lo quita. Se quita solo al cambiar de canción.
+- **Modo coche** (G): carátula, título, anterior / reproducir / siguiente enormes y Me gusta. También con ← → y Espacio.
+- **Sesión privada**: mientras está encendida no se apunta nada (ni Stats, ni «Escuchadas hace poco», ni el motor de gustos). Dura lo que la pestaña.
+- **Tu historia con la canción** y **notas**: en Sonando, veces, minutos, primera fecha registrada, última vez y puesto; debajo, una nota tuya de hasta 280 caracteres (`liquidbrush:notes`, solo en este navegador; no viaja a la cuenta).
+- **«Luego»**: la siguiente de la cola a la vista; tocarla abre «A continuación».
+- **Carátula en la pestaña**: el icono de la pestaña es la portada de lo que suena.
+- **Racha en Inicio** y **¿Qué te gusta?**: días seguidos con música y minutos de hoy; quien empieza sin historial elige 3 artistas (los sigue) para que los mixes arranquen afinados.
+- **Progreso de playlist** y **«Lo que te falta»**: barra con las canciones ya escuchadas y un botón que reproduce solo las que nunca has puesto.
+- **Hitos** (Stats): 12 metas calculadas con tu historial; al conseguir una sale un aviso (`liquidbrush:hitos` recuerda las ya celebradas).
+- **Deslizar a la cola** (teléfono): arrastra una canción hacia la derecha y suena a continuación.
+- **Cabecera fija** (escritorio): buscador y pestañas siguen arriba al bajar por una lista.
 
 ## Más funciones
 
