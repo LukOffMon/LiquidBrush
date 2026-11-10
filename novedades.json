@@ -1,6 +1,15 @@
 {
   "releases": [
     {
+      "version": "v69",
+      "date": "noviembre 2026",
+      "title": "Jamendo se suma a Liquid ATK",
+      "items": [
+        "ATK también busca en Jamendo: cientos de miles de canciones con licencia Creative Commons, con su licencia enlazada en los créditos.",
+        "«Acerca de ATK» ya lista las tres fuentes."
+      ]
+    },
+    {
       "version": "v68",
       "date": "noviembre 2026",
       "title": "Liquid ATK: millones de canciones más, cuando las necesites",

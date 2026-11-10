@@ -1067,6 +1067,10 @@ test.describe('v68: Liquid ATK', () => {
       ]
     } }));
     await page.route(/audius\.co\/v1\/tracks\/[^/]+\/stream|archive\.org\/download/, (route) => route.abort());
+    await page.route(/api\.jamendo\.com/, (route) => {
+      seen.push(route.request().url());
+      route.fulfill({ json: { headers: { status: 'success' }, results: [] } });
+    });
   }
   const conAtk = (page) => page.addInitScript(() => {
     if (!sessionStorage.getItem('atk-puesto')) {

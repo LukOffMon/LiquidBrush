@@ -55,7 +55,7 @@
     catalogUrl: 'catalog.json',
     // Liquid ATK: clave pública (client_id) de la API de Jamendo. Gratis en devportal.jamendo.com;
     // vacía, ATK busca solo en Audius y en el Internet Archive
-    jamendoClientId: ''
+    jamendoClientId: '85dd9033'
     // El ecualizador (y el visualizador con frecuencias reales) usa la Web Audio API, que solo
     // puede leer el audio si su servidor envía la cabecera "Access-Control-Allow-Origin".
     // Las canciones de servidores sin CORS suenan igual, pero sin ecualizar.
