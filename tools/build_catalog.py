@@ -24,61 +24,64 @@ ROOT = Path(__file__).resolve().parent.parent
 COVER_IMAGES = 0  # todas las imágenes están asignadas a mano en FIXED_COVERS
 # Portada de cada playlist (covers/cover-NN.jpg). Las que no están aquí llevan un diseño generado.
 FIXED_COVERS = {
-    'cuarto-pastel': 13,
-    'seda-nocturna': 9,
-    'acido-lento': 7,
-    'lluvia-lenta': 3,
-    'neon-eterno': 15,
-    'brillo-disco': 6,
-    'perreo-nocturno': 14,
-    'dembow-anejo': 8,
-    'trap-lunar': 11,
-    'rima-cruda': 5,
-    'trueno-clasico': 12,
-    'humo-dorado': 2,
-    'vinilo-rosa': 10,
-    'seul-brillante': 1,
-    'tokio-electrico': 4,
-    'riviera-francesa': 16,
-    'verano-tropical': 17,
-    'ciudad-furia': 18,
-    'nube-purpura': 19,
-    'tekk-fantasma': 20,
-    'senal-rota': 21,
-    'corazon-roto': 22,
-    'ola-fria': 23,
-    'barrio-sur': 24,
-    'calle-cromo': 25,
-    'alma-latina': 26,
-    'velo-sonico': 29,
-    'niebla-pesada': 30,
-    'vampiro-digital': 31,
-    'chicle-toxico': 32,
-    'verso-azul': 33,
-    'otono-modal': 34,
-    'cafe-lento': 35,
-    'beat-nipon': 36,
-    'sol-sintetico': 37,
-    'londres-rosa': 38,
-    'ola-tibia': 39,
-    'cereza-suave': 40,
-    'terciopelo-azul': 41,
-    'luna-swing': 42,
-    'infierno-rosa': 43,
-    'cuenta-atras': 44,
-    'balada-eterna': 45,
-    'euforia-ibiza': 46,
-    'fiebre-latina': 47,
-    'era-dorada': 48,
-    'pista-infinita': 49,
-    'diva-pop': 50,
-    'milenio-soul': 51,
-    'oro-latino': 52
+    'sueno-pastel': 2,
+    'indie-soleado': 49,
+    'garaje-indie': 24,
+    'verano-lofi': 39,
+    'domingo-lento': 52,
+    'cosmos-acido': 23,
+    'niebla-triste': 32,
+    'reverb-infinito': 21,
+    'rock-alterno': 40,
+    'pop-sombrio': 47,
+    'pop-estelar': 7,
+    'pop-2000': 9,
+    'rnb-nocturno': 10,
+    'rnb-dorado': 48,
+    'funk-eterno': 37,
+    'bola-disco': 22,
+    'neon-80': 18,
+    'french-touch': 4,
+    'pista-house': 46,
+    'euforia-dance': 44,
+    'rave-fantasma': 54,
+    'club-jersey': 1,
+    'glitch-pop': 53,
+    'emo-pixelado': 3,
+    'cripta-digital': 6,
+    'invierno-ruso': 13,
+    'humo-plugg': 51,
+    'rap-americano': 12,
+    'vieja-escuela': 17,
+    'jazz-y-rima': 42,
+    'japon-nocturno': 36,
+    'rap-latino': 55,
+    'trap-sureno': 33,
+    'trap-espanol': 5,
+    'nueva-escuela': 31,
+    'reggaeton-hoy': 38,
+    'perreo-clandestino': 16,
+    'reggaeton-clasico': 43,
+    'pop-latino': 50,
+    'latino-alterno': 14,
+    'indie-mexa': 20,
+    'cumbia-indie': 35,
+    'rock-austral': 25,
+    'rock-hispano': 8,
+    'rock-clasico': 19,
+    'metal-pesado': 30,
+    'jazz-lounge': 26,
+    'damas-del-jazz': 15,
+    'alma-blues': 45,
+    'swing-de-salon': 34,
+    'rocola-dorada': 11,
+    'bolero-eterno': 41,
+    'brillo-kpop': 29
 }
 
 # Playlists que antes llevaban diseño generado y ahora tienen imagen: siguen ocupando su turno
 # para que las demás no cambien de diseño al regenerar el catálogo.
-ART_SLOT_KEPT = {'tekk-fantasma'}
+ART_SLOT_KEPT = set()
 ART_STYLES = ['orbits', 'stripes', 'waves', 'sun', 'rings', 'grid', 'bars', 'blobs', 'checker', 'dots', 'zigzag', 'eclipse']
 EXCLUDE_TITLES = r'reaccion|subscribe to the channel'
 
@@ -99,392 +102,384 @@ def load_tracks():
 # ---------- Playlists ----------
 # (id, nombre de 2 palabras como máximo, descripción, artistas). El orden es el de la app.
 PLAYLISTS = [
-    ('cuarto-pastel', 'Cuarto Pastel', 'Bedroom pop y pop soñador: The Marías, PinkPantheress, Clairo, Malcolm Todd, beabadoobee y TV Girl.', [
-        'The Marías', 'PinkPantheress', 'Malcolm Todd', 'Clairo', 'Imogen Heap', 'TV Girl', 'Grimes', 'Milky',
-        'The Cardigans', 'beabadoobee', 'Cuco', 'Eyedress', 'Flight Facilities', 'JVKE', 'girl in red',
-        'Anna of the North', 'Cafuné', 'd4vd', 'Shelly', 'Magdalena Bay', 'Coco & Clair Clair', 'The Two Lips',
-        'Quelle Rox', 'Yazida', 'berryblue', 'Cannelle', 'greek', 'maye', 'RPLK', 'Triathalon', '54 Ultra',
-        'Princess Chelsea', 'Mattyeux', 'Bratty', 'Katzù Oso', 'INOHA', 'The Walters', 'Will Paquin', 'Besos',
-        'Ramona', 'Beach Bunny', 'Alex G', 'Miniature Tigers', 'Rex Orange County', 'MARINA', 'Hank Heaven',
-        'The Autocollants', 'Sunrise Academy', 'Remy Bond', 'Molina', 'Neggy Gemmy', 'g hao', 'SAISO CUPID',
-        'PLAYROOM', 'Temachii', 'VARIATION'
+    ('sueno-pastel', 'Sueño Pastel', 'Bedroom pop y pop soñador: The Marías, PinkPantheress, TV Girl, Eyedress, Cuco y Malcolm Todd.', [
+        'The Marías', 'PinkPantheress', 'TV Girl', 'Eyedress', 'Cuco', 'Malcolm Todd', 'Magdalena Bay',
+        'Coco & Clair Clair', 'The Two Lips', 'maye', 'Grimes', 'd4vd', 'Shelly', 'Quelle Rox', 'Mattyeux',
+        'Imogen Heap', 'Milky', 'Anna of the North', 'Yazida', 'berryblue', 'Cannelle', 'greek', 'RPLK',
+        'Triathalon', 'Princess Chelsea', 'Bratty', 'Katzù Oso', 'INOHA', 'Will Paquin', 'Besos', 'Ramona',
+        'Hank Heaven', 'The Autocollants', 'Sunrise Academy', 'Remy Bond', 'Neggy Gemmy', 'SAISO CUPID', 'PLAYROOM',
+        'Temachii', 'Molina', 'g hao', 'VARIATION'
     ]),
-    ('londres-rosa', 'Londres Rosa', 'Pop británico de purpurina y corazón roto: Harry Styles, Suki Waterhouse y Lily Allen.', [
-        'Harry Styles', 'Suki Waterhouse', 'Lous and The Yakuza', 'Ashe', 'Damiano David', 'Lily Allen'
+    ('indie-soleado', 'Indie Soleado', "Indie pop de guitarras brillantes y jangle: Her's, Hotel Ugly, Vacations, No Vacation, Harmless y Not For Radio.", [
+        "Her's", 'Hotel Ugly', 'Vacations', 'No Vacation', 'Harmless', 'Not For Radio', 'Los Retros', 'Banes World',
+        'Vansire', 'Roar', 'Luna Luna', 'The Drums', 'Ax and the Hatchetmen', 'Sports', 'F3miii', 'Mareux', 'Jakob',
+        'Billy Uomo', 'Mellow Fellow', 'Kowloon', 'TEMPOREX', 'Cults', 'Dayglow', 'Nicholas Bonnin',
+        'The Space Ocean', 'Mind’s Eye', 'Bedroom', 'Memo Boy', 'Puzzle', 'untitled', 'juju<3', 'Verzache', 'Orca',
+        'Sunshine Boysclub', 'daste.', 'The Cat Empire', 'Balu Brigada', 'Enjoy', 'Turkey', 'Stennes', 'Golf Trip'
     ]),
-    ('seda-nocturna', 'Seda Nocturna', 'R&B y pop de madrugada: Steve Lacy, The Weeknd, Frank Ocean, SZA, Doja Cat y Kali Uchis.', [
-        'Steve Lacy', 'Kali Uchis', 'Daniel Caesar', 'Ravyn Lenae', 'The Weeknd', 'Frank Ocean', 'Doja Cat',
-        'Rihanna', 'Ariana Grande', 'Demi Lovato', 'SZA', 'PARTYNEXTDOOR', 'Chris Brown', 'Cassie', 'Amaarae',
-        'Montell Fish', 'Joji', 'Labrinth', 'ZAYN', 'JMSN', 'Tyler', 'Matt Martians', 'WILLOW',
-        'Childish Gambino', 'Kaash Paige', 'Selena Gomez', 'Chappell Roan', 'Billie Eilish', 'Melanie Martinez',
-        'Ari Abdul', 'Isabel LaRosa', 'Chris Grey', 'The Kid LAROI', 'Tainy', 'benny blanco', 'Wafia', 'Artemas',
-        'JAWNY', 'FKA twigs', 'Smerz', 'Omar Apollo', 'KAYTRANADA', 'Ambar Lucid', 'Chase Atlantic', 'Ley Soul',
-        'Trinidad Cardona', "VVV [Trippin'you]", 'JEY'
+    ('garaje-indie', 'Garaje Indie', 'Indie rock de garaje y guitarras con ganas: Beach Bunny, 54 Ultra, The Strokes, Arctic Monkeys, The Cardigans y beabadoobee.', [
+        'Beach Bunny', '54 Ultra', 'The Strokes', 'Arctic Monkeys', 'The Cardigans', 'beabadoobee',
+        'late night drive home', 'The Rare Occasions', 'Current Joys', 'Weezer', 'The Symposium', 'Panchiko',
+        'girl in red', 'The Walters', 'Alex G', 'Miniature Tigers', 'Rex Orange County', 'Cannons',
+        'The Buttertones', 'The Garden', 'Dr. Dog', 'Mother Mother', 'Joy Again', 'Beach Weather',
+        'Cage The Elephant', 'Hot Freaks', 'Housecall', 'Blood Nose', 'A-Wall', 'The Long Faces',
+        'That Handsome Devil', 'Temper City', 'Ricky Montgomery', 'Two Feet', 'Black Country', 'Palace',
+        'Yeah Yeah Yeahs', 'Black Country, New Road'
     ]),
-    ('milenio-soul', 'Milenio Soul', 'R&B y neo soul de los 90 y 2000: Aaliyah, TLC, Destiny’s Child, Usher, Erykah Badu, D’Angelo y Alicia Keys.', [
-        'Aaliyah', 'TLC', "Destiny's Child", 'USHER', "D'Angelo", 'Erykah Badu', 'Alicia Keys', 'Mary J. Blige',
-        'Brandy', 'Monica', 'Mariah Carey', 'Whitney Houston', 'Janet Jackson', 'Toni Braxton', 'Boyz II Men',
-        'Jodeci', 'Ginuwine', 'Mario', 'Ne-Yo', 'Ciara', 'Keyshia Cole', 'Musiq Soulchild', 'Jill Scott', 'Maxwell',
-        'Amerie', 'Ashanti', 'Mya', 'SWV', 'En Vogue', 'Blackstreet', '112', 'Dru Hill', 'Joe', 'K-Ci & JoJo',
-        'Jagged Edge', 'Solange', 'H.E.R.', 'Craig David', 'Kelis', 'Bilal', 'Tony! Toni! Tone!'
+    ('verano-lofi', 'Verano Lo-fi', 'Garaje lo-fi y psicodelia de dormitorio: Inner Wave, Yot Club, Hot Flash Heat Wave, Jordana, april june y almost monday.', [
+        'Inner Wave', 'Yot Club', 'Hot Flash Heat Wave', 'Jordana', 'april june', 'almost monday', 'half•alive',
+        'Blood Cultures', 'Orchid Mantis', 'Michi', 'Schoolgirl Byebye'
     ]),
-    ('diva-pop', 'Diva Pop', 'Pop de estadio y de culto: Beyoncé, Lady Gaga, Dua Lipa, Taylor Swift, Charli xcx, Britney Spears y Bruno Mars.', [
-        'Beyonce', 'Lady Gaga', 'Dua Lipa', 'Bruno Mars', 'Taylor Swift', 'Charli xcx', 'Lorde', 'Britney Spears',
-        'Katy Perry', 'Olivia Rodrigo', 'Sabrina Carpenter', 'Adele', 'Sia', 'Robyn', 'Christina Aguilera', 'Kesha',
-        'Carly Rae Jepsen', 'Avril Lavigne', 'Troye Sivan', 'Tove Lo', 'Ellie Goulding'
-    ]),
-    ('acido-lento', 'Ácido Lento', 'Psicodelia e indie que flota: Tame Impala, Mild High Club, Crumb, The Strokes, Gorillaz y Foster The People.', [
-        'Tame Impala', 'Gorillaz', 'Justice', 'Theophilus London', 'ZHU', 'The Strokes', 'Chris Rainbow',
-        'Ax and the Hatchetmen', 'Sports', 'Cannons', 'Hotel Ugly', 'F3miii', 'Mareux', 'Vacations',
-        'Foster The People', 'Mild High Club', 'Jakob', 'Billy Uomo', 'Hector Gachan', 'Luna Luna', 'Mark Whalen',
-        'Michael Seyer', "Her's", 'No Vacation', 'Divino Niño', 'Crumb', 'The Symposium', 'Mellow Fellow',
-        'Banes World', 'Kowloon', 'The Buttertones', 'BOYO', 'Air', 'The Garden', 'Jean Dawson', 'TEMPOREX',
-        'Dr. Dog', 'The Drums', 'Mother Mother', 'Cults', 'Dayglow', 'Joy Again', 'Beach Weather', 'Dominic Fike',
-        'Nicholas Bonnin', 'Oliver Tree', 'Cage The Elephant', 'Harmless', 'Vansire', 'The Space Ocean', 'Mind’s Eye',
-        'Roar', 'Hot Freaks', 'Bedroom', 'Memo Boy', 'Panchiko', 'Housecall', 'Blood Nose', 'A-Wall',
-        'The Long Faces', 'Puzzle', 'late night drive home', 'That Handsome Devil', 'The Rare Occasions',
-        'Temper City', 'untitled', 'juju<3', 'Verzache', 'Seekae', 'Not For Radio', 'Orca', 'Sunshine Boysclub',
-        'daste.', 'Golf Trip', 'Los Retros', 'Monogem', 'El Guincho', 'Scissor Sisters', 'Phantogram', 'Santigold',
-        'The Cat Empire', 'Balu Brigada', 'Enjoy', 'Turkey', 'Stennes'
-    ]),
-    ('sol-sintetico', 'Sol Sintético', 'Psicodelia de sintetizador y pop cósmico: MGMT, Empire Of The Sun y Djo.', [
-        'MGMT', 'Empire Of The Sun', 'Djo', 'Kid Cudi', 'The Avalanches', 'Nipsey Hussle', 'Eric Prydz'
-    ]),
-    ('ola-tibia', 'Ola Tibia', 'Indie de garaje soleado y bedroom psych: Inner Wave, Hot Flash Heat Wave, Yot Club y Jordana.', [
-        'Inner Wave', 'Hot Flash Heat Wave', 'Yot Club', 'Jordana', 'april june', 'almost monday', 'half•alive',
-        'Blood Cultures', 'Orchid Mantis', 'Schoolgirl Byebye', 'Michi'
-    ]),
-    ('cereza-suave', 'Cereza Suave', 'Soft rock y sunshine pop de sonrisa ladeada: Paul Cherry, Dent May y JW Francis.', [
-        'Paul Cherry', 'Dent May', 'JW Francis', 'bob junior', 'Kendra Morris', 'Ghouljaboy', 'Tahiti 80',
+    ('domingo-lento', 'Domingo Lento', 'Slacker rock y soft rock de sonrisa ladeada: Mac DeMarco, Paul Cherry, Dent May, Mild High Club, Hector Gachan y Mark Whalen.', [
+        'Mac DeMarco', 'Paul Cherry', 'Dent May', 'Mild High Club', 'Hector Gachan', 'Mark Whalen', 'Michael Seyer',
+        'Chris Rainbow', 'JW Francis', 'bob junior', 'Kendra Morris', 'Ghouljaboy', 'Tahiti 80',
         'The Undercover Dream Lovers'
     ]),
-    ('riviera-francesa', 'Riviera Francesa', "French touch y nu-disco de verano: Polo & Pan, L'Impératrice, Parcels, Metronomy, Miel De Montagne y Myd.", [
-        'Polo & Pan', "L'Impératrice", 'Parcels', 'Metronomy', 'Miel De Montagne', 'Myd', 'Paradis', 'Flavien Berger',
-        'Darius', 'Clea Vincent', 'Papooz', 'Bleu Toucan', 'Alastair Lane', 'Nice Guys', 'Billy Bahama',
-        'Lewis OfMan', 'AGAV', 'Self Sabotage', 'Anoraak', 'NEIL FRANCES', 'Mou', 'warner case', 'Pépite',
-        'Miami Horror', 'Marine Neuilly', 'Else', 'Pitto', 'Eme Sarav', 'Lykke Li'
+    ('cosmos-acido', 'Cosmos Ácido', 'Psicodelia y pop cósmico de sintetizador: Tame Impala, Empire Of The Sun, Djo, MGMT, Divino Niño y Crumb.', [
+        'Tame Impala', 'Empire Of The Sun', 'Djo', 'MGMT', 'Divino Niño', 'Crumb', 'BOYO', 'Air',
+        'Theophilus London', 'Foster The People', 'El Guincho', 'The Avalanches', "Melody's Echo Chamber"
     ]),
-    ('lluvia-lenta', 'Lluvia Lenta', 'Melancolía de guitarra y niebla: Mac DeMarco, Radiohead, The Smiths, Jeff Buckley y Cigarettes After Sex.', [
-        'Mac DeMarco', 'Jeff Buckley', 'The Smiths', 'The Cranberries', 'Suicide', 'Current Joys', 'Feist',
-        'The Sundays', 'Beach House', 'Cigarettes After Sex', 'Strawberry Guy', 'Arctic Monkeys', 'Weezer',
-        'Portishead', 'Radiohead', 'Faye Webster', 'John + Jane Q. Public', 'Twenty One Pilots', 'The Neighbourhood',
-        'Lana Del Rey', 'Mitski', 'Men I Trust', 'Matt Maltese', 'bôa', 'Frankie Cosmos', 'Liana Flores',
-        'Ricky Montgomery', 'Julien Marchal', 'reidenshi', 'Glaede', 'Umi Not Human', 'salvia palth', 'Sir Chloe',
-        'Two Feet', 'Vance Joy', 'Black Country, New Road', 'Black Country', 'Haley Heynderickx', 'Palace',
-        'B l o m s t', 'Alice Phoebe Lou', 'Coldplay'
+    ('niebla-triste', 'Niebla Triste', 'Indie melancólico, dream pop y folk íntimo: Mitski, Strawberry Guy, Lana Del Rey, Cigarettes After Sex, Clairo y Beach House.', [
+        'Mitski', 'Strawberry Guy', 'Lana Del Rey', 'Cigarettes After Sex', 'Clairo', 'Beach House', 'Laufey',
+        'Faye Webster', 'Men I Trust', 'Matt Maltese', 'Cafuné', 'Alice Phoebe Lou', 'Feist',
+        'John + Jane Q. Public', 'Frankie Cosmos', 'Liana Flores', 'salvia palth', 'Sir Chloe', 'Vance Joy',
+        'Haley Heynderickx', 'B l o m s t', 'Mazzy Star', 'Julien Marchal', 'reidenshi', 'Glaede', 'Umi Not Human'
     ]),
-    ('velo-sonico', 'Velo Sónico', 'Shoegaze y dream pop de reverb infinita: Cocteau Twins, Slowdive, my bloody valentine, Mazzy Star, Tamaryn y Part Time.', [
-        'Cocteau Twins', 'Slowdive', 'my bloody valentine', 'Mazzy Star', 'Pale Saints', 'Tamaryn', 'Part Time',
-        '800 cherries', "Alison's Halo", "Autumn's Grey Solace", 'Mediavolo', 'Strange Boutique', 'spirit blue',
-        'Cryogeyser', 'An April March', 'Starflyer 59', 'The Radio Dept.', 'Rumskib', 'LSD and the Search for God',
-        "Melody's Echo Chamber", 'Chromatics', "You'll Never Get to Heaven", 'ESPRIT 空想', 'Dean Blunt', 'Night Tapes',
-        'BUBBLE TEA AND CIGARETTES',
-        'Aphex Twin'
+    ('reverb-infinito', 'Reverb Infinito', "Shoegaze y dream pop de reverb eterna: Cocteau Twins, Part Time, Aphex Twin, Tamaryn, 800 cherries y Alison's Halo.", [
+        'Cocteau Twins', 'Part Time', 'Aphex Twin', 'Tamaryn', '800 cherries', "Alison's Halo",
+        "You'll Never Get to Heaven", 'Dean Blunt', 'Slowdive', 'my bloody valentine', 'Pale Saints',
+        "Autumn's Grey Solace", 'Mediavolo', 'Strange Boutique', 'spirit blue', 'Cryogeyser', 'An April March',
+        'Starflyer 59', 'The Radio Dept.', 'Rumskib', 'LSD and the Search for God', 'Chromatics', 'ESPRIT 空想',
+        'Night Tapes', 'BUBBLE TEA AND CIGARETTES'
     ]),
-    ('senal-rota', 'Señal Rota', 'Hyperpop, digicore y emo de internet: Jane Remover, underscores, kmoe, celai, guitarbf y punchy.', [
-        'Jane Remover', 'kmoe', 'juno', 'underscores', 'That Kid', 'Frost Children', 'AKRIILA', 'celai', 'guitarbf',
-        'punchy', 'wizardjit', 'aubri!', 'kiheir', 'schizocat', 'morgue vault', 'Piggybank112', 'ankle', 'Anxiety',
-        'Junshi', '67', '⎍⧮⫽⩘⧅⦔⨬⧇⩕⥉⦾⫰⧪⦑⧛⨳',
-        'Arca'
+    ('rock-alterno', 'Rock Alterno', 'Rock alternativo y britpop de los 80 y 90: Radiohead, bôa, The Smiths, Jeff Buckley, The Cranberries y The Sundays.', [
+        'Radiohead', 'bôa', 'The Smiths', 'Jeff Buckley', 'The Cranberries', 'The Sundays', 'Coldplay', 'Green Day',
+        'The Smashing Pumpkins', 'The Cure', 'Suicide', 'R.E.M.', 'The Verve', 'Joy Division', 'Blur',
+        'The Stone Roses', 'Crowded House', 'No Doubt', 'Lenny Kravitz', 'Audioslave', 'Red Hot Chili Peppers',
+        'Nirvana', 'Hole'
     ]),
-    ('tekk-fantasma', 'Ghost Case', 'Hardtekk, jumpstyle y slowed de madrugada: STØMPWRLD, ythotkk, SAIBOTAJE, Snow Strippers, DJ ZUP RAlii y akkiemi.', [
-        'STØMPWRLD', 'ythotkk', 'SAIBOTAJE', 'DudePlaya', 'quincke', 'dxnkwer', 'DJ ZUP RAlii', 'angelhard',
-        'dopamine.', 'waypoint on noclip', 'ZXVABEAT', 'shck', 'ASKL hon', 'HALATNOST', 'cvzxeov', 'Blaulicht 112',
-        'STAKILLAZ', 'LXXVEME', 'akkiemi', 'xn88ax', 'YXMI', 'rukzi', 'eiby', 'DISGRACEMODE', 'Slixshøt',
-        'Der Aztekke', 'grindgwap', 'EL$E', 'DJ UNIVXRSEL', 'kerosyn', 'latex fruit', 'Tanin Jazz', 'Aiden Music',
-        'Maretu', 'Akula', 'HEXXO', 'Didi Early Rave', 'Dutch Disorder', 'skalpas', 'Vampyx', 'ZWE1HVNDXR',
-        'meowscles', 'dj 1lusha', 'Ivan Giannovani', 'dj trippie flameboy', 'play it twice', 'Dj Svevsx',
-        'Marc Acardipane', 'ilyhiryu', 'vyrval', 'ovg!', 'Daniela Alvira', 'vivi baby', 'Remika', 'luvwillow',
-        'decaying', 'relapse', 'Stady', 'chrmbchrmb', 'Console Allstars', 'rusino', 'Fixupboy', 'Deezo', 'Batro',
-        'Tokyo Ghetto Pussy', 'Janina', 'luu', 'leafonia', 'rukiawaa', 'Snow Strippers', 'Goreshit', 'Resonant',
-        'Delinquent', 'Øneheart', 'Izzamuzzic'
+    ('pop-sombrio', 'Pop Sombrío', 'Pop alternativo oscuro y alt R&B: Joji, Billie Eilish, Twenty One Pilots, Chase Atlantic, The Neighbourhood y Gorillaz.', [
+        'Joji', 'Billie Eilish', 'Twenty One Pilots', 'Chase Atlantic', 'The Neighbourhood', 'Gorillaz',
+        'Oliver Tree', 'Melanie Martinez', 'Dominic Fike', 'WILLOW', 'Ari Abdul', 'Isabel LaRosa', 'Chris Grey',
+        'Artemas', 'JAWNY', 'Jean Dawson', 'Phantogram', 'Santigold', 'Lykke Li', 'Portishead'
     ]),
-    ('chicle-toxico', 'Chicle Tóxico', 'Nightcore, jersey y bimbo sped up: Luci4, Jxrsey, Isaac Reign, Miss Papaya, LyteSpeed y Aidan Swank.', [
-        'Luci4', 'Jxrsey', 'Isaac Reign', 'Miss Papaya', 'LyteSpeed', 'Aidan Swank', 'sekairotten', 'Velocite',
-        'A k i', 'banaruu', 'Chanelfather', 'juugmarioracks', 'Kempachii', 'noble lion', 'ewshem', 'animegirl88',
-        'Barcellos Marcia', 'Moonshine'
+    ('pop-estelar', 'Pop Estelar', 'Pop de estrellas de hoy: Harry Styles, Suki Waterhouse, Ariana Grande, Doja Cat, Taylor Swift y Dua Lipa.', [
+        'Harry Styles', 'Suki Waterhouse', 'Ariana Grande', 'Doja Cat', 'Taylor Swift', 'Dua Lipa', 'Chappell Roan',
+        'Charli xcx', 'Selena Gomez', 'Lorde', 'Olivia Rodrigo', 'Labrinth', 'Sabrina Carpenter', 'Tove Lo', 'JVKE',
+        'MARINA', 'Lous and The Yakuza', 'Ashe', 'Damiano David', 'Lily Allen', 'Demi Lovato', 'ZAYN',
+        'The Kid LAROI', 'benny blanco', 'Wafia', 'Troye Sivan', 'Scissor Sisters'
     ]),
-    ('corazon-roto', 'Corazón Roto', 'Emo y scenecore de internet: pupsies, Punkinloveee, h4rtbrkr, Boy Fantasy, Beach Bunny en bajón y Cuntsniffer.', [
-        'pupsies', 'Punkinloveee', 'Boy Fantasy', 'pichuu', 'odihu', 'h4teboy', 'Rebzyyx', 'lexycat', 'dolldamage',
-        'thai body dump', 'Broken Toy Airplanes', 'disoc8', 'flywoah', 'voidvoice717', 'kofun', 'Lida', 's0rrow',
-        's0nder', 'mthu', 'h4rtbrkr', 'Cuntsniffer', 'Parting Gift', 'Clarion', 'twentythree',
-        'i wanna be a jack-o-lantern', 'Mistvale', 'crayon', 'shambles', 'retardead', 'coldwntr', 'Belowground',
-        'spawncamped', 'Anhero', 'Lil Watermark', 'redize', 'kaysnoto', 'Crustsox', 'Loser64', 'Fried By Fluoride',
-        'overtonight', 'laydownrot', 'Mars Argo', '1stress', 'tnfmb', 'proderics', 'Stxlkin', 'ShyBully'
+    ('pop-2000', 'Pop 2000', 'Los himnos pop de los 2000 y 2010: Rihanna, Beyoncé, Lady Gaga, Bruno Mars, Britney Spears y Gwen Stefani.', [
+        'Rihanna', 'Beyonce', 'Lady Gaga', 'Bruno Mars', 'Britney Spears', 'Gwen Stefani', 'Katy Perry', 'Madonna',
+        'Nelly Furtado', 'Justin Timberlake', 'Adele', 'Gloria Estefan', 'Sia', 'Robyn', 'Christina Aguilera',
+        'Carly Rae Jepsen', 'Avril Lavigne', 'Kylie Minogue', 'Black Eyed Peas', 'LMFAO', 'Kesha', 'Ellie Goulding',
+        'Timbaland', 'Stromae', 'Junior Senior', 'will.i.am', 'Flo Rida', 'Estelle', 'Mike Posner',
+        'Olly Alexander (Years & Years)', 'Jennifer Lopez', 'Maroon 5'
     ]),
-    ('vampiro-digital', 'Vampiro Digital', 'Emo gótico y cloud oscuro: morgue, blair, backw666s, lungskull, wifiskeleton e Im gonna die alone.', [
-        'morgue', 'blair', 'backw666s', 'wifiskeleton', 'korpsebunny', 'bloodsekai', 'iamsodead', 'zombiwebz',
-        'duskydemise', 'duskydemise archive', 'lungskull', 'Im gonna die alone', 'never goodbye', 'keepsecrets',
-        'witchbox', 'xolu', 'Nishatentachi', 'oinkasf', 'fxdedthemm', 'Yen', 'Blackblood3d', 'hurtsick', 'kiraso',
-        'axxturel', 'kaisexistence', 'rlax', 'knwbttr', 'lieu', 'osquinn', 'icedancer', 'Quincy Divine'
+    ('rnb-nocturno', 'R&B Nocturno', 'R&B contemporáneo de madrugada: Omar Apollo, The Weeknd, Kali Uchis, Steve Lacy, Daniel Caesar y PARTYNEXTDOOR.', [
+        'Omar Apollo', 'The Weeknd', 'Kali Uchis', 'Steve Lacy', 'Daniel Caesar', 'PARTYNEXTDOOR', 'Ambar Lucid',
+        'SZA', 'Chris Brown', 'Montell Fish', 'Ley Soul', 'Ravyn Lenae', 'Frank Ocean', 'Cassie', 'Amaarae', 'JMSN',
+        'Kaash Paige', 'FKA twigs', 'Smerz', 'Trinidad Cardona', "VVV [Trippin'you]", 'JEY'
     ]),
-    ('ola-fria', 'Ola Fría', 'Post-punk ruso, coldwave, doomer y pop ruso: Kino, Intelligency, Crystal Castles, Soft Blade, NEMIGA y SEREBRO.', [
-        'Kino', 'Crystal Castles', 'Intelligency', 'Soft Blade', 'SEREBRO', 'Pompeya', 'NEMIGA', 'ALYSS',
-        'Dj Kazantip', 'Sexy Sushi', 'Garcon Maigre', 'ta1ls', 'Aests', 'Maple', 'ONDA ANDAR', 'егорbez',
-        'Moya Mishel', 'Luna', 'Eldzhey', 'angel vox', 'My', 'Перемотка', 'Антоха МС', 'Марія Чайковська', 'Михей',
-        'Girls Rituals', 'N95', 'DJ Quads', 'cg', 'Czxxze', 'theroux', 'Aircraft', 'Molchat Doma', 'Gradusy', 'IOWA',
-        'Irma', 'Buerak', 'Tima Belorusskih', 'Masha i Medvedi', 'Lolita', 'MIGAS', 'plenka', 'ZXNITH', 'Kill Eva',
-        'whylovly', 'Qypedo', 'edwuard', 'Второй Ка', 'Дайте танк (!)', 'Катя Лель', 'Сова', 'конец солнечных дней',
-        'лезвием ножа.', '10дней', 'слушай экзорцист', 'ЭЛЕВЕН ЭЙТ', 'собакой сдохъ', 'урал гайсин', 'Русский размер',
-        'soit pas jaloux', 'tremera', 'keyoo'
+    ('rnb-dorado', 'R&B Dorado', "R&B y neo soul de los 90 y 2000: Aaliyah, Destiny's Child, Usher, TLC, Erykah Badu y Alicia Keys.", [
+        'Aaliyah', "Destiny's Child", 'USHER', 'TLC', 'Erykah Badu', 'Alicia Keys', 'Whitney Houston',
+        'Janet Jackson', "D'Angelo", 'Mary J. Blige', 'Mariah Carey', 'Ne-Yo', 'Brandy', 'Toni Braxton',
+        'Boyz II Men', 'Jodeci', 'Ginuwine', 'Ciara', 'En Vogue', '112', 'Craig David', 'Monica', 'Mario',
+        'Keyshia Cole', 'Musiq Soulchild', 'Jill Scott', 'Maxwell', 'Amerie', 'Ashanti', 'Mya', 'SWV',
+        'Blackstreet', 'Dru Hill', 'Joe', 'K-Ci & JoJo', 'Jagged Edge', 'Solange', 'H.E.R.', 'Kelis', 'Bilal',
+        'Tony! Toni! Tone!'
     ]),
-    ('neon-eterno', 'Neón Eterno', 'Synth pop de los 80, eurodance de los 90 y pista de los 2000: Depeche Mode, Haddaway, Daft Punk, Gwen Stefani y Nelly Furtado.', [
-        'Depeche Mode', 'Bronski Beat', 'Men At Work', 'Soft Cell', 'Chris Isaak', 'Blondie', 'Eurythmics',
-        'Laura Branigan', 'R.E.M.', 'A Flock Of Seagulls', 'The Human League', 'Billy Idol',
-        'Daryl Hall & John Oates', 'Simple Minds', 'Real Life', 'Michael Sembello', 'The Smashing Pumpkins',
-        'The Verve', 'Tears For Fears', 'The Cars', 'New Order', 'Joy Division', 'Duran Duran', 'When In Rome',
-        'Twin Tribes', 'The Cure', 'The Romantics', 'Orchestral Manoeuvres In The Dark', 'The Police', 'Blur',
-        'Spandau Ballet', 'Alice Deejay', 'Andronicus', 'Michael Gray', 'Crystal Waters', 'Robert Miles',
-        'Bob Sinclar', 'Modjo', 'La Bouche', 'Haddaway', 'Ace of Base', 'Mr. President', 'Global Deejays',
-        'Technotronic', 'Scatman John', 'Timbaland', 'Kylie Minogue', 'Madonna', 'Eiffel 65',
-        'Stardust', 'Darude', 'Stromae', 'Junior Senior', 'will.i.am', 'Flo Rida', 'Black Eyed Peas', 'LMFAO',
-        'SNAP!', 'Culture Beat', 'Daft Punk', 'Gesaffelstein', 'M83', 'Yeah Yeah Yeahs',
-        'Aaron Smith', 'Olivia Newton-John', 'Emmanuel', 'Gloria Estefan', 'The Rah Band', 'F.R. David',
-        'The Stone Roses', '1tbsp', 'Nelly Furtado', 'Gwen Stefani', 'Justin Timberlake', 'Estelle'
+    ('funk-eterno', 'Funk Eterno', 'Funk, soul y pop negro de los 70 y 80: Michael Jackson, Stevie Wonder, Prince, Earth, Wind & Fire, Barry White y Kool & The Gang.', [
+        'Michael Jackson', 'Stevie Wonder', 'Prince', 'Earth', 'Barry White', 'Kool & The Gang', 'Marvin Gaye',
+        'Rick James', 'The Jackson 5', 'The Jacksons', 'Commodores', 'Sly & The Family Stone', 'Grover Washington',
+        'Bob Marley & The Wailers', 'Al Green', 'Parliament', 'George Clinton', 'James Brown',
+        'James Brown & The Famous Flames', 'Zapp', 'Cameo', 'The Gap Band', 'Rose Royce', "The O'Jays"
     ]),
-    ('euforia-ibiza', 'Euforia Ibiza', 'EDM y pop de festival de los 2010: Calvin Harris, Swedish House Mafia, Galantis, Clean Bandit, Robin Schulz y Jack Ü.', [
-        'Calvin Harris', 'Swedish House Mafia', 'Galantis', 'Mike Posner', 'Seeb', 'Robin Schulz',
-        'Olly Alexander (Years & Years)', 'Years & Years', 'Clean Bandit', 'Jack Ü', 'David Guetta',
-        '99 Souls', 'Kyla', 'DJ Paleface', 'Crazy Cousinz',
-        'Avicii', 'Kygo', 'Zedd', 'Martin Garrix', 'Major Lazer', 'Skrillex', 'deadmau5', 'Tiesto',
-        'The Chainsmokers', 'Alan Walker', 'Marshmello', 'Alesso'
+    ('bola-disco', 'Bola Disco', 'Disco y boogie para la pista: Bee Gees, ABBA, Donna Summer, George Michael, Jamiroquai y CHIC.', [
+        'Bee Gees', 'ABBA', 'Donna Summer', 'George Michael', 'Jamiroquai', 'CHIC', 'KC & The Sunshine Band',
+        'Diana Ross', 'Sister Sledge', 'Purple Disco Machine', 'Patrice Rushen', 'Rod Stewart', 'Gloria Gaynor',
+        'Chaka Khan', 'Boney M.', 'Evelyn Champagne King', 'Laura Branigan', 'Olivia Newton-John', 'Paul McCartney',
+        'A Taste Of Honey', 'Bobby Caldwell', 'Player', 'Baccara', 'Tavares', 'Andy Gibb', 'Heatwave', 'Joe Bataan',
+        'Michael Angelo', 'Rufus', 'Village People', 'Cheryl Lynn', 'Thelma Houston', 'Anita Ward', 'Lipps Inc.',
+        'Sylvester', 'The Trammps', 'Odyssey', 'McFadden & Whitehead', 'Shalamar', 'The Whispers', 'Lionel Richie',
+        'Teena Marie', 'Cerrone', 'Irene Cara', 'The Pointer Sisters', 'Hot Chocolate', 'Billy Ocean', 'LaBelle',
+        'Amii Stewart'
     ]),
-    ('pista-infinita', 'Pista Infinita', 'House, big beat y electrónica de club: Fred again.., Disclosure, Fatboy Slim, The Chemical Brothers, Peggy Gou y Röyksopp.', [
-        'Fred again..', 'Disclosure', 'Fatboy Slim', 'The Chemical Brothers', 'Basement Jaxx', 'Royksopp',
-        'Caribou', 'Peggy Gou', 'Purple Disco Machine', 'FISHER', 'BICEP', 'Jamie xx', 'Faithless',
-        'Armand Van Helden', 'LCD Soundsystem', 'Duck Sauce', 'Martin Solveig', 'Joel Corry', 'Kungs', 'MEDUZA',
-        'Lilly Wood and The Prick'
+    ('neon-80', 'Neón 80', 'Synth pop y new wave de los 80: Depeche Mode, Billy Idol, Chris Isaak, Duran Duran, The Police y Men At Work.', [
+        'Depeche Mode', 'Billy Idol', 'Chris Isaak', 'Duran Duran', 'The Police', 'Men At Work', 'Blondie',
+        'A Flock Of Seagulls', 'Daryl Hall & John Oates', 'New Order', 'Bronski Beat', 'Soft Cell', 'Eurythmics',
+        'The Human League', 'Simple Minds', 'Real Life', 'Michael Sembello', 'Tears For Fears', 'The Cars',
+        'When In Rome', 'Twin Tribes', 'The Romantics', 'Orchestral Manoeuvres In The Dark', 'Spandau Ballet',
+        'Emmanuel', 'F.R. David'
     ]),
-    ('brillo-disco', 'Brillo Disco', 'Disco, funk y soul para la pista: Michael Jackson, Bee Gees, Earth, Wind & Fire, Prince y Stevie Wonder.', [
-        'Michael Jackson', 'Paul McCartney', 'Bee Gees', 'Barry White', 'Earth', 'Kool & The Gang', 'Patrice Rushen',
-        'A Taste Of Honey', 'KC & The Sunshine Band', 'Rick James', 'Bobby Caldwell', 'George Michael',
-        'Grover Washington', 'Rod Stewart', 'Player', 'Bob Marley & The Wailers', 'Jamiroquai', 'Baccara', 'Tavares',
-        'Gloria Gaynor', 'ABBA', 'Andy Gibb', 'Diana Ross', 'Stevie Wonder', 'Prince', 'Marvin Gaye', 'Al Green',
-        'Heatwave', 'Joe Bataan', 'Michael Angelo',
-        'CHIC', 'Donna Summer', 'Sister Sledge', 'Aretha Franklin', 'Chaka Khan', 'Rufus', 'The Jackson 5',
-        'The Jacksons', 'Boney M.', 'Commodores', 'Sly & The Family Stone', 'Evelyn Champagne King',
-        'Village People', 'Cheryl Lynn', 'Thelma Houston', 'Anita Ward', 'Lipps Inc.', 'Sylvester', 'The Trammps',
-        'Odyssey', 'McFadden & Whitehead', 'Shalamar', 'The Whispers', 'Lionel Richie', 'Parliament',
-        'George Clinton', 'James Brown', 'James Brown & The Famous Flames', 'Zapp', 'Cameo', 'The Gap Band',
-        'Teena Marie', 'Cerrone', 'Irene Cara', 'The Pointer Sisters', 'Rose Royce', 'Hot Chocolate', "The O'Jays",
-        'Billy Ocean', 'LaBelle', 'Amii Stewart'
+    ('french-touch', 'French Touch', "French touch, nu-disco y electrónica francesa: Polo & Pan, Daft Punk, L'Impératrice, Justice, Miel De Montagne y Metronomy.", [
+        'Polo & Pan', 'Daft Punk', "L'Impératrice", 'Justice', 'Miel De Montagne', 'Metronomy', 'Darius',
+        'Lewis OfMan', 'Paradis', 'Myd', 'Flavien Berger', 'Clea Vincent', 'Bleu Toucan', 'Alastair Lane',
+        'NEIL FRANCES', 'Parcels', 'Papooz', 'Nice Guys', 'Billy Bahama', 'AGAV', 'Self Sabotage', 'Anoraak',
+        'warner case', 'Pépite', 'Miami Horror', 'Else', 'Pitto', 'Eme Sarav', 'Michael Gray', 'Bob Sinclar',
+        'Modjo', 'Stardust', 'The Rah Band', 'Mou', 'Marine Neuilly'
     ]),
-    ('fiebre-latina', 'Fiebre Latina', 'Pop latino y reggaetón de radio: Shakira, J Balvin, CNCO, Maluma, Prince Royce, Anitta y Danny Ocean.', [
-        'Shakira', 'J Balvin', 'CNCO', 'CD9', 'Maluma', 'Prince Royce', 'Anitta', 'Danny Ocean', 'NATTI NATASHA',
-        'Jesse & Joy', 'Romeo Santos', 'Kim Loaiza',
-        'Ozuna', 'Nicky Jam', 'Sech', 'Lunay', 'Manuel Turizo', 'Camilo', 'Sebastian Yatra', 'Morat', 'Luis Fonsi',
-        'Young Miko'
+    ('pista-house', 'Pista House', 'House, big beat y electrónica de club: Fred again.., KAYTRANADA, Eric Prydz, Disclosure, Fatboy Slim y ZHU.', [
+        'Fred again..', 'KAYTRANADA', 'Eric Prydz', 'Disclosure', 'Fatboy Slim', 'ZHU', 'The Chemical Brothers',
+        'Basement Jaxx', 'Royksopp', 'Caribou', 'Peggy Gou', 'Flight Facilities', 'Seekae', 'Monogem',
+        'Gesaffelstein', 'M83', 'FISHER', 'BICEP', 'Jamie xx', 'Faithless', 'Armand Van Helden', 'LCD Soundsystem',
+        'Duck Sauce', 'Martin Solveig', 'Joel Corry', 'Kungs', 'MEDUZA', 'Lilly Wood and The Prick'
     ]),
-    ('oro-latino', 'Oro Latino', 'Los himnos del pop latino de los 90 y 2000: Ricky Martin, Thalía, Juanes, Maná, Selena, Juan Luis Guerra y Aventura.', [
-        'Ricky Martin', 'Enrique Iglesias', 'Thalia', 'Paulina Rubio', 'Juan Luis Guerra 4.40', 'Aventura',
-        'Selena', 'Juanes', 'Mana', 'Chayanne', 'Marc Anthony', 'Celia Cruz', 'Carlos Vives', 'RBD',
-        'Laura Pausini', 'Camila', 'Reik', 'Sin Bandera', 'Elvis Crespo', 'Los Del Rio', 'Ricardo Arjona',
-        'La Oreja de Van Gogh', 'Jennifer Lopez', 'Belinda', 'Gente De Zona', 'Franco De Vita',
-        'Alejandro Fernandez', 'Ha Ash', 'Miami Sound Machine'
+    ('euforia-dance', 'Euforia Dance', 'EDM de festival y eurodance de los 90: Calvin Harris, Avicii, Swedish House Mafia, David Guetta, Major Lazer y Galantis.', [
+        'Calvin Harris', 'Avicii', 'Swedish House Mafia', 'David Guetta', 'Major Lazer', 'Galantis', 'Clean Bandit',
+        'Kygo', 'Zedd', 'SNAP!', 'Culture Beat', 'Martin Garrix', 'Skrillex', 'deadmau5', 'Tiesto',
+        'The Chainsmokers', 'Dj Kazantip', 'Русский размер', 'Alice Deejay', 'Andronicus', 'Crystal Waters',
+        'Robert Miles', 'La Bouche', 'Haddaway', 'Ace of Base', 'Mr. President', 'Global Deejays', 'Technotronic',
+        'Scatman John', 'Eiffel 65', 'Darude', 'Aaron Smith', '1tbsp', 'Robin Schulz', 'Jack Ü', '99 Souls', 'Kyla',
+        'Alan Walker', 'Marshmello', 'Alesso', 'Seeb', 'Years & Years', 'DJ Paleface', 'Crazy Cousinz'
     ]),
-    ('perreo-nocturno', 'Perreo Nocturno', 'Neoperreo, dembow mexa y club latino: DENNA LA PORRI, Doony Graff, Yeyo, Jose Alatorre, MJ Nebreda y funk brasileño.', [
-        'La Obsesion', 'Jose Alatorre', 'DENNA LA PORRI', 'Doony Graff', 'Yeyo', 'Sayuri & Sopholov', 'La Vendicion',
-        'Nana Nina', 'La Mafia del Amor', 'JAYSEE', 'hennessyyy', 'Yng Lvcas', 'Cachirula', 'Veronica', 'Nasty Vato',
-        'Kinto Piso', 'La Zanta Xit', 'TBX', 'Jessvel Peyret', 'xosa', 'LoveUikari', 'Ya Ice Dilan', 'El Bogueto',
-        'Lil Bru', 'Mike', 'Kauxx', 'MC Sam', 'Macaia', 'Aln MC', 'Je Tupinikin', 'DJ Cozy', 'VULGO', 'lila sky',
-        'Chzter', 'Cherry Chola', 'MJ Nebreda', 'Sajiva', 'Midfug', 'Ruzzo Doblezz', '3BallMTY', 'DJ ROOTS',
-        'Tramposos', '3delincuentes', 'Bolishe One', 'FLVCKKA', 'Joss ML', 'Enayy', 'Alicia te quiero', 'MXLVIXJE',
-        'morenoguapo', 'Ivan de la Rioja', 'Angelicca', 'la intimidad', 'paxheko', 'Yered!!', 'Dinamarca',
-        'Onemillionkisses', 'GSAD', 'Ikoniko', 'Mamx', 'Tuere Chorito', 'Uzielito Mix', 'Ivy Wavy', 'Zalzuki',
-        'yngdean', 'Amber Yezel',
-        'MC Kevinho'
+    ('rave-fantasma', 'Rave Fantasma', 'Hardtekk, jumpstyle y rave de madrugada: akkiemi, ythotkk, STØMPWRLD, DJ ZUP RAlii, latex fruit y Marc Acardipane.', [
+        'akkiemi', 'ythotkk', 'STØMPWRLD', 'DJ ZUP RAlii', 'latex fruit', 'Marc Acardipane', 'ilyhiryu',
+        'waypoint on noclip', 'STAKILLAZ', 'luu', 'rukiawaa', 'Snow Strippers', 'SAIBOTAJE', 'DudePlaya', 'quincke',
+        'dxnkwer', 'angelhard', 'ZXVABEAT', 'shck', 'ASKL hon', 'HALATNOST', 'cvzxeov', 'Blaulicht 112', 'LXXVEME',
+        'YXMI', 'rukzi', 'eiby', 'DISGRACEMODE', 'Slixshøt', 'Der Aztekke', 'grindgwap', 'EL$E', 'Tanin Jazz',
+        'Aiden Music', 'Maretu', 'Akula', 'Didi Early Rave', 'Dutch Disorder', 'Vampyx', 'ZWE1HVNDXR', 'meowscles',
+        'dj 1lusha', 'Ivan Giannovani', 'dj trippie flameboy', 'Dj Svevsx', 'vyrval', 'ovg!', 'Daniela Alvira',
+        'vivi baby', 'Remika', 'luvwillow', 'decaying', 'relapse', 'Stady', 'chrmbchrmb', 'Console Allstars',
+        'rusino', 'Fixupboy', 'Deezo', 'Batro', 'Tokyo Ghetto Pussy', 'Janina', 'Resonant', 'Delinquent',
+        'Øneheart', 'Izzamuzzic', 'dopamine.', 'xn88ax', 'DJ UNIVXRSEL', 'kerosyn', 'HEXXO', 'skalpas',
+        'play it twice', 'leafonia'
     ]),
-    ('barrio-sur', 'Barrio Sur', 'Trap romántico y cumbia rkt de Argentina: One Flyt, JCKC, tomas metrikf, Sosa 66s y T4CHO.', [
-        'One Flyt', 'JCKC', 'tomas metrikf', 'Vasti Yan', 'Sosa 66s', 'T4CHO', 'Cerounno', 'Troubless', 'Malandro',
-        'Ema', 'Ilsmokee', 'Deyco', 'Nazareno gutierrez', 'Carrion GodBle$$', 'T&K', '008RACCA', 'Gabryel', 'Lizorzo',
-        'Klens', 'Cheim', 'Franky Style', 'Niño Condor', 'Tian vck', 'Mugshot', 'ESE MG', 'Natán', 'GZ',
-        'MECHAYRXMEO', 'wrld one', 'CORBA'
+    ('club-jersey', 'Club Jersey', 'Jersey club, nightcore y sped up: nusar3000, Miss Papaya, Aidan Swank, Luci4, Jxrsey y Isaac Reign.', [
+        'nusar3000', 'Miss Papaya', 'Aidan Swank', 'Luci4', 'Jxrsey', 'Isaac Reign', 'LyteSpeed', 'sekairotten',
+        'Velocite', 'A k i', 'banaruu', 'Chanelfather', 'juugmarioracks', 'Kempachii', 'noble lion', 'ewshem',
+        'animegirl88', 'Barcellos Marcia', 'Moonshine', 'Mushkaa', '8belial', 'Safety Trance', 'GIANNI BATISTA',
+        'Azuleja'
     ]),
-    ('calle-cromo', 'Calle Cromo', 'La nueva escuela española: Stereo Madness, Guxo, Lu Jr, LEÏTI, Enry-K, Ralphie Choo y superreservao.', [
-        'Stereo Madness', 'Guxo', 'Lu Jr', 'LEÏTI', 'D.Valentino', 'Enry-K', 'Teo Lucadamo', 'ukd', 'Gatti',
-        'WEST DUBAI', 'mita', 'SAM DAVIES', 'UGLY', 'Icy Vedo', 'Ralphie Choo', 'duna', 'superreservao',
-        'Estrellas Del Rap Nacional', 'Nico', 'Semon', "L'haine", 'Fuji', 'Elio Toffana', 'Bb trickz', 'ROSALÍA',
-        'rusowsky',
-        'Bad Gyal'
+    ('glitch-pop', 'Glitch Pop', 'Hyperpop y digicore: Jane Remover, AKRIILA, juno, celai, schizocat y morgue vault.', [
+        'Jane Remover', 'AKRIILA', 'juno', 'celai', 'schizocat', 'morgue vault', 'Arca', 'kmoe', 'underscores',
+        'That Kid', 'Frost Children', 'punchy', 'aubri!', 'kiheir', 'Piggybank112', 'ankle', 'Junshi', '67',
+        'guitarbf', 'wizardjit', 'Anxiety', '⎍⧮⫽⩘⧅⦔⨬⧇⩕⥉⦾⫰⧪⦑⧛⨳'
     ]),
-    ('infierno-rosa', 'Infierno Rosa', 'Trap de la calle española, de la PXXR GVNG para acá: Yung Beef y Kaydy Cain.', [
-        'Yung Beef', 'Kaydy Cain', 'Omar Montes', 'El Malilla', 'Albany', 'ladiferencia2006', 'Xiyo', 'Quevedo',
-        'La Zowi',
-        'Kidd Keo'
+    ('emo-pixelado', 'Emo Pixelado', 'Emo y scenecore de internet: pupsies, h4rtbrkr, Cuntsniffer, Punkinloveee, i wanna be a jack-o-lantern y Boy Fantasy.', [
+        'pupsies', 'h4rtbrkr', 'Cuntsniffer', 'Punkinloveee', 'i wanna be a jack-o-lantern', 'Boy Fantasy', 'odihu',
+        'h4teboy', 'overtonight', 'mthu', 'Fried By Fluoride', 'Rebzyyx', 's0rrow', 'shambles', 'retardead',
+        'spawncamped', 'Anhero', 'kaysnoto', 'Crustsox', 'ShyBully', 'pichuu', 'thai body dump',
+        'Broken Toy Airplanes', 'disoc8', 'flywoah', 'voidvoice717', 'kofun', 'Lida', 's0nder', 'Parting Gift',
+        'Clarion', 'twentythree', 'Mistvale', 'crayon', 'coldwntr', 'Lil Watermark', 'Loser64', 'laydownrot',
+        'Mars Argo', 'tnfmb', 'proderics', 'Stxlkin', 'lexycat', 'dolldamage', 'Belowground', 'redize', '1stress'
     ]),
-    ('cuenta-atras', 'Cuenta Atrás', 'Club, jersey y remixes con acento español: nusar3000, GIANNI BATISTA, Mushkaa, Natalia Lacunza, NATHY PELUSO y Safety Trance.', [
-        'nusar3000', 'GIANNI BATISTA', 'Mushkaa', '8belial', 'Safety Trance', 'Azuleja'
+    ('cripta-digital', 'Cripta Digital', 'Emo gótico, cloud oscuro y horrorcore: morgue, blair, zombiwebz, wifiskeleton, korpsebunny y khxznq.', [
+        'morgue', 'blair', 'zombiwebz', 'wifiskeleton', 'korpsebunny', 'khxznq', 'Sematary', 'backw666s',
+        'iamsodead', 'duskydemise', 'duskydemise archive', 'lungskull', 'Im gonna die alone', 'Goreshit',
+        'never goodbye', 'keepsecrets', 'xolu', 'fxdedthemm', 'Yen', 'Blackblood3d', 'kiraso', 'axxturel',
+        'kaisexistence', 'lieu', 'osquinn', 'icedancer', 'bloodsekai', 'witchbox', 'Nishatentachi', 'oinkasf',
+        'hurtsick', 'rlax', 'knwbttr', 'Quincy Divine'
     ]),
-    ('dembow-anejo', 'Dembow Añejo', 'Reggaetón de la vieja escuela y cumbia: Daddy Yankee, Don Omar, Arcángel, Wisin & Yandel y Kumbia Kings.', [
-        'Daddy Yankee', 'Don Omar', 'Arcángel', 'Arcangel', 'Wisin & Yandel', 'Yandel', 'Plan B', 'J Alvarez',
-        'Jowell & Randy', 'Tony Dize', 'Angel Y Khriz', 'Héctor "El Father"', 'Randy Nota Loca', 'Ivy Queen',
-        'Yaga & Mackie', 'Baby Rasta y Gringo', 'Sammy & Falsetto', 'Ñengo Flow', 'Nengo Flow', 'Zion', 'Alex Rose',
-        'Reykon', 'Farruko', 'DJ Luian', 'Franco "El Gorilla"', 'A.B. Quintanilla III',
+    ('invierno-ruso', 'Invierno Ruso', 'Post-punk ruso, coldwave y pop ruso: Intelligency, Перемотка, Kino, Crystal Castles, Soft Blade y Sexy Sushi.', [
+        'Intelligency', 'Перемотка', 'Kino', 'Crystal Castles', 'Soft Blade', 'Sexy Sushi', 'Maple', 'ONDA ANDAR',
+        'Luna', 'Антоха МС', 'Gradusy', 'Второй Ка', 'Дайте танк (!)', 'SEREBRO', 'Pompeya', 'ALYSS',
+        'Garcon Maigre', 'ta1ls', 'Aests', 'егорbez', 'Moya Mishel', 'Eldzhey', 'angel vox', 'My',
+        'Марія Чайковська', 'Михей', 'Girls Rituals', 'N95', 'DJ Quads', 'Czxxze', 'theroux', 'Aircraft',
+        'Molchat Doma', 'IOWA', 'Irma', 'Buerak', 'Tima Belorusskih', 'Masha i Medvedi', 'Lolita', 'MIGAS',
+        'plenka', 'ZXNITH', 'Kill Eva', 'whylovly', 'edwuard', 'Катя Лель', 'Сова', 'конец солнечных дней',
+        'лезвием ножа.', 'слушай экзорцист', 'ЭЛЕВЕН ЭЙТ', 'собакой сдохъ', 'урал гайсин', 'soit pas jaloux',
+        'tremera', 'keyoo', 'NEMIGA', 'cg', 'Qypedo', '10дней'
+    ]),
+    ('humo-plugg', 'Humo Plugg', 'Cloud rap, plugg y underground: void, LUCKI, ProdWithFlavor, Lelo, Trefuego y Xavier Wulf.', [
+        'void', 'LUCKI', 'ProdWithFlavor', 'Lelo', 'Trefuego', 'Xavier Wulf', 'Spaceli Vietnam', 'Kuhsigh',
+        'QUANTRELL', 'BashfortheWorld', 'Manny Laurenko', 'empireofyu', 'Khalil', 'Sharkey', 'Zachariehs',
+        'Kingman Irving', 'Savvy Melado', 'ilyTOMMY', 'dedwrite', 'VVS $.', '22francc', 'Barretta', 'Ejmonix',
+        'KYSLINGO', 'LandonBeck', 'FLVSHY', 'Trey Bands', 'Big Tonka Cuh', 'ssjishmael', 'sativa', 'Lil Maru',
+        'kush', 'feelinmyself', 'C Choppa', 'CHASETHEMONEY', 'Harrykahanhai', 'Paulie Leparik', 'skyemane',
+        'Freddie Dredd', 'are you really fine?', 'BONES', 'dreaming.', 'reptilianshrine', 'GHOSTYY', 'neptune'
+    ]),
+    ('rap-americano', 'Rap Americano', 'Rap de EE. UU. de los 2010 a hoy: Tyler, The Creator, Armand Hammer, Kanye West, Drake, Childish Gambino y Kendrick Lamar.', [
+        'Tyler', 'Armand Hammer', 'Kanye West', 'Drake', 'Childish Gambino', 'Kendrick Lamar', 'G-Eazy',
+        'Mac Miller', 'Matt Martians', 'Kid Cudi', 'Nipsey Hussle', 'Travis Scott', 'XXXTENTACION',
+        'French Montana', 'Nafeesisboujee', 'Jordan Adetunji', 'Metro Boomin', 'A AP Ferg', 'N.E.R.D', 'Yung Lean',
+        'A$AP Ferg'
+    ]),
+    ('vieja-escuela', 'Vieja Escuela', 'La edad de oro del hip hop: Outkast, The Notorious B.I.G., 2Pac, Eminem, JAY-Z y Nas.', [
+        'Outkast', 'The Notorious B.I.G.', '2Pac', 'Eminem', 'JAY-Z', 'Nas', 'A Tribe Called Quest', 'Dr. Dre',
+        'Ms. Lauryn Hill', 'Missy Elliott', 'Snoop Dogg', 'Madvillain', 'De La Soul', 'Fugees', 'Beastie Boys',
+        'MF DOOM', 'Wu-Tang Clan', 'Mobb Deep', 'Lupe Fiasco', 'Common', 'The Pharcyde', 'Gang Starr', 'RunD.M.C.',
+        'Method Man', 'Mos Def', 'Black Star', 'J Dilla', 'Slum Village', 'Cypress Hill', 'House Of Pain',
+        'Warren G'
+    ]),
+    ('jazz-y-rima', 'Jazz y Rima', 'Jazz rap, boom bap y jazzhop: Kero One, Jazz Liberatorz, 3582, Marcus D, Witness y Glad2Mecha.', [
+        'Kero One', 'Jazz Liberatorz', '3582', 'Marcus D', 'Witness', 'Glad2Mecha', 'Example',
+        'Boho Fau & Elevated Soul', 'Emapea', 'Pat D', 'The Globetroddas', 'Mndsgn', 'Mountain Brothers',
+        'Lady Paradox', 'Bush Babees', 'J. Rawls', 'Mathematik', 'Peebs The Prophet', 'Dela', 'Cru', '14', 'Okvsho',
+        'Teebs', 'edbl', 'Blazo', 'Oliver Crosby', 'Spaze Windu', 'A.O.', 'BROCKBEATS', 'Green Assassin Dollar',
+        'Iam6teen', 'Sinj Clarke', 'Telemakus', 'Sweet William', 'The Offline', 'fat jon', 'TOMC', 'FloFilz',
+        'Cise Star', 'Thes One', 'Funky DL', 'Rikinish', 'Medasin', 'Lionmilk', 'Professor Creepshow'
+    ]),
+    ('japon-nocturno', 'Japón Nocturno', 'Jazzhop, beats japoneses y city pop: Masayoshi Takanaka, Nujabes, Shing02, Yakkle, Force Of Nature y TSUTCHIE.', [
+        'Masayoshi Takanaka', 'Nujabes', 'Shing02', 'Yakkle', 'Force Of Nature', 'TSUTCHIE', 'Ljones',
+        'DJ Mitsu The Beats', 'Uyama Hiroto', 'Kyo Itachi', 'tajima hal', 'haruka nakamura', 'Nitsua',
+        'Shingo Sekiguchi', 'MIDICRONICA', 'Pase Rock', 'clammbon', 'Scott Matelic', 'STUTS', 'Toshiki Soejima',
+        'mabanua', 'Michael Kaneko', 'EVISBEATS', '16FLIP', 'Night Tempo', 'DJ FRIP a.k.a. BeatLab',
+        'YOUR SONG IS GOOD', 'the peggies', 'Fujii Kaze', 'Lamp', 'Makoto Matsushita', 'DOOPEES', 'MEITEI',
+        'Bajune Tobeta', 'Modal.s', 'JJJ'
+    ]),
+    ('rap-latino', 'Rap Latino', 'Rap en español de México y Latinoamérica: Cruzzi, Charles Ans, Wk, A.C.O, Mike Lamadrid y Simpson Ahuevo.', [
+        'Cruzzi', 'Charles Ans', 'Wk', 'A.C.O', 'Mike Lamadrid', 'Simpson Ahuevo', 'Adan Cruz', 'Mime 871',
+        'Mr. Knightowl', 'Iluminatik', 'Señor Marrano', 'The Guadaloops', 'Anestesia', 'Cartel De Santa', 'Gera MX',
+        'Choclock', 'Flavio Rodriguez', 'Ka-b', 'Canserbero', 'Micro TDH', 'Felp 22', 'Robot95', 'Logan Hate',
+        'Ana Tijoux', 'Mellow Man Ace', 'Bizor', 'Muelas De Gallo', 'Gonzalo Genek', 'Tankeone', 'Neto Peña',
+        'Shamanes Crew'
+    ]),
+    ('trap-sureno', 'Trap Sureño', 'Trap y RKT de Argentina y Chile: One Flyt, Duki, Milo j, tomas metrikf, Sosa 66s y Pablo Chill-E.', [
+        'One Flyt', 'Duki', 'Milo j', 'tomas metrikf', 'Sosa 66s', 'Pablo Chill-E', 'YSY A', 'Trueno', 'Malandro',
+        'Niño Condor', 'Cris MJ', 'Pressure 9X19', 'Aleman', 'ROA', 'Trap Capos', 'Nicki Nicole', 'Emilia', 'Bhavi',
+        'Alemán', 'JCKC', 'T4CHO', 'Cerounno', 'Troubless', 'Ema', 'Ilsmokee', 'Deyco', 'Nazareno gutierrez',
+        'Carrion GodBle$$', 'T&K', '008RACCA', 'Klens', 'Cheim', 'Franky Style', 'Tian vck', 'Mugshot', 'ESE MG',
+        'Natán', 'GZ', 'MECHAYRXMEO', 'Young Cister', 'Slayter', 'Lil Naay', 'FloyyMenor', 'Maria Becerra',
+        'LIT killah', 'Bardero$', 'C.R.O', 'Alex Gargolas', 'KIDDWERO', 'Kiddye', 'Félix Vestre', 'Young Weapon',
+        'Vasti Yan', 'Gabryel', 'Lizorzo', 'wrld one', 'CORBA'
+    ]),
+    ('trap-espanol', 'Trap Español', 'Trap y rap de España: Yung Beef, Kaydy Cain, C. Tangana, Xiyo, Rels B y ladiferencia2006.', [
+        'Yung Beef', 'Kaydy Cain', 'C. Tangana', 'Xiyo', 'Rels B', 'ladiferencia2006', 'Bb trickz', 'ROSALÍA',
+        'Quevedo', 'WEST DUBAI', 'UGLY', 'Icy Vedo', 'Estrellas Del Rap Nacional', "L'haine", 'Bad Gyal',
+        'Omar Montes', 'El Malilla', 'Albany', 'La Zowi', 'Kidd Keo', 'Delaossa'
+    ]),
+    ('nueva-escuela', 'Nueva Escuela', 'La nueva escuela española, entre pop, electrónica y rap: rusowsky, Ralphie Choo, Stereo Madness, Guxo, Lu Jr y LEÏTI.', [
+        'rusowsky', 'Ralphie Choo', 'Stereo Madness', 'Guxo', 'Lu Jr', 'LEÏTI', 'Enry-K', 'Teo Lucadamo',
+        'superreservao', 'duna', 'Nico', 'Fuji', 'Elio Toffana', 'D.Valentino', 'ukd', 'Gatti', 'mita',
+        'SAM DAVIES', 'Semon'
+    ]),
+    ('reggaeton-hoy', 'Reggaetón Hoy', 'Reggaetón y trap latino de ahora: Bad Bunny, J Balvin, KAROL G, Rauw Alejandro, Maluma y Ozuna.', [
+        'Bad Bunny', 'J Balvin', 'KAROL G', 'Rauw Alejandro', 'Maluma', 'Ozuna', 'Nicky Jam', 'Yan Block',
+        'Novato El Flow', 'Feid', 'Omar Courtz', 'Myke Towers', 'Tainy', 'Jon Z', 'SAIKO', 'Luigi 21 Plus',
+        'Boy Wonder CF', 'Alvaro Diaz', 'Sech', 'Lunay', 'Manuel Turizo', 'Young Miko', 'Bryant Myers', 'J Abdiel',
+        'Jay Wheeler', 'Tokischa', 'iZaak'
+    ]),
+    ('perreo-clandestino', 'Perreo Clandestino', 'Neoperreo, dembow mexa y funk brasileño: Doony Graff, Jose Alatorre, Yeyo, DENNA LA PORRI, La Obsesion y xosa.', [
+        'Doony Graff', 'Jose Alatorre', 'Yeyo', 'DENNA LA PORRI', 'La Obsesion', 'xosa', 'El Bogueto', '3BallMTY',
+        'Ruzzo Doblezz', 'Sayuri & Sopholov', 'Nana Nina', 'JAYSEE', 'Cachirula', 'LoveUikari', 'Chzter',
+        'Onemillionkisses', 'MC Kevinho', 'La Vendicion', 'hennessyyy', 'Nasty Vato', 'lila sky', 'Midfug',
+        'la intimidad', 'Dinamarca', 'GSAD', 'La Mafia del Amor', 'Yng Lvcas', 'Veronica', 'Kinto Piso',
+        'Jessvel Peyret', 'Ya Ice Dilan', 'Lil Bru', 'Mike', 'Kauxx', 'MC Sam', 'Macaia', 'Je Tupinikin', 'DJ Cozy',
+        'VULGO', 'Sajiva', 'DJ ROOTS', '3delincuentes', 'FLVCKKA', 'Joss ML', 'MXLVIXJE', 'Ikoniko', 'Mamx',
+        'Tuere Chorito', 'Uzielito Mix', 'Ivy Wavy', 'yngdean', 'Amber Yezel', 'La Zanta Xit', 'TBX', 'Aln MC',
+        'Cherry Chola', 'MJ Nebreda', 'Tramposos', 'Bolishe One', 'Enayy', 'Alicia te quiero', 'morenoguapo',
+        'Ivan de la Rioja', 'Angelicca', 'paxheko', 'Yered!!', 'Zalzuki'
+    ]),
+    ('reggaeton-clasico', 'Reggaetón Clásico', 'Reggaetón de la vieja escuela y cumbia: Daddy Yankee, Don Omar, Wisin & Yandel, Arcángel, Plan B y Farruko.', [
+        'Daddy Yankee', 'Don Omar', 'Wisin & Yandel', 'Arcángel', 'Plan B', 'Farruko', 'Yandel', 'J Alvarez',
+        'Ñengo Flow', 'A.B. Quintanilla III', 'Tego Calderon', 'Jowell & Randy', 'Héctor "El Father"', 'Ivy Queen',
+        'Zion & Lennox', 'Calle 13', 'Tony Dize', 'Angel Y Khriz', 'Randy Nota Loca', 'Yaga & Mackie',
+        'Baby Rasta y Gringo', 'Sammy & Falsetto', 'Zion', 'Alex Rose', 'Reykon', 'DJ Luian', 'Franco "El Gorilla"',
         'A.B. Quintanilla III Y Los Kumbia Kings', 'Kumbia Kings', 'Cruz Martinez presenta Los Super Reyes',
         'Impacto Mc', 'Calo', 'Millonario & W. Corona', 'El Pelón del Mikrophone', 'América Sierra', 'Los Telez',
-        'Xandy Almeida', 'Rayo & Toby',
-        'J-King y Maximan',
-        'Tego Calderon', 'Zion & Lennox', 'Calle 13', 'Alexis y Fido', 'Tito El Bambino', 'Wisin'
+        'Xandy Almeida', 'Rayo & Toby', 'J-King y Maximan', 'Alexis y Fido', 'Tito El Bambino', 'Wisin'
     ]),
-    ('trap-lunar', 'Trap Lunar', 'Trap latino para la madrugada: Yan Block, Omar Courtz, Bad Bunny, Duki, Myke Towers y Bryant Myers.', [
-        'Yan Block', 'Omar Courtz', 'Bad Bunny', 'Rauw Alejandro', 'Myke Towers', 'Cris MJ', 'Bryant Myers', 'Jon Z',
-        'Pablo Chill-E', 'Young Cister', 'SAIKO', 'Pressure 9X19', 'Aleman', 'Alemán', 'Luigi 21 Plus', 'Slayter',
-        'ROA', 'Lil Naay', 'J Abdiel', 'Jay Wheeler', 'Duki', 'YSY A', 'Novato El Flow', 'Boy Wonder CF',
-        'Trap Capos', 'FloyyMenor', 'KAROL G', 'Maria Becerra', 'Nicki Nicole', 'Emilia', 'LIT killah', 'Bardero$',
-        'C.R.O', 'Alex Gargolas', 'Lxmb Gold', 'JOSTIN JA', 'KIDDWERO', 'Tokischa',
-        'Alvaro Diaz', 'Kiddye', 'Félix Vestre',
-        'Feid', 'iZaak', 'Young Weapon'
+    ('pop-latino', 'Pop Latino', 'Pop latino de radio, de los 90 a hoy: Shakira, Maná, Ricky Martin, Enrique Iglesias, Juanes y CNCO.', [
+        'Shakira', 'Mana', 'Ricky Martin', 'Enrique Iglesias', 'Juanes', 'CNCO', 'Romeo Santos', 'Thalia',
+        'Juan Luis Guerra 4.40', 'Selena', 'Marc Anthony', 'Carlos Vives', 'Prince Royce', 'NATTI NATASHA',
+        'Paulina Rubio', 'Aventura', 'Chayanne', 'CD9', 'Jesse & Joy', 'Luis Fonsi', 'Celia Cruz', 'RBD',
+        'Laura Pausini', 'Anitta', 'Danny Ocean', 'Kim Loaiza', 'Camilo', 'Sebastian Yatra', 'Morat', 'Camila',
+        'Reik', 'Sin Bandera', 'Elvis Crespo', 'Los Del Rio', 'Ricardo Arjona', 'La Oreja de Van Gogh', 'Belinda',
+        'Gente De Zona', 'Franco De Vita', 'Alejandro Fernandez', 'Ha Ash', 'Miami Sound Machine'
     ]),
-    ('rima-cruda', 'Rima Cruda', 'Rap en español y de EE. UU.: Cruzzi, Charles Ans, Gera MX, Wk, Kendrick Lamar, Drake y Canserbero.', [
-        'Cruzzi', 'Charles Ans', 'Gera MX', 'Adan Cruz', 'Milo j', 'Delaossa', 'Choclock', 'Flavio Rodriguez', 'Ka-b',
-        'C. Tangana', 'Trueno', 'Rels B', 'Neto Peña', 'Señor Marrano', 'The Guadaloops', 'Canserbero', 'Micro TDH',
-        'Bhavi', 'Drake', 'Kendrick Lamar', 'Travis Scott', 'Kanye West', 'XXXTENTACION', 'G-Eazy', 'French Montana',
-        'Nafeesisboujee', 'Jordan Adetunji', 'Metro Boomin', 'A AP Ferg', 'Mac Miller', 'Felp 22', 'Shamanes Crew',
-        'Robot95', 'Logan Hate', 'Armand Hammer', 'Ana Tijoux', 'Mellow Man Ace', 'Wk', 'Mime 871', 'A.C.O', 'Bizor',
-        'Muelas De Gallo', 'Anestesia', 'Mike Lamadrid', 'Simpson Ahuevo', 'Gonzalo Genek', 'N.E.R.D',
-        'Mr. Knightowl', 'Cartel De Santa', 'Iluminatik', 'Tankeone'
+    ('latino-alterno', 'Latino Alterno', 'Pop alternativo y canción latina: Bandalos Chinos, Mon Laferte, Julieta Venegas, Natalia Lafourcade, LATIN MAFIA y Buscabulla.', [
+        'Bandalos Chinos', 'Mon Laferte', 'Julieta Venegas', 'Natalia Lafourcade', 'LATIN MAFIA', 'Buscabulla',
+        'CA7RIEL & Paco Amoroso', 'Monsieur Periné', 'Adanowsky', 'Carla Morrison', 'Ed Maverick', 'Vanessa Zamora',
+        'Ximena Sariñana', 'Silvana Estrada', 'Caloncho', 'Elsa y Elmar', 'Gepe', 'DannyLux', 'HUMBE', 'La Gabi',
+        '424', 'Tita', 'Isla de Caras', 'Helado Negro', 'Kevin Kaarl', 'Natt Calma'
     ]),
-    ('era-dorada', 'Era Dorada', 'La edad de oro del hip hop: Outkast, The Notorious B.I.G., 2Pac, Nas, A Tribe Called Quest, Wu-Tang Clan y MF DOOM.', [
-        'Outkast', 'The Notorious B.I.G.', '2Pac', 'Nas', 'Dr. Dre', 'Snoop Dogg', 'Eminem', 'JAY-Z',
-        'A Tribe Called Quest', 'MF DOOM', 'Madvillain', 'De La Soul', 'Wu-Tang Clan', 'Method Man', 'Mobb Deep',
-        'Ms. Lauryn Hill', 'Fugees', 'Missy Elliott', 'Lupe Fiasco', 'Common', 'Mos Def', 'Black Star',
-        'The Pharcyde', 'Gang Starr', 'J Dilla', 'Slum Village', 'RunD.M.C.', 'Beastie Boys', 'Cypress Hill',
-        'House Of Pain', 'Warren G'
+    ('indie-mexa', 'Indie Mexa', 'Indie y rock alternativo de México: Cisne Elocuente, Café Tacvba, Zoé, Enjambre, Little Jesus y CLUBZ.', [
+        'Cisne Elocuente', 'Café Tacvba', 'Zoé', 'Zoe', 'Cafe Tacvba', 'Enjambre', 'Little Jesus', 'CLUBZ', 'Nsqk',
+        'Chicano Batman', 'Diamante Eléctrico', 'iza tkm', 'Juanpa Gordoa', 'Siddhartha', 'La Vida Bohème',
+        'Jósean Log', 'Me Estás Matando', 'babas tutsipop', 'Alanis Yuki', 'RØZ', 'Mi Compa el Chino', 'Jasper',
+        'RENEE', 'Okills', 'Technicolor Fabrics', 'Camilo Séptimo', 'Cienfue', 'Estereomance', 'Los Espiritus',
+        'Protistas', 'MKRNI', 'TOURISTA', 'Marineros', 'Teleradio Donoso', 'Rey Pila', 'Reyno', 'Los Wálters',
+        'Conociendo Rusia', '¿Téo?', 'Arawato', 'Chango Menas', 'Comisario Pantera', 'Duck Fizz', 'El Zar',
+        'Gustavo Castellanos', 'Las Ligas Menores', 'te vi en un planetario', 'Kameleba', 'Sebastian Alvarez',
+        'Jota Ce', 'AQUIHAYAQUIHAY', 'Foudeqush', 'Rebe', 'Pablo Alhach', '1702', 'Aldo Peláez', 'Bmontee', 'Youka',
+        'Teo'
     ]),
-    ('verso-azul', 'Verso Azul', 'Jazz rap y boom bap con alma: Marcus D, Cise Star, Kero One, Jazz Liberatorz, Mountain Brothers y Witness.', [
-        'Marcus D', 'Cise Star', 'Kero One', 'Jazz Liberatorz', 'Mountain Brothers', 'Witness', '3582', 'Glad2Mecha',
-        'Lady Paradox', 'Pat D', 'Bush Babees', 'Thes One', 'J. Rawls', 'Mathematik', 'Peebs The Prophet', 'Example',
-        'The Globetroddas', 'Dela', 'Cru', '14', 'Funky DL'
+    ('cumbia-indie', 'Cumbia Indie', 'Cumbia pop, tropical e indie bailable: YoSoyMatt, Los Eclipses, Disco Bahía, ZTVZ, Soultade y PANTERA BLUE.', [
+        'YoSoyMatt', 'Los Eclipses', 'Disco Bahía', 'ZTVZ', 'Soultade', 'PANTERA BLUE', 'Karen y Los Remedios',
+        'le venado', 'Weste', 'Plastical People', 'Gondwana', 'Eva de Marce', 'LaDí', 'vonnside', 'Chloé Silva',
+        'CERO39', 'Tenda', 'Todo El Verano', 'Real Cumbia Activa RCA', 'chicarica', 'Jaycc', 'Tutankhamun',
+        'Tati Falco', 'French Braids', 'NAFTA', 'Los Amigos Invisibles', 'Vita Set', 'Young Tender',
+        'Mermelada de Pepino', 'Bobui', 'Patricio Alvarado', 'UNIVERSE', 'Acid Coco', 'MIEL', 'Perro Salchicha',
+        'Shmiks', 'Emally Villa', 'Elia y Elizabeth', 'Epilogio', 'Daniel Craft', 'UnDOMENICO'
     ]),
-    ('nube-purpura', 'Nube Púrpura', 'Cloud rap, plugg y underground: LUCKI, Lelo, void, empireofyu, Xavier Wulf, Trefuego y Yung Lean.', [
-        'LUCKI', 'Lucki', 'Lelo', 'void', 'empireofyu', 'khxznq', 'ProdWithFlavor', 'Trefuego', 'Xavier Wulf',
-        'BONES', 'Spaceli Vietnam', 'Khalil', 'Kuhsigh', 'QUANTRELL', 'BashfortheWorld', 'Sharkey', 'Zachariehs',
-        'Kingman Irving', 'Manny Laurenko', 'Savvy Melado', 'ilyTOMMY', 'dedwrite', 'VVS $.', '22francc', 'Barretta',
-        'dreaming.', 'Ejmonix', 'KYSLINGO', 'LandonBeck', 'FLVSHY', 'Trey Bands', 'reptilianshrine', 'Big Tonka Cuh',
-        'ssjishmael', 'GHOSTYY', 'sativa', 'Lil Maru', 'kush', 'neptune', 'feelinmyself', 'C Choppa', 'CHASETHEMONEY',
-        'Harrykahanhai', 'Paulie Leparik', 'skyemane', 'Freddie Dredd', 'Yung Lean', 'are you really fine?',
-        'Sematary'
+    ('rock-austral', 'Rock Austral', 'Rock argentino y chileno de culto: Soda Stereo, Los Bunkers, Gustavo Cerati, Los Enanitos Verdes, Los Prisioneros y Andrés Calamaro.', [
+        'Soda Stereo', 'Los Bunkers', 'Gustavo Cerati', 'Los Enanitos Verdes', 'Los Prisioneros', 'Andrés Calamaro',
+        'Charly García', 'Fito Paez', 'Los Fabulosos Cadillacs', 'Babasonicos', 'Los Tres', 'Miranda!',
+        'Serú Girán', 'Luis Alberto Spinetta', 'Los Rodriguez', 'Vilma Palma e Vampiros',
+        'Los Auténticos Decadentes', 'Pescado Rabioso', 'Virus', 'La Ley', 'Sui Generis', 'Los Abuelos De La Nada',
+        'Spinetta Jade', 'Viejas Locas', 'Los Tetas', 'La Mosca', 'Macha Y El Bloque Depresivo', 'Chico Trujillo',
+        'Almendra', 'Los Pericos', 'Los Cafres', 'Divididos', 'Sumo', 'El Mato a un Policia Motorizado',
+        'Los Piojos', 'La Renga', 'Patricio Rey y sus Redonditos de Ricota', 'Bersuit Vergarabat'
     ]),
-    ('trueno-clasico', 'Trueno Clásico', 'Rock de colección y metal: Deep Purple, AC/DC, Led Zeppelin, Queen, Metallica y Pink Floyd.', [
-        'Santana', 'Queen', 'Elton John', 'America', 'Fleetwood Mac', 'Pink Floyd', 'Maroon 5', 'Crowded House',
-        'Deep Purple', 'Led Zeppelin', 'No Doubt', 'The Kinks', 'Electric Light Orchestra', 'The Rolling Stones',
-        'Lenny Kravitz', 'AC/DC', 'Black Sabbath', 'Eagles', 'Joe Walsh', 'Green Day', 'Audioslave', 'The Doors',
-        'Cream', 'Pantera', 'KISS', 'Derek & The Dominos', 'Metallica', 'Linkin Park', 'Van Halen', "Guns N' Roses",
-        'David Bowie', 'Foghat', 'Red Hot Chili Peppers', 'Nirvana', 'Yes', 'Mountain', 'The Dirty Mac',
-        'Iron Maiden', 'Megadeth', 'George Thorogood & The Destroyers', 'UFO', 'Blue Öyster Cult', 'Pierce The Veil',
-        'Sleeping With Sirens', 'Whitesnake', 'Neil Young', 'Gary Moore', 'Hole'
+    ('rock-hispano', 'Rock Hispano', 'Rock en español de México, Colombia y España: Odisseo, Caifanes, León Larregui, Hombres G, Héroes del Silencio y Mecano.', [
+        'Odisseo', 'Caifanes', 'León Larregui', 'Hombres G', 'Heroes Del Silencio', 'Mecano', 'Molotov',
+        'Aterciopelados', 'Maldita Vecindad Y Los Hijos Del 5to. Patio', 'Glup!', 'Surfistas Del Sistema',
+        'Esteman', 'Los Vaguens', 'El Tri', 'Bunbury', 'Mikel Erentxun', 'Duncan Dhu', 'Indios', 'La Gusana Ciega',
+        'Danza Invisible', 'La Unión', 'Julius Popper', 'Fobia', 'Jaguares', 'Radio Futura', 'Los Planetas',
+        'Vetusta Morla', 'Love of Lesbian', 'Panteon Rococo', 'El Ultimo De La Fila', 'Manu Chao'
     ]),
-    ('niebla-pesada', 'Niebla Pesada', 'Deftones de principio a fin: Around the Fur, White Pony, Diamond Eyes, Koi No Yokan y Ohms, del nu metal al shoegaze pesado.', [
-        'Deftones'
+    ('rock-clasico', 'Rock Clásico', 'Rock de los 60 y 70, del blues rock al progresivo: Deep Purple, AC/DC, Queen, Led Zeppelin, Santana y Pink Floyd.', [
+        'Deep Purple', 'AC/DC', 'Queen', 'Led Zeppelin', 'Santana', 'Pink Floyd', 'The Doors', 'Cream', 'Van Halen',
+        'Elton John', 'The Rolling Stones', 'KISS', 'America', 'Fleetwood Mac', 'Electric Light Orchestra',
+        'David Bowie', 'Foghat', 'The Kinks', 'Eagles', 'Joe Walsh', 'Derek & The Dominos', 'Yes', 'Mountain',
+        'The Dirty Mac', 'George Thorogood & The Destroyers', 'Blue Öyster Cult', 'Neil Young', 'Gary Moore'
     ]),
-    ('ciudad-furia', 'Ciudad Furia', 'Rock en español de culto: Soda Stereo, Serú Girán, Los Bunkers, Cerati, Enanitos Verdes, Café Tacvba y Los Prisioneros.', [
-        'Soda Stereo', 'Gustavo Cerati', 'Los Bunkers', 'Los Prisioneros', 'Los Enanitos Verdes', 'Café Tacvba',
-        'Andrés Calamaro', 'Andres Calamaro', 'Los Abuelos De La Nada', 'Charly García', 'Charly Garcia', 'Hombres G',
-        'Fito Paez', 'Los Rodriguez', 'Babasonicos', 'Spinetta Jade', 'Mikel Erentxun', 'Duncan Dhu',
-        'Vilma Palma e Vampiros', 'Los Tres', 'Indios', 'La Gusana Ciega', 'Viejas Locas', 'Danza Invisible',
-        'Maldita Vecindad Y Los Hijos Del 5to. Patio', 'Los Auténticos Decadentes', 'Los Tetas', 'La Unión',
-        'La Mosca', 'Miranda!', 'Glup!', 'Odisseo', 'Surfistas Del Sistema', 'Macha Y El Bloque Depresivo',
-        'Chico Trujillo', 'Bandalos Chinos', 'Julius Popper', 'Esteman', 'León Larregui', 'Los Vaguens', 'Serú Girán',
-        'Pescado Rabioso', 'Almendra', 'Los Pericos', 'Los Cafres',
-        'Caifanes', 'Heroes Del Silencio', 'Molotov', 'Los Fabulosos Cadillacs', 'Aterciopelados', 'Mecano',
-        'El Tri', 'Divididos', 'Sumo',
-        'Virus', 'La Ley', 'Fobia', 'Jaguares', 'Radio Futura', 'Los Planetas', 'Vetusta Morla', 'Love of Lesbian',
-        'Panteon Rococo', 'El Mato a un Policia Motorizado', 'El Ultimo De La Fila', 'Sui Generis', 'Los Piojos',
-        'La Renga', 'Patricio Rey y sus Redonditos de Ricota', 'Bersuit Vergarabat', 'Bunbury',
-        'Luis Alberto Spinetta'
+    ('metal-pesado', 'Metal Pesado', "Metal, nu metal, post-hardcore y kawaii metal: Deftones, BABYMETAL, 花冷え。, Metallica, Black Sabbath y Guns N' Roses.", [
+        'Deftones', 'BABYMETAL', '花冷え。', 'Metallica', 'Black Sabbath', "Guns N' Roses", 'Sleeping With Sirens',
+        'Broken By The Scream', 'Pantera', 'Linkin Park', 'Iron Maiden', 'Megadeth', 'UFO', 'Pierce The Veil',
+        'Whitesnake', 'KAQRIYOTERROR', 'LADYBABY', 'Yousei Teikoku'
     ]),
-    ('alma-latina', 'Alma Latina', 'Indie y alternativo latino: Mon Laferte, Zoé, Natalia Lafourcade, LATIN MAFIA, CA7RIEL & Paco Amoroso y Buscabulla.', [
-        'Mon Laferte', 'Zoé', 'Natalia Lafourcade', 'Julieta Venegas', 'Carla Morrison', 'Little Jesus', 'Siddhartha',
-        'Ed Maverick', 'Vanessa Zamora', 'Ximena Sariñana', 'Silvana Estrada', 'Caloncho', 'La Vida Bohème',
-        'Buscabulla', 'Monsieur Periné', 'Chicano Batman', 'Jósean Log', 'Me Estás Matando', 'Elsa y Elmar',
-        'Manu Chao', 'Jasper', 'RENEE', 'Okills', 'Technicolor Fabrics', 'Camilo Séptimo', 'Cienfue', 'Gepe',
-        'Estereomance', 'Los Espiritus', '424', 'Protistas', 'MKRNI', 'Diamante Eléctrico', 'TOURISTA', 'Marineros',
-        'Teleradio Donoso', 'Rey Pila', 'Reyno', 'Tita', 'Los Wálters', 'Conociendo Rusia', 'CLUBZ', '¿Téo?',
-        'Adanowsky', 'Arawato', 'Chango Menas', 'Comisario Pantera', 'Duck Fizz', 'El Zar', 'Gustavo Castellanos',
-        'Isla de Caras', 'Las Ligas Menores', 'babas tutsipop', 'Cisne Elocuente', 'te vi en un planetario',
-        'Enjambre', 'Kameleba', 'Sebastian Alvarez', 'Jota Ce', 'iza tkm', 'Alanis Yuki', 'AQUIHAYAQUIHAY',
-        'Juanpa Gordoa', 'Foudeqush', 'LATIN MAFIA', 'CA7RIEL & Paco Amoroso', 'Helado Negro',
-        'Nsqk', 'Kevin Kaarl', 'Natt Calma', 'RØZ', 'Rebe', 'DannyLux', 'Pablo Alhach', 'Mi Compa el Chino', '1702',
-        'Aldo Peláez',
-        'HUMBE', 'La Gabi', 'Bmontee', 'Youka'
+    ('jazz-lounge', 'Jazz Lounge', 'Jazz, soul y bossa nova para la sobremesa: Sade, Amy Winehouse, Antônio Carlos Jobim, Frank Sark, Chet Baker y berlioz.', [
+        'Sade', 'Amy Winehouse', 'Antônio Carlos Jobim', 'Frank Sark', 'Chet Baker', 'berlioz', 'Thundercat',
+        'Stan Getz', 'John Coltrane Quartet', 'Celeste', 'Olivia Dean', 'Dana and Alden', 'Tommy Dorsey',
+        'Henry Mancini', 'John Coltrane', 'Lester Young', 'Ebony Loren', 'Durand Jones & The Indications',
+        'The Dave Brubeck Quartet', 'Martial Solal', 'DOMi & JD BECK', 'Paul Grant', 'Gotts Street Park', 'kuala',
+        'The Brothers Nylon', 'ridgeclub', 'Jean-Luc Ponty', 'Flea', 'Molly Lewis', 'Weather Report', 'jomm',
+        'John Wasson', 'Bolden.', 'Siberia', 'Patchwork Inc.', 'Macabre Plaza', 'Hank Levy', 'Aurora Ave.',
+        'Nathanial Young', 'SERAPHINE NOIR', 'SEQUOIA', 'Evan Jacobson', 'Rob Araujo', 'Chihiro Yamanaka', 'Cortex',
+        'Venda', 'Clyde Otis', 'George Shearing Quintet', 'Cannonball Adderley'
     ]),
-    ('verano-tropical', 'Verano Tropical', 'Cumbia pop e indie bailable: YoSoyMatt, Eva de Marce, Los Eclipses, Disco Bahía, ZTVZ y Karen y Los Remedios.', [
-        'YoSoyMatt', 'Eva de Marce', 'Los Eclipses', 'Karen y Los Remedios', 'Disco Bahía', 'ZTVZ', 'LaDí',
-        'le venado', 'Weste', 'Soultade', 'vonnside', 'Chloé Silva', 'CERO39', 'Acid Coco', 'MIEL', 'Tenda',
-        'Todo El Verano', 'Real Cumbia Activa RCA', 'chicarica', 'PANTERA BLUE', 'Jaycc', 'Tutankhamun',
-        'Perro Salchicha', 'Shmiks', 'Tati Falco', 'Emally Villa', 'Elia y Elizabeth', 'French Braids', 'Epilogio',
-        'NAFTA', 'Los Amigos Invisibles', 'Vita Set', 'Young Tender', 'Plastical People', 'Mermelada de Pepino',
-        'Daniel Craft', 'Bobui', 'UnDOMENICO', 'Patricio Alvarado', 'UNIVERSE', 'Gondwana'
+    ('damas-del-jazz', 'Damas del Jazz', "Jazz vocal a media luz: Julie London, Blossom Dearie, Irene Kral, Jeri Southern, Anita O'Day y Ava Gardner.", [
+        'Julie London', 'Blossom Dearie', 'Irene Kral', 'Jeri Southern', "Anita O'Day", 'Ava Gardner', 'Kay Starr',
+        'Doris Day', 'Peggy Lee'
     ]),
-    ('humo-dorado', 'Humo Dorado', 'Jazz, fusión y soul: Chet Baker, Etta James, Billie Holiday, Amy Winehouse, Thundercat y Sade.', [
-        'Frank Sark', 'Antônio Carlos Jobim', 'Catherine Russell', 'Al Bowlly', 'Stan Getz', 'Tommy Dorsey',
-        'Chet Baker', 'Henry Mancini', 'Etta James', 'Sarah Vaughan', 'Irene Kral', "Anita O'Day", 'Billie Holiday',
-        'Ava Gardner', 'Ernestine Anderson', 'Etta Jones', 'The Mills Brothers', 'Ray Charles',
-        'John Coltrane Quartet', 'John Coltrane', 'Jack Jones', 'Jeri Southern', 'Lester Young', 'Kay Starr',
-        'Dakota Staton', 'Lorez Alexandria', 'Doris Day', 'Peggy Lee', 'Sade', 'Laufey', 'Celeste', 'Olivia Dean',
-        'Amy Winehouse', 'Ebony Loren', 'Durand Jones & The Indications', 'The Dave Brubeck Quartet', 'Martial Solal',
-        'Thundercat', 'DOMi & JD BECK', 'Paul Grant', 'Gotts Street Park', 'kuala', 'The Brothers Nylon', 'berlioz',
-        'ridgeclub', 'Jean-Luc Ponty', 'Flea', 'Molly Lewis', 'Weather Report', 'jomm', 'John Wasson', 'Bolden.',
-        'Siberia', 'Patchwork Inc.', 'Macabre Plaza', 'Hank Levy', 'Aurora Ave.', 'Nathanial Young', 'SERAPHINE NOIR',
-        'SEQUOIA', 'Evan Jacobson', 'Rob Araujo', 'Chihiro Yamanaka', 'Cortex', 'Dana and Alden',
-        'Venda'
+    ('alma-blues', 'Alma Blues', 'Voces de blues, soul y jazz clásico: Dinah Washington, Nancy Wilson, Aretha Franklin, Billie Holiday, Etta James y Etta Jones.', [
+        'Dinah Washington', 'Nancy Wilson', 'Aretha Franklin', 'Billie Holiday', 'Etta James', 'Etta Jones',
+        'Ray Charles', 'Catherine Russell', 'Sarah Vaughan', 'Ernestine Anderson', 'Dakota Staton',
+        'Lorez Alexandria'
     ]),
-    ('terciopelo-azul', 'Terciopelo Azul', 'Damas del jazz vocal a media luz: Julie London, Nancy Wilson, Dinah Washington y Blossom Dearie.', [
-        'Julie London', 'Nancy Wilson', 'Dinah Washington', 'Blossom Dearie', 'Clyde Otis', 'George Shearing Quintet',
-        'Cannonball Adderley'
+    ('swing-de-salon', 'Swing de Salón', 'Crooners y swing de big band: Frank Sinatra, Bobby Darin, Nat King Cole, Louis Armstrong, Ella Fitzgerald y Nat King Cole Trio.', [
+        'Frank Sinatra', 'Bobby Darin', 'Nat King Cole', 'Louis Armstrong', 'Ella Fitzgerald', 'Nat King Cole Trio',
+        'Al Bowlly', 'The Mills Brothers', 'Dean Martin', 'Jack Jones', 'Natalie Cole'
     ]),
-    ('luna-swing', 'Luna Swing', 'Crooners y swing de salón: Frank Sinatra, Nat King Cole, Bobby Darin, Louis Armstrong y Ella Fitzgerald.', [
-        'Frank Sinatra', 'Nat King Cole', 'Nat King Cole Trio', 'Bobby Darin', 'Louis Armstrong', 'Ella Fitzgerald',
-        'Dean Martin', 'Natalie Cole'
+    ('rocola-dorada', 'Rocola Dorada', "Pop, doo-wop y soul de los 50 a los 70: Tom Jones, Gilbert O'Sullivan, Brenda Lee, Lesley Gore, Dusty Springfield y Carpenters.", [
+        'Tom Jones', "Gilbert O'Sullivan", 'Brenda Lee', 'Lesley Gore', 'Dusty Springfield', 'Carpenters',
+        'The Beatles', 'The Mamas & The Papas', 'Engelbert Humperdinck', 'Jerry Lee Lewis', 'The Hollies',
+        'Frankie Valli', 'John Lennon', 'George Harrison', 'Thee Sacred Souls', 'Ricky Nelson', 'The Turtles',
+        'The Supremes', 'Shocking Blue', 'Dion & The Belmonts', 'Roy Orbison', 'Lou Rawls', 'Four Tops',
+        'The Platters', 'The Beach Boys', 'Dionne Warwick', 'Chuck Berry', 'The Five Stairsteps', 'The Notations',
+        'The Sha La Das', 'The Flamingos', 'The Ronettes', 'The Little Dippers', 'Jimmy Clanton', 'Frankie Avalon',
+        'Paul Anka', 'Patti Page', 'Cass Elliot', 'Ronnie McDowell', 'She & Him', 'Ritchie Valens', '10cc',
+        'Tommy James & The Shondells', 'Jim Croce', 'Bread', 'Seals and Crofts', 'Todd Rundgren', 'Chicago',
+        'Gerry Rafferty', 'Lola Marsh', 'The San Francisco TKOs', 'Thee Sinseers', 'Los Tranquilos', 'Los Buenos',
+        'The Cheaters', 'Wayne Newton'
     ]),
-    ('balada-eterna', 'Balada Eterna', 'Baladas, boleros y románticas de siempre: José José, Luis Miguel, Juan Gabriel, Nelson Ned, Los Tres Caballeros y Tin Tan.', [
-        'José José', 'Luis Miguel', 'Juan Gabriel', 'Nelson Ned', 'Los Tres Caballeros', 'Germán Valdés "Tin Tan"',
-        'Los Solitarios', "Los Freddy's", "Los Baby's", 'La Sonora Santanera', 'Jeanette', 'Alejandro Sanz',
-        'Grupo Santa Cecilia', 'Victor Yturbe "El Piruli"', 'María de Jesús Vázquez',
+    ('bolero-eterno', 'Bolero Eterno', 'Baladas, boleros y románticas de siempre: José José, Luis Miguel, Los Tres Caballeros, Germán Valdés "Tin Tan", Los Solitarios y Alejandro Sanz.', [
+        'José José', 'Luis Miguel', 'Los Tres Caballeros', 'Germán Valdés "Tin Tan"', 'Los Solitarios',
+        'Alejandro Sanz', 'Nelson Ned', "Los Freddy's", 'La Sonora Santanera', 'Jeanette', 'Juan Gabriel',
+        "Los Baby's", 'Grupo Santa Cecilia', 'Victor Yturbe "El Piruli"', 'María de Jesús Vázquez',
         'Lalo Rodriguez'
     ]),
-    ('otono-modal', 'Otoño Modal', 'El universo Nujabes: Nujabes, Shing02, Uyama Hiroto, Force Of Nature, haruka nakamura y Yakkle.', [
-        'Nujabes', 'Shing02', 'Uyama Hiroto', 'haruka nakamura', 'Force Of Nature', 'Yakkle', 'TSUTCHIE',
-        'Kyo Itachi', 'Ljones', 'Nitsua', 'Pase Rock', 'clammbon', 'Scott Matelic'
-    ]),
-    ('cafe-lento', 'Café Lento', 'Jazzhop y beats para la mañana: Boho Fau & Elevated Soul, Emapea, Okvsho, Mndsgn, Teebs y edbl.', [
-        'Boho Fau & Elevated Soul', 'Emapea', 'Okvsho', 'Mndsgn', 'Teebs', 'edbl', 'Blazo', 'Oliver Crosby',
-        'Spaze Windu', 'A.O.', 'BROCKBEATS', 'Green Assassin Dollar', 'Iam6teen', 'Rikinish', 'Sinj Clarke',
-        'Telemakus', 'Sweet William', 'The Offline', 'fat jon', 'Medasin', 'TOMC', 'Lionmilk', 'FloFilz',
-        'Professor Creepshow'
-    ]),
-    ('beat-nipon', 'Beat Nipón', 'Beats y jazz japonés de hoy: STUTS, tajima hal, Shingo Sekiguchi, Toshiki Soejima, mabanua y DJ Mitsu The Beats.', [
-        'STUTS', 'tajima hal', 'Shingo Sekiguchi', 'Toshiki Soejima', 'mabanua', 'DJ Mitsu The Beats',
-        'Michael Kaneko', 'EVISBEATS', '16FLIP', 'MEITEI', 'Night Tempo', 'Bajune Tobeta', 'DJ FRIP a.k.a. BeatLab',
-        'Modal.s', 'YOUR SONG IS GOOD', 'JJJ', 'MIDICRONICA'
-    ]),
-    ('vinilo-rosa', 'Vinilo Rosa', 'Pop, doo-wop y soul de los 50 a los 70: Tom Jones, Brenda Lee, The Ronettes, Carpenters y The Beatles.', [
-        'Tom Jones', 'Ricky Nelson', 'The Mamas & The Papas', 'The Turtles', 'Lesley Gore', 'Dusty Springfield',
-        'Engelbert Humperdinck', 'Jerry Lee Lewis', 'Brenda Lee', 'Carpenters', "Gilbert O'Sullivan", 'The Supremes',
-        'Shocking Blue', 'Dion & The Belmonts', 'Roy Orbison', 'Lou Rawls', 'Four Tops', 'The Platters',
-        'The Beach Boys', 'Dionne Warwick', 'Chuck Berry', 'The Hollies', 'The Beatles', 'The Five Stairsteps',
-        'The Notations', 'The Sha La Das', 'The Flamingos', 'The Ronettes', 'The Little Dippers', 'Jimmy Clanton',
-        'Frankie Avalon', 'Paul Anka', 'Patti Page', 'Frankie Valli', 'Cass Elliot', 'Ronnie McDowell', 'John Lennon',
-        'She & Him', 'Ritchie Valens', '10cc', 'Tommy James & The Shondells', 'George Harrison', 'Jim Croce', 'Bread',
-        'Seals and Crofts', 'Todd Rundgren', 'Chicago', 'Gerry Rafferty', 'Lola Marsh', 'The San Francisco TKOs',
-        'Thee Sinseers', 'Los Tranquilos', 'Los Buenos', 'The Cheaters', 'Thee Sacred Souls',
-        'Wayne Newton'
-    ]),
-    ('seul-brillante', 'Seúl Brillante', 'K-pop de escenario: ENHYPEN, BTS, Stray Kids, EXO, ATEEZ, NewJeans y TXT.', [
-        'ENHYPEN', 'BTS', 'Stray Kids', 'EXO', 'TOMORROW X TOGETHER', 'GOT7', 'NCT', 'NCT 127', 'WayV', 'P1Harmony',
-        'TAEMIN', 'j-hope', 'CORTIS', 'LNGSHOT', 'LE SSERAFIM', 'KATSEYE', 'KARD', 'SHINee', 'X1', 'B.I', 'KAI',
-        'YEONJUN', 'Jackson Wang', 'Dynamicduo', "Girls' Generation-Oh!GG", 'NewJeans', 'ONE OR EIGHT', 'ATEEZ', 'XG',
-        'Jay Park', 'Jung Kook', 'JAEHYUN', 'LEEHI', 'Wonder Girls'
-    ]),
-    ('tokio-electrico', 'Tokio Eléctrico', 'J-rock, kawaii metal y city pop: BABYMETAL, Hanabie, ATARASHII GAKKO! y Masayoshi Takanaka.', [
-        'Masayoshi Takanaka', 'BABYMETAL', 'Broken By The Scream', '花冷え。', 'KAQRIYOTERROR', 'ATARASHII GAKKO!',
-        'LADYBABY', 'Yousei Teikoku', 'the peggies', 'Fujii Kaze', 'Lamp', 'Makoto Matsushita', 'DOOPEES'
+    ('brillo-kpop', 'Brillo K-pop', 'K-pop de escenario: ENHYPEN, BTS, Stray Kids, EXO, LNGSHOT y TOMORROW X TOGETHER.', [
+        'ENHYPEN', 'BTS', 'Stray Kids', 'EXO', 'LNGSHOT', 'TOMORROW X TOGETHER', 'CORTIS', 'ATEEZ', 'GOT7', 'NCT',
+        'WayV', 'P1Harmony', 'TAEMIN', 'j-hope', 'KAI', 'NewJeans', 'Wonder Girls', 'ATARASHII GAKKO!', 'NCT 127',
+        'LE SSERAFIM', 'KATSEYE', 'KARD', 'SHINee', 'X1', 'B.I', 'YEONJUN', 'Jackson Wang', 'Dynamicduo',
+        "Girls' Generation-Oh!GG", 'ONE OR EIGHT', 'XG', 'Jay Park', 'Jung Kook', 'JAEHYUN', 'LEEHI'
     ]),
 ]
 
-
-# Destino de las canciones de artistas que aún no están en ninguna playlist
-DEFAULT_PLAYLIST = 'cuarto-pastel'
+DEFAULT_PLAYLIST = 'sueno-pastel'
 
 def artist_key(name):
     # Nombres en japonés, coreano…: norm los dejaría vacíos, se comparan tal cual

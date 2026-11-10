@@ -1,6 +1,16 @@
 {
   "releases": [
     {
+      "version": "v64",
+      "date": "noviembre 2026",
+      "title": "53 playlists nuevas, ordenadas por género",
+      "items": [
+        "Se borraron todas las playlists de Liquid y la Biblioteca entera se repartió de nuevo por género: 53 playlists, una por cada portada, con las 4743 canciones y sin dejar ninguna fuera.",
+        "Cada playlist es un solo estilo y de un tamaño parejo (de 47 a 143 canciones): Sueño Pastel, Garaje Indie, Cosmos Ácido, Niebla Triste, R&B Nocturno, Funk Eterno, Bola Disco, Rave Fantasma, Humo Plugg, Vieja Escuela, Japón Nocturno, Reggaetón Hoy, Perreo Clandestino, Rock Austral, Metal Pesado, Jazz Lounge, Swing de Salón, Bolero Eterno, Brillo K-pop y muchas más.",
+        "Tus favoritas, tus playlists propias y tu historial no cambian: solo cambian las playlists de base. Si tenías fijada una playlist antigua, fija la nueva que le toque."
+      ]
+    },
+    {
       "version": "v63",
       "date": "noviembre 2026",
       "title": "Tu Año Líquido y 40 detalles nuevos",

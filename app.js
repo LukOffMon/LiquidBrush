@@ -770,7 +770,7 @@
       get thumb() { return coverUrl || (this.photo ? this.photo.replace(/\.jpg$/, '-sm.jpg') : getArt().url); },
       get hue() { return coverUrl || this.photo ? null : getArt().hue; },
       lyrics: typeof t.lyrics === 'string' ? t.lyrics : '',
-      // genre: estilo (la playlist de su artista, «Lluvia Lenta»…); generos: géneros de verdad, el principal primero
+      // genre: estilo (la playlist de su artista, «Niebla Triste»…); generos: géneros de verdad, el principal primero
       genre: '',
       generos: []
     };
@@ -2977,7 +2977,9 @@
       case 'deep': result = withSettings({ genres: (top.length ? top : fallback).slice(0, 5), mix: 4, cap: 1, size: 40 }); break;
       case 'gems': result = forgottenGems(p); break;
       case 'daylist': result = daylist(p)?.tracks || []; break;
-      case 'variety': result = withSettings({ genres: (top.length ? top : fallback).slice(0, 6), mix: 2, cap: 1, size: 60 }); break;
+      // Un artista por canción: con pocos estilos escuchados no llega a 60 artistas distintos, así que tras
+      // los tuyos se suman otros hasta completar 6
+      case 'variety': result = withSettings({ genres: [...new Set([...top, ...fallback])].slice(0, 6), mix: 2, cap: 1, size: 60 }); break;
       case 'surprise': {
         const least = visible.filter((g) => !top.slice(0, 6).includes(g));
         result = withSettings({ genres: seededShuffle(least.length ? least : visible, String(Date.now())).slice(0, 3), mix: 4, cap: 2, size: 40 });
