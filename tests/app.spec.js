@@ -1832,3 +1832,94 @@ test.describe('v78: Stats a fondo y 108 hitos', () => {
     expect(errors).toEqual([]);
   });
 });
+
+test.describe('v79: Liquid ATK + SKd (Soulseek por tu servidor)', () => {
+  test.use({ serviceWorkers: 'block' });
+  const CLAVE = 'clave-de-prueba-1234567890';
+  const frame = Buffer.concat([Buffer.from([0xff, 0xfb, 0x90, 0x64]), Buffer.alloc(413)]);
+  const mp3 = Buffer.concat(Array.from({ length: 300 }, () => frame));
+  const fila = (id, title, artist) => ({ id, title, artist, album: '', duration: '3:30', src: `https://skd.example/musica/${id}.mp3?k=${CLAVE}`, size: mp3.length });
+  // Un servidor SKd de mentira: lista, buscar, pedir y seguir el pedido
+  async function servidorSkd(page) {
+    const s = { lista: [fila('h0', 'Ya Estaba', 'Banda Local')], llamadas: 0, pedido: null };
+    await page.route(/skd\.example/, async (route) => {
+      const url = new URL(route.request().url());
+      const auth = route.request().headers().authorization || '';
+      const ok = auth === `Bearer ${CLAVE}` || url.searchParams.get('k') === CLAVE;
+      const cors = { 'Access-Control-Allow-Origin': '*' };
+      if (!ok) return route.fulfill({ status: 401, headers: cors, json: { error: 'Clave incorrecta' } });
+      if (url.pathname === '/api/estado') return route.fulfill({ headers: cors, json: { ok: true, soulseek: true, canciones: s.lista.length } });
+      if (url.pathname === '/api/lista.json') return route.fulfill({ headers: cors, json: s.lista });
+      if (url.pathname === '/api/buscar') return route.fulfill({ headers: cors, json: { resultados: [
+        { id: 'r1', titulo: 'Medianoche', artista: 'Neón Sur', album: 'Noche', ext: 'mp3', kbps: 320, segundos: 210, tamano: 8000000, usuario: 'ana', libre: true, cola: 0, velocidad: 900000 }
+      ] } });
+      if (url.pathname === '/api/pedir') { s.pedido = 'r1'; return route.fulfill({ headers: cors, json: { id: 'r1', estado: 'en-cola', porcentaje: 0 } }); }
+      if (url.pathname === '/api/pedidos') {
+        s.llamadas++;
+        const lista = s.llamadas < 2
+          ? { id: 'r1', estado: 'bajando', porcentaje: 40 }
+          : { id: 'r1', estado: 'lista', porcentaje: 100, cancion: fila('h1', 'Medianoche', 'Neón Sur') };
+        if (lista.cancion && !s.lista.some((x) => x.id === 'h1')) s.lista.push(lista.cancion);
+        return route.fulfill({ headers: cors, json: { pedidos: [lista] } });
+      }
+      if (url.pathname.startsWith('/musica/')) return route.fulfill({ status: 200, headers: { ...cors, 'Content-Type': 'audio/mpeg' }, body: mp3 });
+      return route.fulfill({ status: 404, headers: cors, json: {} });
+    });
+    return s;
+  }
+
+  test('se conecta desde Ajustes y su biblioteca entra en Liquid', async ({ page }) => {
+    await servidorSkd(page);
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    const antes = Number(await page.locator('#libCount').textContent());
+    await page.locator('#settingsBtn').click();
+    await page.locator('#skdUrl').fill('skd.example');
+    await page.locator('#skdClave').fill('mala-clave-123456789');
+    await page.locator('#skdConectar').click();
+    await expect(page.locator('#skdEstado')).toHaveText('La clave no es correcta.');
+    await page.locator('#skdClave').fill(CLAVE);
+    await page.locator('#skdConectar').click();
+    await expect(page.locator('#skdEstado')).toContainText('Conectado · Soulseek en línea');
+    await expect(page.locator('html')).toHaveClass(/\bskd\b/);
+    expect(JSON.parse(await page.evaluate(() => localStorage.getItem('liquidbrush:skd')))).toEqual({ url: 'https://skd.example', clave: CLAVE });
+    await expect(page.locator('#skdQuitar')).toBeVisible();
+    // La canción de tu servidor ya está en la Biblioteca
+    await expect(page.locator('#libCount')).toHaveText(String(antes + 1));
+  });
+
+  test('ATK + SKd: busca en Soulseek, se pide, se sigue el progreso y suena desde tu biblioteca', async ({ page }) => {
+    const s = await servidorSkd(page);
+    await page.addInitScript((clave) => {
+      if (sessionStorage.getItem('skd-puesto')) return;
+      sessionStorage.setItem('skd-puesto', '1');
+      localStorage.setItem('liquidbrush:skd', JSON.stringify({ url: 'https://skd.example', clave }));
+    }, CLAVE);
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.fill('#searchInput', 'neon sur medianoche');
+    const resultado = page.locator('.atk-list .track', { hasText: 'Medianoche' });
+    await expect(resultado.locator('.skd-mark')).toHaveText('SKd');
+    await expect(resultado.locator('.skd-progress')).toContainText('toca para pedirla');
+    await resultado.locator('.track-main').click();
+    await expect(page.locator('.toast')).toContainText('Pidiendo «Medianoche» a Soulseek');
+    await expect.poll(() => s.pedido).toBe('r1');
+    await expect(resultado.locator('.skd-progress')).toHaveText('Bajando 40 %');
+    // Llega: entra en la biblioteca y suena
+    await expect(page.locator('#miniTitle')).toHaveText('Medianoche', { timeout: 10000 });
+    await expect(page.locator('#npContext')).toHaveText('SKd · Soulseek');
+    expect(await page.evaluate(() => [...document.querySelectorAll('audio')].some((a) => /skd\.example\/musica\/h1\.mp3/.test(a.getAttribute('src') || '')))).toBe(true);
+    await expect(resultado.locator('.skd-progress')).toHaveText('En tu biblioteca');
+  });
+
+  test('sin servidor conectado, ATK no pregunta a ningún SKd', async ({ page }) => {
+    let llamadas = 0;
+    await page.route(/skd\.example/, (route) => { llamadas++; return route.abort(); });
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.fill('#searchInput', 'neon sur medianoche');
+    await page.waitForTimeout(1500);
+    expect(llamadas).toBe(0);
+    await expect(page.locator('.skd-mark:visible')).toHaveCount(0);
+  });
+});

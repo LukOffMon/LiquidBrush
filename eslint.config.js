@@ -17,6 +17,11 @@ export default [
     languageOptions: { ecmaVersion: 2023, sourceType: 'script', globals: { ...globals.serviceworker } }
   },
   {
+    // Puente de Liquid SKd (Node, en tu servidor)
+    files: ['soulseek/**/*.mjs'],
+    languageOptions: { ecmaVersion: 2023, sourceType: 'module', globals: { ...globals.node } }
+  },
+  {
     // Worker de cuentas (Cloudflare Workers: módulos ES con APIs web)
     files: ['cuentas/src/**/*.js'],
     languageOptions: { ecmaVersion: 2023, sourceType: 'module', globals: { ...globals.serviceworker } }

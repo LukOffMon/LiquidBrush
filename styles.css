@@ -10980,3 +10980,113 @@ body.is-radio #lyricsBtn {
 .hitos-filters {
   margin-top: 12px;
 }
+
+/* =========================================================
+   v79: Liquid SKd (Soulseek por tu servidor)
+   ========================================================= */
+:root {
+  --skd: #8be9fd;
+}
+
+.skd-mark {
+  background: var(--skd);
+}
+
+/* «Liquid ATK+SKd» en la marca cuando hay servidor conectado */
+:root.atk.skd .brand-name::after {
+  content: "+SKd";
+  margin-left: 4px;
+  padding: 1px 5px 0;
+  border-radius: 5px;
+  background: var(--skd);
+  color: #06161a;
+  font-family: var(--title-font);
+  font-size: 0.5em;
+  letter-spacing: 0.06em;
+  vertical-align: 0.6em;
+  -webkit-text-fill-color: currentColor;
+}
+
+.skd-settings {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.skd-settings .setting-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.skd-field {
+  display: grid;
+  gap: 4px;
+  font-family: var(--song-font);
+  font-size: 0.85rem;
+  letter-spacing: normal;
+}
+
+.skd-field span {
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.skd-field input {
+  min-height: 42px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+}
+
+.skd-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.skd-estado[data-kind="ok"] {
+  color: #3ddc84;
+}
+
+.skd-estado[data-kind="warn"] {
+  color: #ffb547;
+}
+
+[data-theme="minimal"] .skd-estado[data-kind="ok"] { color: #137a3e; }
+[data-theme="minimal"] .skd-estado[data-kind="warn"] { color: #a35b00; }
+
+.skd-progress {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 6px;
+  padding: 1px 6px 0;
+  border: 1px dashed color-mix(in srgb, var(--skd) 70%, var(--border));
+  border-radius: 5px;
+  color: var(--skd);
+  font-family: var(--song-font);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.5;
+  vertical-align: 1px;
+}
+
+.skd-progress.is-bajando,
+.skd-progress.is-en-cola {
+  border-style: solid;
+}
+
+.skd-progress.is-fallo {
+  border-color: #ff8a8a;
+  color: #ff8a8a;
+}
+
+[data-theme="minimal"] .skd-progress { color: #0b7f99; }

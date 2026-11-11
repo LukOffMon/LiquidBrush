@@ -1,0 +1,55 @@
+# Liquid SKd en tu servidor (Oracle Cloud Always Free, Raspberry Pi o cualquier Linux con Docker)
+#   slskd   → Soulseek (no se publica a internet: solo el puerto de Soulseek para otras personas)
+#   puente  → lo único con lo que habla Liquid (pide la clave LIQUID_CLAVE)
+#   caddy   → HTTPS automático (Let's Encrypt) delante del puente
+# Todo se configura en .env (lo crea instalar.sh). Arranque: docker compose up -d
+services:
+  slskd:
+    image: slskd/slskd:latest
+    restart: unless-stopped
+    user: "1000:1000"
+    environment:
+      - SLSKD_REMOTE_CONFIGURATION=false
+    volumes:
+      - ./slskd:/app
+      - ./musica:/musica
+    ports:
+      # Soulseek: otras personas se conectan aquí para compartir (ábrelo en Oracle; ver GUIA.md)
+      - "50300:50300"
+
+  puente:
+    image: node:22-alpine
+    restart: unless-stopped
+    user: "1000:1000"
+    working_dir: /puente
+    command: ["node", "server.mjs"]
+    depends_on: [slskd]
+    environment:
+      - SLSKD_URL=http://slskd:5030
+      - SLSKD_API_KEY=${SLSKD_API_KEY}
+      - SLSKD_USERNAME=${SLSKD_WEB_USUARIO}
+      - SLSKD_PASSWORD=${SLSKD_WEB_CONTRASENA}
+      - LIQUID_CLAVE=${LIQUID_CLAVE}
+      - PUBLICO=https://${DOMINIO}
+      - ORIGENES=${ORIGENES:-https://lukoffmon.github.io}
+      - MUSICA_DIR=/musica
+      - DATOS_DIR=/datos
+      - PUERTO=8787
+    volumes:
+      - ./puente:/puente:ro
+      - ./musica:/musica
+      - ./datos:/datos
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on: [puente]
+    environment:
+      - DOMINIO=${DOMINIO}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy-datos:/data
+      - ./caddy-config:/config

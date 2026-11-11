@@ -1160,7 +1160,8 @@
   // Las de Liquid ATK suenan solo con ATK encendido y con conexión (no se descargan)
   // Una ATK que falló al cargar (borrada o privada en su fuente) se da por caída 10 minutos: se salta sola
   const atkDead = (track) => Boolean(track?.deadAt && Date.now() - track.deadAt < 600000);
-  const isPlayable = (track) => (track?.atk ? settings.atk === true && navigator.onLine && !atkDead(track) : navigator.onLine || isDownloaded(track));
+  // Un resultado de Soulseek (SKd) no suena directo: primero se pide a tu servidor (ver skd.pedir)
+  const isPlayable = (track) => (track?.skd ? false : track?.atk ? settings.atk === true && navigator.onLine && !atkDead(track) : navigator.onLine || isDownloaded(track));
   const unplayableMessage = (track) => (track?.atk && settings.atk && atkDead(track)
     ? 'Esta canción ya no responde en su fuente (puede que la hayan quitado). Prueba otra versión.'
     : track?.atk && !settings.atk
@@ -6810,7 +6811,8 @@
       }
       const twin = atk.liquidTwin(track);
       if (twin) li.title = `Ya está en Liquid: ${twin.title} · ${twin.knownArtist || twin.artist}`;
-      atkTags = [makeEl('span', 'atk-mark', 'ATK'), ...(twin ? [makeEl('span', 'atk-owned', 'En Liquid')] : []),
+      atkTags = [makeEl('span', track.skd ? 'atk-mark skd-mark' : 'atk-mark', track.skd ? 'SKd' : 'ATK'), ...(twin ? [makeEl('span', 'atk-owned', 'En Liquid')] : []),
+        ...(track.skd ? [skd.progressTag(track)] : []),
         ...(track.unverified ? [makeEl('span', 'atk-unverified', 'No verificado')] : [])];
     }
     // Buscando: la canción salió por su letra
@@ -6986,6 +6988,11 @@
       return;
     }
     const track = getTrack(id);
+    // Resultado de Soulseek: se pide a tu servidor y suena en cuanto llega
+    if (track?.skd) {
+      skd.pedir(track);
+      return;
+    }
     if (track && !isPlayable(track)) {
       showToast(track.atk ? unplayableMessage(track) : 'Sin conexión: descarga la playlist para escucharla offline.');
       return;
@@ -13918,7 +13925,7 @@
     /* --- Memoria: solo se guardan las ATK que usas (favoritas, playlists, recientes, cola) --- */
     referenced() {
       const ids = new Set();
-      const add = (id) => { if (typeof id === 'string' && id.startsWith('atk:')) ids.add(id); };
+      const add = (id) => { if (typeof id === 'string' && id.startsWith('atk:') && !id.startsWith('atk:sk:')) ids.add(id); };
       state.favorites.forEach(add);
       library.local.forEach((p) => p.trackIds.forEach(add));
       library.recent.forEach(add);
@@ -14198,7 +14205,7 @@
       // Lo no verificado va detrás de lo original
       if (t.unverified) s -= 10;
       s += Math.min(12, Math.log10(1 + t.popularity) * 2);
-      s += { au: 3, ja: 2, ht: 1, ia: 0, ov: 0 }[t.atkSource] || 0;
+      s += { sk: 4, au: 3, ja: 2, ht: 1, ia: 0, ov: 0 }[t.atkSource] || 0;
       return s;
     },
     // Lo que Liquid ya tiene (título + artista) y los artistas de su catálogo
@@ -14405,6 +14412,8 @@
         ja: { off: 0, step: 20, done: !CONFIG.jamendoClientId, fetch: (off) => this.jamendo(q, signal, off) },
         ht: { off: 0, step: 20, done: false, fetch: (off) => this.hearthis(q, signal, off) },
         ov: { off: 0, step: 20, done: false, fetch: (off) => this.openverse(q, signal, off) },
+        // Soulseek, por tu servidor SKd: una sola tanda (el puente ya elige las mejores copias)
+        sk: { off: 0, step: 40, done: !skd.on(), fetch: (off) => (off ? Promise.resolve([]) : skd.buscar(q, signal)) },
         // El Archive es lento: cada disco o concierto se pinta en cuanto llega
         ia: { off: 1, step: 1, done: false, fetch: (page) => this.archive(q, signal, page, (list) => this.add(entry, 'ia', list)) }
       };
@@ -14447,7 +14456,7 @@
       // El Archive va a su ritmo (cada disco se pinta al llegar); lo rápido no lo espera
       try {
         const slow = this.pull(entry, 'ia');
-        await Promise.all([this.pull(entry, 'au'), this.pull(entry, 'ja'), this.pull(entry, 'ht'), this.pull(entry, 'ov'), this.profile(entry).catch(() => {})]);
+        await Promise.all([this.pull(entry, 'au'), this.pull(entry, 'ja'), this.pull(entry, 'ht'), this.pull(entry, 'ov'), this.pull(entry, 'sk'), this.profile(entry).catch(() => {})]);
         // Con erratas o palabras a medias casi no sale nada: segundo intento con el principio de cada palabra
         const loose = this.loose(qn);
         if (!controller.signal.aborted && entry.tracks.length < 5 && loose) {
@@ -14988,7 +14997,8 @@
           ['Internet Archive', 'https://archive.org/details/audio', 'sellos libres, directos grabados con permiso de las bandas y discos de 78 rpm'],
           ...(CONFIG.jamendoClientId ? [['Jamendo', 'https://www.jamendo.com', 'música con licencia Creative Commons']] : []),
           ['Hearthis.at', 'https://hearthis.at', 'sesiones y temas de DJs y productores'],
-          ['Wikimedia Commons (vía Openverse)', 'https://openverse.org', 'grabaciones libres y de dominio público, sobre todo clásica']]
+          ['Wikimedia Commons (vía Openverse)', 'https://openverse.org', 'grabaciones libres y de dominio público, sobre todo clásica'],
+          ...(skd.on() ? [['Soulseek (tu servidor SKd)', 'https://www.slsknet.org', 'lo que compartes y descargas con tu propia cuenta, en tu servidor']] : [])]
           .forEach(([name, href, what]) => {
             const li = document.createElement('li');
             const a = makeEl('a', '', name);
@@ -15067,6 +15077,246 @@
       this.apply();
       if (this.on()) setTimeout(() => this.hydrate(), 1500);
       window.addEventListener('pagehide', () => this.persist());
+    }
+  };
+
+  /* ---------- Liquid SKd: Soulseek por tu propio servidor (v79) ----------
+     Liquid ATK + SKd: con tu servidor conectado (Oracle Cloud, Raspberry Pi…; ver soulseek/GUIA.md), el
+     buscador de ATK también busca en Soulseek. Al tocar un resultado, tu servidor lo descarga (slskd) y la
+     canción pasa a tu biblioteca: suena desde tu servidor, se puede descargar al teléfono y cuenta en Stats.
+     - Liquid solo habla con el «puente» de tu servidor, con su dirección y su clave (Ajustes → Liquid ATK).
+       La clave se guarda solo en este navegador (no viaja con la cuenta).
+     - Tu biblioteca de SKd es una fuente más de Liquid (como los buckets): la lista la da el puente. */
+  const SKD_KEY = 'liquidbrush:skd';
+  const SKD_PEDIDOS = 'liquidbrush:skd-pedidos';
+  const skd = {
+    cfg: (() => { const c = storage.get(SKD_KEY, null); return c && typeof c.url === 'string' && typeof c.clave === 'string' ? c : null; })(),
+    pedidos: new Map(),
+    timer: 0,
+    estado: null,
+    ui: {},
+
+    configurado() { return Boolean(this.cfg?.url && this.cfg?.clave); },
+    on() { return this.configurado() && atk.on(); },
+    limpiar(url) {
+      let u = String(url || '').trim().replace(/\/+$/, '');
+      if (u && !/^https?:\/\//i.test(u)) u = `https://${u}`;
+      return u;
+    },
+    async api(ruta, { method = 'GET', body, signal, ms = 20000, cfg = this.cfg } = {}) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), ms);
+      const stop = () => controller.abort();
+      signal?.addEventListener('abort', stop, { once: true });
+      try {
+        const res = await fetch(`${cfg.url}${ruta}`, {
+          method, signal: controller.signal, cache: 'no-store',
+          headers: { Authorization: `Bearer ${cfg.clave}`, ...(body ? { 'Content-Type': 'application/json' } : {}) },
+          body: body ? JSON.stringify(body) : undefined
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw Object.assign(new Error(data.error || `HTTP ${res.status}`), { status: res.status });
+        return data;
+      } finally {
+        clearTimeout(timer);
+        signal?.removeEventListener('abort', stop);
+      }
+    },
+    // La biblioteca de tu servidor, como una fuente más de Liquid
+    source() { return { name: 'skd', list: `${this.cfg.url}/api/lista.json?k=${encodeURIComponent(this.cfg.clave)}`, base: '' }; },
+    registerSource() {
+      const i = CONFIG.sources.findIndex((x) => x.name === 'skd');
+      if (i >= 0) CONFIG.sources.splice(i, 1);
+      if (this.configurado()) CONFIG.sources.push(this.source());
+    },
+
+    /* --- Buscar: resultados de Soulseek como canciones de ATK --- */
+    async buscar(q, signal) {
+      if (!this.on()) return [];
+      const data = await this.api(`/api/buscar?q=${encodeURIComponent(q)}`, { signal, ms: 30000 });
+      return (data.resultados || []).map((r) => {
+        const t = atk.make({
+          id: `atk:sk:${r.id}`, src: 'sk', title: r.titulo, artist: r.artista, album: r.album, seconds: r.segundos, url: '',
+          popularity: (r.libre ? 500 : 50) + Math.round((r.velocidad || 0) / 1000), verified: true,
+          credit: { author: r.usuario, license: 'Compartida en Soulseek', link: '', service: 'Soulseek (tu servidor SKd)' }
+        });
+        t.skd = { id: r.id, ext: r.ext, kbps: r.kbps, libre: r.libre, cola: r.cola };
+        t.duration = t.duration || '';
+        return t;
+      });
+    },
+
+    /* --- Pedir: tu servidor lo descarga y llega a tu biblioteca --- */
+    progressTag(track) {
+      const p = this.pedidos.get(track.skd.id);
+      const info = [track.skd.ext?.toUpperCase(), track.skd.kbps ? `${track.skd.kbps} kbps` : ''].filter(Boolean).join(' · ');
+      const text = !p ? `${info}${info ? ' · ' : ''}toca para pedirla`
+        : p.estado === 'bajando' ? `Bajando ${p.porcentaje || 0} %`
+          : p.estado === 'fallo' ? 'No se pudo bajar' : p.estado === 'lista' ? 'En tu biblioteca' : 'En cola en Soulseek…';
+      const tag = makeEl('span', `skd-progress${p ? ` is-${p.estado}` : ''}`, text);
+      tag.dataset.skd = track.skd.id;
+      return tag;
+    },
+    paint(id) {
+      const p = this.pedidos.get(id);
+      document.querySelectorAll(`.skd-progress[data-skd="${CSS.escape(id)}"]`).forEach((tag) => {
+        const track = getTrack(tag.closest('.track')?.dataset.id);
+        if (track?.skd) tag.replaceWith(this.progressTag(track));
+      });
+      if (p?.estado === 'bajando' || p?.estado === 'en-cola') this.save();
+    },
+    save() {
+      const out = [];
+      this.pedidos.forEach((p, id) => { if (p.estado !== 'lista' && p.estado !== 'fallo') out.push({ id, t: p.title, at: p.at }); });
+      storage.set(SKD_PEDIDOS, out);
+    },
+    async pedir(track) {
+      if (!this.on()) { showToast('Conecta tu servidor SKd en Ajustes → Liquid ATK para pedir canciones de Soulseek.'); return; }
+      if (!navigator.onLine) { showToast('Sin conexión: conéctate para pedir canciones.'); return; }
+      const id = track.skd.id;
+      const actual = this.pedidos.get(id);
+      if (actual?.cancionId && getTrack(actual.cancionId)) { this.sonar(actual.cancionId); return; }
+      if (actual && actual.estado !== 'fallo') {
+        actual.autoplay = true;
+        showToast(actual.estado === 'bajando' ? `«${track.title}» se está bajando (${actual.porcentaje} %).` : `«${track.title}» está en cola en Soulseek.`);
+        return;
+      }
+      this.pedidos.set(id, { estado: 'en-cola', porcentaje: 0, title: track.title, autoplay: true, at: Date.now() });
+      this.paint(id);
+      haptic(10);
+      showToast(`Pidiendo «${track.title}» a Soulseek: sonará en cuanto llegue a tu servidor.`);
+      try {
+        await this.api('/api/pedir', { method: 'POST', body: { id } });
+        this.save();
+        this.vigilar();
+      } catch (error) {
+        this.pedidos.set(id, { estado: 'fallo', porcentaje: 0, title: track.title, at: Date.now() });
+        this.paint(id);
+        showToast(error.status === 401 ? 'Tu servidor SKd rechazó la clave: revísala en Ajustes.' : `No se pudo pedir «${track.title}»: ${error.message}. Prueba otra copia.`);
+      }
+    },
+    vigilar() {
+      if (this.timer) return;
+      const tick = async () => {
+        this.timer = 0;
+        const ids = [...this.pedidos.entries()].filter(([, p]) => p.estado === 'en-cola' || p.estado === 'bajando').map(([id]) => id);
+        if (!ids.length || !this.on()) return;
+        try {
+          const { pedidos = [] } = await this.api(`/api/pedidos?ids=${ids.map(encodeURIComponent).join(',')}`);
+          pedidos.forEach((r) => this.actualizar(r));
+        } catch { /* el servidor no respondió: se reintenta */ }
+        if ([...this.pedidos.values()].some((p) => p.estado === 'en-cola' || p.estado === 'bajando')) this.timer = setTimeout(tick, document.hidden ? 8000 : 2000);
+        else this.save();
+      };
+      this.timer = setTimeout(tick, 1500);
+    },
+    actualizar(r) {
+      const p = this.pedidos.get(r.id);
+      if (!p) return;
+      // Muy viejo y sin moverse: se deja de vigilar (Soulseek puede tardar, pero no horas)
+      if (r.estado === 'en-cola' && Date.now() - p.at > 6 * 3600000) r = { ...r, estado: 'fallo', motivo: 'Lleva horas en cola' };
+      p.estado = r.estado === 'desconocido' ? 'fallo' : r.estado;
+      p.porcentaje = r.porcentaje || 0;
+      if (r.estado === 'lista' && r.cancion) {
+        const track = this.agregar(r.cancion);
+        p.cancionId = track.id;
+        showToast(`«${track.title}» ya está en tu biblioteca.`, p.autoplay ? null : { label: 'Escuchar', run: () => this.sonar(track.id) }, { background: true });
+        if (p.autoplay && (!state.currentTrack || els.audio.paused || state.currentTrack.skd)) this.sonar(track.id);
+      } else if (p.estado === 'fallo') {
+        showToast(`No se pudo bajar «${p.title}» de Soulseek${r.motivo ? ` (${r.motivo})` : ''}. Prueba otra copia.`, null, { background: true });
+      }
+      this.paint(r.id);
+    },
+    // La canción nueva entra en la biblioteca al momento (sin recargar)
+    agregar(row) {
+      const track = buildTrack({ ...row, sourceName: 'skd' }, 0);
+      if (!state.trackMap.has(track.id)) {
+        state.tracks.push(track);
+        state.trackMap.set(track.id, track);
+        state.libraryTracks.push(track);
+        labIndex = null;
+        updateCounts();
+      }
+      return getTrack(track.id);
+    },
+    sonar(id) {
+      const track = getTrack(id);
+      if (!track) return;
+      playCollection([track], id, 'SKd · Soulseek', `skd:${id}`);
+    },
+
+    /* --- Ajustes: dirección y clave de tu servidor --- */
+    async conectar() {
+      const url = this.limpiar(this.ui.url.value);
+      const clave = this.ui.clave.value.trim();
+      if (!url || !clave) { this.mostrarEstado('Escribe la dirección y la clave de tu servidor.', 'warn'); return; }
+      this.mostrarEstado('Conectando…');
+      try {
+        const data = await this.api('/api/estado', { cfg: { url, clave }, ms: 15000 });
+        this.cfg = { url, clave };
+        storage.set(SKD_KEY, this.cfg);
+        this.estado = data;
+        this.registerSource();
+        this.apply();
+        this.mostrarEstado(this.textoEstado(data), 'ok');
+        showToast('Servidor SKd conectado: el buscador de ATK ya busca también en Soulseek.');
+        atk.results.clear();
+        loadTracks();
+      } catch (error) {
+        this.mostrarEstado(error.status === 401 ? 'La clave no es correcta.' : `No responde (${error.message}). ¿Está encendido el servidor y la dirección empieza por https://?`, 'warn');
+      }
+    },
+    desconectar() {
+      this.cfg = null;
+      storage.set(SKD_KEY, null);
+      this.registerSource();
+      this.apply();
+      this.mostrarEstado('Sin servidor SKd.');
+      atk.results.clear();
+      loadTracks();
+    },
+    textoEstado(d) {
+      return `Conectado · Soulseek ${d.soulseek ? 'en línea' : 'sin conexión (revisa tu usuario en el servidor)'} · ${songsLabel(d.canciones || 0)} en tu servidor`;
+    },
+    mostrarEstado(text, kind = '') {
+      if (!this.ui.estado) return;
+      this.ui.estado.textContent = text;
+      this.ui.estado.dataset.kind = kind;
+    },
+    async refrescarEstado() {
+      if (!this.ui.url) return;
+      this.ui.url.value = this.cfg?.url || '';
+      this.ui.clave.value = this.cfg?.clave || '';
+      this.ui.quitar.hidden = !this.configurado();
+      if (!this.configurado()) { this.mostrarEstado('Sin servidor SKd. Cómo montarlo: soulseek/GUIA.md en el repositorio de Liquid.'); return; }
+      try {
+        this.estado = await this.api('/api/estado', { ms: 10000 });
+        this.mostrarEstado(this.textoEstado(this.estado), 'ok');
+      } catch (error) {
+        this.mostrarEstado(error.status === 401 ? 'Tu servidor rechazó la clave.' : 'Tu servidor SKd no responde ahora (¿apagado?). Lo que tengas descargado en el teléfono sigue sonando.', 'warn');
+      }
+    },
+    apply() {
+      document.documentElement.classList.toggle('skd', this.on());
+      if (this.ui.quitar) this.ui.quitar.hidden = !this.configurado();
+    },
+    init() {
+      if (LAB_MODE) return;
+      this.registerSource();
+      this.ui = { url: $('skdUrl'), clave: $('skdClave'), conectar: $('skdConectar'), quitar: $('skdQuitar'), estado: $('skdEstado') };
+      this.ui.conectar?.addEventListener('click', () => this.conectar());
+      this.ui.quitar?.addEventListener('click', () => this.desconectar());
+      [this.ui.url, this.ui.clave].forEach((input) => input?.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') { event.preventDefault(); this.conectar(); }
+      }));
+      els.settingsBtn?.addEventListener('click', () => this.refrescarEstado());
+      els.atkToggle?.addEventListener('change', () => this.apply());
+      this.apply();
+      // Pedidos que seguían en marcha al cerrar la app
+      (storage.get(SKD_PEDIDOS, []) || []).forEach((p) => {
+        if (p?.id && Date.now() - (p.at || 0) < 6 * 3600000) this.pedidos.set(p.id, { estado: 'en-cola', porcentaje: 0, title: p.t || 'la canción', autoplay: false, at: p.at || Date.now() });
+      });
+      if (this.pedidos.size) this.vigilar();
     }
   };
 
@@ -16315,6 +16565,7 @@
 
     restorePreferences();
     atk.init();
+    skd.init();
     updateModeButtons();
     updateVolumeUI();
     updateProgressUI(0, 0);

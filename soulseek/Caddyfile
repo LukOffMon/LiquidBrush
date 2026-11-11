@@ -1,0 +1,8 @@
+# HTTPS automático para el puente (Let's Encrypt). DOMINIO viene de .env:
+# por ejemplo 158-101-22-33.sslip.io (gratis, sin comprar dominio) o tu propio dominio.
+{$DOMINIO} {
+	encode gzip
+	reverse_proxy puente:8787 {
+		flush_interval -1
+	}
+}

@@ -6,7 +6,7 @@
   "scripts": {
     "start": "python3 -m http.server 8000",
     "lint": "eslint .",
-    "check": "node --check app.js && node --check sw.js && python3 tools/check_site.py",
+    "check": "node --check app.js && node --check sw.js && python3 tools/check_site.py && node --test soulseek/puente/server.test.mjs",
     "test": "playwright test",
     "bump": "python3 tools/bump_version.py"
   },
