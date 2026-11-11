@@ -1,6 +1,30 @@
 {
   "releases": [
     {
+      "version": "v72",
+      "date": "noviembre 2026",
+      "title": "Radio en directo y más música en Liquid ATK",
+      "items": [
+        "Nueva sección Radio (en la barra de abajo y en las pestañas): más de 50.000 emisoras en directo de todo el mundo.",
+        "Radio tiene su propia interfaz: la emisora que suena en grande con «EN VIVO», buscador de emisoras y filtros por género y por país (el tuyo, primero).",
+        "Cambia de emisora con «siguiente» y «anterior», también desde la pantalla de bloqueo; el temporizador de apagado funciona igual.",
+        "El corazón guarda la emisora en «Tus emisoras», y las que pones salen en «Escuchadas hace poco».",
+        "Radio es solo de Liquid Bullet: Liquid Lab no la lleva.",
+        "La radio no cuenta para tus estadísticas ni para las recomendaciones, y en directo no hay barra de progreso, letra ni bucle.",
+        "Liquid ATK suma dos fuentes más: Hearthis.at (sesiones y temas de DJs y productores) y Wikimedia Commons vía Openverse (grabaciones libres y de dominio público, sobre todo clásica)."
+      ]
+    },
+    {
+      "version": "v71",
+      "date": "noviembre 2026",
+      "title": "Liquid ATK busca en todo el Internet Archive",
+      "items": [
+        "ATK ya no se limita a las colecciones de confianza del Internet Archive: también busca en lo que sube su comunidad, que es muchísima más música.",
+        "Lo que sube la comunidad sale con la etiqueta «No verificado» (su origen y sus derechos no están confirmados) y va detrás de lo verificado: directos con permiso de las bandas, sellos libres y discos de 78 rpm.",
+        "Siguen fuera lo que no se puede reproducir fuera del Archive, lo que el propio Archive marca como problemático y lo que no es música (audiolibros, pódcasts, radio y noticias)."
+      ]
+    },
+    {
       "version": "v70",
       "date": "noviembre 2026",
       "title": "Liquid ATK llega más lejos",

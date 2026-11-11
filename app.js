@@ -357,6 +357,7 @@
     atkToggle: $('atkToggle'),
     atkAbout: $('atkAbout'),
     atkResults: $('atkResults'),
+    radioPanel: $('radioPanel'),
     clearDownloads: $('clearDownloads'),
     autoFavToggle: $('autoFavToggle'),
     softPauseToggle: $('softPauseToggle'),
@@ -1242,7 +1243,7 @@
 
   // Descarga una sola canción (corazón con «Descargar favoritas» activado)
   async function downloadTrack(track) {
-    if (!offline.supported || !track || track.atk || isDownloaded(track) || !navigator.onLine) return false;
+    if (!offline.supported || !track || track.atk || track.radio || isDownloaded(track) || !navigator.onLine) return false;
     const connection = navigator.connection;
     if (connection?.saveData || ['slow-2g', '2g'].includes(connection?.effectiveType)) return false;
     try {
@@ -1581,7 +1582,7 @@
     short: 'Más cortas primero',
     added: 'Añadidas recientemente'
   };
-  const VIEWS = ['home', 'library', 'playlists', 'artists', 'favorites', 'stats', 'lab'];
+  const VIEWS = ['home', 'library', 'playlists', 'artists', 'favorites', 'stats', 'radio', 'lab'];
 
   const library = {
     catalog: null,
@@ -1656,7 +1657,7 @@
   const findLocal = (id) => library.local.find((p) => p.id === id);
 
   function recordPlay(id) {
-    if (plus.private) return;
+    if (plus.private || String(id).startsWith('radio:')) return;
     library.recent = [id, ...library.recent.filter((x) => x !== id)].slice(0, RECENT_LIMIT);
     library.plays[id] = (library.plays[id] || 0) + 1;
     storage.set(KEYS.recent, library.recent);
@@ -2276,7 +2277,7 @@
     const id = state.currentTrack?.id;
     if (!id) return;
     // Sesión privada: nada de lo que suena se apunta
-    if (plus.private) { listen.pendingId = null; return; }
+    if (plus.private || state.currentTrack?.radio) { listen.pendingId = null; return; }
     if (listen.pendingId !== id) {
       flushListening();
       listen.pendingId = id;
@@ -2373,11 +2374,13 @@
       this.save();
     },
     markHeard(id) {
+      if (String(id).startsWith('radio:')) return;
       this.heard[id] = Date.now();
       this.touch();
     },
     // Saltar una canción al poco de empezar cuenta en contra (y cuenta como oída: no vuelve enseguida)
     markSkip(id) {
+      if (String(id).startsWith('radio:')) return;
       this.skips[id] = Math.min(9, (Number(this.skips[id]) || 0) + 1);
       this.heard[id] = Date.now();
       this.touch();
@@ -3712,14 +3715,15 @@
       playlists: searching ? ['Buscando en la biblioteca', 'Resultados'] : ['Oficiales, compartidas y tuyas', 'Playlists'],
       favorites: ['Tus corazones', 'Favoritas'],
       stats: [monthInfo(state.statsOffset).label, 'Tus estadísticas'],
-      lab: ['Mezclas a tu medida', 'Lab']
+      lab: ['Mezclas a tu medida', 'Lab'],
+      radio: [radio.total ? `${radio.total.toLocaleString('es')} emisoras en directo` : 'En directo, de todo el mundo', 'Radio']
     };
     const [eyebrow, title] = titles[state.view];
     const text = makeEl('div', 'view-text');
     text.append(makeEl('p', 'view-eyebrow', eyebrow), makeEl('h2', 'view-title', title));
 
     const actions = makeEl('div', 'view-actions');
-    if (state.view === 'lab' || state.view === 'home' || state.view === 'artists') {
+    if (state.view === 'lab' || state.view === 'home' || state.view === 'artists' || state.view === 'radio') {
       // Sin acciones en la cabecera: todo está en su panel
     } else if (state.view === 'stats') {
       const prevMonth = makeButton('icon-btn', 'stats-prev', 'Mes anterior', 'back');
@@ -4034,6 +4038,10 @@
     if (!track) return;
     if (track.atk) {
       showToast('Las canciones de Liquid ATK no se comparten con enlace: búscala en Liquid ATK.');
+      return;
+    }
+    if (track.radio) {
+      showToast('Las emisoras no se comparten con enlace: búscala en Radio.');
       return;
     }
     const who = track.knownArtist ? ` de ${track.knownArtist}` : '';
@@ -4894,7 +4902,7 @@
   /* ---------- Acerca del artista (debajo de la letra) ---------- */
   // Sonando: cada artista de la canción tiene su enlace y su ficha (una colaboración es de todos)
   function updateAbout(track) {
-    const entries = track && !track.atk ? artistKeysOf(track).map(getArtist).filter(Boolean) : [];
+    const entries = track && !track.atk && !track.radio ? artistKeysOf(track).map(getArtist).filter(Boolean) : [];
     const main = entries[0] || null;
     els.npArtist.classList.toggle('is-link', entries.length === 1);
     els.npArtist.dataset.artist = main ? main.key : '';
@@ -5564,12 +5572,14 @@
     els.alphaRail.hidden = true;
     const showHome = state.view === 'home' || state.view === 'artists';
     const showLab = state.view === 'lab';
-    const showStats = state.view === 'stats' || showLab || showHome;
+    const showRadio = state.view === 'radio';
+    const showStats = state.view === 'stats' || showLab || showHome || showRadio;
     const showGrid = state.view === 'playlists' && !searching;
     els.homePanel.hidden = !showHome;
     els.playlistGrid.hidden = !showGrid;
     els.statsPanel.hidden = state.view !== 'stats';
     els.labPanel.hidden = !showLab;
+    if (els.radioPanel) els.radioPanel.hidden = !showRadio;
     els.trackList.hidden = showGrid || showStats;
     if (state.view !== 'playlist') setViewTint('');
     renderRecentRow();
@@ -5581,6 +5591,13 @@
     if (showHome) {
       if (state.view === 'home') renderHome();
       else renderArtists();
+      els.trackList.replaceChildren();
+      els.listInfo.textContent = '';
+      return;
+    }
+
+    if (showRadio) {
+      radio.open();
       els.trackList.replaceChildren();
       els.listInfo.textContent = '';
       return;
@@ -6194,6 +6211,7 @@
   }
 
   function toggleFavorite(id) {
+    if (String(id).startsWith('radio:')) { radio.toggleFav(id); return; }
     const track = getTrack(id);
     if (!track) return;
     const added = !state.favorites.has(id);
@@ -6563,7 +6581,7 @@
     // Se guarda a menudo pero sin escribir en cada timeupdate (cada 4 s, o al instante si force)
     save(force = false) {
       const track = state.currentTrack;
-      if (!track || LAB_MODE) return;
+      if (!track || LAB_MODE || track.radio) return;
       const now = Date.now();
       if (!force && now - this.lastSaved < 4000) return;
       this.lastSaved = now;
@@ -6674,9 +6692,11 @@
     els.miniTitle.textContent = splitTitle(track.title).main;
     els.miniArtist.textContent = track.knownArtist || track.artist || generos;
     els.npFavBtn.disabled = false;
-    els.npAddBtn.disabled = false;
-    els.npShareBtn.disabled = false;
-    updateFavButton(els.npFavBtn, state.favorites.has(track.id));
+    // Una emisora no va a playlists ni se comparte con enlace; su corazón la guarda en «Tus emisoras»
+    els.npAddBtn.disabled = Boolean(track.radio);
+    els.npShareBtn.disabled = Boolean(track.radio);
+    updateFavButton(els.npFavBtn, track.radio ? radio.isFav(track.id) : state.favorites.has(track.id));
+    document.body.classList.toggle('is-radio', Boolean(track.radio));
     updateAbout(track);
     state.docTitle = `${track.title} · ${track.artist} — Liquid Bullet`;
     updateDocTitle();
@@ -6688,7 +6708,9 @@
     // Al saltar canciones seguidas solo se pide la letra de la que se queda (evita el 429 de LRCLIB)
     clearTimeout(lyricsDelay);
     lyricsPendingFor = null;
-    if (autoplay) {
+    if (track.radio) {
+      renderLyrics('', 'La radio va en directo: aquí no hay letra.');
+    } else if (autoplay) {
       if (track.lyrics || lyricsCache.has(track.id)) showLyricsFor(track);
       else {
         renderLyrics('', 'Buscando la letra…');
@@ -6713,6 +6735,7 @@
     resume.saveQueue();
     if (els.queueDialog.open) renderQueue();
     plus.onTrack(track);
+    radio.onTrack(track);
 
     if (autoplay) play();
   }
@@ -6868,6 +6891,7 @@
   }
 
   function seekTo(seconds) {
+    if (state.currentTrack?.radio) return;
     if (Number.isFinite(els.audio.duration)) {
       els.audio.currentTime = seconds;
     } else {
@@ -6974,6 +6998,16 @@
 
   /* ---------- Progreso ---------- */
   function updateProgressUI(current, duration) {
+    // Radio: va en directo, sin barra ni final
+    if (state.currentTrack?.radio) {
+      els.progress.max = '100';
+      els.progress.value = '0';
+      els.progress.style.setProperty('--fill', '0%');
+      els.currentTime.textContent = formatTime(current);
+      els.totalTime.textContent = 'EN VIVO';
+      els.progress.setAttribute('aria-valuetext', 'En directo');
+      return;
+    }
     const hasDuration = Number.isFinite(duration) && duration > 0;
     els.progress.max = hasDuration ? String(duration) : '100';
     els.progress.value = hasDuration ? String(clamp(current, 0, duration)) : '0';
@@ -7436,7 +7470,7 @@
     try { return new URL(src, location.href).origin; } catch { return ''; }
   };
   function eqCanPlay(track) {
-    if (track.atk) return false;
+    if (track.atk || track.radio) return false;
     if (/^(data|blob):/i.test(track.src)) return true;
     const origin = originOf(track.src);
     return origin === location.origin || eq.cors.get(origin) === true;
@@ -8924,7 +8958,7 @@
       state.query = els.searchInput.value;
       // En Stats y Lab no hay lista que filtrar: la búsqueda se hace en la Biblioteca
       renderSearchPanel();
-      if (state.query.trim() && ['stats', 'lab', 'home'].includes(state.view)) {
+      if (state.query.trim() && ['stats', 'lab', 'home', 'radio'].includes(state.view)) {
         setView('library');
         return;
       }
@@ -9120,6 +9154,7 @@
       if (target === 'library' && state.view !== 'library') setView('library');
       if (target === 'playlists' && state.view !== 'playlists') setView('playlists');
       if (target === 'lab' && state.view !== 'lab') setView('lab');
+      if (target === 'radio' && state.view !== 'radio') setView('radio');
       // El foco va primero (iOS solo abre el teclado dentro del toque)
       if (target === 'search') {
         enterSearch();
@@ -11517,7 +11552,8 @@
     const active = searching ? 'search'
       : state.view === 'home' ? 'home'
       : state.view === 'playlists' || state.view === 'playlist' ? 'playlists'
-      : state.view === 'lab' ? 'lab' : 'library';
+      : state.view === 'lab' ? 'lab'
+      : state.view === 'radio' ? 'radio' : 'library';
     els.bottomNav.querySelectorAll('.nav-btn').forEach((button) => {
       const on = button.dataset.nav === active;
       button.classList.toggle('is-active', on);
@@ -13055,7 +13091,12 @@
   // Solo lo del Archive con permiso o licencia abierta: sellos libres (netlabels), discos de 78 rpm,
   // Free Music Archive y la Live Music Archive (directos grabados con permiso de las bandas: mediatype etree).
   // Fuera lo «solo streaming» (no se puede reproducir fuera de su web) y lo de origen dudoso
-  const ATK_IA_FILTER = '((mediatype:(audio) AND collection:(netlabels OR 78rpm OR georgeblood OR freemusicarchive)) OR mediatype:(etree)) AND -collection:(roiocollection OR fringe OR deemphasize OR stream_only)';
+  // Todo el audio del Archive, salvo lo que no se puede reproducir fuera de su web (stream_only), lo que el propio
+  // Archive marca como problemático (fringe, deemphasize) y lo que no es música (audiolibros, pódcasts, radio, noticias)
+  const ATK_IA_FILTER = 'mediatype:(audio OR etree) AND -collection:(fringe OR deemphasize OR stream_only OR librivoxaudio OR audio_bookspoetry OR podcasts OR audio_podcast OR podcasts_mirror OR oldtimeradio OR radioprograms OR audio_news OR audio_religion)';
+  // De confianza: directos con permiso de las bandas (etree), sellos libres, 78 rpm y Free Music Archive.
+  // Lo demás son subidas de la comunidad: entran, pero «No verificado»
+  const ATK_IA_TRUSTED = new Set(['etree', 'netlabels', '78rpm', 'georgeblood', 'freemusicarchive']);
   const ATK_JUNK = /\b(type beat|sped ?up|slowed|nightcore|8d audio|karaoke|instrumental|remix|edit|cover|bootleg|mashup|flip|reverb)\b/;
 
   const atk = {
@@ -13094,6 +13135,8 @@
         seconds: d.seconds || 0,
         popularity: d.popularity || 0,
         verified: Boolean(d.verified),
+        // Subida de la comunidad del Archive (no de una colección de confianza)
+        ...(d.community && !d.verified ? { unverified: true } : {}),
         credit: d.credit || null
       };
     },
@@ -13232,7 +13275,9 @@
         url: `https://archive.org/download/${encodeURIComponent(identifier)}/${f.name.split('/').map(encodeURIComponent).join('/')}`,
         genre: '',
         popularity: Number(item.downloads) || 0,
-        credit: { author: String(first(f.creator) || first(item.creator) || ''), license, link: `https://archive.org/details/${identifier}`, service: 'Internet Archive' }
+        credit: { author: String(first(f.creator) || first(item.creator) || ''), license, link: `https://archive.org/details/${identifier}`, service: 'Internet Archive' },
+        verified: item.mediatype === 'etree' || collections.some((c) => ATK_IA_TRUSTED.has(c)),
+        community: true
       });
     },
     iaSeconds(length) {
@@ -13287,6 +13332,53 @@
         credit: { author: t.artist_name || '', license: t.license_ccurl || 'Creative Commons', link: t.shareurl || '', service: 'Jamendo' }
       });
     },
+    // Hearthis.at: subidas de DJs y productores (mucha sesión larga)
+    fromHearthis(t) {
+      if (!t?.stream_url || String(t.private) === '1') return null;
+      const lic = String(t.license || '');
+      return this.make({
+        id: `atk:ht:${t.id}`,
+        src: 'ht',
+        title: t.title,
+        artist: t.user?.username || '',
+        album: '',
+        seconds: Number(t.duration) || 0,
+        url: t.stream_url,
+        genre: t.genre || '',
+        popularity: Number(t.playback_count) || 0,
+        credit: { author: t.user?.username || '', license: /^(|all)$/.test(lic) ? 'Todos los derechos reservados por su autor' : `Licencia ${lic.toUpperCase()}`, link: t.permalink_url || '', service: 'Hearthis.at' }
+      });
+    },
+    async hearthis(q, signal, offset = 0) {
+      const page = Math.floor(offset / 20) + 1;
+      const data = await this.json(`https://api-v2.hearthis.at/search/?t=${encodeURIComponent(q)}&type=tracks&count=20&page=${page}`, signal, 8000);
+      return (Array.isArray(data) ? data : []).map((t) => this.fromHearthis(t)).filter(Boolean);
+    },
+    // Openverse: lo que aporta es la música de Wikimedia Commons (clásica y de dominio público). Jamendo ya va
+    // directo y Freesound son efectos de sonido. Fuera lo corto (en Commons hay pronunciaciones de palabras)
+    fromOpenverse(r) {
+      const seconds = Math.round((Number(r?.duration) || 0) / 1000);
+      if (!r?.url || seconds < 45) return null;
+      const title = String(r.title || '').replace(/^File:/i, '').replace(/\.(ogg|oga|ogx|mp3|wav|flac|opus)$/i, '').replace(/_/g, ' ');
+      return this.make({
+        id: `atk:ov:${r.id}`,
+        src: 'ov',
+        title,
+        artist: r.creator || '',
+        album: '',
+        seconds,
+        url: r.url,
+        genre: (r.genres || [])[0] || '',
+        popularity: 0,
+        credit: { author: r.creator || '', license: r.license_url || `Licencia ${String(r.license || '').toUpperCase()}`, link: r.foreign_landing_url || '', service: 'Wikimedia Commons (vía Openverse)' }
+      });
+    },
+    async openverse(q, signal, offset = 0) {
+      const page = Math.floor(offset / 20) + 1;
+      const data = await this.json(`https://api.openverse.org/v1/audio/?q=${encodeURIComponent(q)}&source=wikimedia_audio&page_size=20&page=${page}`, signal, 9000);
+      return (data?.results || []).map((r) => this.fromOpenverse(r)).filter(Boolean);
+    },
+
     async jamendo(q, signal, offset = 0) {
       if (!CONFIG.jamendoClientId) return [];
       const data = await this.json(`https://api.jamendo.com/v3.0/tracks/?client_id=${CONFIG.jamendoClientId}&format=json&limit=20&offset=${offset}&search=${encodeURIComponent(q)}&audioformat=mp32&include=musicinfo+stats&order=relevance`, signal, 8000);
@@ -13325,7 +13417,7 @@
       // Lo no verificado va detrás de lo original
       if (t.unverified) s -= 10;
       s += Math.min(12, Math.log10(1 + t.popularity) * 2);
-      s += { au: 3, ja: 2, ia: 0 }[t.atkSource] || 0;
+      s += { au: 3, ja: 2, ht: 1, ia: 0, ov: 0 }[t.atkSource] || 0;
       return s;
     },
     // Lo que Liquid ya tiene (título + artista) y los artistas de su catálogo
@@ -13347,7 +13439,7 @@
     // «No verificado»: en Audius, una cuenta sin verificar que sube algo a nombre de un artista de Liquid
     // (suele ser una resubida o un remix de una canción comercial: se enseña, pero avisando)
     markUnverified(t, known, named) {
-      if (t.atkSource !== 'au' || t.verified) return;
+      if (!['au', 'ht'].includes(t.atkSource) || t.verified) return;
       const who = normalize(t.knownArtist);
       const said = normalize(`${t.title} ${t.knownArtist}`);
       const lead = normalize(String(t.title).split(/\s+[-–—]\s+/)[0]);
@@ -13407,6 +13499,8 @@
       return {
         au: { off: 0, step: 25, done: false, fetch: (off) => this.audius(q, signal, off) },
         ja: { off: 0, step: 20, done: !CONFIG.jamendoClientId, fetch: (off) => this.jamendo(q, signal, off) },
+        ht: { off: 0, step: 20, done: false, fetch: (off) => this.hearthis(q, signal, off) },
+        ov: { off: 0, step: 20, done: false, fetch: (off) => this.openverse(q, signal, off) },
         // El Archive es lento: cada disco o concierto se pinta en cuanto llega
         ia: { off: 1, step: 1, done: false, fetch: (page) => this.archive(q, signal, page, (list) => this.add(entry, 'ia', list)) }
       };
@@ -13445,7 +13539,7 @@
       this.render();
       // El Archive va a su ritmo (cada disco se pinta al llegar); lo rápido no lo espera
       const slow = this.pull(entry, 'ia');
-      await Promise.all([this.pull(entry, 'au'), this.pull(entry, 'ja'), this.profile(entry).catch(() => {})]);
+      await Promise.all([this.pull(entry, 'au'), this.pull(entry, 'ja'), this.pull(entry, 'ht'), this.pull(entry, 'ov'), this.profile(entry).catch(() => {})]);
       // Con erratas o palabras a medias casi no sale nada: segundo intento con el principio de cada palabra
       const loose = this.loose(qn);
       if (!controller.signal.aborted && entry.tracks.length < 5 && loose) {
@@ -13683,7 +13777,7 @@
       const ae = this.artistEntry;
       const live = [];
       await this.archive(entry.name, null, 1, (list) => live.push(...list)).catch(() => 0);
-      const lists = await Promise.all([this.audius(entry.name).catch(() => []), this.jamendo(entry.name).catch(() => [])]);
+      const lists = await Promise.all([this.audius(entry.name).catch(() => []), this.jamendo(entry.name).catch(() => []), this.hearthis(entry.name).catch(() => [])]);
       lists.push(live);
       if (this.artistEntry !== ae) return;
       const own = new Set(entry.tracks.map((t) => t.songKey));
@@ -13881,7 +13975,9 @@
         const sources = makeEl('ul', 'atk-sources');
         [['Audius', 'https://audius.co', 'música subida por sus propios artistas'],
           ['Internet Archive', 'https://archive.org/details/audio', 'sellos libres, directos grabados con permiso de las bandas y discos de 78 rpm'],
-          ...(CONFIG.jamendoClientId ? [['Jamendo', 'https://www.jamendo.com', 'música con licencia Creative Commons']] : [])]
+          ...(CONFIG.jamendoClientId ? [['Jamendo', 'https://www.jamendo.com', 'música con licencia Creative Commons']] : []),
+          ['Hearthis.at', 'https://hearthis.at', 'sesiones y temas de DJs y productores'],
+          ['Wikimedia Commons (vía Openverse)', 'https://openverse.org', 'grabaciones libres y de dominio público, sobre todo clásica']]
           .forEach(([name, href, what]) => {
             const li = document.createElement('li');
             const a = makeEl('a', '', name);
@@ -13932,7 +14028,9 @@
       const license = /^https?:/.test(c.license || '') ? 'licencia Creative Commons' : c.license || 'licencia de su autor';
       credit.replaceChildren(makeEl('span', 'atk-mark', 'ATK'), ` Créditos: ${c.author || 'su autor'} · ${license} · vía ${c.service}${c.link ? ' · ' : ''}`, ...(c.link ? [link] : []));
       if (track.unverified) {
-        credit.append(makeEl('span', 'atk-credit-warning', ' No verificado: la subió una cuenta que no es la oficial del artista; puede ser una copia, un remix o un cover.'));
+        credit.append(makeEl('span', 'atk-credit-warning', track.atkSource === 'ia'
+          ? ' No verificado: la subió alguien de la comunidad del Internet Archive; su origen y sus derechos no están confirmados.'
+          : ' No verificado: la subió una cuenta que no es la oficial del artista; puede ser una copia, un remix o un cover.'));
       }
       if (/^https?:/.test(c.license || '')) {
         const lic = makeEl('a', '', ' (ver licencia)');
@@ -13953,6 +14051,315 @@
       this.apply();
       if (this.on()) setTimeout(() => this.hydrate(), 1500);
       window.addEventListener('pagehide', () => this.persist());
+    }
+  };
+
+  /* ---------- Radio (v72): emisoras en directo de todo el mundo (Radio Browser) ----------
+     Una sección propia, como Inicio o Lab. Cada emisora se reproduce como una «canción» especial del
+     reproductor de Liquid: suena en el reproductor de abajo y en la pantalla de bloqueo, el temporizador
+     funciona y «siguiente» / «anterior» cambian de emisora. Lo que no tiene sentido en directo se apaga:
+     barra de progreso, letra, estadísticas, playlists y descargas.
+     Solo emisoras https (una web segura no puede reproducir las http) y sin HLS (no suena en todos los navegadores). */
+  const RADIO_API = 'https://all.api.radio-browser.info/json';
+  const RADIO_KEY = 'liquidbrush:radio';
+  const RADIO_GENRES = [['pop', 'Pop'], ['rock', 'Rock'], ['dance', 'Dance'], ['electronic', 'Electrónica'], ['hip hop', 'Hip hop'],
+    ['reggaeton', 'Reggaetón'], ['latin', 'Latina'], ['jazz', 'Jazz'], ['lofi', 'Lo-fi'], ['chillout', 'Chill'], ['classical', 'Clásica'],
+    ['oldies', 'Oldies'], ['80s', 'Años 80'], ['indie', 'Indie'], ['metal', 'Metal'], ['house', 'House'], ['salsa', 'Salsa'],
+    ['ambient', 'Ambient'], ['blues', 'Blues'], ['k-pop', 'K-pop']];
+  const RADIO_COUNTRIES = [['ES', 'España'], ['MX', 'México'], ['AR', 'Argentina'], ['CO', 'Colombia'], ['CL', 'Chile'], ['PE', 'Perú'],
+    ['US', 'Estados Unidos'], ['GB', 'Reino Unido'], ['FR', 'Francia'], ['DE', 'Alemania'], ['IT', 'Italia'], ['BR', 'Brasil'], ['JP', 'Japón'], ['KR', 'Corea del Sur']];
+  const flagOf = (cc) => (/^[A-Z]{2}$/.test(cc || '') ? String.fromCodePoint(...[...cc].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65)) : '');
+  const myCountry = (() => {
+    const lang = navigator.language || 'es-ES';
+    const region = (lang.split('-')[1] || '').toUpperCase();
+    return /^[A-Z]{2}$/.test(region) ? region : lang.startsWith('es') ? 'ES' : 'US';
+  })();
+
+  const radio = {
+    saved: (() => {
+      const d = storage.get(RADIO_KEY, {}) || {};
+      return { favs: Array.isArray(d.favs) ? d.favs : [], recent: Array.isArray(d.recent) ? d.recent : [] };
+    })(),
+    cache: new Map(),
+    list: [],
+    loading: false,
+    failed: false,
+    filter: { kind: 'top', value: '' },
+    total: 0,
+    ui: {},
+    searchTimer: 0,
+
+    save() { storage.set(RADIO_KEY, this.saved); },
+    slim: (st) => ({ stationuuid: st.stationuuid, name: st.name, url_resolved: st.url_resolved, favicon: st.favicon, country: st.country,
+      countrycode: st.countrycode, tags: st.tags, codec: st.codec, bitrate: st.bitrate }),
+
+    // Emisora → «canción» del reproductor (con portada de Liquid; el logo de la emisora va en Radio)
+    track(st) {
+      const id = `radio:${st.stationuuid}`;
+      const known = state.trackMap.get(id);
+      if (known) return known;
+      const pad = String((hashString(id) % ATK_SONG_COVERS) + 1).padStart(2, '0');
+      const place = [flagOf(st.countrycode), st.country].filter(Boolean).join(' ');
+      const tags = String(st.tags || '').split(',').map((t) => t.trim()).filter(Boolean).slice(0, 3);
+      const t = {
+        id, title: String(st.name || 'Emisora').trim(), artist: place || 'Radio', knownArtist: '', album: tags.join(' · '),
+        duration: '', src: st.url_resolved, photo: '', cover: `covers/songs/song-${pad}.jpg`, thumb: `covers/songs/song-${pad}-sm.jpg`,
+        logo: this.logoUrl(st), hue: null, lyrics: '', genre: '', generos: [],
+        radio: true, station: this.slim(st), songKey: id
+      };
+      state.trackMap.set(id, t);
+      return t;
+    },
+    // Muchas emisoras ponen como «logo» la dirección de su audio en directo (no carga nunca): esas no
+    logoUrl(st) {
+      const u = String(st.favicon || '');
+      if (!/^https:/.test(u) || u === st.url_resolved || u === st.url) return '';
+      if (/\.(mp3|aac|ogg|m3u8?|pls)(\?|$)|:\d{4,5}\/|\/(stream|listen|live)(\/|\?|$)|icecast|shoutcast/i.test(u)) return '';
+      return u;
+    },
+    isFav(id) { return this.saved.favs.some((s) => `radio:${s.stationuuid}` === id); },
+    toggleFav(id) {
+      const t = getTrack(id);
+      if (!t?.radio) return;
+      const on = this.isFav(id);
+      this.saved.favs = on ? this.saved.favs.filter((s) => `radio:${s.stationuuid}` !== id) : [t.station, ...this.saved.favs].slice(0, 60);
+      this.save();
+      haptic(on ? 10 : [10, 30, 10]);
+      showToast(on ? `Quitaste «${t.title}» de tus emisoras.` : `«${t.title}» está en tus emisoras.`);
+      if (state.currentTrack?.id === id) updateFavButton(els.npFavBtn, !on);
+      if (state.view === 'radio') this.render();
+    },
+
+    async fetch(params) {
+      const query = new URLSearchParams({ hidebroken: 'true', is_https: 'true', order: 'clickcount', reverse: 'true', limit: '80', ...params });
+      const key = query.toString();
+      if (this.cache.has(key)) return this.cache.get(key);
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 10000);
+      try {
+        const res = await fetch(`${RADIO_API}/stations/search?${key}`, { signal: controller.signal });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const seen = new Set();
+        const list = (await res.json()).filter((st) => {
+          const name = normalize(st.name || '');
+          if (!name || seen.has(name) || !/^https:/.test(st.url_resolved || '') || Number(st.hls) === 1) return false;
+          seen.add(name);
+          return true;
+        }).slice(0, 60);
+        this.cache.set(key, list);
+        return list;
+      } finally {
+        clearTimeout(timer);
+      }
+    },
+    paramsOf(f) {
+      if (f.kind === 'tag') return { tag: f.value };
+      if (f.kind === 'country') return { countrycode: f.value };
+      if (f.kind === 'search') return { name: f.value };
+      return {};
+    },
+    titleOf(f) {
+      if (f.kind === 'tag') return `Radio ${RADIO_GENRES.find(([v]) => v === f.value)?.[1] || f.value}`;
+      if (f.kind === 'country') return `${flagOf(f.value)} Radio de ${RADIO_COUNTRIES.find(([v]) => v === f.value)?.[1] || f.value}`;
+      if (f.kind === 'search') return `Emisoras con «${f.value}»`;
+      return 'Las más escuchadas del mundo';
+    },
+    async load(filter) {
+      this.filter = filter;
+      this.loading = true;
+      this.failed = false;
+      this.render();
+      try {
+        this.list = await this.fetch(this.paramsOf(filter));
+      } catch {
+        this.list = [];
+        this.failed = true;
+      }
+      if (this.filter !== filter) return;
+      this.loading = false;
+      this.render();
+    },
+    play(st, list = this.list, title = this.titleOf(this.filter)) {
+      const tracks = (list.length ? list : [st]).map((s) => this.track(s));
+      const t = this.track(st);
+      if (state.currentTrack?.id === t.id) { togglePlay(); return; }
+      if (state.shuffle) toggleShuffle();
+      playCollection(tracks, t.id, `Radio · ${title}`, `radio:${title}`);
+    },
+    // Al sonar una emisora: a «Escuchadas hace poco» y un clic para Radio Browser (así ordena sus emisoras)
+    onTrack(track) {
+      if (track?.radio) {
+        this.saved.recent = [track.station, ...this.saved.recent.filter((s) => s.stationuuid !== track.station.stationuuid)].slice(0, 12);
+        this.save();
+        fetch(`${RADIO_API}/url/${encodeURIComponent(track.station.stationuuid)}`).catch(() => {});
+      }
+      if (state.view === 'radio') this.render();
+    },
+
+    /* --- La sección --- */
+    logo(t, size, className) {
+      const img = photoImg(t.logo || t.cover, size, className);
+      // Logos rotos o diminutos: la portada de Liquid
+      img.addEventListener('load', () => { if (img.naturalWidth && img.naturalWidth < 24 && img.src !== new URL(t.cover, location.href).href) img.src = t.cover; });
+      img.addEventListener('error', () => { img.src = t.cover; }, { once: true });
+      if (t.logo) setTimeout(() => { if (!img.naturalWidth) img.src = t.cover; }, 4000);
+      return img;
+    },
+    nowCard() {
+      const t = state.currentTrack?.radio ? state.currentTrack : null;
+      const card = makeEl('section', `radio-now${t ? '' : ' is-idle'}`);
+      if (!t) {
+        const icon = makeEl('span', 'radio-now-icon');
+        icon.append(svgIcon('radio'));
+        const text = makeEl('div', 'radio-now-text');
+        text.append(makeEl('p', 'radio-now-title', 'Radio en directo'),
+          makeEl('p', 'radio-now-sub', `${this.total ? `${this.total.toLocaleString('es')} emisoras` : 'Miles de emisoras'} de todo el mundo, sin cortes. Elige una y cambia de emisora con «siguiente», también desde la pantalla de bloqueo.`));
+        card.append(icon, text);
+        return card;
+      }
+      const playing = document.body.classList.contains('is-playing');
+      const art = makeEl('div', 'radio-now-art');
+      art.append(this.logo(t, 120, 'radio-now-logo'));
+      const live = makeEl('span', `radio-live${playing ? ' is-on' : ''}`, playing ? 'EN VIVO' : 'EN PAUSA');
+      const text = makeEl('div', 'radio-now-text');
+      text.append(live, makeEl('p', 'radio-now-title', t.title), makeEl('p', 'radio-now-sub', [t.artist, t.album].filter(Boolean).join(' · ')));
+      const tech = [t.station.codec, t.station.bitrate ? `${t.station.bitrate} kbps` : ''].filter(Boolean).join(' · ');
+      if (tech) text.append(makeEl('p', 'radio-now-tech', tech));
+      const controls = makeEl('div', 'radio-now-controls');
+      const btn = (cls, label, icon, run) => {
+        const b = makeButton(`icon-btn ${cls}`, 'radio-ctl', label, icon);
+        b.addEventListener('click', (e) => { e.stopPropagation(); run(); });
+        return b;
+      };
+      const fav = btn(`radio-fav${this.isFav(t.id) ? ' is-active' : ''}`, this.isFav(t.id) ? 'Quitar de tus emisoras' : 'Guardar en tus emisoras', this.isFav(t.id) ? 'heart-fill' : 'heart', () => this.toggleFav(t.id));
+      controls.append(
+        btn('radio-prev', 'Emisora anterior', 'prev', () => prev()),
+        btn('play-btn radio-play', playing ? 'Pausar' : 'Reproducir', playing ? 'pause' : 'play', () => togglePlay()),
+        btn('radio-next', 'Emisora siguiente', 'next', () => next(true)),
+        fav
+      );
+      card.append(art, text, controls);
+      return card;
+    },
+    stationCard(st, list, title) {
+      const t = this.track(st);
+      const current = state.currentTrack?.id === t.id;
+      const card = makeEl('div', `radio-card${current ? ' is-current' : ''}`);
+      const open = makeEl('button', 'radio-card-play');
+      open.type = 'button';
+      open.setAttribute('aria-label', `Escuchar ${t.title}`);
+      open.addEventListener('click', () => this.play(st, list, title));
+      const text = makeEl('span', 'radio-card-text');
+      text.append(makeEl('span', 'radio-card-name', t.title), makeEl('span', 'radio-card-meta', [t.artist, t.album].filter(Boolean).join(' · ')));
+      const art = makeEl('span', 'radio-card-art');
+      art.append(this.logo(t, 56, 'radio-card-logo'));
+      if (current) {
+        const eqEl = makeEl('span', 'eq radio-card-eq');
+        eqEl.setAttribute('aria-hidden', 'true');
+        for (let i = 0; i < 4; i++) eqEl.append(makeEl('span'));
+        art.append(eqEl);
+      }
+      open.append(art, text);
+      const fav = makeButton(`icon-btn radio-card-fav${this.isFav(t.id) ? ' is-active' : ''}`, 'radio-fav', this.isFav(t.id) ? `Quitar ${t.title} de tus emisoras` : `Guardar ${t.title} en tus emisoras`, this.isFav(t.id) ? 'heart-fill' : 'heart');
+      fav.addEventListener('click', () => this.toggleFav(t.id));
+      card.append(open, fav);
+      return card;
+    },
+    row(title, stations, listTitle) {
+      if (!stations.length) return null;
+      const section = makeEl('section', 'radio-row');
+      section.append(makeEl('h3', 'radio-row-title', title));
+      const row = makeEl('div', 'radio-strip');
+      stations.forEach((st) => row.append(this.stationCard(st, stations, listTitle)));
+      section.append(row);
+      return section;
+    },
+    render() {
+      const panel = els.radioPanel;
+      if (!panel || state.view !== 'radio') return;
+      const parts = [this.nowCard()];
+
+      const search = makeEl('div', 'radio-search');
+      const input = document.createElement('input');
+      input.type = 'search';
+      input.placeholder = 'Busca una emisora por su nombre';
+      input.setAttribute('aria-label', 'Buscar emisoras');
+      input.enterKeyHint = 'search';
+      input.value = this.filter.kind === 'search' ? this.filter.value : '';
+      input.addEventListener('input', () => {
+        clearTimeout(this.searchTimer);
+        const v = input.value.trim();
+        this.searchTimer = setTimeout(() => {
+          this.load(v.length >= 2 ? { kind: 'search', value: v } : { kind: 'top', value: '' }).then(() => this.ui.input?.focus());
+        }, 450);
+      });
+      input.addEventListener('keydown', (e) => { if (e.key === 'Enter') input.blur(); });
+      this.ui.input = input;
+      search.append(svgIcon('search'), input);
+      parts.push(search);
+
+      const chips = makeEl('div', 'chips radio-chips');
+      chips.setAttribute('role', 'toolbar');
+      chips.setAttribute('aria-label', 'Tipo de radio');
+      const chip = (kind, value, label) => {
+        const on = this.filter.kind === kind && this.filter.value === value;
+        const c = makeChip('radio-filter', value, label, on);
+        c.addEventListener('click', () => this.load({ kind, value }));
+        return c;
+      };
+      const mine = RADIO_COUNTRIES.find(([cc]) => cc === myCountry);
+      chips.append(chip('top', '', 'Más escuchadas'), chip('country', myCountry, `${flagOf(myCountry)} ${mine ? mine[1] : 'Tu país'}`),
+        ...RADIO_GENRES.map(([v, label]) => chip('tag', v, label)));
+      const countries = makeEl('div', 'chips radio-chips radio-countries');
+      countries.setAttribute('aria-label', 'Países');
+      countries.append(...RADIO_COUNTRIES.filter(([cc]) => cc !== myCountry).map(([cc, name]) => chip('country', cc, `${flagOf(cc)} ${name}`)));
+      parts.push(chips, countries);
+
+      const favs = this.row('Tus emisoras', this.saved.favs, 'Tus emisoras');
+      const recent = this.row('Escuchadas hace poco', this.saved.recent.filter((s) => !this.saved.favs.some((f) => f.stationuuid === s.stationuuid)), 'Escuchadas hace poco');
+      if (this.filter.kind === 'top') parts.push(...[favs, recent].filter(Boolean));
+
+      const list = makeEl('section', 'radio-list');
+      const head = makeEl('div', 'radio-list-head');
+      const title = this.titleOf(this.filter);
+      head.append(makeEl('h3', 'radio-row-title', title));
+      if (this.loading) head.append(makeEl('span', 'atk-status is-busy', 'Sintonizando…'));
+      else if (this.list.length) head.append(makeEl('span', 'atk-status', `${this.list.length} emisoras`));
+      list.append(head);
+      if (this.loading && !this.list.length) {
+        const sk = makeEl('div', 'radio-grid');
+        for (let i = 0; i < 8; i++) sk.append(makeEl('div', 'radio-card is-skeleton'));
+        list.append(sk);
+      } else if (this.failed) {
+        list.append(emptyState('div', 'cloud-off', 'No se pudo conectar con las emisoras. Revisa tu conexión y vuelve a intentarlo.'));
+      } else if (!this.list.length) {
+        list.append(emptyState('div', 'radio', 'Ninguna emisora coincide. Prueba con otro nombre, un género o un país.'));
+      } else {
+        const grid = makeEl('div', 'radio-grid');
+        this.list.forEach((st) => grid.append(this.stationCard(st, this.list, title)));
+        list.append(grid);
+      }
+      parts.push(list);
+
+      const focused = document.activeElement?.closest?.('.radio-search') ? input.selectionStart : null;
+      panel.replaceChildren(...parts);
+      if (focused !== null) { input.focus(); input.setSelectionRange(focused, focused); }
+    },
+    open() {
+      if (!this.list.length && !this.loading) this.load(this.filter);
+      else this.render();
+      if (!this.total) {
+        fetch(`${RADIO_API}/stats`).then((r) => r.json()).then((d) => {
+          this.total = Number(d.stations) - Number(d.stations_broken || 0);
+          if (state.view === 'radio') { renderViewHead(); this.render(); }
+        }).catch(() => {});
+      }
+    },
+    init() {
+      if (LAB_MODE) return;
+      decks.forEach((deck) => ['play', 'pause'].forEach((type) => deck.addEventListener(type, () => {
+        if (deck === els.audio && state.currentTrack?.radio && state.view === 'radio') this.render();
+      })));
     }
   };
 
@@ -13984,6 +14391,7 @@
 
     /* --- Bucle A–B: repite un trozo (para aprenderse una letra, un solo o un paso de baile) --- */
     cycleLoop() {
+      if (state.currentTrack?.radio) { showToast('La radio va en directo: no hay bucle.'); return; }
       if (!state.currentTrack || !getDuration()) { showToast('Pon una canción para marcar el bucle.'); return; }
       const now = els.audio.currentTime || 0;
       const l = this.loop;
@@ -14218,8 +14626,8 @@
       const box = this.ui.story;
       const track = state.currentTrack;
       if (!box) return;
-      box.hidden = !track;
-      if (!track) return;
+      box.hidden = !track || Boolean(track.radio);
+      if (box.hidden) return;
       const story = this.songStory(track);
       const head = makeEl('p', 'about-eyebrow', 'Tu historia con esta canción');
       const line = makeEl('p', 'story-facts', story.facts.length ? story.facts.join(' · ') : 'Es la primera vez que la pones. Aquí verás cuánto la escuchas.');
@@ -14599,6 +15007,7 @@
     setupExtras();
     plus.init();
     setupSearch();
+    radio.init();
     inappNotice();
     if (els.deviceInfo) els.deviceInfo.textContent = `Tu dispositivo: ${deviceSummary()}. La app se adapta sola a él.`;
     document.querySelectorAll('.settings-group-title').forEach((title) => title.prepend(sticker(title.textContent)));

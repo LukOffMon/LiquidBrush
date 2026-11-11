@@ -295,13 +295,26 @@ Liquid está pensada primero para el móvil:
 - **Índice A–Z** a la derecha de la Biblioteca cuando se ordena por título o artista.
 - Avisos con **Deshacer** al quitar canciones o borrar playlists (pasan 30 días en la **Papelera**).
 
+## Radio (v72)
+
+Sección propia (barra de abajo en el móvil, pestaña en escritorio) con emisoras en directo de [Radio Browser](https://www.radio-browser.info) (`all.api.radio-browser.info`, gratis, sin clave).
+
+- **Interfaz**: la emisora que suena en grande (logo, «EN VIVO» con pulso, país, géneros, códec y calidad) con anterior / reproducir / siguiente / guardar; buscador por nombre; filtros por género y por país (el del navegador primero); «Tus emisoras» y «Escuchadas hace poco».
+- **Solo emisoras https y sin HLS**: una web segura no puede reproducir audio http, y HLS no suena en todos los navegadores. Cada lista se pide una vez por sesión.
+- **En el reproductor**: cada emisora es una «canción» especial (id `radio:<stationuuid>`), así que suena abajo y en la pantalla de bloqueo, y «siguiente» / «anterior» cambian de emisora. Sin barra de progreso («EN VIVO»), letra, bucle, playlists, descargas ni enlace para compartir. No cuenta para Stats, recientes ni el motor de gustos.
+- **Solo en Liquid Bullet**: `tools/build_lab.py` quita de `lab.html` la pestaña, el botón y el panel de Radio.
+- **Guardado**: `liquidbrush:radio` (favoritas y recientes, solo en este navegador). Al poner una emisora se avisa a Radio Browser (`/json/url/<uuid>`), que es como ordena sus emisoras más escuchadas.
+- **Logos**: si la emisora no tiene, el logo no carga en 4 s o es en realidad su audio, se usa una portada de `covers/songs/`.
+
 ## Liquid ATK (v68)
 
 Modo opcional (**Ajustes → Liquid ATK**, se recuerda como el ultraligero). Al encenderlo, la marca pasa a **Liquid ATK** con una animación corta (sin animación con «reducir movimiento» o en ultraligero).
 
 - **Fuentes** (todas gratis, con CORS, llamadas desde el navegador):
   - **Audius** (`api.audius.co`, sin clave; `app_name=liquidbullet`): búsqueda, tendencias por género y audio completo.
-  - **Internet Archive** (`archive.org`): solo la Live Music Archive (`mediatype:etree`), netlabels, 78 rpm y Free Music Archive; fuera lo «solo streaming» y colecciones de origen dudoso.
+  - **Internet Archive** (`archive.org`): todo su audio (`mediatype:audio OR etree`) salvo lo «solo streaming», lo marcado `fringe`/`deemphasize` y lo que no es música (audiolibros, pódcasts, radio, noticias). La Live Music Archive, netlabels, 78 rpm y Free Music Archive son de confianza; el resto (subidas de la comunidad) sale «No verificado» y puntúa menos.
+  - **Hearthis.at** (`api-v2.hearthis.at`, sin clave): sesiones y temas de DJs y productores. Como cualquiera puede subir, lo que nombra a un artista de Liquid sale «No verificado».
+  - **Openverse** (`api.openverse.org`, sin clave): solo su fuente Wikimedia Commons (Jamendo ya va directo y Freesound son efectos); fuera lo de menos de 45 s.
   - **Jamendo** (`api.jamendo.com`): canciones con licencia Creative Commons. Usa el Client ID público de la app «Liquid ATK» (devportal.jamendo.com, uso no comercial) en `CONFIG.jamendoClientId` (`app.js`); el Client Secret no se usa ni debe ir en el código. Vacío, ATK usa solo las otras dos.
 - **Mejor opción**: se consulta a las tres a la vez y se pinta en cuanto responde cada una. Puntúa coincidencia con lo escrito (título y artista, tolerando erratas: una letra en palabras de 4 a 6, dos en las más largas, y palabras a medias), duración razonable, popularidad y fuente; quita duplicados entre fuentes. Descarta pódcasts, episodios, pistas de menos de 40 s y canciones que Liquid ya tiene.
 - **Erratas**: Audius no corrige, pero encuentra por prefijos; si la búsqueda trae menos de 5 canciones, se repite con el principio de cada palabra larga («ljaz midnite» → «ljaz midn») y la puntuación filtra lo parecido.

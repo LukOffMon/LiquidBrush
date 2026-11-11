@@ -1131,7 +1131,8 @@ body.is-playing .cover-wrap {
 
 /* En el móvil Lab está en la barra inferior: la pestaña sobra y así caben las demás */
 @media (max-width: 860px) {
-  .tab-lab {
+  .tab-lab,
+  .tab-radio {
     display: none;
   }
 }
@@ -10149,4 +10150,417 @@ body.is-private .np-eyebrow::after {
   flex: none;
   width: 48px;
   height: 48px;
+}
+
+/* =========================================================
+   v72: Radio — emisoras en directo (Radio Browser)
+   ========================================================= */
+.radio {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 14px;
+}
+
+/* Lo que suena: logo grande, EN VIVO y controles para cambiar de emisora */
+.radio-now {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 18px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background:
+    radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--dyn) 38%, transparent), transparent 60%),
+    color-mix(in srgb, var(--surface-2) 92%, transparent);
+}
+
+.radio-now.is-idle {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.radio-now-icon {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--text) 9%, transparent);
+}
+
+.radio-now-icon .icon {
+  width: 30px;
+  height: 30px;
+}
+
+.radio-now-art {
+  position: relative;
+}
+
+.radio-now-logo {
+  width: 112px;
+  height: 112px;
+  border-radius: 20px;
+  background: #fff;
+  object-fit: contain;
+  box-shadow: var(--shadow);
+}
+
+.radio-now-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.radio-now-title {
+  margin: 0;
+  overflow: hidden;
+  font-family: var(--title-font);
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.radio-now.is-idle .radio-now-title {
+  font-family: var(--heading-font, var(--title-font));
+}
+
+.radio-now-sub,
+.radio-now-tech {
+  margin: 0;
+  color: var(--text-muted);
+  font-family: var(--song-font);
+  font-size: 0.88rem;
+  letter-spacing: normal;
+}
+
+.radio-now.is-idle .radio-now-sub {
+  line-height: 1.45;
+}
+
+.radio-now-tech {
+  font-size: 0.76rem;
+  font-variant-numeric: tabular-nums;
+  text-transform: uppercase;
+}
+
+.radio-live {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.radio-live::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.radio-live.is-on {
+  background: color-mix(in srgb, #ff3b5c 22%, transparent);
+  color: #ff6b84;
+}
+
+.radio-live.is-on::before {
+  background: #ff3b5c;
+  box-shadow: 0 0 0 0 rgba(255, 59, 92, 0.6);
+}
+
+:root:not(.no-motion) .radio-live.is-on::before {
+  animation: radio-pulse 1.6s ease-out infinite;
+}
+
+@keyframes radio-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(255, 59, 92, 0.6); }
+  100% { box-shadow: 0 0 0 9px rgba(255, 59, 92, 0); }
+}
+
+.radio-now-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.radio-play {
+  width: 58px;
+  height: 58px;
+}
+
+.radio-fav.is-active,
+.radio-card-fav.is-active {
+  color: var(--heart);
+}
+
+/* Buscador de emisoras y filtros */
+.radio-search {
+  position: relative;
+}
+
+.radio-search .icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  width: 20px;
+  height: 20px;
+  color: var(--text-muted);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.radio-search input {
+  width: 100%;
+  padding: 12px 16px 12px 44px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 16px;
+  outline: none;
+}
+
+.radio-search input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+.radio-chips {
+  margin: 0;
+}
+
+.radio-countries {
+  margin-top: -8px;
+}
+
+/* Filas y rejilla de emisoras */
+.radio-row-title {
+  margin: 0 0 8px;
+  font-family: var(--heading-font, var(--title-font));
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.radio-list-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.radio-strip {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 2px 2px 8px;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+
+.radio-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.radio-strip .radio-card {
+  flex: 0 0 230px;
+}
+
+.radio-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 8px;
+}
+
+.radio-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  min-height: 72px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface-2) 85%, transparent);
+  transition: background-color 0.2s, border-color 0.2s, transform 0.15s;
+}
+
+.radio-card:hover {
+  background: var(--surface-hover);
+}
+
+.radio-card.is-current {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface-2));
+}
+
+.radio-card.is-skeleton {
+  background: linear-gradient(90deg, var(--surface-2), var(--surface-hover), var(--surface-2));
+  background-size: 200% 100%;
+}
+
+:root:not(.no-motion) .radio-card.is-skeleton {
+  animation: sk-shine 1.4s linear infinite;
+}
+
+@keyframes sk-shine {
+  to { background-position: -200% 0; }
+}
+
+.radio-card-play {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 8px 4px 8px 8px;
+  border: 0;
+  border-radius: 16px;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+:root:not(.no-motion) .radio-card-play:active {
+  transform: scale(0.98);
+}
+
+.radio-card-art {
+  position: relative;
+  flex: none;
+}
+
+.radio-card-logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  background: #fff;
+  object-fit: contain;
+}
+
+.radio-card-eq {
+  position: absolute;
+  inset: 0;
+  display: inline-flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 12px;
+  border-radius: 12px;
+  background: rgba(8, 10, 16, 0.55);
+  color: #fff;
+}
+
+.radio-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.radio-card-name {
+  display: -webkit-box;
+  overflow: hidden;
+  font-family: var(--title-font);
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.2;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.radio-card-meta {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-family: var(--song-font);
+  font-size: 0.78rem;
+  letter-spacing: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.radio-card-fav {
+  flex: none;
+  margin-right: 4px;
+}
+
+/* El reproductor con una emisora: sin barra de progreso, «EN VIVO» en vez de la duración */
+body.is-radio .progress {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+body.is-radio #totalTime {
+  color: #ff6b84;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.tab-radio .icon {
+  width: 16px;
+  height: 16px;
+  margin-right: 2px;
+  vertical-align: -3px;
+}
+
+@media (max-width: 860px) {
+  .bottom-nav .nav-btn span {
+    font-size: 0.64rem;
+  }
+}
+
+@media (max-width: 560px) {
+  .radio-now {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .radio-now-logo {
+    width: 84px;
+    height: 84px;
+    border-radius: 16px;
+  }
+
+  .radio-now-title {
+    font-size: 1.2rem;
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .radio-now-controls {
+    grid-column: 1 / -1;
+    justify-content: center;
+    gap: 14px;
+  }
+
+  .radio-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .radio-strip .radio-card {
+    flex-basis: 78%;
+  }
+}
+
+/* Con una emisora sonando: fuera lo que en directo no tiene sentido */
+body.is-radio .lyrics,
+body.is-radio .plus-loop,
+body.is-radio .plus-karaoke,
+body.is-radio #lyricsBtn {
+  display: none;
 }

@@ -46,7 +46,7 @@
   <link rel="dns-prefetch" href="https://pub-0854e4225565462db16fa787cf2ab81c.r2.dev">
   <link rel="dns-prefetch" href="https://pub-864cd199a5e04cb0b5faf77320b1e47b.r2.dev">
   <link rel="dns-prefetch" href="https://lrclib.net">
-  <link rel="stylesheet" href="styles.css?v=56">
+  <link rel="stylesheet" href="styles.css?v=58">
   <script>
     /* Aplica el tema, la fuente y el tamaño de letra guardados antes de pintar (sin parpadeos) */
     (function () {
@@ -472,6 +472,9 @@
               Favoritas <span id="favCount" class="count">0</span>
             </button>
             <button class="tab" type="button" role="tab" aria-controls="libraryView" data-view="stats" aria-selected="false">Stats</button>
+            <button class="tab tab-radio" type="button" role="tab" aria-controls="libraryView" data-view="radio" aria-selected="false">
+              <svg class="icon" aria-hidden="true"><use href="#i-radio"></use></svg> Radio
+            </button>
             <button class="tab tab-lab" type="button" role="tab" aria-controls="libraryView" data-view="lab" aria-selected="false">
               <svg class="icon" aria-hidden="true"><use href="#i-flask"></use></svg> Lab
             </button>
@@ -489,6 +492,7 @@
         <div id="playlistGrid" class="pl-wrap" hidden></div>
         <div id="statsPanel" class="stats" hidden></div>
         <div id="labPanel" class="lab" hidden></div>
+        <div id="radioPanel" class="radio" hidden></div>
         <ul id="trackList" class="track-list"></ul>
         <section id="atkResults" class="atk-results" aria-label="Resultados de Liquid ATK" aria-live="polite" hidden></section>
         <nav id="alphaRail" class="alpha-rail" aria-label="Índice alfabético" hidden></nav>
@@ -569,6 +573,9 @@
         </button>
         <button class="nav-btn" type="button" data-nav="playlists">
           <svg class="icon" aria-hidden="true"><use href="#i-grid"></use></svg><span>Playlists</span>
+        </button>
+        <button class="nav-btn" type="button" data-nav="radio">
+          <svg class="icon" aria-hidden="true"><use href="#i-radio"></use></svg><span>Radio</span>
         </button>
         <button class="nav-btn" type="button" data-nav="lab">
           <svg class="icon" aria-hidden="true"><use href="#i-flask"></use></svg><span>Lab</span>
@@ -1074,6 +1081,6 @@
   <!-- Reproductores para el ecualizador (necesitan CORS en el servidor del audio) -->
   <audio id="audio3" preload="metadata" crossorigin="anonymous"></audio>
   <audio id="audio4" preload="auto" crossorigin="anonymous"></audio>
-  <script src="app.js?v=59" defer></script>
+  <script src="app.js?v=61" defer></script>
 </body>
 </html>
