@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "version": "v79",
+      "date": "noviembre 2026",
+      "title": "Liquid ATK + SKd: Soulseek en tu propio servidor",
+      "items": [
+        "Nuevo SKd: conecta tu propio servidor de Soulseek (por ejemplo, uno gratis de Oracle Cloud) en Ajustes → Liquid ATK → SKd · Soulseek.",
+        "Con SKd conectado, el buscador de ATK busca también en Soulseek: los resultados llevan la etiqueta SKd, con formato y calidad («MP3 · 320 kbps»). Lo que ya tienes en Liquid no se repite.",
+        "Toca un resultado SKd y tu servidor lo descarga: verás «En cola» y «Bajando 40 %», y en cuanto llega entra en tu biblioteca y suena.",
+        "Lo que bajas con SKd es parte de tu biblioteca: playlists, descargas al teléfono y Stats, como cualquier canción de Liquid.",
+        "Los pedidos siguen aunque cierres la app: te avisa cuando la canción ya está en tu biblioteca.",
+        "La marca pasa a «Liquid ATK +SKd» con el servidor conectado. La clave se guarda solo en ese navegador.",
+        "Guía paso a paso para montar el servidor en soulseek/GUIA.md del repositorio."
+      ]
+    },
+    {
       "version": "v78",
       "date": "noviembre 2026",
       "title": "Stats a fondo y 108 hitos",

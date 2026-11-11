@@ -47,7 +47,7 @@
   <link rel="dns-prefetch" href="https://pub-0854e4225565462db16fa787cf2ab81c.r2.dev">
   <link rel="dns-prefetch" href="https://pub-864cd199a5e04cb0b5faf77320b1e47b.r2.dev">
   <link rel="dns-prefetch" href="https://lrclib.net">
-  <link rel="stylesheet" href="styles.css?v=64">
+  <link rel="stylesheet" href="styles.css?v=65">
   <script>
     /* Aplica el tema, la fuente y el tamaño de letra guardados antes de pintar (sin parpadeos) */
     (function () {
@@ -878,6 +878,23 @@
           <input id="atkOwnedToggle" type="checkbox" role="switch">
           <span class="switch-track" aria-hidden="true"></span>
         </label>
+        <div class="skd-settings">
+          <p class="setting-name">SKd · Soulseek <span class="atk-mark skd-mark">SKd</span></p>
+          <p class="setting-hint">Tu propio servidor de Soulseek (cómo montarlo: <code>soulseek/GUIA.md</code> en el repositorio). Con él conectado, el buscador de ATK también busca en Soulseek; lo que pidas se descarga en tu servidor y pasa a tu biblioteca.</p>
+          <label class="skd-field">
+            <span>Dirección</span>
+            <input id="skdUrl" type="url" inputmode="url" placeholder="https://123-45-67-89.sslip.io" autocomplete="off" autocapitalize="off" spellcheck="false">
+          </label>
+          <label class="skd-field">
+            <span>Clave</span>
+            <input id="skdClave" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="La clave que te dio instalar.sh">
+          </label>
+          <div class="skd-actions">
+            <button id="skdConectar" class="btn btn-small" type="button">Conectar</button>
+            <button id="skdQuitar" class="btn btn-ghost btn-small" type="button" hidden>Desconectar</button>
+          </div>
+          <p id="skdEstado" class="setting-hint skd-estado" role="status" aria-live="polite"></p>
+        </div>
         <button id="atkAbout" class="btn btn-ghost btn-small atk-about-btn" type="button">Acerca de ATK y créditos</button>
       </section>
 
@@ -1092,6 +1109,6 @@
   <!-- Reproductores para el ecualizador (necesitan CORS en el servidor del audio) -->
   <audio id="audio3" preload="metadata" crossorigin="anonymous"></audio>
   <audio id="audio4" preload="auto" crossorigin="anonymous"></audio>
-  <script src="app.js?v=67" defer></script>
+  <script src="app.js?v=68" defer></script>
 </body>
 </html>

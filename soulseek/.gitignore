@@ -1,0 +1,7 @@
+# Datos y secretos del servidor: nunca al repositorio
+.env
+slskd/
+musica/
+datos/
+caddy-datos/
+caddy-config/

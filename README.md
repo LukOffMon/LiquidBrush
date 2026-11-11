@@ -306,6 +306,14 @@ Sección propia (barra de abajo en el móvil, pestaña en escritorio) con emisor
 - **Guardado**: `liquidbrush:radio` (favoritas y recientes, solo en este navegador). Al poner una emisora se avisa a Radio Browser (`/json/url/<uuid>`), que es como ordena sus emisoras más escuchadas.
 - **Logos**: si la emisora no tiene, el logo no carga en 4 s o es en realidad su audio, se usa una portada de `covers/songs/`.
 
+## Liquid ATK + SKd: Soulseek en tu servidor (v79)
+
+Guía de instalación: **[`soulseek/GUIA.md`](soulseek/GUIA.md)** (Oracle Cloud Always Free, paso a paso; también vale una Raspberry Pi).
+
+- **Servidor** (`soulseek/`): `docker-compose.yml` con **slskd** (Soulseek, sin abrir a internet salvo el puerto 50300 para compartir), el **puente** (`soulseek/puente/server.mjs`, Node sin dependencias) y **Caddy** (HTTPS automático, sin dominio: `<IP>.sslip.io`). `instalar.sh` lo deja todo listo y genera las claves en `soulseek/.env` (fuera del repositorio).
+- **Puente**: lo único con lo que habla Liquid; pide `LIQUID_CLAVE` (cabecera `Authorization: Bearer` o `?k=` para el audio). `GET /salud`, `GET /api/estado`, `GET /api/buscar?q=` (busca en slskd, filtra audio, quita duplicados y elige la mejor copia: formato, calidad, hueco libre, cola, velocidad), `POST /api/pedir {id}`, `GET /api/pedidos?ids=` (en cola, bajando %, lista con la canción, fallo), `GET /api/lista.json` (tu biblioteca, con etiquetas ID3/FLAC y duración) y `GET /musica/<ruta>` (audio con Range y CORS). Habla con slskd con su clave de API (`X-API-Key`) y, si la rechaza, con usuario y contraseña (`/api/v0/session`). Tests: `node --test soulseek/puente/server.test.mjs` (con un slskd simulado; también en `npm run check`).
+- **Liquid** (`skd` en `app.js`): dirección y clave en Ajustes → Liquid ATK → SKd (`liquidbrush:skd`, solo en ese navegador). La biblioteca del servidor es una fuente más (`CONFIG.sources` → `skd`). En ATK, Soulseek es la fuente `sk`: sus resultados (`atk:sk:<id>`) no suenan directo; al tocarlos se piden (`skd.pedir`), se sigue el progreso (`liquidbrush:skd-pedidos`, sigue tras cerrar la app) y, al llegar, la canción entra en la biblioteca y suena. Sin servidor conectado, ATK no le pregunta a nadie.
+
 ## Stats a fondo y 108 hitos (v78)
 
 - **Periodos**: `state.statsRange` = `month`, `year` o `all` (chips arriba en Stats); las flechas de la cabecera van de mes en mes o de año en año. `periodInfo()` da los días de cada periodo y `previousPeriod()` el anterior; con el periodo en curso, el anterior se recorta a los mismos días transcurridos (comparación justa).
