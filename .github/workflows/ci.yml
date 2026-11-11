@@ -25,7 +25,9 @@ jobs:
       - name: ESLint
         run: npm run lint
       - name: Navegador para los tests
-        run: npx playwright install --with-deps chromium
+        # Si los repositorios de Ubuntu no responden (pasa a veces en los servidores de GitHub), se instala
+        # solo Chromium: las bibliotecas que necesita ya vienen en la imagen; lo que falla son fuentes extra
+        run: npx playwright install --with-deps chromium || npx playwright install chromium
       - name: Tests de extremo a extremo (móvil y escritorio)
         run: npm test
       - uses: actions/upload-artifact@v4
