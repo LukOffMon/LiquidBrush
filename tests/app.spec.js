@@ -1343,3 +1343,146 @@ test.describe('v72: Hearthis, Openverse y Radio', () => {
     await expect(page.locator('.add-credit')).toContainText('Wikimedia Commons');
   });
 });
+
+test.describe('v73: Liquid ATK afinado y pulido general', () => {
+  const tema = (n, extra = {}) => ({ id: `t${n}`, title: `Tema ${n}`, duration: 200, genre: 'Electronic', is_streamable: true, access: { stream: true },
+    play_count: 500 - n, favorite_count: 1, permalink: `/t/${n}`, user: { name: `Autora ${n}`, is_verified: true }, ...extra });
+  const vacias = async (page) => {
+    await page.route(/api\.audius\.co\/v1\/(users|tracks\/trending)/, (route) => route.fulfill({ json: { data: [] } }));
+    await page.route(/archive\.org\/advancedsearch/, (route) => route.fulfill({ json: { response: { numFound: 0, docs: [] } } }));
+    await page.route(/api\.jamendo\.com/, (route) => route.fulfill({ json: { headers: { status: 'success' }, results: [] } }));
+    await page.route(/api-v2\.hearthis\.at|api\.openverse\.org/, (route) => route.fulfill({ json: /openverse/.test(route.request().url()) ? { results: [] } : [] }));
+  };
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      if (!sessionStorage.getItem('atk-puesto')) {
+        localStorage.setItem('liquidbrush:settings', JSON.stringify({ atk: true }));
+        sessionStorage.setItem('atk-puesto', '1');
+      }
+    });
+  });
+
+  test('una búsqueda cortada a medias no se queda en «Buscando…» al volver a ella', async ({ page }) => {
+    await vacias(page);
+    // «tema lento» tarda en responder: se corta al seguir escribiendo
+    await page.route(/api\.audius\.co\/v1\/tracks\/search/, async (route) => {
+      const q = new URL(route.request().url()).searchParams.get('query');
+      if (q === 'tema lento') await new Promise((done) => setTimeout(done, 1500));
+      route.fulfill({ json: { data: [tema(1, { title: 'Tema Lento' })] } }).catch(() => {});
+    });
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.fill('#searchInput', 'tema lento');
+    await expect(page.locator('.atk-status')).toHaveText('Buscando…');
+    await page.waitForTimeout(500);
+    await page.fill('#searchInput', 'tema lento x');
+    await page.waitForTimeout(500);
+    await page.fill('#searchInput', 'tema lento');
+    await expect(page.locator('.atk-status')).toHaveText('1 canción');
+    await expect(page.locator('.atk-list .track')).toHaveCount(1);
+  });
+
+  test('el filtro «Liquid ATK» se mantiene al seguir escribiendo y los textos llegan limpios', async ({ page }) => {
+    await vacias(page);
+    await page.route(/api\.audius\.co\/v1\/tracks\/search/, (route) => route.fulfill({ json: { data: [
+      tema(1, { title: 'Radiohead Tribute &amp; Friends', genre: 'Cl&#xE1;sico' }), tema(2, { title: 'Radiohead en chiptune' })
+    ] } }));
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.fill('#searchInput', 'radiohead');
+    const chip = page.locator('#searchScopes .chip[data-value="atk"]');
+    await expect(chip).toContainText('2');
+    await chip.click();
+    await expect(chip).toHaveClass(/is-active/);
+    await expect(page.locator('#trackList .track')).toHaveCount(0);
+    // Entidades HTML fuera del título y del género
+    await expect(page.locator('.atk-list')).toContainText('Radiohead Tribute & Friends');
+    await expect(page.locator('.atk-list')).not.toContainText('&amp;');
+    await expect(page.locator('.atk-list')).not.toContainText('&#x');
+    // Una palabra más: el filtro sigue puesto mientras ATK busca y cuando termina
+    await page.locator('#searchInput').pressSequentially(' t', { delay: 60 });
+    await expect(chip).toHaveClass(/is-active/);
+    await expect(page.locator('#listInfo')).toContainText('Liquid ATK');
+    await expect(page.locator('.atk-status')).toHaveText('2 canciones');
+    await expect(chip).toHaveClass(/is-active/);
+    // La etiqueta ATK va en la línea del artista (en el título se cortaba)
+    await expect(page.locator('.atk-list .track-artist .atk-mark').first()).toBeVisible();
+  });
+
+  test('con las fuentes caídas avisa y deja reintentar', async ({ page }) => {
+    let caidas = true;
+    await page.route(/api\.audius\.co|archive\.org|api\.jamendo\.com|api-v2\.hearthis\.at|api\.openverse\.org/, (route) => {
+      const url = route.request().url();
+      if (caidas) return route.abort();
+      if (/tracks\/search/.test(url)) return route.fulfill({ json: { data: [tema(7, { title: 'Zzqx Vuelve' })] } });
+      if (/advancedsearch/.test(url)) return route.fulfill({ json: { response: { docs: [] } } });
+      if (/openverse|jamendo/.test(url)) return route.fulfill({ json: { results: [] } });
+      return route.fulfill({ json: /hearthis/.test(url) ? [] : { data: [] } });
+    });
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.fill('#searchInput', 'zzqx vuelve');
+    await expect(page.locator('.atk-status')).toHaveText('No se pudo buscar');
+    await expect(page.locator('.atk-fail')).toContainText('no respondieron');
+    caidas = false;
+    await page.locator('.atk-retry').click();
+    await expect(page.locator('.atk-list .track')).toHaveCount(1);
+  });
+
+  test('filtros de los resultados: canciones o sesiones largas', async ({ page }) => {
+    await vacias(page);
+    await page.route(/api\.audius\.co\/v1\/tracks\/search/, (route) => route.fulfill({ json: { data: [
+      ...Array.from({ length: 5 }, (_, i) => tema(i + 1, { title: `Mezcla Corta ${i + 1}` })),
+      ...Array.from({ length: 3 }, (_, i) => tema(i + 10, { title: `Mezcla Larga ${i + 1}`, duration: 3600 }))
+    ] } }));
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.fill('#searchInput', 'mezcla');
+    await expect(page.locator('.atk-status')).toHaveText('8 canciones');
+    await page.locator('.atk-filters .chip[data-value="songs"]').click();
+    await expect(page.locator('.atk-list .track')).toHaveCount(5);
+    await expect(page.locator('.atk-list')).not.toContainText('Mezcla Larga');
+    await page.locator('.atk-filters .chip[data-value="long"]').click();
+    await expect(page.locator('.atk-list .track')).toHaveCount(3);
+    // Las duraciones de más de una hora se ven enteras
+    await expect(page.locator('.atk-list .track-duration').first()).toHaveText('1:00:00');
+  });
+
+  test('lo que cambias en otra pestaña se ve en esta; Ajustes tiene índice y Stats el mapa de la semana', async ({ page, context }) => {
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await expect(page.locator('#favCount')).toHaveText('0');
+    const id = await page.evaluate(() => {
+      document.querySelector('.tab[data-view="library"]').click();
+      return document.querySelector('#trackList .track').dataset.id;
+    });
+    // Otra pestaña marca una favorita y apunta escucha de estas semanas
+    const otra = await context.newPage();
+    await otra.goto('./404.html');
+    await otra.evaluate((trackId) => {
+      localStorage.setItem('liquidbrush:favorites', JSON.stringify([trackId]));
+      const log = {};
+      for (let d = 1; d < 15; d++) {
+        const date = new Date(Date.now() - d * 86400000);
+        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        const h = new Array(24).fill(0);
+        h[21] = 1800;
+        log[key] = { s: { [trackId]: 1800 }, p: { [trackId]: 6 }, h };
+      }
+      localStorage.setItem('liquidbrush:listen', JSON.stringify(log));
+    }, id);
+    await expect(page.locator('#favCount')).toHaveText('1');
+    await otra.close();
+
+    await page.reload();
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.evaluate(() => document.querySelector('.tab[data-view="stats"]').click());
+    await expect(page.locator('.stat-heat .heat-cell')).toHaveCount(7 * 24);
+    await expect(page.locator('.heat-peak')).toContainText('a las 21:00');
+
+    await page.locator('#settingsBtn').click();
+    const ayuda = page.locator('.settings-index .chip', { hasText: 'Ayuda' });
+    await ayuda.click();
+    await expect(page.locator('#shortcutsBtn')).toBeInViewport();
+  });
+});

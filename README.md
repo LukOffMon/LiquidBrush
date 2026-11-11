@@ -306,6 +306,20 @@ Sección propia (barra de abajo en el móvil, pestaña en escritorio) con emisor
 - **Guardado**: `liquidbrush:radio` (favoritas y recientes, solo en este navegador). Al poner una emisora se avisa a Radio Browser (`/json/url/<uuid>`), que es como ordena sus emisoras más escuchadas.
 - **Logos**: si la emisora no tiene, el logo no carga en 4 s o es en realidad su audio, se usa una portada de `covers/songs/`.
 
+## Liquid ATK afinado y pulido general (v73)
+
+- **Búsquedas que no se cuelgan**: al seguir escribiendo, la búsqueda en marcha se corta y se olvida (`atk.cancel()`); antes quedaba guardada sin terminar y, al volver a escribir lo mismo, salía «Buscando…» para siempre.
+- **Filtro «Liquid ATK» estable**: se mantiene mientras ATK busca (el número lleva «…» hasta que termina). El filtro que de verdad se aplica es `searchScopeNow()`.
+- **Filtros dentro de los resultados ATK**: Todo, Canciones (hasta 12 min), Sesiones y directos largos, y sin «No verificado». Solo salen los que cambian algo; suena lo que se ve filtrado.
+- **Fallos a la vista**: sin conexión, o si ninguna fuente responde, la sección lo dice y ofrece «Reintentar» (un fallo se reintenta solo pasados 8 s al volver a buscarlo).
+- **Textos limpios**: entidades HTML fuera («Cl&#xE1;sico» → «Clásico») y títulos del Archive sin número de pista ni código de cinta («gd86-12-17 01 Alabama Getaway» → «Alabama Getaway»).
+- **Perfil del artista**: «Reproducir todo» incluye todas sus canciones (la copia ya registrada de una canción recibe `profileOf`), y la tarjeta solo sale si tiene algo que escuchar.
+- **Página de artista**: cada fuente pinta lo suyo al llegar (antes se esperaba al Archive, hasta 30 s).
+- **Canciones caídas**: si la fuente ya no sirve una ATK, se marca «No disponible ahora» durante 10 min y la cola la salta.
+- **Cuenta**: al sincronizar, las ATK que llegan de otro dispositivo se piden al momento (`atk.hydrate()`); Openverse también se recupera por id. Hearthis.at no tiene consulta por id: sus canciones dependen de los datos guardados en el navegador.
+- **Pestañas**: solo suena una pestaña a la vez (`BroadcastChannel`), y las favoritas y playlists cambiadas en otra pestaña se repintan (evento `storage`).
+- **Además**: sin aviso de error si la canción falla al prepararse sin haber pulsado reproducir; índice de secciones en Ajustes; «Tu semana, hora a hora» en Stats; «Reintentar» en Radio; al volver la conexión, ATK y Radio se reponen solos; se respetan «Reducir transparencia» y «Más contraste» del sistema.
+
 ## Liquid ATK (v68)
 
 Modo opcional (**Ajustes → Liquid ATK**, se recuerda como el ultraligero). Al encenderlo, la marca pasa a **Liquid ATK** con una animación corta (sin animación con «reducir movimiento» o en ultraligero).

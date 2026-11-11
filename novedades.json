@@ -1,6 +1,33 @@
 {
   "releases": [
     {
+      "version": "v73",
+      "date": "noviembre 2026",
+      "title": "Liquid ATK afinado y pulido general",
+      "items": [
+        "Liquid ATK: una búsqueda cortada a medias ya no se queda en «Buscando…» para siempre al volver a escribir lo mismo.",
+        "Liquid ATK: el filtro «Liquid ATK» del buscador se mantiene mientras sigues escribiendo (antes se perdía con cada letra) y su número se actualiza según llegan los resultados.",
+        "Liquid ATK: filtros nuevos dentro de sus resultados: Canciones, Sesiones y directos largos, y sin «No verificado». Suena lo que ves filtrado.",
+        "Liquid ATK: si no hay conexión o las fuentes no responden, lo dice y deja «Reintentar» (antes salía «Nada por aquí»).",
+        "Liquid ATK: títulos y géneros limpios (sin «&amp;» ni «Cl&#xE1;sico», sin números de pista ni códigos de cinta delante).",
+        "Liquid ATK: «Reproducir todo» del perfil de un artista incluye de verdad todas sus canciones, y el perfil solo sale si tiene algo que escuchar.",
+        "Liquid ATK: en la página de un artista, «Más de X en Liquid ATK» aparece según responde cada fuente (antes esperaba hasta 30 s a la más lenta).",
+        "Liquid ATK: una canción que su fuente ya no sirve se marca «No disponible ahora» y la cola la salta sola.",
+        "Liquid ATK: la etiqueta ATK va junto al artista, así se ve también en el teléfono con títulos largos.",
+        "Liquid ATK: las favoritas y playlists con canciones ATK que llegan de otro dispositivo aparecen al momento, sin reabrir la app.",
+        "Liquid ATK: si las tendencias de Inicio fallan, se reintentan al minuto (antes quedaban vacías toda la sesión).",
+        "Si una canción no carga al abrir la app (sin haber pulsado reproducir), ya no salta un aviso de error: se vuelve a pedir al darle a reproducir.",
+        "Dos pestañas de Liquid ya no suenan a la vez: al reproducir en una, la otra se pausa.",
+        "Las favoritas y playlists que cambias en una pestaña se ven en las demás al momento.",
+        "Al recuperar la conexión, Liquid ATK y Radio se reponen solos.",
+        "Ajustes: índice arriba para saltar a cada sección.",
+        "Stats: «Tu semana, hora a hora», un mapa de qué días y a qué horas escuchas más.",
+        "Radio: cambiar rápido de filtro ya no deja la lista del filtro anterior; si falla la conexión hay botón «Reintentar».",
+        "Las duraciones de más de una hora ya no se cortan en las listas.",
+        "Zonas de toque más cómodas en enlaces pequeños, y respeto a «Reducir transparencia» y «Más contraste» del sistema."
+      ]
+    },
+    {
       "version": "v72",
       "date": "noviembre 2026",
       "title": "Radio en directo y más música en Liquid ATK",

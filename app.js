@@ -1152,8 +1152,12 @@
   const cacheKey = (src) => new URL(src, location.href).href;
   const isDownloaded = (track) => offline.downloaded.has(cacheKey(track.src));
   // Las de Liquid ATK suenan solo con ATK encendido y con conexión (no se descargan)
-  const isPlayable = (track) => (track?.atk ? settings.atk === true && navigator.onLine : navigator.onLine || isDownloaded(track));
-  const unplayableMessage = (track) => (track?.atk && !settings.atk
+  // Una ATK que falló al cargar (borrada o privada en su fuente) se da por caída 10 minutos: se salta sola
+  const atkDead = (track) => Boolean(track?.deadAt && Date.now() - track.deadAt < 600000);
+  const isPlayable = (track) => (track?.atk ? settings.atk === true && navigator.onLine && !atkDead(track) : navigator.onLine || isDownloaded(track));
+  const unplayableMessage = (track) => (track?.atk && settings.atk && atkDead(track)
+    ? 'Esta canción ya no responde en su fuente (puede que la hayan quitado). Prueba otra versión.'
+    : track?.atk && !settings.atk
     ? 'Esta canción es de Liquid ATK: actívalo en Ajustes para escucharla.'
     : 'Sin conexión: esta canción no está descargada.');
   const playlistTracks = (key) => playlistTracksOf(getPlaylist(key));
@@ -2815,7 +2819,7 @@
     songs.append(songList);
 
     const grid = makeEl('div', 'stat-grid');
-    grid.append(daily, hours, genres, artists, trend, songs, plus.hitosCard());
+    grid.append(...[daily, hours, v73.heatCard(), genres, artists, trend, songs, plus.hitosCard()].filter(Boolean));
     const csv = makeButton('btn btn-ghost stats-csv', 'export-csv', 'Descargar todo tu historial de escucha (CSV, para Excel o Google Sheets)', 'download', 'Descargar mi historial (CSV)');
     csv.addEventListener('click', exportListeningCsv);
     panel.replaceChildren(...[invite, tiles, grid, csv].filter(Boolean));
@@ -5567,6 +5571,9 @@
   }
 
   function renderList() {
+    // Liquid ATK se entera antes de pintar: así los filtros ya saben que está buscando
+    // (si no, el filtro «Liquid ATK» se perdía con cada letra)
+    if (atk.on() && isGlobalSearch()) atk.request(state.query);
     renderListInner();
     atk.update();
     syncPlayButtons(els.library);
@@ -6150,6 +6157,9 @@
       if (!settings.atk) {
         li.classList.add('is-atk-off');
         artist.textContent = `Solo en Liquid ATK · ${track.knownArtist || track.artist}`;
+      } else if (atkDead(track)) {
+        li.classList.add('is-atk-off', 'is-atk-dead');
+        artist.textContent = `No disponible ahora · ${track.knownArtist || track.artist}`;
       }
       atkTags = [makeEl('span', 'atk-mark', 'ATK'), ...(track.unverified ? [makeEl('span', 'atk-unverified', 'No verificado')] : [])];
     }
@@ -8541,6 +8551,8 @@
       }
       const wasPlaying = document.body.classList.contains('is-playing');
       setPlayingUI(false);
+      // Liquid ATK: si su fuente ya no la sirve, la fila lo dice y la cola la salta
+      if (state.currentTrack?.atk && navigator.onLine && state.wantsPlay) atk.markDead(state.currentTrack);
       // Nadie ha pulsado reproducir (la canción solo se estaba preparando al abrir la app): sin aviso.
       // Se vuelve a pedir al pulsar reproducir
       if (!state.wantsPlay) { state.silentFail = true; return; }
@@ -11121,6 +11133,9 @@
                 if (aj.tema && aj.tema[1] !== tema) applyTheme(aj.tema[1]);
                 else if (temasRemotos) applyTheme(tema);
                 meta.tema = aj.tema?.[1];
+                // Favoritas o playlists con canciones de Liquid ATK que llegan de otro dispositivo: se piden sus datos
+                // ahora (antes no aparecían hasta volver a abrir la app)
+                setTimeout(() => atk.hydrate(), 0);
               }
             };
           });
@@ -11705,6 +11720,7 @@
     renderEqBands();
     updateEqNote();
     els.settingsDialog.showModal();
+    v73.syncSettingsIndex();
   }
 
   /* ---------- Inicio ---------- */
@@ -13480,6 +13496,7 @@
       if (!ATK_JUNK.test(qn) && ATK_JUNK.test(title)) s -= 16;
       if (t.seconds && t.seconds < 60) s -= 12;
       if (t.seconds > 900) s -= 10;
+      if (t.seconds > 1500) s -= 8;
       // Lo no verificado va detrás de lo original
       if (t.unverified) s -= 10;
       s += Math.min(12, Math.log10(1 + t.popularity) * 2);
@@ -13661,7 +13678,7 @@
       if (!entry || entry.loadingMore) return;
       entry.shown += this.PAGE;
       // Si con lo ya encontrado no se llena la página, se pide la siguiente a cada fuente
-      if (entry.tracks.length >= entry.shown || !Object.values(entry.cur).some((c) => !c.done)) {
+      if (this.filterOf(entry.tracks, this.viewFor(entry.tracks)).length >= entry.shown || !Object.values(entry.cur).some((c) => !c.done)) {
         this.render();
         return;
       }
@@ -13674,8 +13691,8 @@
       }
       this.refresh(entry.qn);
     },
-    canMore(entry) {
-      return entry.tracks.length > entry.shown || Object.values(entry.cur).some((c) => !c.done);
+    canMore(entry, count = entry.tracks.length) {
+      return count > entry.shown || Object.values(entry.cur).some((c) => !c.done);
     },
     refresh(qn) {
       if (normalize(state.query) !== qn || !isGlobalSearch()) return;
@@ -13798,9 +13815,52 @@
       }).finally(() => { entry.loading = false; });
       return entry.promise;
     },
+    markDead(track) {
+      track.deadAt = Date.now();
+      els.library.querySelectorAll('.track').forEach((li) => {
+        if (li.dataset.id !== track.id) return;
+        li.classList.add('is-atk-off', 'is-atk-dead');
+      });
+    },
+    // Filtros de los resultados: canciones, sesiones largas (más de 12 min) y solo lo verificado
+    view: 'all',
+    FILTERS: [['all', 'Todo'], ['songs', 'Canciones'], ['long', 'Sesiones y directos largos'], ['verified', 'Sin «No verificado»']],
+    LONG: 720,
+    filterOf(tracks, view = this.view) {
+      if (view === 'songs') return tracks.filter((t) => !t.seconds || t.seconds <= this.LONG);
+      if (view === 'long') return tracks.filter((t) => t.seconds > this.LONG);
+      if (view === 'verified') return tracks.filter((t) => !t.unverified);
+      return tracks;
+    },
+    // El filtro elegido, si con estos resultados sirve de algo (si no, se enseña todo)
+    viewFor(tracks) {
+      if (this.view === 'all' || tracks.length < 6) return 'all';
+      const n = this.filterOf(tracks).length;
+      return n && n < tracks.length ? this.view : 'all';
+    },
+    filterBar(tracks, view) {
+      const options = this.FILTERS.filter(([key]) => {
+        if (key === 'all') return true;
+        const n = this.filterOf(tracks, key).length;
+        return n > 0 && n < tracks.length;
+      });
+      if (tracks.length < 6 || options.length < 2) return null;
+      const bar = makeEl('div', 'chips atk-filters');
+      bar.setAttribute('role', 'toolbar');
+      bar.setAttribute('aria-label', 'Filtrar los resultados de Liquid ATK');
+      options.forEach(([key, label]) => {
+        const chip = makeChip('atk-filter', key, label, view === key);
+        if (key !== 'all') chip.append(makeEl('span', 'chip-count', String(this.filterOf(tracks, key).length)));
+        chip.addEventListener('click', () => { this.view = key; haptic(8); this.render(); });
+        bar.append(chip);
+      });
+      return bar;
+    },
     play(id) {
       const e = this.entry(state.query);
-      let list = e?.tracks.some((t) => t.id === id) ? e.tracks : null;
+      // Suena lo que se ve: con un filtro puesto, la cola son los resultados filtrados
+      const seen = e ? this.filterOf(e.tracks, this.viewFor(e.tracks)) : null;
+      let list = seen?.some((t) => t.id === id) ? seen : e?.tracks.some((t) => t.id === id) ? e.tracks : null;
       if (!list) this.pools.forEach((p) => { if (!list && p.tracks.some((t) => t.id === id)) list = p.tracks; });
       if (!list && this.artistEntry?.tracks.some((t) => t.id === id)) list = this.artistEntry.tracks;
       list ||= [getTrack(id)].filter(Boolean);
@@ -13985,7 +14045,9 @@
       const title = makeEl('h3', 'atk-title');
       title.append(mark, artistPage ? `Más de ${e?.name || ''} en Liquid ATK` : 'Más allá de Liquid');
       const status = makeEl('span', 'atk-status');
-      const tracks = e?.tracks || [];
+      const found = e?.tracks || [];
+      const view = artistPage ? 'all' : this.viewFor(found);
+      const tracks = this.filterOf(found, view);
       const searching = !offline && (!e?.done || Boolean(e?.loadingMore));
       status.textContent = offline ? 'Sin conexión'
         : searching ? (tracks.length ? 'Buscando en más sitios…' : 'Buscando…')
@@ -13994,13 +14056,16 @@
       head.append(title, status);
       const parts = [head];
       // Perfil completo: lo buscado es un artista de Audius o Jamendo
-      if (!artistPage && e?.artist) parts.push(this.artistCard(e));
+      // (solo si alguna de sus canciones se puede escuchar: un perfil vacío confunde más que ayuda)
+      if (!artistPage && e?.artist && found.some((t) => t.profileOf === e.qn)) parts.push(this.artistCard(e));
+      const bar = artistPage ? null : this.filterBar(found, view);
+      if (bar) parts.push(bar);
       if (tracks.length) {
         const ul = makeEl('ul', 'track-list atk-list');
         const shown = artistPage ? tracks : tracks.slice(0, e.shown);
         shown.forEach((t, i) => ul.append(createTrackItem(t, i)));
         parts.push(ul);
-        if (!artistPage && this.canMore(e)) {
+        if (!artistPage && this.canMore(e, tracks.length)) {
           const more = makeEl('button', 'btn atk-more', e.loadingMore ? 'Buscando más…' : 'Ver más en Liquid ATK');
           more.type = 'button';
           more.disabled = Boolean(e.loadingMore);
@@ -14310,13 +14375,17 @@
       this.loading = true;
       this.failed = false;
       this.render();
+      let got = [];
+      let failed = false;
       try {
-        this.list = await this.fetch(this.paramsOf(filter));
+        got = await this.fetch(this.paramsOf(filter));
       } catch {
-        this.list = [];
-        this.failed = true;
+        failed = true;
       }
+      // Si mientras tanto se eligió otro filtro, esta respuesta ya no cuenta (antes podía pisar la lista nueva)
       if (this.filter !== filter) return;
+      this.list = got;
+      this.failed = failed;
       this.loading = false;
       this.render();
     },
@@ -14472,7 +14541,12 @@
         for (let i = 0; i < 8; i++) sk.append(makeEl('div', 'radio-card is-skeleton'));
         list.append(sk);
       } else if (this.failed) {
-        list.append(emptyState('div', 'cloud-off', 'No se pudo conectar con las emisoras. Revisa tu conexión y vuelve a intentarlo.'));
+        const fail = emptyState('div', 'cloud-off', 'No se pudo conectar con las emisoras. Revisa tu conexión y vuelve a intentarlo.');
+        const again = makeEl('button', 'btn btn-primary list-empty-cta', 'Reintentar');
+        again.type = 'button';
+        again.addEventListener('click', () => this.load({ ...this.filter }));
+        fail.append(again);
+        list.append(fail);
       } else if (!this.list.length) {
         list.append(emptyState('div', 'radio', 'Ninguna emisora coincide. Prueba con otro nombre, un género o un país.'));
       } else {
@@ -14487,7 +14561,8 @@
       if (focused !== null) { input.focus(); input.setSelectionRange(focused, focused); }
     },
     open() {
-      if (!this.list.length && !this.loading) this.load(this.filter);
+      // Solo se pide si aún no hay nada: una búsqueda sin resultados o un fallo no se repiten en cada repintado
+      if (!this.list.length && !this.loading && !this.failed && !this.cache.size) this.load(this.filter);
       else this.render();
       if (!this.total) {
         fetch(`${RADIO_API}/stats`).then((r) => r.json()).then((d) => {
@@ -14501,6 +14576,149 @@
       decks.forEach((deck) => ['play', 'pause'].forEach((type) => deck.addEventListener(type, () => {
         if (deck === els.audio && state.currentTrack?.radio && state.view === 'radio') this.render();
       })));
+    }
+  };
+
+  /* ---------- v73: pulido general ----------
+     - Una sola pestaña suena a la vez, y lo que cambias en una (favoritas, playlists) se ve en las demás.
+     - Al recuperar la conexión, Liquid ATK y Radio se reponen solos.
+     - Ajustes con índice para saltar a cada sección.
+     - Stats: tu semana, hora a hora. */
+  const v73 = {
+    tabId: Math.random().toString(36).slice(2),
+    channel: null,
+    repaintTimer: 0,
+
+    // Dos pestañas de Liquid sonando a la vez no tienen sentido: al sonar una, las demás se pausan
+    setupSingleTab() {
+      if (typeof BroadcastChannel !== 'function') return;
+      try { this.channel = new BroadcastChannel('liquidbullet-player'); } catch { return; }
+      this.channel.addEventListener('message', (event) => {
+        if (event.data?.type !== 'playing' || event.data.tab === this.tabId || els.audio.paused) return;
+        pauseByUser();
+        showToast('Liquid empezó a sonar en otra pestaña: aquí se pausó.');
+      });
+      decks.forEach((deck) => deck.addEventListener('playing', () => {
+        if (deck !== els.audio) return;
+        try { this.channel.postMessage({ type: 'playing', tab: this.tabId }); } catch { /* canal cerrado */ }
+      }));
+    },
+
+    // Favoritas y playlists cambiadas en otra pestaña: esta deja de enseñar (y de guardar encima) lo viejo
+    setupCrossTab() {
+      window.addEventListener('storage', (event) => {
+        if (event.storageArea !== localStorage) return;
+        if (event.key === KEYS.favorites) {
+          const saved = storage.get(KEYS.favorites, []);
+          state.favorites = new Set(Array.isArray(saved) ? saved.map(String) : []);
+          updateFavCount();
+          const current = state.currentTrack;
+          if (current && !current.radio) updateFavButton(els.npFavBtn, state.favorites.has(current.id));
+          this.repaint();
+        } else if (event.key === KEYS.playlists) {
+          const saved = storage.get(KEYS.playlists, []);
+          if (!Array.isArray(saved)) return;
+          library.local = saved.filter((p) => p && p.id && typeof p.name === 'string' && Array.isArray(p.trackIds));
+          this.repaint();
+        }
+      });
+    },
+    repaint() {
+      clearTimeout(this.repaintTimer);
+      this.repaintTimer = setTimeout(() => {
+        // Con una ventana abierta o escribiendo no se repinta por debajo: se hará al siguiente cambio
+        if (document.querySelector('dialog[open]') || document.activeElement === els.searchInput) return;
+        renderList();
+      }, 250);
+    },
+
+    // Vuelve la conexión: lo que se quedó a medias se repone sin tocar nada
+    setupOnline() {
+      window.addEventListener('online', () => {
+        if (atk.on()) {
+          atk.poolsShown.clear();
+          if (isGlobalSearch() || state.view === 'artist') atk.update();
+          else if (state.view === 'home') renderList();
+        }
+        if (state.view === 'radio' && (radio.failed || !radio.list.length)) radio.load({ ...radio.filter });
+        // Quita «Sin conexión» de las filas ATK y de las que no estaban descargadas
+        if (state.view !== 'home' && state.view !== 'radio' && !document.querySelector('dialog[open]')) renderList();
+      });
+      window.addEventListener('offline', () => { if (atk.on() && isGlobalSearch()) atk.render(); });
+    },
+
+    // Ajustes es largo: una fila de accesos para saltar a cada sección
+    setupSettingsIndex() {
+      const dialog = els.settingsDialog;
+      const head = dialog?.querySelector('.settings-head');
+      if (!head) return;
+      const nav = makeEl('nav', 'chips settings-index');
+      nav.setAttribute('aria-label', 'Ir a una sección de Ajustes');
+      this.settingsLinks = [...dialog.querySelectorAll('.settings-group')].map((group) => {
+        const title = group.querySelector('.settings-group-title');
+        if (!title) return null;
+        const chip = makeEl('button', 'chip', title.textContent.trim().split(' · ')[0]);
+        chip.type = 'button';
+        chip.addEventListener('click', () => {
+          group.scrollIntoView({ behavior: settings.motion && !settings.ultra && !reducedMotion() ? 'smooth' : 'auto', block: 'start' });
+          title.tabIndex = -1;
+          title.focus({ preventScroll: true });
+        });
+        nav.append(chip);
+        return { group, chip };
+      }).filter(Boolean);
+      head.after(nav);
+    },
+    syncSettingsIndex() {
+      (this.settingsLinks || []).forEach(({ group, chip }) => { chip.hidden = group.hidden || getComputedStyle(group).display === 'none'; });
+    },
+
+    // Stats: qué días y a qué horas escuchas (últimas 8 semanas)
+    heatCard() {
+      const days = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábados', 'domingos'];
+      const grid = Array.from({ length: 7 }, () => new Array(24).fill(0));
+      const since = Date.now() - 56 * DAY_MS;
+      Object.entries(listen.log).forEach(([key, entry]) => {
+        const date = new Date(`${key}T12:00:00`);
+        if (!(date.getTime() >= since) || !Array.isArray(entry?.h)) return;
+        const row = (date.getDay() + 6) % 7;
+        entry.h.forEach((secs, hour) => { if (hour < 24) grid[row][hour] += Number(secs) || 0; });
+      });
+      const flat = grid.flat();
+      const max = Math.max(...flat);
+      // Con menos de 20 minutos en la mejor hora aún no hay dibujo que enseñar
+      if (!(max >= 1200)) return null;
+      const peak = flat.indexOf(max);
+      const peakDay = Math.floor(peak / 24);
+      const peakHour = peak % 24;
+      const peakText = `Tu momento de más música: los ${days[peakDay]} a las ${peakHour}:00.`;
+      const card = statCard('Tu semana, hora a hora', 'Qué días y a qué horas suena más (últimas 8 semanas).');
+      card.classList.add('stat-heat');
+      const table = makeEl('div', 'heat');
+      table.setAttribute('role', 'img');
+      table.setAttribute('aria-label', peakText);
+      grid.forEach((row, d) => {
+        table.append(makeEl('span', 'heat-day', days[d].slice(0, 1).toUpperCase()));
+        row.forEach((secs, hour) => {
+          const cell = makeEl('span', 'heat-cell');
+          const level = secs <= 0 ? 0 : Math.max(0.12, Math.sqrt(secs / max));
+          cell.style.setProperty('--v', level.toFixed(2));
+          if (secs >= 60) cell.title = `${days[d]}, ${hour}:00 · ${minutesLabel(secs)}`;
+          table.append(cell);
+        });
+      });
+      const axis = makeEl('div', 'heat-axis');
+      axis.setAttribute('aria-hidden', 'true');
+      ['0 h', '6 h', '12 h', '18 h'].forEach((label) => axis.append(makeEl('span', '', label)));
+      card.append(table, axis, makeEl('p', 'stat-sub heat-peak', peakText));
+      return card;
+    },
+
+    init() {
+      this.setupSingleTab();
+      this.setupCrossTab();
+      this.setupOnline();
+      if (!LAB_MODE) this.setupSettingsIndex();
     }
   };
 
@@ -15149,6 +15367,7 @@
     plus.init();
     setupSearch();
     radio.init();
+    v73.init();
     inappNotice();
     if (els.deviceInfo) els.deviceInfo.textContent = `Tu dispositivo: ${deviceSummary()}. La app se adapta sola a él.`;
     document.querySelectorAll('.settings-group-title').forEach((title) => title.prepend(sticker(title.textContent)));
