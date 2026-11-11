@@ -1226,6 +1226,21 @@ test.describe('v70: Liquid ATK sin límites', () => {
     await expect(page.locator('.atk-more')).toHaveCount(0);
   });
 
+  test('Archive: las subidas de la comunidad entran, pero «No verificado»', async ({ page }) => {
+    await page.route(/archive\.org\/advancedsearch/, (route) => route.fulfill({ json: { response: { numFound: 1, docs: [{ identifier: 'comunidad1', downloads: 50 }] } } }));
+    await page.route(/archive\.org\/metadata\//, (route) => route.fulfill({ json: {
+      metadata: { title: 'Disco Subido', creator: 'Grupo Comunitario', mediatype: 'audio', collection: ['opensource_audio', 'community'] },
+      files: [{ name: 'c01.mp3', format: 'VBR MP3', title: 'Canción Comunitaria', length: '200.0' }]
+    } }));
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.fill('#searchInput', 'cancion comunitaria');
+    const row = page.locator('.atk-list .track', { hasText: 'Canción Comunitaria' });
+    await expect(row.locator('.atk-unverified')).toHaveText('No verificado');
+    await row.locator('[data-action="add"]').click();
+    await expect(page.locator('.add-credit')).toContainText('comunidad del Internet Archive');
+  });
+
   test('erratas: «medianoxe electrica» encuentra «Medianoche Eléctrica»', async ({ page }) => {
     await page.goto('./');
     await expect(page.locator('#libCount')).not.toHaveText('0');

@@ -1,6 +1,16 @@
 {
   "releases": [
     {
+      "version": "v71",
+      "date": "noviembre 2026",
+      "title": "Liquid ATK busca en todo el Internet Archive",
+      "items": [
+        "ATK ya no se limita a las colecciones de confianza del Internet Archive: también busca en lo que sube su comunidad, que es muchísima más música.",
+        "Lo que sube la comunidad sale con la etiqueta «No verificado» (su origen y sus derechos no están confirmados) y va detrás de lo verificado: directos con permiso de las bandas, sellos libres y discos de 78 rpm.",
+        "Siguen fuera lo que no se puede reproducir fuera del Archive, lo que el propio Archive marca como problemático y lo que no es música (audiolibros, pódcasts, radio y noticias)."
+      ]
+    },
+    {
       "version": "v70",
       "date": "noviembre 2026",
       "title": "Liquid ATK llega más lejos",

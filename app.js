@@ -13055,7 +13055,12 @@
   // Solo lo del Archive con permiso o licencia abierta: sellos libres (netlabels), discos de 78 rpm,
   // Free Music Archive y la Live Music Archive (directos grabados con permiso de las bandas: mediatype etree).
   // Fuera lo «solo streaming» (no se puede reproducir fuera de su web) y lo de origen dudoso
-  const ATK_IA_FILTER = '((mediatype:(audio) AND collection:(netlabels OR 78rpm OR georgeblood OR freemusicarchive)) OR mediatype:(etree)) AND -collection:(roiocollection OR fringe OR deemphasize OR stream_only)';
+  // Todo el audio del Archive, salvo lo que no se puede reproducir fuera de su web (stream_only), lo que el propio
+  // Archive marca como problemático (fringe, deemphasize) y lo que no es música (audiolibros, pódcasts, radio, noticias)
+  const ATK_IA_FILTER = 'mediatype:(audio OR etree) AND -collection:(fringe OR deemphasize OR stream_only OR librivoxaudio OR audio_bookspoetry OR podcasts OR audio_podcast OR podcasts_mirror OR oldtimeradio OR radioprograms OR audio_news OR audio_religion)';
+  // De confianza: directos con permiso de las bandas (etree), sellos libres, 78 rpm y Free Music Archive.
+  // Lo demás son subidas de la comunidad: entran, pero «No verificado»
+  const ATK_IA_TRUSTED = new Set(['etree', 'netlabels', '78rpm', 'georgeblood', 'freemusicarchive']);
   const ATK_JUNK = /\b(type beat|sped ?up|slowed|nightcore|8d audio|karaoke|instrumental|remix|edit|cover|bootleg|mashup|flip|reverb)\b/;
 
   const atk = {
@@ -13094,6 +13099,8 @@
         seconds: d.seconds || 0,
         popularity: d.popularity || 0,
         verified: Boolean(d.verified),
+        // Subida de la comunidad del Archive (no de una colección de confianza)
+        ...(d.community && !d.verified ? { unverified: true } : {}),
         credit: d.credit || null
       };
     },
@@ -13232,7 +13239,9 @@
         url: `https://archive.org/download/${encodeURIComponent(identifier)}/${f.name.split('/').map(encodeURIComponent).join('/')}`,
         genre: '',
         popularity: Number(item.downloads) || 0,
-        credit: { author: String(first(f.creator) || first(item.creator) || ''), license, link: `https://archive.org/details/${identifier}`, service: 'Internet Archive' }
+        credit: { author: String(first(f.creator) || first(item.creator) || ''), license, link: `https://archive.org/details/${identifier}`, service: 'Internet Archive' },
+        verified: item.mediatype === 'etree' || collections.some((c) => ATK_IA_TRUSTED.has(c)),
+        community: true
       });
     },
     iaSeconds(length) {
@@ -13932,7 +13941,9 @@
       const license = /^https?:/.test(c.license || '') ? 'licencia Creative Commons' : c.license || 'licencia de su autor';
       credit.replaceChildren(makeEl('span', 'atk-mark', 'ATK'), ` Créditos: ${c.author || 'su autor'} · ${license} · vía ${c.service}${c.link ? ' · ' : ''}`, ...(c.link ? [link] : []));
       if (track.unverified) {
-        credit.append(makeEl('span', 'atk-credit-warning', ' No verificado: la subió una cuenta que no es la oficial del artista; puede ser una copia, un remix o un cover.'));
+        credit.append(makeEl('span', 'atk-credit-warning', track.atkSource === 'ia'
+          ? ' No verificado: la subió alguien de la comunidad del Internet Archive; su origen y sus derechos no están confirmados.'
+          : ' No verificado: la subió una cuenta que no es la oficial del artista; puede ser una copia, un remix o un cover.'));
       }
       if (/^https?:/.test(c.license || '')) {
         const lic = makeEl('a', '', ' (ver licencia)');

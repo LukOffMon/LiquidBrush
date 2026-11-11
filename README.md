@@ -301,7 +301,7 @@ Modo opcional (**Ajustes → Liquid ATK**, se recuerda como el ultraligero). Al 
 
 - **Fuentes** (todas gratis, con CORS, llamadas desde el navegador):
   - **Audius** (`api.audius.co`, sin clave; `app_name=liquidbullet`): búsqueda, tendencias por género y audio completo.
-  - **Internet Archive** (`archive.org`): solo la Live Music Archive (`mediatype:etree`), netlabels, 78 rpm y Free Music Archive; fuera lo «solo streaming» y colecciones de origen dudoso.
+  - **Internet Archive** (`archive.org`): todo su audio (`mediatype:audio OR etree`) salvo lo «solo streaming», lo marcado `fringe`/`deemphasize` y lo que no es música (audiolibros, pódcasts, radio, noticias). La Live Music Archive, netlabels, 78 rpm y Free Music Archive son de confianza; el resto (subidas de la comunidad) sale «No verificado» y puntúa menos.
   - **Jamendo** (`api.jamendo.com`): canciones con licencia Creative Commons. Usa el Client ID público de la app «Liquid ATK» (devportal.jamendo.com, uso no comercial) en `CONFIG.jamendoClientId` (`app.js`); el Client Secret no se usa ni debe ir en el código. Vacío, ATK usa solo las otras dos.
 - **Mejor opción**: se consulta a las tres a la vez y se pinta en cuanto responde cada una. Puntúa coincidencia con lo escrito (título y artista, tolerando erratas: una letra en palabras de 4 a 6, dos en las más largas, y palabras a medias), duración razonable, popularidad y fuente; quita duplicados entre fuentes. Descarta pódcasts, episodios, pistas de menos de 40 s y canciones que Liquid ya tiene.
 - **Erratas**: Audius no corrige, pero encuentra por prefijos; si la búsqueda trae menos de 5 canciones, se repite con el principio de cada palabra larga («ljaz midnite» → «ljaz midn») y la puntuación filtra lo parecido.
