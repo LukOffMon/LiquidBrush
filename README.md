@@ -306,6 +306,32 @@ Sección propia (barra de abajo en el móvil, pestaña en escritorio) con emisor
 - **Guardado**: `liquidbrush:radio` (favoritas y recientes, solo en este navegador). Al poner una emisora se avisa a Radio Browser (`/json/url/<uuid>`), que es como ordena sus emisoras más escuchadas.
 - **Logos**: si la emisora no tiene, el logo no carga en 4 s o es en realidad su audio, se usa una portada de `covers/songs/`.
 
+## Descargas en iPhone/iPad (v74)
+
+**Por qué no se podía descargar en iOS**: para guardar un MP3 y escucharlo sin conexión, la app tiene que poder *leerlo*, y un navegador solo deja leer un archivo de otro servidor si ese servidor lo permite con la cabecera CORS (`Access-Control-Allow-Origin`). Los buckets de R2 no la envían (comprobado). Android se apaña guardando una copia «opaca» que no lee pero sí reproduce; Safari (y todos los navegadores de iPhone/iPad, que usan su motor) no reproduce esas copias. Ningún cambio en la web lo evita: **hay que activar CORS en los 6 buckets**, una sola vez.
+
+```bash
+python3 tools/r2_cors.py            # comprueba cada bucket (OK / FALTA CORS), sin claves
+python3 tools/r2_cors.py --apply    # aplica la política con las claves R2_<NOMBRE>_* (como sync_r2.py)
+python3 tools/r2_cors.py --json     # la política, para pegarla en el panel
+```
+
+Con `--apply`, la clave de API de R2 tiene que poder cambiar la configuración del bucket (*Admin Read & Write*). Sin claves: en Cloudflare, **R2 → bucket → Settings → CORS Policy → Add CORS policy**, pegar el JSON de `--json` y guardar; repetirlo en los 6 buckets (cada uno en su cuenta). La política permite `GET` y `HEAD` desde cualquier web (los MP3 ya son públicos) y expone `Content-Length`/`Content-Range`. Además activa el ecualizador con las canciones de R2. La app lo detecta sola: en cuanto el bucket envía CORS, las descargas funcionan en iPhone sin publicar nada.
+
+Lo que cambió en la app (en todos los dispositivos):
+
+- **Antes de empezar**, en iPhone/iPad se pregunta a cada servidor si deja guardar (una petición `HEAD` por servidor). Si no, se explica en vez de intentarlo en vano; si solo algunos, se descargan las demás. Ajustes → Descargas dice qué servidores faltan.
+- **Cada canción se comprueba**: tamaño completo (`Content-Length`), que sea audio y no una página de error, y mínimo 16 KB.
+- **Reintentos**: hasta 3 intentos (1 s y 4 s de espera); no se reintenta lo que no va a cambiar (CORS, sin espacio, 404).
+- **Conexión colgada**: si no llega audio en 30 s, se corta y se reintenta (antes podía quedarse «Descargando…» para siempre).
+- **Se reanuda sola**: las playlists a medio descargar se apuntan en `liquidbrush:dl-pending` y siguen al volver a la app, al recuperar la conexión o al abrirla otra vez. En iPhone/iPad, al pasar a segundo plano se pausa (iOS congelaría la descarga) y sigue al volver.
+- **Pantalla encendida** mientras descarga (Wake Lock), porque iOS para la app al bloquearse.
+- **Progreso** con porcentaje de la canción en curso; 2 descargas a la vez en iPhone/iPad y 3 en lo demás.
+- **Una canción sola**: «Descargar (sin conexión)» / «Quitar la descarga» en su menú +.
+- **Suena aunque el modo offline no esté listo**: sin conexión (o sin service worker activo), la canción descargada se lee de la caché y suena desde una dirección local `blob:`; se preparan la que suena y las dos siguientes. Si aun así falla al cargar, se intenta desde la copia local antes de dar error.
+- **Navegación privada**: se avisa de que ahí no se puede descargar.
+- **Consejo en iPhone**: añadir Liquid a la pantalla de inicio, porque Safari borra lo guardado por las webs que no se abren en 7 días.
+
 ## Liquid ATK afinado y pulido general (v73)
 
 - **Búsquedas que no se cuelgan**: al seguir escribiendo, la búsqueda en marcha se corta y se olvida (`atk.cancel()`); antes quedaba guardada sin terminar y, al volver a escribir lo mismo, salía «Buscando…» para siempre.

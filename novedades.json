@@ -1,6 +1,23 @@
 {
   "releases": [
     {
+      "version": "v74",
+      "date": "noviembre 2026",
+      "title": "Descargas que funcionan, también en iPhone y iPad",
+      "items": [
+        "Descargas en iPhone/iPad: Liquid comprueba antes si el servidor de cada canción deja guardarla y, si todavía no, te lo explica en vez de fallar sin decir nada. En cuanto el servidor lo permite, se descarga sin tocar nada.",
+        "Cada canción descargada se comprueba (completa y que sea audio de verdad) y, si la conexión falla, se reintenta sola hasta 3 veces.",
+        "Si la conexión se queda colgada a mitad de una canción, se corta y se vuelve a intentar (antes podía quedarse «Descargando…» para siempre).",
+        "Las descargas siguen solas: si cierras Liquid, bloqueas el teléfono o se va la conexión, continúan al volver.",
+        "Mientras descarga, la pantalla no se apaga sola (en iPhone, al bloquearse se paraba la descarga).",
+        "Progreso más fino: se ve el porcentaje de la canción que se está bajando.",
+        "Nuevo en el menú + de cada canción: «Descargar (sin conexión)» y «Quitar la descarga».",
+        "Sin conexión, lo descargado suena siempre, aunque el modo offline de la app aún no esté listo.",
+        "Ajustes → Descargas dice qué servidores de música aún no permiten descargar en iPhone/iPad.",
+        "En navegación privada, Liquid avisa de que ahí no se puede descargar."
+      ]
+    },
+    {
       "version": "v73",
       "date": "noviembre 2026",
       "title": "Liquid ATK afinado y pulido general",
