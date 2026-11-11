@@ -1075,6 +1075,10 @@ test.describe('v68: Liquid ATK', () => {
       ]
     } }));
     await page.route(/audius\.co\/v1\/tracks\/[^/]+\/stream|archive\.org\/download/, (route) => route.abort());
+    await page.route(/api-v2\.hearthis\.at|api\.openverse\.org/, (route) => {
+      seen.push(route.request().url());
+      route.fulfill({ json: /openverse/.test(route.request().url()) ? { results: [] } : [] });
+    });
     await page.route(/api\.jamendo\.com/, (route) => {
       seen.push(route.request().url());
       route.fulfill({ json: { headers: { status: 'success' }, results: [] } });
@@ -1211,6 +1215,7 @@ test.describe('v70: Liquid ATK sin límites', () => {
     await page.route(/api\.audius\.co\/v1\/(users|tracks\/trending)/, (route) => route.fulfill({ json: { data: [] } }));
     await page.route(/archive\.org\/advancedsearch/, (route) => route.fulfill({ json: { response: { numFound: 0, docs: [] } } }));
     await page.route(/api\.jamendo\.com/, (route) => route.fulfill({ json: { headers: { status: 'success' }, results: [] } }));
+    await page.route(/api-v2\.hearthis\.at|api\.openverse\.org/, (route) => route.fulfill({ json: /openverse/.test(route.request().url()) ? { results: [] } : [] }));
   });
 
   test('«Ver más» enseña lo encontrado y luego pide la página siguiente', async ({ page }) => {
@@ -1246,5 +1251,95 @@ test.describe('v70: Liquid ATK sin límites', () => {
     await expect(page.locator('#libCount')).not.toHaveText('0');
     await page.fill('#searchInput', 'medianoxe electrica');
     await expect(page.locator('.atk-list .track').first()).toContainText('Medianoche Eléctrica');
+  });
+});
+
+test.describe('v72: Hearthis, Openverse y Radio', () => {
+  const emisora = (n, extra = {}) => ({
+    stationuuid: `st-${n}`, name: `Emisora ${n}`, url: `https://radio.example/${n}`, url_resolved: `https://radio.example/${n}`,
+    favicon: '', tags: 'jazz,smooth', country: 'Spain', countrycode: 'ES', codec: 'MP3', bitrate: 128, hls: 0, ...extra
+  });
+  test.beforeEach(async ({ page }) => {
+    await page.route(/radio-browser\.info\/json\/stats/, (route) => route.fulfill({ json: { stations: 50000, stations_broken: 1000 } }));
+    await page.route(/radio-browser\.info\/json\/url\//, (route) => route.fulfill({ json: { ok: true } }));
+    await page.route(/radio-browser\.info\/json\/stations\/search/, (route) => {
+      const url = new URL(route.request().url());
+      const tag = url.searchParams.get('tag');
+      const list = tag === 'jazz' ? [emisora('jazz-1', { name: 'Jazz de Madrugada' })]
+        : [emisora(1), emisora(2), emisora(3), emisora(4, { url_resolved: 'https://radio.example/hls.m3u8', hls: 1 })];
+      route.fulfill({ json: list });
+    });
+    await page.route(/radio\.example/, (route) => route.abort());
+  });
+
+  test('Radio: sección propia, suena en directo, cambia de emisora y guarda tus emisoras', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    if (isPhone(page)) await page.locator('.nav-btn[data-nav="radio"]').click();
+    else await page.locator('.tab[data-view="radio"]').click();
+    await expect(page.locator('.view-title')).toHaveText('Radio');
+    // Las emisoras HLS se quedan fuera (no suenan en todos los navegadores)
+    await expect(page.locator('.radio-grid .radio-card')).toHaveCount(3);
+    await expect(page.locator('.view-eyebrow')).toContainText('emisoras en directo');
+    await page.locator('.radio-grid .radio-card-play').first().click();
+    await expect(page.locator('#miniTitle')).toHaveText('Emisora 1');
+    await expect(page.locator('#totalTime')).toHaveText('EN VIVO');
+    await expect(page.locator('#npContext')).toContainText('Radio');
+    await expect(page.locator('.radio-now-title')).toHaveText('Emisora 1');
+    // «Siguiente» cambia de emisora
+    await page.locator('.radio-next').click();
+    await expect(page.locator('#miniTitle')).toHaveText('Emisora 2');
+    // El corazón la guarda en «Tus emisoras», no en Favoritas
+    await page.locator('.radio-fav').click();
+    await expect(page.locator('.radio-row-title', { hasText: 'Tus emisoras' })).toBeVisible();
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('liquidbrush:radio')).favs.length)).toBe(1);
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('liquidbrush:favorites') || '[]').length)).toBe(0);
+    // La radio no cuenta para Stats ni recomendaciones
+    expect(await page.evaluate(() => Object.keys(JSON.parse(localStorage.getItem('liquidbrush:plays') || '{}')).some((k) => k.startsWith('radio:')))).toBe(false);
+    // Filtro por género
+    await page.locator('.radio-chips .chip', { hasText: 'Jazz' }).click();
+    await expect(page.locator('.radio-grid .radio-card')).toHaveCount(1);
+    await expect(page.locator('.radio-grid')).toContainText('Jazz de Madrugada');
+    expect(errors).toEqual([]);
+  });
+
+  test('Lab no lleva Radio', async ({ page }) => {
+    await page.goto('./lab.html');
+    await expect(page.locator('.lab-hero')).toBeVisible();
+    await expect(page.locator('.tab-radio')).toHaveCount(0);
+    await expect(page.locator('.nav-btn[data-nav="radio"]')).toHaveCount(0);
+    await expect(page.locator('#radioPanel')).toHaveCount(0);
+  });
+
+  test('ATK suma Hearthis.at y Wikimedia Commons (vía Openverse)', async ({ page }) => {
+    await page.addInitScript(() => {
+      if (!sessionStorage.getItem('atk-puesto')) {
+        localStorage.setItem('liquidbrush:settings', JSON.stringify({ atk: true }));
+        sessionStorage.setItem('atk-puesto', '1');
+      }
+    });
+    await page.route(/api\.audius\.co/, (route) => route.fulfill({ json: { data: [] } }));
+    await page.route(/archive\.org/, (route) => route.fulfill({ json: { response: { numFound: 0, docs: [] } } }));
+    await page.route(/api\.jamendo\.com/, (route) => route.fulfill({ json: { headers: { status: 'success' }, results: [] } }));
+    await page.route(/api-v2\.hearthis\.at/, (route) => route.fulfill({ json: [{
+      id: '77', title: 'Sesión Nocturna Prueba', duration: '1800', stream_url: 'https://hearthis.app/x/listen/', permalink_url: 'https://hearthis.at/x/',
+      genre: 'House', playback_count: '500', license: 'all', private: '0', user: { username: 'DJ Prueba' }
+    }] }));
+    await page.route(/api\.openverse\.org/, (route) => route.fulfill({ json: { results: [
+      { id: 'ov1', title: 'File:Sonata Prueba.ogg', creator: 'Orquesta Libre', duration: 240000, url: 'https://upload.example/sonata.ogg',
+        license: 'by-sa', license_url: 'https://creativecommons.org/licenses/by-sa/4.0/', foreign_landing_url: 'https://commons.example/sonata' },
+      { id: 'ov2', title: 'File:Palabra.ogg', creator: 'Alguien', duration: 1200, url: 'https://upload.example/palabra.ogg', license: 'by' }
+    ] } }));
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.fill('#searchInput', 'prueba');
+    await expect(page.locator('.atk-list .track', { hasText: 'Sesión Nocturna Prueba' })).toBeVisible();
+    await expect(page.locator('.atk-list .track', { hasText: 'Sonata Prueba' })).toBeVisible();
+    // Lo de 1 s (una pronunciación de Commons) no es música
+    await expect(page.locator('.atk-list .track', { hasText: 'Palabra' })).toHaveCount(0);
+    await page.locator('.atk-list .track', { hasText: 'Sonata Prueba' }).locator('[data-action="add"]').click();
+    await expect(page.locator('.add-credit')).toContainText('Wikimedia Commons');
   });
 });

@@ -54,6 +54,16 @@ def build():
     html = replace_once(html, '      <div class="topbar-actions">',
                         '      <div class="topbar-actions">\n      <a class="btn lab-back" href="./" aria-label="Volver a Liquid Bullet"><svg class="icon" aria-hidden="true"><use href="#i-back"></use></svg><span>Volver a Liquid</span></a>')
     html = replace_once(html, '        <div id="labPanel" class="lab" hidden></div>', HERO + '        <div id="labPanel" class="lab" hidden></div>')
+    # Radio es solo de Liquid Bullet: Lab no lleva su pestaña, su botón ni su panel
+    html = replace_once(html, '''            <button class="tab tab-radio" type="button" role="tab" aria-controls="libraryView" data-view="radio" aria-selected="false">
+              <svg class="icon" aria-hidden="true"><use href="#i-radio"></use></svg> Radio
+            </button>
+''', '')
+    html = replace_once(html, '''        <button class="nav-btn" type="button" data-nav="radio">
+          <svg class="icon" aria-hidden="true"><use href="#i-radio"></use></svg><span>Radio</span>
+        </button>
+''', '')
+    html = replace_once(html, '        <div id="radioPanel" class="radio" hidden></div>\n', '')
     note = '<!-- Generado por tools/build_lab.py a partir de index.html: no lo edites a mano -->\n'
     return html.replace('<!DOCTYPE html>\n', '<!DOCTYPE html>\n' + note, 1)
 
