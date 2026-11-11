@@ -1152,8 +1152,12 @@
   const cacheKey = (src) => new URL(src, location.href).href;
   const isDownloaded = (track) => offline.downloaded.has(cacheKey(track.src));
   // Las de Liquid ATK suenan solo con ATK encendido y con conexión (no se descargan)
-  const isPlayable = (track) => (track?.atk ? settings.atk === true && navigator.onLine : navigator.onLine || isDownloaded(track));
-  const unplayableMessage = (track) => (track?.atk && !settings.atk
+  // Una ATK que falló al cargar (borrada o privada en su fuente) se da por caída 10 minutos: se salta sola
+  const atkDead = (track) => Boolean(track?.deadAt && Date.now() - track.deadAt < 600000);
+  const isPlayable = (track) => (track?.atk ? settings.atk === true && navigator.onLine && !atkDead(track) : navigator.onLine || isDownloaded(track));
+  const unplayableMessage = (track) => (track?.atk && settings.atk && atkDead(track)
+    ? 'Esta canción ya no responde en su fuente (puede que la hayan quitado). Prueba otra versión.'
+    : track?.atk && !settings.atk
     ? 'Esta canción es de Liquid ATK: actívalo en Ajustes para escucharla.'
     : 'Sin conexión: esta canción no está descargada.');
   const playlistTracks = (key) => playlistTracksOf(getPlaylist(key));
@@ -2815,7 +2819,7 @@
     songs.append(songList);
 
     const grid = makeEl('div', 'stat-grid');
-    grid.append(daily, hours, genres, artists, trend, songs, plus.hitosCard());
+    grid.append(...[daily, hours, v73.heatCard(), genres, artists, trend, songs, plus.hitosCard()].filter(Boolean));
     const csv = makeButton('btn btn-ghost stats-csv', 'export-csv', 'Descargar todo tu historial de escucha (CSV, para Excel o Google Sheets)', 'download', 'Descargar mi historial (CSV)');
     csv.addEventListener('click', exportListeningCsv);
     panel.replaceChildren(...[invite, tiles, grid, csv].filter(Boolean));
@@ -3567,7 +3571,7 @@
     const found = searchTracks(list, state.query);
     if (!isGlobalSearch()) return found;
     // Buscar: solo el tipo elegido (Canciones, En la letra…)
-    switch (state.searchScope) {
+    switch (searchScopeNow()) {
       case 'songs': return found.filter((t) => !searchMeta.lyricIds.has(t.id));
       case 'lyrics': return found.filter((t) => searchMeta.lyricIds.has(t.id));
       case 'artists':
@@ -4968,6 +4972,8 @@
   const searchMeta = { lyricIds: new Set(), fuzzy: false, counts: {} };
   const phoneSearch = () => window.matchMedia('(max-width: 860px)').matches;
   const isGlobalSearch = () => !LAB_MODE && state.view === 'library' && Boolean(normalize(state.query));
+  // El filtro que de verdad se está aplicando: sin la fila de filtros a la vista se enseña todo
+  const searchScopeNow = () => (isGlobalSearch() ? searchMeta.scope || 'all' : 'all');
 
   function searchArtistsFor(q) {
     // La clave del artista ya es su nombre normalizado: no se normalizan ~1.800 nombres en cada tecla
@@ -5062,6 +5068,7 @@
     const matches = q ? searchPlaylistsFor(q) : [];
     const artists = q && state.view !== 'artists' ? searchArtistsFor(q) : [];
     els.searchScopes.hidden = true;
+    searchMeta.scope = 'all';
     if (!global) {
       // Dentro de Favoritas o Artistas: como siempre, unas pocas tarjetas
       const parts = [];
@@ -5090,15 +5097,20 @@
     const atkCount = atk.countFor(state.query);
     const counts = { all: found.length + artists.length + matches.length + atkCount, songs: songs.length, artists: artists.length, playlists: matches.length, lyrics: lyricCount, atk: atkCount };
     searchMeta.counts = counts;
-    if (state.searchScope !== 'all' && !counts[state.searchScope]) state.searchScope = 'all';
+    // El filtro «Liquid ATK» aguanta mientras ATK busca: antes, al escribir una letra más, su número pasaba
+    // a 0 un instante y el filtro elegido se perdía
+    const atkLive = atk.searching(state.query);
+    const has = (key) => Boolean(counts[key]) || (key === 'atk' && atkLive && state.searchScope === 'atk');
+    if (state.searchScope !== 'all' && !has(state.searchScope)) state.searchScope = 'all';
     // Filtros por tipo, solo si hay más de un tipo de resultado. Sin la fila de filtros a la vista se
     // enseña todo (el filtro elegido vuelve cuando haya otra vez varios tipos)
-    const kinds = SEARCH_SCOPES.filter(([key]) => key !== 'all' && counts[key]);
+    const kinds = SEARCH_SCOPES.filter(([key]) => key !== 'all' && has(key));
     const scope = kinds.length >= 2 ? state.searchScope : 'all';
+    searchMeta.scope = scope;
     if (kinds.length >= 2) {
-      els.searchScopes.replaceChildren(...SEARCH_SCOPES.filter(([key]) => key === 'all' || counts[key]).map(([key, label]) => {
+      els.searchScopes.replaceChildren(...SEARCH_SCOPES.filter(([key]) => key === 'all' || has(key)).map(([key, label]) => {
         const chip = makeChip('search-scope', key, label, scope === key);
-        if (key !== 'all') chip.append(makeEl('span', 'chip-count', String(counts[key])));
+        if (key !== 'all') chip.append(makeEl('span', 'chip-count', key === 'atk' && atkLive ? (counts.atk ? `${counts.atk}…` : '…') : String(counts[key])));
         return chip;
       }));
       els.searchScopes.hidden = false;
@@ -5122,7 +5134,6 @@
         parts.push(searchSectionHead('Playlists', q, matches.length, 12, 'playlists'), row);
       }
       if (parts.length && found.length) parts.push(searchSectionHead('Canciones', `${q}c`, 0, 0, 'songs'));
-      else if (parts.length && atkCount && !found.length) parts.push(makeEl('p', 'atk-none', `Nada de esto está en Liquid todavía: lo encontró Liquid ATK.`));
     } else if (scope === 'artists') {
       const list = makeEl('div', 'search-artist-list');
       artists.slice(0, 80).forEach((entry) => list.append(searchArtistRow(entry)));
@@ -5560,6 +5571,9 @@
   }
 
   function renderList() {
+    // Liquid ATK se entera antes de pintar: así los filtros ya saben que está buscando
+    // (si no, el filtro «Liquid ATK» se perdía con cada letra)
+    if (atk.on() && isGlobalSearch()) atk.request(state.query);
     renderListInner();
     atk.update();
     syncPlayButtons(els.library);
@@ -5636,7 +5650,7 @@
     if (!visible.length) {
       let li = makeEl('li', 'list-empty');
       if (!state.tracks.length) li = emptyState('li', 'library', 'La biblioteca está vacía por ahora.');
-      else if (searching && isGlobalSearch() && ['artists', 'playlists', 'atk'].includes(state.searchScope)) li = null;
+      else if (searching && isGlobalSearch() && ['artists', 'playlists', 'atk'].includes(searchScopeNow())) li = null;
       // Con ATK, la tarjeta de pedir sale debajo de los resultados ATK si tampoco allí hay nada
       else if (searching && isGlobalSearch() && atk.on()) li = null;
       else if (searching) li.append(tarjetaPedir(state.query));
@@ -5660,16 +5674,28 @@
     if (visible.length) appendListChunk(LIST_FIRST_CHUNK);
     renderAlphaRail(visible);
 
+    renderListInfo();
+    updateDownloadUI();
+  }
+
+  // La línea de «N resultados para…». Va aparte porque Liquid ATK la refresca según llegan sus resultados
+  function renderListInfo() {
+    const visible = list.items;
+    const searching = Boolean(normalize(state.query));
     const total = visible.length;
     const seconds = visible.reduce((sum, t) => sum + parseDuration(t.duration), 0);
     const typed = state.query.trim();
-    const scopeOnly = isGlobalSearch() && ['artists', 'playlists', 'atk'].includes(state.searchScope);
-    const others = searchMeta.counts[state.searchScope] || 0;
-    const scopeNoun = { artists: ['artista', 'artistas'], playlists: ['playlist', 'playlists'], atk: ['canción en Liquid ATK', 'canciones en Liquid ATK'] }[state.searchScope] || [];
+    const scopeKey = searchScopeNow();
+    const scopeOnly = isGlobalSearch() && ['artists', 'playlists', 'atk'].includes(scopeKey);
+    const others = searchMeta.counts[scopeKey] || 0;
+    const scopeNoun = { artists: ['artista', 'artistas'], playlists: ['playlist', 'playlists'], atk: ['canción en Liquid ATK', 'canciones en Liquid ATK'] }[scopeKey] || [];
+    const atkBusy = atk.searching(state.query);
+    const atkFound = atk.countFor(state.query);
     els.listInfo.textContent = scopeOnly
-      ? `${others} ${scopeNoun[others === 1 ? 0 : 1]} para «${typed}»`
+      ? (scopeKey === 'atk' && atkBusy && !others ? `Buscando «${typed}» en Liquid ATK…` : `${others} ${scopeNoun[others === 1 ? 0 : 1]} para «${typed}»`)
       : searching && !total && isGlobalSearch() && atk.on()
-        ? `Nada en Liquid para «${typed}» todavía`
+        ? (atkFound ? `Liquid no tiene «${typed}» todavía: esto lo encontró Liquid ATK`
+          : atkBusy ? `Liquid no tiene «${typed}»: buscando más allá…` : `Nada en Liquid para «${typed}» todavía`)
       : searching && searchMeta.fuzzy && total
         ? `${total} resultado${total === 1 ? '' : 's'} parecido${total === 1 ? '' : 's'} a «${typed}» (sin coincidencias exactas)`
         : searching
@@ -5682,7 +5708,6 @@
       link.addEventListener('click', () => pedir.abrir(state.query));
       els.listInfo.append(' · ', link);
     }
-    updateDownloadUI();
   }
 
   /* ---------- Índice A–Z de la Biblioteca (orden por título o artista) ---------- */
@@ -6126,18 +6151,23 @@
     // Llegó hace poco (Novedades): una etiqueta «Nueva» junto al título
     if (arrivals.added[track.id]) title.append(' ', makeEl('span', 'track-new', 'Nueva'));
     // Liquid ATK: su etiqueta; con ATK apagado, la fila atenuada
+    // (en la línea del artista: en el título, los nombres largos la cortaban y en el teléfono no se veía)
+    let atkTags = null;
     if (track.atk) {
-      title.append(' ', makeEl('span', 'atk-mark', 'ATK'));
-      if (track.unverified) title.append(' ', makeEl('span', 'atk-unverified', 'No verificado'));
       if (!settings.atk) {
         li.classList.add('is-atk-off');
         artist.textContent = `Solo en Liquid ATK · ${track.knownArtist || track.artist}`;
+      } else if (atkDead(track)) {
+        li.classList.add('is-atk-off', 'is-atk-dead');
+        artist.textContent = `No disponible ahora · ${track.knownArtist || track.artist}`;
       }
+      atkTags = [makeEl('span', 'atk-mark', 'ATK'), ...(track.unverified ? [makeEl('span', 'atk-unverified', 'No verificado')] : [])];
     }
     // Buscando: la canción salió por su letra
     if (state.query.trim() && searchMeta.lyricIds.has(track.id)) artist.prepend(makeEl('span', 'track-lyric', 'En la letra'));
     // Buscando: se resaltan las palabras que coinciden
     if (state.query.trim()) highlightWords([title, artist], state.query);
+    if (atkTags) artist.prepend(...atkTags.flatMap((tag) => [tag, ' ']));
     // Al pasar el cursor: cuántas veces la escuchaste y cuándo fue la última
     const plays = playsOf(track.id);
     const heard = Number(taste.heard[track.id]) || 0;
@@ -6671,6 +6701,7 @@
 
     prepareDeck(track, autoplay, fade);
     state.retried = false;
+    state.silentFail = false;
     els.audio.src = track.src;
     applySpeed();
 
@@ -6755,6 +6786,12 @@
     }
     if (eq.ctx && eq.ctx.state !== 'running') eq.ctx.resume().catch(() => {});
     const deck = els.audio;
+    // La canción no cargó cuando se preparó (sin que nadie la pidiera): ahora sí, se vuelve a pedir
+    if (state.silentFail) {
+      state.silentFail = false;
+      state.retried = false;
+      if (deck.error && deck.getAttribute('src')) deck.load();
+    }
     const fadeIn = canSoftFade() && deck.paused && deck.currentTime > 0.5;
     if (fadeIn) { deckGain.set(deck, 0); applyVolume(deck); }
     try {
@@ -8514,6 +8551,11 @@
       }
       const wasPlaying = document.body.classList.contains('is-playing');
       setPlayingUI(false);
+      // Liquid ATK: si su fuente ya no la sirve, la fila lo dice y la cola la salta
+      if (state.currentTrack?.atk && navigator.onLine && state.wantsPlay) atk.markDead(state.currentTrack);
+      // Nadie ha pulsado reproducir (la canción solo se estaba preparando al abrir la app): sin aviso.
+      // Se vuelve a pedir al pulsar reproducir
+      if (!state.wantsPlay) { state.silentFail = true; return; }
       const title = state.currentTrack?.title ?? 'la canción';
       if (navigator.onLine && wasPlaying && errorSkips < 3 && state.queue.length > 1) {
         errorSkips++;
@@ -11091,6 +11133,9 @@
                 if (aj.tema && aj.tema[1] !== tema) applyTheme(aj.tema[1]);
                 else if (temasRemotos) applyTheme(tema);
                 meta.tema = aj.tema?.[1];
+                // Favoritas o playlists con canciones de Liquid ATK que llegan de otro dispositivo: se piden sus datos
+                // ahora (antes no aparecían hasta volver a abrir la app)
+                setTimeout(() => atk.hydrate(), 0);
               }
             };
           });
@@ -11675,6 +11720,7 @@
     renderEqBands();
     updateEqNote();
     els.settingsDialog.showModal();
+    v73.syncSettingsIndex();
   }
 
   /* ---------- Inicio ---------- */
@@ -13110,10 +13156,22 @@
     on: () => settings.atk === true,
 
     /* --- Modelo: una canción ATK se ve y se usa como cualquier otra de Liquid --- */
+    // Las fuentes mandan a veces entidades HTML («Cl&#xE1;sico», «Rock &amp; Roll») y espacios de sobra
+    text(value) {
+      let out = String(value ?? '');
+      if (out.includes('&')) {
+        const box = document.createElement('textarea');
+        box.innerHTML = out;
+        out = box.value;
+      }
+      return out.replace(/\s+/g, ' ').trim();
+    },
     make(d) {
       const n = (hashString(d.id) % ATK_SONG_COVERS) + 1;
       const pad = String(n).padStart(2, '0');
-      const genre = d.genre ? String(d.genre).trim() : '';
+      // «01 Midnight Thoughts», «03 - Tema»: el número de pista con cero delante no es parte del título
+      d = { ...d, title: this.text(d.title).replace(/^0\d\s*[-.)]?\s+(?=\S)/, ''), artist: this.text(d.artist), album: this.text(d.album) };
+      const genre = this.text(d.genre);
       return {
         id: d.id,
         title: d.title || 'Sin título',
@@ -13142,7 +13200,17 @@
     },
     register(track) {
       const known = this.cache.get(track.id);
-      if (known) return known;
+      if (known) {
+        // La misma canción llega otra vez (p. ej. por el perfil del artista): lo nuevo que se sabe se apunta
+        // en la copia que ya usan la cola, las favoritas y las listas
+        if (track !== known) {
+          if (track.profileOf) known.profileOf = track.profileOf;
+          if (track.unverified) known.unverified = true;
+          if (track.popularity > known.popularity) known.popularity = track.popularity;
+          if (!known.seconds && track.seconds) { known.seconds = track.seconds; known.duration = track.duration; }
+        }
+        return known;
+      }
       this.cache.set(track.id, track);
       state.trackMap.set(track.id, track);
       return track;
@@ -13213,6 +13281,11 @@
         const data = await this.json(`https://api.jamendo.com/v3.0/tracks/?client_id=${CONFIG.jamendoClientId}&format=json&id=${encodeURIComponent(raw)}&audioformat=mp32`);
         return data?.results?.[0] ? this.fromJamendo(data.results[0]) : null;
       }
+      if (src === 'ov') {
+        const data = await this.json(`https://api.openverse.org/v1/audio/${encodeURIComponent(raw)}/`);
+        return data?.id ? this.fromOpenverse(data) : null;
+      }
+      // Hearthis.at no tiene consulta por id: sus canciones viajan con los datos guardados en este navegador
       return null;
     },
 
@@ -13260,7 +13333,7 @@
       const seconds = this.iaSeconds(f.length);
       const item = meta.metadata || {};
       const first = (v) => (Array.isArray(v) ? v[0] : v) || '';
-      const name = f.name.replace(/\.[a-z0-9]+$/i, '').replace(/[_]+/g, ' ').replace(/^\d+\s*[-.]\s*/, '');
+      const name = f.name.replace(/^.*\//, '').replace(/\.[a-z0-9]+$/i, '').replace(/[_]+/g, ' ');
       const collections = [].concat(item.collection || []);
       const license = item.licenseurl
         || (collections.includes('etree') || item.mediatype === 'etree' ? 'Grabación en directo compartida con permiso de la banda (Live Music Archive)'
@@ -13268,7 +13341,7 @@
       return this.make({
         id: `atk:ia:${identifier}/${f.name}`,
         src: 'ia',
-        title: String(first(f.title) || name).replace(/^\d+\s*[-.]\s*/, ''),
+        title: this.iaTitle(first(f.title) || name),
         artist: String(first(f.creator) || first(f.artist) || first(item.creator) || ''),
         album: String(first(f.album) || first(item.title) || ''),
         seconds,
@@ -13279,6 +13352,14 @@
         verified: item.mediatype === 'etree' || collections.some((c) => ATK_IA_TRUSTED.has(c)),
         community: true
       });
+    },
+    // «gd86-12-17 01 Alabama Getaway», «01 La Vida», «03 - Tema», «d1t04 Jam» → solo el nombre de la canción
+    iaTitle(value) {
+      const raw = this.text(value);
+      let out = raw.replace(/^[a-z]{1,10}\d{2,4}-\d{1,2}-\d{1,2}\S*\s+/i, '');
+      const taped = out !== raw;
+      out = out.replace(/^d\d+\s*t\d+\s*[-.]?\s*/i, '').replace(/^\d{1,3}\s*[-.)]\s+/, '').replace(taped ? /^\d{1,3}\s+(?=\S)/ : /^0\d{1,2}\s+(?=\S)/, '');
+      return out.trim() || raw;
     },
     iaSeconds(length) {
       const s = String(length || '');
@@ -13291,12 +13372,14 @@
       const words = q.replace(/[^\p{L}\p{N}\s]+/gu, ' ').trim();
       if (!words) return 0;
       const search = (query, rows, p) => this.json(`https://archive.org/advancedsearch.php?q=${encodeURIComponent(`${query} AND ${ATK_IA_FILTER}`)}&fl[]=identifier&fl[]=downloads&rows=${rows}&page=${p}&output=json`, signal, 15000)
-        .then((d) => d?.response?.docs || []).catch(() => []);
+        .then((d) => d?.response?.docs || []).catch(() => null);
       // En la primera página, antes que nada los discos o conciertos cuyo autor es exactamente lo escrito
       // (si no, «grateful dead» trae antes a las bandas tributo que a la banda)
       const [own, general] = await Promise.all([page === 1 ? search(`creator:("${words.replace(/"/g, '')}")`, 4, 1) : [], search(`(${words})`, 8, page)]);
+      // El Archive no respondió (caído o muy lento): es un fallo, no «no hay nada»
+      if (!general) throw new Error('archive');
       const seenIds = new Set();
-      const docs = [...own, ...general].filter((d) => !seenIds.has(d.identifier) && seenIds.add(d.identifier));
+      const docs = [...(own || []), ...general].filter((d) => !seenIds.has(d.identifier) && seenIds.add(d.identifier));
       const tokens = normalize(q).split(/\s+/).filter(Boolean);
       await Promise.all(docs.map((d) => this.json(`https://archive.org/metadata/${encodeURIComponent(d.identifier)}`, signal, 15000)
         .then((meta) => onItem?.(this.archiveTracks(d, meta, tokens))).catch(() => null)));
@@ -13387,20 +13470,22 @@
 
     /* --- La mejor opción: la que mejor encaja con lo escrito (aunque tenga erratas), completa y sin copias --- */
     // Una palabra buscada encaja exacta (1), con una errata o a medias (0,85) o no encaja (0)
-    tokenHit(tok, hay, words) {
+    tokenHit(tok, hay, words, weak = false) {
       if (hay.includes(tok)) return 1;
       if (tok.length < 4) return 0;
       const max = tok.length >= 7 ? 2 : 1;
-      return words.some((w) => editDistance(w, tok, max) <= max || (w.length > tok.length && editDistance(w.slice(0, tok.length), tok, 1) <= 1)) ? 0.85 : 0;
+      if (words.some((w) => editDistance(w, tok, max) <= max || (w.length > tok.length && editDistance(w.slice(0, tok.length), tok, 1) <= 1))) return 0.85;
+      // Solo cuando casi no hay nada: una palabra larga que empieza igual («midnite» ~ «midnight»)
+      return weak && tok.length >= 5 && words.some((w) => w.length >= 5 && w.slice(0, 4) === tok.slice(0, 4)) ? 0.6 : 0;
     },
-    score(t, qn, tokens) {
+    score(t, qn, tokens, weak = false) {
       const title = normalize(t.title);
       const artist = normalize(t.knownArtist);
       const album = normalize(t.album);
       const main = `${title} ${artist}`;
       const hay = `${main} ${album}`;
       const words = hay.split(/\s+/).filter(Boolean);
-      const hits = tokens.map((tok) => this.tokenHit(tok, hay, words));
+      const hits = tokens.map((tok) => this.tokenHit(tok, hay, words, weak));
       const hit = hits.reduce((a, b) => a + b, 0) / tokens.length;
       const matched = hits.filter(Boolean).length / tokens.length;
       if (matched < 1 && !(tokens.length >= 3 && matched >= 0.66)) return 0;
@@ -13414,6 +13499,7 @@
       if (!ATK_JUNK.test(qn) && ATK_JUNK.test(title)) s -= 16;
       if (t.seconds && t.seconds < 60) s -= 12;
       if (t.seconds > 900) s -= 10;
+      if (t.seconds > 1500) s -= 8;
       // Lo no verificado va detrás de lo original
       if (t.unverified) s -= 10;
       s += Math.min(12, Math.log10(1 + t.popularity) * 2);
@@ -13450,21 +13536,29 @@
     rank(q, lists) {
       const qn = normalize(q);
       const tokens = qn.split(/\s+/).filter(Boolean);
-      const best = new Map();
       const known = this.liquidIndex();
       const named = [...known.artists].filter((a) => a.length >= 4 && qn.includes(a));
-      lists.flat().forEach((t) => {
-        // «Suponiendo que Liquid no lo tiene»: lo que ya está en Liquid no se repite desde fuera
-        if (known.songs.has(`${normalize(splitTitle(t.title).main)}|${normalize(t.knownArtist)}`)) return;
-        this.markUnverified(t, known, named);
-        const s = this.score(t, qn, tokens);
-        if (s <= 0) return;
-        // La misma canción en varias fuentes (o dos veces en una): se queda la mejor
-        const key = `${normalize(splitTitle(t.title).main.replace(/\(.*?\)|\[.*?\]/g, ''))}|${normalize(t.knownArtist)}`;
-        const prev = best.get(key);
-        if (!prev || s > prev.s) best.set(key, { t, s });
-      });
-      return [...best.values()].sort((a, b) => b.s - a.s).map((x) => x.t);
+      const all = lists.flat();
+      const pass = (weak) => {
+        const best = new Map();
+        all.forEach((t) => {
+          // «Suponiendo que Liquid no lo tiene»: lo que ya está en Liquid no se repite desde fuera
+          if (known.songs.has(`${normalize(splitTitle(t.title).main)}|${normalize(t.knownArtist)}`)) return;
+          this.markUnverified(t, known, named);
+          const s = this.score(t, qn, tokens, weak);
+          if (s <= 0) return;
+          // La misma canción en varias fuentes (o dos veces en una): se queda la mejor
+          const key = `${normalize(splitTitle(t.title).main.replace(/\(.*?\)|\[.*?\]/g, ''))}|${normalize(t.knownArtist)}`;
+          const prev = best.get(key);
+          if (!prev || s > prev.s) best.set(key, { t, s });
+        });
+        return [...best.values()].sort((a, b) => b.s - a.s).map((x) => x.t);
+      };
+      const strict = pass(false);
+      // Con erratas gordas casi no sale nada: segunda pasada más tolerante, detrás de lo que sí encaja
+      if (strict.length >= 5 || !tokens.some((tok) => tok.length >= 5)) return strict;
+      const have = new Set(strict.map((t) => t.id));
+      return [...strict, ...pass(true).filter((t) => !have.has(t.id))];
     },
 
     /* --- Búsqueda: las tres fuentes a la vez, páginas con «Ver más», perfil del artista y erratas --- */
@@ -13480,14 +13574,43 @@
       const e = this.on() ? this.entry(q) : null;
       return e?.tracks[0] || null;
     },
+    waiting: '',
+    // ¿Se está buscando esto ahora mismo (esperando a que dejes de escribir, o con las fuentes respondiendo)?
+    searching(q) {
+      const qn = normalize(q);
+      if (!this.on() || !qn) return false;
+      const e = this.results.get(qn);
+      return this.waiting === qn || this.pending?.qn === qn || Boolean(e && !e.done) || Boolean(e?.loadingMore);
+    },
+    // Corta la búsqueda en marcha. Lo que quedó a medias se olvida: antes se quedaba guardado sin terminar
+    // y, al volver a escribir lo mismo, salía «Buscando…» para siempre
+    cancel() {
+      clearTimeout(this.timer);
+      this.waiting = '';
+      if (!this.pending) return;
+      this.pending.controller.abort();
+      const e = this.results.get(this.pending.qn);
+      if (e && !e.done) this.results.delete(this.pending.qn);
+      this.pending = null;
+    },
     request(q) {
       const qn = normalize(q);
-      if (!this.on() || qn.length < 2) return;
-      if (this.results.has(qn) || this.pending?.qn === qn) return;
-      clearTimeout(this.timer);
-      this.pending?.controller.abort();
-      this.pending = null;
-      this.timer = setTimeout(() => this.run(q, qn), 320);
+      if (!this.on() || qn.length < 2) { this.cancel(); return; }
+      if (this.waiting === qn || this.pending?.qn === qn) return;
+      const known = this.results.get(qn);
+      this.cancel();
+      // Ya buscado: no se repite. Lo que falló (sin red, fuentes caídas) se reintenta pasados unos segundos
+      if (known?.done && !(known.failed && Date.now() - known.at > 8000)) return;
+      this.results.delete(qn);
+      if (!navigator.onLine) return;
+      this.waiting = qn;
+      this.timer = setTimeout(() => { this.waiting = ''; this.run(q, qn); }, 320);
+    },
+    retry() {
+      const qn = normalize(state.query);
+      this.results.delete(qn);
+      this.request(state.query);
+      this.render();
     },
     // Lo escrito, «a medias»: el principio de cada palabra larga (Audius encuentra por prefijos, no con erratas)
     loose(qn) {
@@ -13521,35 +13644,42 @@
         const n = typeof got === 'number' ? got : got?.length || 0;
         if (Array.isArray(got)) this.add(entry, key, got);
         c.off += c.step;
+        c.ok = true;
         if (n < (key === 'ia' ? 8 : c.step / 2)) c.done = true;
       } catch {
         c.done = true;
+        c.failed = true;
       } finally {
         c.busy = false;
       }
     },
     async run(q, qn) {
-      if (!navigator.onLine) return;
+      if (!this.on() || !navigator.onLine) { this.render(); return; }
       const controller = new AbortController();
-      const entry = { q, qn, lists: {}, tracks: [], shown: this.PAGE, done: false, artist: null, signal: controller.signal };
+      const entry = { q, qn, lists: {}, tracks: [], shown: this.PAGE, done: false, failed: false, at: Date.now(), artist: null, signal: controller.signal };
       entry.cur = this.cursors(entry, controller.signal);
       this.pending = { qn, controller };
       this.results.set(qn, entry);
       if (this.results.size > 40) this.results.delete(this.results.keys().next().value);
       this.render();
       // El Archive va a su ritmo (cada disco se pinta al llegar); lo rápido no lo espera
-      const slow = this.pull(entry, 'ia');
-      await Promise.all([this.pull(entry, 'au'), this.pull(entry, 'ja'), this.pull(entry, 'ht'), this.pull(entry, 'ov'), this.profile(entry).catch(() => {})]);
-      // Con erratas o palabras a medias casi no sale nada: segundo intento con el principio de cada palabra
-      const loose = this.loose(qn);
-      if (!controller.signal.aborted && entry.tracks.length < 5 && loose) {
-        entry.cur.au2 = { off: 0, step: 25, done: false, fetch: (off) => this.audius(loose, controller.signal, off) };
-        entry.cur.ja2 = { off: 0, step: 20, done: !CONFIG.jamendoClientId, fetch: (off) => this.jamendo(loose, controller.signal, off) };
-        await Promise.all([this.pull(entry, 'au2'), this.pull(entry, 'ja2')]);
-      }
-      await slow;
+      try {
+        const slow = this.pull(entry, 'ia');
+        await Promise.all([this.pull(entry, 'au'), this.pull(entry, 'ja'), this.pull(entry, 'ht'), this.pull(entry, 'ov'), this.profile(entry).catch(() => {})]);
+        // Con erratas o palabras a medias casi no sale nada: segundo intento con el principio de cada palabra
+        const loose = this.loose(qn);
+        if (!controller.signal.aborted && entry.tracks.length < 5 && loose) {
+          entry.cur.au2 = { off: 0, step: 25, done: false, fetch: (off) => this.audius(loose, controller.signal, off) };
+          entry.cur.ja2 = { off: 0, step: 20, done: !CONFIG.jamendoClientId, fetch: (off) => this.jamendo(loose, controller.signal, off) };
+          await Promise.all([this.pull(entry, 'au2'), this.pull(entry, 'ja2')]);
+        }
+        await slow;
+      } catch { /* un fallo inesperado no deja la búsqueda a medias */ }
       if (controller.signal.aborted) return;
       entry.done = true;
+      entry.at = Date.now();
+      // Ninguna fuente respondió: no es «no hay nada», es que no se pudo buscar (se puede reintentar)
+      entry.failed = !entry.tracks.length && !Object.values(entry.cur).some((c) => c.ok);
       if (this.pending?.qn === qn) this.pending = null;
       this.refresh(qn);
     },
@@ -13559,23 +13689,26 @@
       if (!entry || entry.loadingMore) return;
       entry.shown += this.PAGE;
       // Si con lo ya encontrado no se llena la página, se pide la siguiente a cada fuente
-      if (entry.tracks.length >= entry.shown || !Object.values(entry.cur).some((c) => !c.done)) {
+      if (this.filterOf(entry.tracks, this.viewFor(entry.tracks)).length >= entry.shown || !Object.values(entry.cur).some((c) => !c.done)) {
         this.render();
         return;
       }
       entry.loadingMore = true;
       this.render();
-      await Promise.all(Object.keys(entry.cur).map((key) => this.pull(entry, key)));
-      entry.loadingMore = false;
+      try {
+        await Promise.all(Object.keys(entry.cur).map((key) => this.pull(entry, key)));
+      } finally {
+        entry.loadingMore = false;
+      }
       this.refresh(entry.qn);
-      this.render();
     },
-    canMore(entry) {
-      return entry.tracks.length > entry.shown || Object.values(entry.cur).some((c) => !c.done);
+    canMore(entry, count = entry.tracks.length) {
+      return count > entry.shown || Object.values(entry.cur).some((c) => !c.done);
     },
     refresh(qn) {
       if (normalize(state.query) !== qn || !isGlobalSearch()) return;
       renderSearchPlaylists(qn);
+      renderListInfo();
       this.render();
     },
 
@@ -13686,12 +13819,59 @@
           return true;
         }).slice(0, 30).map((t) => this.register(t));
         return entry.tracks;
-      }).catch(() => []).finally(() => { entry.loading = false; });
+      }).catch(() => {
+        // Audius no respondió: se vuelve a intentar pasado un minuto (antes el estilo quedaba vacío toda la sesión)
+        setTimeout(() => { if (this.pools.get(genre) === entry) { this.pools.delete(genre); this.poolsShown.clear(); } }, 60000);
+        return [];
+      }).finally(() => { entry.loading = false; });
       return entry.promise;
+    },
+    markDead(track) {
+      track.deadAt = Date.now();
+      els.library.querySelectorAll('.track').forEach((li) => {
+        if (li.dataset.id !== track.id) return;
+        li.classList.add('is-atk-off', 'is-atk-dead');
+      });
+    },
+    // Filtros de los resultados: canciones, sesiones largas (más de 12 min) y solo lo verificado
+    view: 'all',
+    FILTERS: [['all', 'Todo'], ['songs', 'Canciones'], ['long', 'Sesiones y directos largos'], ['verified', 'Sin «No verificado»']],
+    LONG: 720,
+    filterOf(tracks, view = this.view) {
+      if (view === 'songs') return tracks.filter((t) => !t.seconds || t.seconds <= this.LONG);
+      if (view === 'long') return tracks.filter((t) => t.seconds > this.LONG);
+      if (view === 'verified') return tracks.filter((t) => !t.unverified);
+      return tracks;
+    },
+    // El filtro elegido, si con estos resultados sirve de algo (si no, se enseña todo)
+    viewFor(tracks) {
+      if (this.view === 'all' || tracks.length < 6) return 'all';
+      const n = this.filterOf(tracks).length;
+      return n && n < tracks.length ? this.view : 'all';
+    },
+    filterBar(tracks, view) {
+      const options = this.FILTERS.filter(([key]) => {
+        if (key === 'all') return true;
+        const n = this.filterOf(tracks, key).length;
+        return n > 0 && n < tracks.length;
+      });
+      if (tracks.length < 6 || options.length < 2) return null;
+      const bar = makeEl('div', 'chips atk-filters');
+      bar.setAttribute('role', 'toolbar');
+      bar.setAttribute('aria-label', 'Filtrar los resultados de Liquid ATK');
+      options.forEach(([key, label]) => {
+        const chip = makeChip('atk-filter', key, label, view === key);
+        if (key !== 'all') chip.append(makeEl('span', 'chip-count', String(this.filterOf(tracks, key).length)));
+        chip.addEventListener('click', () => { this.view = key; haptic(8); this.render(); });
+        bar.append(chip);
+      });
+      return bar;
     },
     play(id) {
       const e = this.entry(state.query);
-      let list = e?.tracks.some((t) => t.id === id) ? e.tracks : null;
+      // Suena lo que se ve: con un filtro puesto, la cola son los resultados filtrados
+      const seen = e ? this.filterOf(e.tracks, this.viewFor(e.tracks)) : null;
+      let list = seen?.some((t) => t.id === id) ? seen : e?.tracks.some((t) => t.id === id) ? e.tracks : null;
       if (!list) this.pools.forEach((p) => { if (!list && p.tracks.some((t) => t.id === id)) list = p.tracks; });
       if (!list && this.artistEntry?.tracks.some((t) => t.id === id)) list = this.artistEntry.tracks;
       list ||= [getTrack(id)].filter(Boolean);
@@ -13772,19 +13952,31 @@
     artistEntry: null,
     async loadArtist(entry) {
       const key = entry.key;
-      if (this.artistEntry?.key === key) return;
+      if (this.artistEntry?.key === key || !navigator.onLine) return;
       this.artistEntry = { key, name: entry.name, tracks: [], done: false };
       const ae = this.artistEntry;
-      const live = [];
-      await this.archive(entry.name, null, 1, (list) => live.push(...list)).catch(() => 0);
-      const lists = await Promise.all([this.audius(entry.name).catch(() => []), this.jamendo(entry.name).catch(() => []), this.hearthis(entry.name).catch(() => [])]);
-      lists.push(live);
+      const lists = { ia: [], au: [], ja: [], ht: [] };
+      const own = new Set(entry.tracks.map((t) => `${normalize(splitTitle(t.title).main)}|${normalize(t.knownArtist)}`));
+      const mine = (t) => {
+        const a = normalize(t.knownArtist);
+        return Boolean(a) && (a === key || a.includes(key) || (a.length >= 4 && key.includes(a)));
+      };
+      // Cada fuente pinta lo suyo en cuanto llega (antes se esperaba al Archive, que puede tardar 30 s)
+      const paint = (name, got) => {
+        if (this.artistEntry !== ae || !got?.length) return;
+        lists[name].push(...got);
+        ae.tracks = this.rank(entry.name, Object.values(lists)).filter(mine)
+          .filter((t) => !own.has(`${normalize(splitTitle(t.title).main)}|${normalize(t.knownArtist)}`))
+          .slice(0, 15).map((t) => this.register(t));
+        if (state.view === 'artist' && state.openArtist === key) this.render();
+      };
+      await Promise.all([
+        this.archive(entry.name, null, 1, (got) => paint('ia', got)).catch(() => 0),
+        this.audius(entry.name).then((got) => paint('au', got)).catch(() => {}),
+        this.jamendo(entry.name).then((got) => paint('ja', got)).catch(() => {}),
+        this.hearthis(entry.name).then((got) => paint('ht', got)).catch(() => {})
+      ]);
       if (this.artistEntry !== ae) return;
-      const own = new Set(entry.tracks.map((t) => t.songKey));
-      ae.tracks = this.rank(entry.name, lists)
-        .filter((t) => normalize(t.knownArtist).includes(key) || key.includes(normalize(t.knownArtist)))
-        .filter((t) => !own.has(t.songKey))
-        .slice(0, 15).map((t) => this.register(t));
       ae.done = true;
       if (state.view === 'artist' && state.openArtist === key) this.render();
     },
@@ -13840,7 +14032,7 @@
         this.render();
         return;
       }
-      if (!this.on() || !isGlobalSearch()) { box.hidden = true; return; }
+      if (!this.on() || !isGlobalSearch()) { this.cancel(); box.hidden = true; return; }
       this.request(state.query);
       this.render();
     },
@@ -13848,31 +14040,43 @@
       const box = this.ui.results;
       if (!box) return;
       const artistPage = this.on() && state.view === 'artist' && !normalize(state.query);
-      const show = artistPage || (this.on() && isGlobalSearch() && ['all', 'songs', 'atk'].includes(state.searchScope));
+      const show = artistPage || (this.on() && isGlobalSearch() && ['all', 'songs', 'atk'].includes(searchScopeNow()));
       const e = artistPage ? (this.artistEntry?.key === state.openArtist ? this.artistEntry : null) : this.entry(state.query);
+      const qn = normalize(state.query);
+      // Mientras escribes (antes de lanzar la búsqueda) la sección no desaparece y vuelve a salir: espera con «Buscando…»
+      const waiting = !artistPage && (this.waiting === qn || this.pending?.qn === qn);
+      const offline = !artistPage && !e && !waiting && !navigator.onLine && qn.length >= 2;
       // Sin nada que añadir a lo que ya trae Liquid, la sección ATK no sale
-      box.hidden = !show || (!e && !this.pending) || (e?.done && !e.tracks.length && (artistPage || list.items.length > 0));
-      if (box.hidden) return;
+      box.hidden = !show || (!e && !waiting && !offline) || Boolean(e?.done && !e.failed && !e.tracks.length && (artistPage || list.items.length > 0));
+      if (box.hidden) { box.replaceChildren(); return; }
+      box.setAttribute('aria-busy', String(!offline && !e?.done));
       const head = makeEl('div', 'atk-head');
       const mark = makeEl('span', 'atk-mark', 'ATK');
       mark.setAttribute('aria-hidden', 'true');
       const title = makeEl('h3', 'atk-title');
       title.append(mark, artistPage ? `Más de ${e?.name || ''} en Liquid ATK` : 'Más allá de Liquid');
       const status = makeEl('span', 'atk-status');
-      const tracks = e?.tracks || [];
-      const searching = !e?.done || Boolean(e?.loadingMore);
-      status.textContent = searching ? (tracks.length ? 'Buscando en más sitios…' : 'Buscando…') : tracks.length ? songsLabel(tracks.length) : 'Nada por aquí';
+      const found = e?.tracks || [];
+      const view = artistPage ? 'all' : this.viewFor(found);
+      const tracks = this.filterOf(found, view);
+      const searching = !offline && (!e?.done || Boolean(e?.loadingMore));
+      status.textContent = offline ? 'Sin conexión'
+        : searching ? (tracks.length ? 'Buscando en más sitios…' : 'Buscando…')
+          : tracks.length ? songsLabel(tracks.length) : e?.failed ? 'No se pudo buscar' : 'Nada por aquí';
       status.classList.toggle('is-busy', searching);
       head.append(title, status);
       const parts = [head];
       // Perfil completo: lo buscado es un artista de Audius o Jamendo
-      if (!artistPage && e?.artist) parts.push(this.artistCard(e));
+      // (solo si alguna de sus canciones se puede escuchar: un perfil vacío confunde más que ayuda)
+      if (!artistPage && e?.artist && found.some((t) => t.profileOf === e.qn)) parts.push(this.artistCard(e));
+      const bar = artistPage ? null : this.filterBar(found, view);
+      if (bar) parts.push(bar);
       if (tracks.length) {
         const ul = makeEl('ul', 'track-list atk-list');
         const shown = artistPage ? tracks : tracks.slice(0, e.shown);
         shown.forEach((t, i) => ul.append(createTrackItem(t, i)));
         parts.push(ul);
-        if (!artistPage && this.canMore(e)) {
+        if (!artistPage && this.canMore(e, tracks.length)) {
           const more = makeEl('button', 'btn atk-more', e.loadingMore ? 'Buscando más…' : 'Ver más en Liquid ATK');
           more.type = 'button';
           more.disabled = Boolean(e.loadingMore);
@@ -13888,10 +14092,23 @@
           sk.append(li);
         }
         parts.push(sk);
+      } else if (offline || e?.failed) {
+        // Sin red o con las fuentes caídas: se dice, y se puede volver a intentar (antes salía «Nada por aquí»)
+        const note = makeEl('p', 'atk-fail', offline
+          ? 'Liquid ATK necesita conexión para buscar fuera de tu biblioteca.'
+          : 'Las fuentes de Liquid ATK no respondieron. Puede ser la conexión o que estén saturadas.');
+        const again = makeEl('button', 'btn btn-small atk-retry', 'Reintentar');
+        again.type = 'button';
+        again.addEventListener('click', () => this.retry());
+        note.append(' ', again);
+        parts.push(note);
       } else if (!artistPage && !list.items.length) {
         parts.push(tarjetaPedir(state.query));
       }
+      // Si el foco estaba en «Ver más», sigue ahí al repintar (con teclado no se pierde el sitio)
+      const hadFocus = box.contains(document.activeElement) && document.activeElement.classList.contains('atk-more');
       box.replaceChildren(...parts);
+      if (hadFocus) box.querySelector('.atk-more:not(:disabled)')?.focus({ preventScroll: true });
       highlightCurrent();
     },
 
@@ -14169,13 +14386,17 @@
       this.loading = true;
       this.failed = false;
       this.render();
+      let got = [];
+      let failed = false;
       try {
-        this.list = await this.fetch(this.paramsOf(filter));
+        got = await this.fetch(this.paramsOf(filter));
       } catch {
-        this.list = [];
-        this.failed = true;
+        failed = true;
       }
+      // Si mientras tanto se eligió otro filtro, esta respuesta ya no cuenta (antes podía pisar la lista nueva)
       if (this.filter !== filter) return;
+      this.list = got;
+      this.failed = failed;
       this.loading = false;
       this.render();
     },
@@ -14331,7 +14552,12 @@
         for (let i = 0; i < 8; i++) sk.append(makeEl('div', 'radio-card is-skeleton'));
         list.append(sk);
       } else if (this.failed) {
-        list.append(emptyState('div', 'cloud-off', 'No se pudo conectar con las emisoras. Revisa tu conexión y vuelve a intentarlo.'));
+        const fail = emptyState('div', 'cloud-off', 'No se pudo conectar con las emisoras. Revisa tu conexión y vuelve a intentarlo.');
+        const again = makeEl('button', 'btn btn-primary list-empty-cta', 'Reintentar');
+        again.type = 'button';
+        again.addEventListener('click', () => this.load({ ...this.filter }));
+        fail.append(again);
+        list.append(fail);
       } else if (!this.list.length) {
         list.append(emptyState('div', 'radio', 'Ninguna emisora coincide. Prueba con otro nombre, un género o un país.'));
       } else {
@@ -14346,7 +14572,8 @@
       if (focused !== null) { input.focus(); input.setSelectionRange(focused, focused); }
     },
     open() {
-      if (!this.list.length && !this.loading) this.load(this.filter);
+      // Solo se pide si aún no hay nada: una búsqueda sin resultados o un fallo no se repiten en cada repintado
+      if (!this.list.length && !this.loading && !this.failed && !this.cache.size) this.load(this.filter);
       else this.render();
       if (!this.total) {
         fetch(`${RADIO_API}/stats`).then((r) => r.json()).then((d) => {
@@ -14360,6 +14587,149 @@
       decks.forEach((deck) => ['play', 'pause'].forEach((type) => deck.addEventListener(type, () => {
         if (deck === els.audio && state.currentTrack?.radio && state.view === 'radio') this.render();
       })));
+    }
+  };
+
+  /* ---------- v73: pulido general ----------
+     - Una sola pestaña suena a la vez, y lo que cambias en una (favoritas, playlists) se ve en las demás.
+     - Al recuperar la conexión, Liquid ATK y Radio se reponen solos.
+     - Ajustes con índice para saltar a cada sección.
+     - Stats: tu semana, hora a hora. */
+  const v73 = {
+    tabId: Math.random().toString(36).slice(2),
+    channel: null,
+    repaintTimer: 0,
+
+    // Dos pestañas de Liquid sonando a la vez no tienen sentido: al sonar una, las demás se pausan
+    setupSingleTab() {
+      if (typeof BroadcastChannel !== 'function') return;
+      try { this.channel = new BroadcastChannel('liquidbullet-player'); } catch { return; }
+      this.channel.addEventListener('message', (event) => {
+        if (event.data?.type !== 'playing' || event.data.tab === this.tabId || els.audio.paused) return;
+        pauseByUser();
+        showToast('Liquid empezó a sonar en otra pestaña: aquí se pausó.');
+      });
+      decks.forEach((deck) => deck.addEventListener('playing', () => {
+        if (deck !== els.audio) return;
+        try { this.channel.postMessage({ type: 'playing', tab: this.tabId }); } catch { /* canal cerrado */ }
+      }));
+    },
+
+    // Favoritas y playlists cambiadas en otra pestaña: esta deja de enseñar (y de guardar encima) lo viejo
+    setupCrossTab() {
+      window.addEventListener('storage', (event) => {
+        if (event.storageArea !== localStorage) return;
+        if (event.key === KEYS.favorites) {
+          const saved = storage.get(KEYS.favorites, []);
+          state.favorites = new Set(Array.isArray(saved) ? saved.map(String) : []);
+          updateFavCount();
+          const current = state.currentTrack;
+          if (current && !current.radio) updateFavButton(els.npFavBtn, state.favorites.has(current.id));
+          this.repaint();
+        } else if (event.key === KEYS.playlists) {
+          const saved = storage.get(KEYS.playlists, []);
+          if (!Array.isArray(saved)) return;
+          library.local = saved.filter((p) => p && p.id && typeof p.name === 'string' && Array.isArray(p.trackIds));
+          this.repaint();
+        }
+      });
+    },
+    repaint() {
+      clearTimeout(this.repaintTimer);
+      this.repaintTimer = setTimeout(() => {
+        // Con una ventana abierta o escribiendo no se repinta por debajo: se hará al siguiente cambio
+        if (document.querySelector('dialog[open]') || document.activeElement === els.searchInput) return;
+        renderList();
+      }, 250);
+    },
+
+    // Vuelve la conexión: lo que se quedó a medias se repone sin tocar nada
+    setupOnline() {
+      window.addEventListener('online', () => {
+        if (atk.on()) {
+          atk.poolsShown.clear();
+          if (isGlobalSearch() || state.view === 'artist') atk.update();
+          else if (state.view === 'home') renderList();
+        }
+        if (state.view === 'radio' && (radio.failed || !radio.list.length)) radio.load({ ...radio.filter });
+        // Quita «Sin conexión» de las filas ATK y de las que no estaban descargadas
+        if (state.view !== 'home' && state.view !== 'radio' && !document.querySelector('dialog[open]')) renderList();
+      });
+      window.addEventListener('offline', () => { if (atk.on() && isGlobalSearch()) atk.render(); });
+    },
+
+    // Ajustes es largo: una fila de accesos para saltar a cada sección
+    setupSettingsIndex() {
+      const dialog = els.settingsDialog;
+      const head = dialog?.querySelector('.settings-head');
+      if (!head) return;
+      const nav = makeEl('nav', 'chips settings-index');
+      nav.setAttribute('aria-label', 'Ir a una sección de Ajustes');
+      this.settingsLinks = [...dialog.querySelectorAll('.settings-group')].map((group) => {
+        const title = group.querySelector('.settings-group-title');
+        if (!title) return null;
+        const chip = makeEl('button', 'chip', title.textContent.trim().split(' · ')[0]);
+        chip.type = 'button';
+        chip.addEventListener('click', () => {
+          group.scrollIntoView({ behavior: settings.motion && !settings.ultra && !reducedMotion() ? 'smooth' : 'auto', block: 'start' });
+          title.tabIndex = -1;
+          title.focus({ preventScroll: true });
+        });
+        nav.append(chip);
+        return { group, chip };
+      }).filter(Boolean);
+      head.after(nav);
+    },
+    syncSettingsIndex() {
+      (this.settingsLinks || []).forEach(({ group, chip }) => { chip.hidden = group.hidden || getComputedStyle(group).display === 'none'; });
+    },
+
+    // Stats: qué días y a qué horas escuchas (últimas 8 semanas)
+    heatCard() {
+      const days = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábados', 'domingos'];
+      const grid = Array.from({ length: 7 }, () => new Array(24).fill(0));
+      const since = Date.now() - 56 * DAY_MS;
+      Object.entries(listen.log).forEach(([key, entry]) => {
+        const date = new Date(`${key}T12:00:00`);
+        if (!(date.getTime() >= since) || !Array.isArray(entry?.h)) return;
+        const row = (date.getDay() + 6) % 7;
+        entry.h.forEach((secs, hour) => { if (hour < 24) grid[row][hour] += Number(secs) || 0; });
+      });
+      const flat = grid.flat();
+      const max = Math.max(...flat);
+      // Con menos de 20 minutos en la mejor hora aún no hay dibujo que enseñar
+      if (!(max >= 1200)) return null;
+      const peak = flat.indexOf(max);
+      const peakDay = Math.floor(peak / 24);
+      const peakHour = peak % 24;
+      const peakText = `Tu momento de más música: los ${days[peakDay]} a las ${peakHour}:00.`;
+      const card = statCard('Tu semana, hora a hora', 'Qué días y a qué horas suena más (últimas 8 semanas).');
+      card.classList.add('stat-heat');
+      const table = makeEl('div', 'heat');
+      table.setAttribute('role', 'img');
+      table.setAttribute('aria-label', peakText);
+      grid.forEach((row, d) => {
+        table.append(makeEl('span', 'heat-day', days[d].slice(0, 1).toUpperCase()));
+        row.forEach((secs, hour) => {
+          const cell = makeEl('span', 'heat-cell');
+          const level = secs <= 0 ? 0 : Math.max(0.12, Math.sqrt(secs / max));
+          cell.style.setProperty('--v', level.toFixed(2));
+          if (secs >= 60) cell.title = `${days[d]}, ${hour}:00 · ${minutesLabel(secs)}`;
+          table.append(cell);
+        });
+      });
+      const axis = makeEl('div', 'heat-axis');
+      axis.setAttribute('aria-hidden', 'true');
+      ['0 h', '6 h', '12 h', '18 h'].forEach((label) => axis.append(makeEl('span', '', label)));
+      card.append(table, axis, makeEl('p', 'stat-sub heat-peak', peakText));
+      return card;
+    },
+
+    init() {
+      this.setupSingleTab();
+      this.setupCrossTab();
+      this.setupOnline();
+      if (!LAB_MODE) this.setupSettingsIndex();
     }
   };
 
@@ -15008,6 +15378,7 @@
     plus.init();
     setupSearch();
     radio.init();
+    v73.init();
     inappNotice();
     if (els.deviceInfo) els.deviceInfo.textContent = `Tu dispositivo: ${deviceSummary()}. La app se adapta sola a él.`;
     document.querySelectorAll('.settings-group-title').forEach((title) => title.prepend(sticker(title.textContent)));

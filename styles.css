@@ -602,7 +602,7 @@ body.is-playing .cover-wrap {
 
 .track {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto 46px;
+  grid-template-columns: minmax(0, 1fr) auto minmax(46px, max-content);
   align-items: center;
   gap: 4px;
   border-radius: 12px;
@@ -3739,7 +3739,7 @@ textarea {
   }
 
   .track {
-    grid-template-columns: minmax(0, 1fr) auto 56px;
+    grid-template-columns: minmax(0, 1fr) auto minmax(56px, max-content);
   }
 
   .track-main {
@@ -10563,4 +10563,170 @@ body.is-radio .plus-loop,
 body.is-radio .plus-karaoke,
 body.is-radio #lyricsBtn {
   display: none;
+}
+
+/* =========================================================
+   v73: Liquid ATK afinado y pulido general
+   ========================================================= */
+/* La etiqueta ATK va en la línea del artista: siempre a la vista, también con títulos largos */
+.track-artist .atk-mark,
+.track-artist .atk-unverified {
+  margin: 0;
+  vertical-align: 1px;
+}
+
+/* Sin conexión o con las fuentes caídas */
+.atk-fail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 6px 4px 10px;
+  color: var(--text-muted);
+  font-family: var(--song-font);
+  font-size: 0.9rem;
+  letter-spacing: normal;
+}
+
+.atk-retry {
+  flex: none;
+}
+
+/* Filtros de los resultados de Liquid ATK */
+.atk-filters {
+  margin: 2px 0 10px;
+}
+
+.track.is-atk-dead .track-title {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+/* Ajustes: índice de secciones */
+.settings-index {
+  flex-wrap: nowrap;
+  margin: -2px -20px 0;
+  padding: 2px 20px 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+
+.settings-index::-webkit-scrollbar {
+  display: none;
+}
+
+.settings-index .chip {
+  flex: none;
+}
+
+.settings-group {
+  scroll-margin-top: 12px;
+}
+
+.settings-group-title:focus {
+  outline: none;
+}
+
+/* Stats: tu semana, hora a hora */
+.heat {
+  display: grid;
+  grid-template-columns: 16px repeat(24, minmax(0, 1fr));
+  gap: 2px;
+  margin-top: 10px;
+}
+
+.heat-day {
+  align-self: center;
+  color: var(--text-muted);
+  font-family: var(--song-font);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.heat-cell {
+  aspect-ratio: 1;
+  min-height: 8px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--accent) calc(var(--v, 0) * 100%), color-mix(in srgb, var(--text) 8%, transparent));
+}
+
+.heat-axis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  margin: 4px 0 0 18px;
+  color: var(--text-muted);
+  font-family: var(--song-font);
+  font-size: 0.68rem;
+  letter-spacing: 0;
+}
+
+.heat-peak {
+  margin-top: 8px;
+}
+
+/* Zonas de toque más cómodas en lo pequeño (sin cambiar cómo se ve) */
+.list-info-pedir,
+.np-context {
+  position: relative;
+}
+
+.list-info-pedir::after,
+.np-context::after {
+  content: "";
+  position: absolute;
+  inset: -10px -6px;
+}
+
+.tema-edit::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+}
+
+/* Las duraciones de más de una hora (sesiones) no se cortan */
+.track-duration {
+  white-space: nowrap;
+}
+
+/* «Reducir transparencia» del sistema: superficies opacas, sin desenfoques */
+@media (prefers-reduced-transparency: reduce) {
+  *,
+  *::before,
+  *::after {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  .topbar,
+  .player,
+  .bottom-nav,
+  .library,
+  .now-playing,
+  .sheet,
+  .toast {
+    background-color: var(--bg);
+  }
+}
+
+/* «Más contraste» del sistema: bordes y texto secundario más marcados */
+@media (prefers-contrast: more) {
+  :root {
+    --border: color-mix(in srgb, var(--text) 55%, transparent);
+    --text-muted: color-mix(in srgb, var(--text) 86%, transparent);
+  }
+
+  .track.is-atk-off {
+    opacity: 0.8;
+  }
+}
+
+/* En el teléfono, «No verificado» ocupa menos para dejar sitio al nombre del artista */
+@media (max-width: 520px) {
+  .track-artist .atk-unverified {
+    padding: 1px 4px 0;
+    font-size: 0.56rem;
+    letter-spacing: 0;
+  }
 }

@@ -6,7 +6,7 @@
    - Los MP3 descargados desde la app viven en AUDIO_CACHE y se
      reproducen desde ahí (con soporte de rangos para poder adelantar).
    ========================================================= */
-const VERSION = 'v72';
+const VERSION = 'v73';
 const SHELL_CACHE = `liquidbrush-shell-${VERSION}`;
 const DATA_CACHE = 'liquidbrush-data';
 const AUDIO_CACHE = 'liquidbrush-audio';
@@ -15,8 +15,8 @@ const SHELL = [
   './',
   'index.html',
   'lab.html',
-  'styles.css?v=58',
-  'app.js?v=61',
+  'styles.css?v=59',
+  'app.js?v=62',
   'favicon.png',
   'logo.svg',
   'manifest.webmanifest',
@@ -148,7 +148,13 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
 
-  if (request.destination === 'audio' || /\.mp3$/i.test(url.pathname)) {
+  // Emisoras en directo y streams de Liquid ATK (audio de otros sitios que no es un MP3): no pasan por aquí.
+  // Nunca se descargan, y un directo sin fin no debe depender de que el service worker siga despierto
+  const isMp3 = /\.mp3$/i.test(url.pathname);
+  const ownAudio = url.origin === self.location.origin || /\.r2\.dev$/i.test(url.hostname);
+  if (request.destination === 'audio' && !isMp3 && !ownAudio) return;
+
+  if (request.destination === 'audio' || isMp3) {
     event.respondWith(
       caches.open(AUDIO_CACHE)
         .then((cache) => cache.match(request.url))
