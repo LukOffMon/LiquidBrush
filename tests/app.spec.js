@@ -1107,7 +1107,7 @@ test.describe('v68: Liquid ATK', () => {
     else await page.fill('#searchInput', '');
     await page.locator('#settingsBtn, [aria-label*="Ajustes"]').first().click();
     await expect(page.locator('#atkToggle')).not.toBeChecked();
-    await page.locator('.settings-atk .switch').click();
+    await page.locator('label:has(#atkToggle)').click();
     await expect(page.locator('html')).toHaveClass(/\batk\b/);
     await expect(page.locator('.brand-name')).toHaveText('LiquidATK');
     await expect(page.locator('.toast')).toContainText('Liquid ATK activado');
@@ -1155,6 +1155,9 @@ test.describe('v68: Liquid ATK', () => {
     await page.goto('./?view=library');
     await expect(page.locator('#libCount')).not.toHaveText('0');
     await page.fill('#searchInput', 'radiohead creep');
+    // «Creep» ya está en Liquid: la resubida se aparta (v75); se puede ver con «Mostrarlas»
+    await expect(page.locator('.atk-owned-note')).toContainText('que ya tienes');
+    await page.locator('.atk-owned-flip').click();
     const impostor = page.locator('.atk-list .track', { hasText: 'Radiohead - Creep' });
     await expect(impostor.locator('.atk-unverified')).toHaveText('No verificado');
     await impostor.locator('[data-action="add"]').click();
@@ -1631,5 +1634,65 @@ test.describe('v74: descargas (también en iPhone/iPad)', () => {
     await page.locator('.playlist-download').click();
     await expect(page.locator('.toast')).toContainText('lista para escuchar sin conexión', { timeout: 15000 });
     expect(await guardadas(page)).toBe(3);
+  });
+});
+
+test.describe('v75: Liquid ATK filtra lo que ya está en Liquid', () => {
+  const sube = (n, title, user, extra = {}) => ({ id: `own${n}`, title, duration: 240, genre: 'Electronic', is_streamable: true, access: { stream: true },
+    play_count: 900 - n, favorite_count: 1, permalink: `/o/${n}`, user: { name: user, is_verified: true }, ...extra });
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      if (!sessionStorage.getItem('atk-puesto')) {
+        localStorage.setItem('liquidbrush:settings', JSON.stringify({ atk: true }));
+        sessionStorage.setItem('atk-puesto', '1');
+      }
+    });
+    // Liquid ya tiene «Mr. Vain - Original Radio Edit» de Culture Beat y «Enjoy the Silence» de Depeche Mode
+    await page.route(/api\.audius\.co\/v1\/tracks\/search/, (route) => route.fulfill({ json: { data: [
+      sube(1, 'Mr. Vain (Official Video)', 'CultureBeatVEVO'),
+      sube(2, 'Culture Beat - Mr. Vain [Remastered 2013]', 'Eurodance Archivo'),
+      sube(3, 'mr vain', 'Culture Beat - Topic'),
+      sube(4, 'Mr. Vain (Remix 2024)', 'DJ Nuevo'),
+      sube(5, 'Mr. Vain cover acústico', 'Una Banda'),
+      sube(6, 'Mr. Vain', 'Otro Artista Distinto')
+    ] } }));
+    await page.route(/api\.audius\.co\/v1\/(users|tracks\/trending)/, (route) => route.fulfill({ json: { data: [] } }));
+    await page.route(/archive\.org\/advancedsearch/, (route) => route.fulfill({ json: { response: { numFound: 0, docs: [] } } }));
+    await page.route(/api\.jamendo\.com/, (route) => route.fulfill({ json: { headers: { status: 'success' }, results: [] } }));
+    await page.route(/api-v2\.hearthis\.at|api\.openverse\.org/, (route) => route.fulfill({ json: /openverse/.test(route.request().url()) ? { results: [] } : [] }));
+  });
+
+  test('aparta las resubidas y deja los remixes, covers y homónimos; se pueden mostrar con un toque', async ({ page }) => {
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.fill('#searchInput', 'mr vain');
+    await expect(page.locator('.atk-status')).toHaveText('3 canciones');
+    const lista = page.locator('.atk-list');
+    await expect(lista).toContainText('Remix 2024');
+    await expect(lista).toContainText('cover acústico');
+    await expect(lista).toContainText('Otro Artista Distinto');
+    await expect(lista).not.toContainText('Official Video');
+    await expect(lista).not.toContainText('Remastered');
+    await expect(page.locator('.atk-owned-note')).toContainText('Ocultamos 3 que ya tienes');
+    // Mostrarlas: salen marcadas «En Liquid» y la preferencia se guarda
+    await page.locator('.atk-owned-flip').click();
+    await expect(page.locator('.atk-status')).toHaveText('6 canciones');
+    await expect(page.locator('.atk-list .atk-owned')).toHaveCount(3);
+    expect(JSON.parse(await page.evaluate(() => localStorage.getItem('liquidbrush:settings'))).atkHideOwned).toBe(false);
+    await page.locator('.atk-owned-flip').click();
+    await expect(page.locator('.atk-status')).toHaveText('3 canciones');
+  });
+
+  test('el interruptor de Ajustes hace lo mismo', async ({ page }) => {
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.locator('#settingsBtn').click();
+    const toggle = page.locator('#atkOwnedToggle');
+    await expect(toggle).toBeChecked();
+    await page.locator('label:has(#atkOwnedToggle)').click();
+    await expect(toggle).not.toBeChecked();
+    await page.keyboard.press('Escape');
+    await page.fill('#searchInput', 'mr vain');
+    await expect(page.locator('.atk-status')).toHaveText('6 canciones');
   });
 });

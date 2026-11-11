@@ -306,6 +306,13 @@ Sección propia (barra de abajo en el móvil, pestaña en escritorio) con emisor
 - **Guardado**: `liquidbrush:radio` (favoritas y recientes, solo en este navegador). Al poner una emisora se avisa a Radio Browser (`/json/url/<uuid>`), que es como ordena sus emisoras más escuchadas.
 - **Logos**: si la emisora no tiene, el logo no carga en 4 s o es en realidad su audio, se usa una portada de `covers/songs/`.
 
+## Liquid ATK filtra lo que ya está en Liquid (v75)
+
+- **Cómo reconoce la misma canción** (`atk.liquidTwin()`): compara el título limpio (sin `(Official Video)`, `[Remastered 2013]`, `Original Radio Edit`, `feat.`, signos…) con el de cada canción de Liquid, y el artista: el que la sube (sin `VEVO`, `- Topic`, `Official`), el que va dentro del título («Artista - Título» o «Artista Título») y los `feat.`. Si título y artista coinciden, es la misma.
+- **Lo que no es lo mismo**: remix, directo, acústica, cover, karaoke, instrumental, sped up/slowed, mashup, demo y las mezclas o edits con nombre («Vain Mix», «Sasha Rome Edit»). «Original Mix», «Radio Edit» o «7" Edit» sí cuentan como la misma.
+- **Ocultar o ver**: con `settings.atkHideOwned` (encendido de serie; interruptor en Ajustes → Liquid ATK) se apartan; debajo de los resultados sale cuántas, con «Mostrarlas» / «Ocultarlas». Vistas, llevan la etiqueta «En Liquid» y, al pasar el cursor, cuál es la de Liquid.
+- **Dónde**: Buscar (`atk.split()` reparte cada búsqueda en `tracks` y `owned`), tendencias de Inicio, radios, Lab y Buscar antes de escribir (`atk.pool()` → `atk.visible()`), y la página de artista.
+
 ## Descargas en iPhone/iPad (v74)
 
 **Por qué no se podía descargar en iOS**: para guardar un MP3 y escucharlo sin conexión, la app tiene que poder *leerlo*, y un navegador solo deja leer un archivo de otro servidor si ese servidor lo permite con la cabecera CORS (`Access-Control-Allow-Origin`). Los buckets de R2 no la envían (comprobado). Android se apaña guardando una copia «opaca» que no lee pero sí reproduce; Safari (y todos los navegadores de iPhone/iPad, que usan su motor) no reproduce esas copias. Ningún cambio en la web lo evita: **hay que activar CORS en los 6 buckets**, una sola vez.

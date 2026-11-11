@@ -10741,3 +10741,46 @@ body.is-radio #lyricsBtn {
 [data-theme="minimal"] .storage-warn {
   color: #a35b00;
 }
+
+/* v75: Liquid ATK y lo que ya está en Liquid */
+.atk-owned {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px 0;
+  border: 1px solid color-mix(in srgb, var(--accent) 60%, var(--border));
+  border-radius: 5px;
+  color: var(--accent);
+  font-family: var(--song-font);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.5;
+  vertical-align: 1px;
+}
+
+.atk-owned-note {
+  margin: 0 4px 10px;
+  color: var(--text-muted);
+  font-family: var(--song-font);
+  font-size: 0.85rem;
+  letter-spacing: normal;
+}
+
+.atk-owned-flip {
+  position: relative;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-2);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.atk-owned-flip::after {
+  content: "";
+  position: absolute;
+  inset: -10px -6px;
+}

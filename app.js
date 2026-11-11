@@ -660,6 +660,8 @@
       ultra: saved.ultra === true,
       // Liquid ATK: el buscador llega más allá de la biblioteca (Audius, Internet Archive, Jamendo)
       atk: saved.atk === true,
+      // Liquid ATK: lo que ya está en Liquid no se repite desde fuera (se puede ver con un toque)
+      atkHideOwned: saved.atkHideOwned !== false,
       lastBackup: Number(saved.lastBackup) || 0,
       backupNagAt: Number(saved.backupNagAt) || 0
     };
@@ -6486,7 +6488,10 @@
         li.classList.add('is-atk-off', 'is-atk-dead');
         artist.textContent = `No disponible ahora · ${track.knownArtist || track.artist}`;
       }
-      atkTags = [makeEl('span', 'atk-mark', 'ATK'), ...(track.unverified ? [makeEl('span', 'atk-unverified', 'No verificado')] : [])];
+      const twin = atk.liquidTwin(track);
+      if (twin) li.title = `Ya está en Liquid: ${twin.title} · ${twin.knownArtist || twin.artist}`;
+      atkTags = [makeEl('span', 'atk-mark', 'ATK'), ...(twin ? [makeEl('span', 'atk-owned', 'En Liquid')] : []),
+        ...(track.unverified ? [makeEl('span', 'atk-unverified', 'No verificado')] : [])];
     }
     // Buscando: la canción salió por su letra
     if (state.query.trim() && searchMeta.lyricIds.has(track.id)) artist.prepend(makeEl('span', 'track-lyric', 'En la letra'));
@@ -13882,15 +13887,102 @@
       const songs = new Set();
       const artists = new Set();
       const compact = new Set();
+      const titles = new Map();
       state.libraryTracks.forEach((t) => {
         songs.add(`${normalize(splitTitle(t.title).main)}|${normalize(t.knownArtist)}`);
+        const who = new Set([this.flatArtist(t.knownArtist)]);
         creditedArtists(t).forEach((name) => {
           artists.add(normalize(name));
           compact.add(normalize(name).replace(/[^\p{L}\p{N}]+/gu, ''));
+          who.add(this.flatArtist(name));
         });
+        who.delete('');
+        const core = this.coreTitle(t.title);
+        if (!core) return;
+        if (!titles.has(core)) titles.set(core, []);
+        titles.get(core).push({ who, id: t.id });
       });
-      this.index = { n: state.libraryTracks.length, songs, artists, compact };
+      this.index = { n: state.libraryTracks.length, songs, artists, compact, titles };
+      this.ownedGen = (this.ownedGen || 0) + 1;
       return this.index;
+    },
+
+    /* --- ¿Ya está en Liquid? ---
+       La misma canción llega de fuera escrita de mil formas: «Mr. Vain (Original Radio Edit)», «Culture Beat -
+       Mr. Vain», «mr vain [Official Video]», subida por «CultureBeatVEVO» o «Culture Beat - Topic». Se compara
+       el título limpio y el artista (también el que va dentro del título). Lo que es otra versión (remix,
+       directo, acústica, cover, karaoke, sped up…) no es lo mismo: esa sí se enseña. */
+    OWNED_NOISE: /\b(official( music)?( video| audio| lyric video| visualizer)?|video oficial|audio oficial|videoclip|lyrics?|letra|con letra|hd|hq|4k|explicit|clean|remaster(ed)?( \d{4})?|\d{4} remaster(ed)?|radio edit|original( radio)?( edit| mix| version)?|album version|single version|visualizer|audio|video|mv|topic)\b/g,
+    // «Vain Mix», «Club Mix», «Dub Mix»: otra mezcla (pero «Original Mix», «Radio Mix» o «Album Mix» son la misma)
+    // Lo mismo con «Sasha Rome Edit» (otra persona la retocó), pero no con «Radio Edit» o «7" Edit»
+    OWNED_OTHER: /\b(?!(?:original|radio|album|single|clean|explicit|main|stereo|mono)\s+mix\b)[\p{L}\p{N}']+\s+mix\b|\b(?!(?:radio|single|album|clean|explicit|short|7|12|original)\s+edit\b)[\p{L}\p{N}']{3,}\s+edit\b|\b(re-?mash|re-?work|re-?edit|vip|boot|remix|rmx|live|en vivo|en directo|acoustic|acustic[oa]|unplugged|cover|karaoke|instrumental|sped ?up|slowed|nightcore|8d|mashup|bootleg|flip|demo|reprise|piano version|lofi|lo-fi|type beat|reverb|tribute|tributo|parody|parodia)\b/u,
+    coreTitle(title) {
+      let text = normalize(title).replace(/[\u2013\u2014]/g, '-');
+      // Paréntesis y corchetes de ruido fuera; el resto del texto se queda
+      text = text.replace(/\((?:feat|ft|featuring|with|con|prod)[^)]*\)|\[(?:feat|ft|featuring|with|con|prod)[^\]]*\]/g, ' ')
+        .replace(/\s(?:feat|ft|featuring)\.?\s.*$/, ' ')
+        .replace(/[([][^)\]]*[)\]]/g, (m) => (this.OWNED_OTHER.test(m) ? m : ' '))
+        .replace(/\s-\s([^-]*)$/, (m, tail) => (this.OWNED_OTHER.test(tail) || tail.replace(this.OWNED_NOISE, '').trim() ? m : ' '));
+      return text.replace(/['’`]/g, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+    },
+    flatArtist(name) {
+      return normalize(name).replace(/\s*-\s*topic$/, '').replace(/(official|oficial|vevo|music|musica)$/g, '')
+        .replace(/[^\p{L}\p{N}]+/gu, '').replace(/(official|oficial|vevo)$/g, '');
+    },
+    // La canción de Liquid que es esta misma (o null)
+    liquidTwin(t) {
+      if (!t || t.radio) return null;
+      const known = this.liquidIndex();
+      if (t.ownedGen === this.ownedGen) return t.twin ? getTrack(t.twin) : null;
+      t.ownedGen = this.ownedGen;
+      t.twin = '';
+      if (this.OWNED_OTHER.test(normalize(t.title))) return null;
+      const uploader = this.flatArtist(t.knownArtist);
+      // «Artista - Título» dentro del título: se prueban las dos lecturas
+      const pieces = normalize(t.title).replace(/[\u2013\u2014]/g, '-').split(/\s+-\s+/);
+      const tries = [{ title: this.coreTitle(t.title), who: [uploader] }];
+      if (pieces.length >= 2) {
+        const [first, ...rest] = pieces;
+        const tail = rest.join(' - ');
+        tries.push({ title: this.coreTitle(tail), who: [this.flatArtist(first), uploader] });
+        tries.push({ title: this.coreTitle(first), who: [this.flatArtist(tail), uploader] });
+      }
+      // «Tame Impala Let It Happen»: el artista delante del título, sin guion
+      const words = this.coreTitle(t.title).split(' ');
+      for (let k = 1; k <= Math.min(4, words.length - 1); k++) {
+        const lead = words.slice(0, k).join(' ');
+        if (known.artists.has(lead)) tries.push({ title: words.slice(k).join(' '), who: [this.flatArtist(lead), uploader] });
+      }
+      // Colaboraciones del título («feat. X») también cuentan como artista
+      const feat = /\b(?:feat|ft|featuring)\.?\s+([^)\]]+)/.exec(normalize(t.title));
+      if (feat) feat[1].split(/,|&|\by\b|\band\b/).forEach((name) => tries.forEach((x) => x.who.push(this.flatArtist(name))));
+      for (const { title, who } of tries) {
+        const list = title && known.titles.get(title);
+        if (!list) continue;
+        const names = who.filter((w) => w.length >= 2);
+        const hit = list.find((entry) => names.some((w) => entry.who.has(w)
+          || [...entry.who].some((x) => x.length >= 4 && w.length >= 4 && (w.includes(x) || x.includes(w)))));
+        if (hit) { t.twin = hit.id; return getTrack(hit.id); }
+      }
+      return null;
+    },
+    owned(t) { return Boolean(this.liquidTwin(t)); },
+    hideOwned: () => settings.atkHideOwned !== false,
+    // Lo que se enseña: sin lo que ya está en Liquid (si así lo quieres)
+    visible(list) { return this.hideOwned() ? list.filter((t) => !this.owned(t)) : list; },
+    setHideOwned(on) {
+      settings.atkHideOwned = on;
+      saveSettings();
+      if (this.ui.ownedToggle) this.ui.ownedToggle.checked = on;
+      this.results.forEach((entry) => this.split(entry));
+      haptic(8);
+      renderList();
+    },
+    // Reparte lo encontrado: lo que se enseña y lo que ya tienes en Liquid
+    split(entry) {
+      const all = entry.ranked || [];
+      entry.owned = all.filter((t) => this.owned(t));
+      entry.tracks = this.hideOwned() ? all.filter((t) => !this.owned(t)) : all;
     },
     // «No verificado»: en Audius, una cuenta sin verificar que sube algo a nombre de un artista de Liquid
     // (suele ser una resubida o un remix de una canción comercial: se enseña, pero avisando)
@@ -13912,8 +14004,7 @@
       const pass = (weak) => {
         const best = new Map();
         all.forEach((t) => {
-          // «Suponiendo que Liquid no lo tiene»: lo que ya está en Liquid no se repite desde fuera
-          if (known.songs.has(`${normalize(splitTitle(t.title).main)}|${normalize(t.knownArtist)}`)) return;
+          // Lo que ya está en Liquid no se descarta aquí: lo aparta split() (se puede ver con un toque)
           this.markUnverified(t, known, named);
           const s = this.score(t, qn, tokens, weak);
           if (s <= 0) return;
@@ -14001,7 +14092,8 @@
     add(entry, key, list) {
       if (!list?.length || entry.signal.aborted) return;
       entry.lists[key] = [...(entry.lists[key] || []), ...list];
-      entry.tracks = this.rank(entry.q, Object.values(entry.lists)).map((t) => this.register(t));
+      entry.ranked = this.rank(entry.q, Object.values(entry.lists)).map((t) => this.register(t));
+      this.split(entry);
       this.refresh(entry.qn);
     },
     async pull(entry, key) {
@@ -14026,7 +14118,7 @@
     async run(q, qn) {
       if (!this.on() || !navigator.onLine) { this.render(); return; }
       const controller = new AbortController();
-      const entry = { q, qn, lists: {}, tracks: [], shown: this.PAGE, done: false, failed: false, at: Date.now(), artist: null, signal: controller.signal };
+      const entry = { q, qn, lists: {}, ranked: [], owned: [], tracks: [], shown: this.PAGE, done: false, failed: false, at: Date.now(), artist: null, signal: controller.signal };
       entry.cur = this.cursors(entry, controller.signal);
       this.pending = { qn, controller };
       this.results.set(qn, entry);
@@ -14171,7 +14263,7 @@
     pool(genre) {
       const p = this.pools.get(genre);
       if (!p) this.fetchPool(genre);
-      return p?.tracks || [];
+      return this.visible(p?.tracks || []);
     },
     fetchPool(genre) {
       if (!this.on() || this.pools.has(genre) || !navigator.onLine) return Promise.resolve([]);
@@ -14335,8 +14427,8 @@
       const paint = (name, got) => {
         if (this.artistEntry !== ae || !got?.length) return;
         lists[name].push(...got);
-        ae.tracks = this.rank(entry.name, Object.values(lists)).filter(mine)
-          .filter((t) => !own.has(`${normalize(splitTitle(t.title).main)}|${normalize(t.knownArtist)}`))
+        ae.tracks = this.visible(this.rank(entry.name, Object.values(lists)).filter(mine)
+          .filter((t) => !own.has(`${normalize(splitTitle(t.title).main)}|${normalize(t.knownArtist)}`)))
           .slice(0, 15).map((t) => this.register(t));
         if (state.view === 'artist' && state.openArtist === key) this.render();
       };
@@ -14417,7 +14509,7 @@
       const waiting = !artistPage && (this.waiting === qn || this.pending?.qn === qn);
       const offline = !artistPage && !e && !waiting && !navigator.onLine && qn.length >= 2;
       // Sin nada que añadir a lo que ya trae Liquid, la sección ATK no sale
-      box.hidden = !show || (!e && !waiting && !offline) || Boolean(e?.done && !e.failed && !e.tracks.length && (artistPage || list.items.length > 0));
+      box.hidden = !show || (!e && !waiting && !offline) || Boolean(e?.done && !e.failed && !e.tracks.length && !e.owned?.length && (artistPage || list.items.length > 0));
       if (box.hidden) { box.replaceChildren(); return; }
       box.setAttribute('aria-busy', String(!offline && !e?.done));
       const head = makeEl('div', 'atk-head');
@@ -14432,7 +14524,7 @@
       const searching = !offline && (!e?.done || Boolean(e?.loadingMore));
       status.textContent = offline ? 'Sin conexión'
         : searching ? (tracks.length ? 'Buscando en más sitios…' : 'Buscando…')
-          : tracks.length ? songsLabel(tracks.length) : e?.failed ? 'No se pudo buscar' : 'Nada por aquí';
+          : tracks.length ? songsLabel(tracks.length) : e?.failed ? 'No se pudo buscar' : e?.owned?.length ? 'Todo ya está en Liquid' : 'Nada por aquí';
       status.classList.toggle('is-busy', searching);
       head.append(title, status);
       const parts = [head];
@@ -14441,6 +14533,18 @@
       if (!artistPage && e?.artist && found.some((t) => t.profileOf === e.qn)) parts.push(this.artistCard(e));
       const bar = artistPage ? null : this.filterBar(found, view);
       if (bar) parts.push(bar);
+      const ownedCount = artistPage ? 0 : e?.owned?.length || 0;
+      if (ownedCount) {
+        const hidden = this.hideOwned();
+        const note = makeEl('p', 'atk-owned-note', hidden
+          ? `${ownedCount === 1 ? 'Ocultamos 1 que ya tienes' : `Ocultamos ${ownedCount} que ya tienes`} en Liquid.`
+          : `${ownedCount === 1 ? 'Se ve 1 que ya tienes' : `Se ven ${ownedCount} que ya tienes`} en Liquid (marcadas «En Liquid»).`);
+        const flip = makeEl('button', 'atk-owned-flip', hidden ? 'Mostrarlas' : 'Ocultarlas');
+        flip.type = 'button';
+        flip.addEventListener('click', () => this.setHideOwned(!hidden));
+        note.append(' ', flip);
+        parts.push(note);
+      }
       if (tracks.length) {
         const ul = makeEl('ul', 'track-list atk-list');
         const shown = artistPage ? tracks : tracks.slice(0, e.shown);
@@ -14635,6 +14739,11 @@
       this.ui.toggle = els.atkToggle;
       els.atkToggle?.addEventListener('change', () => this.set(els.atkToggle.checked));
       els.atkAbout?.addEventListener('click', () => this.openAbout());
+      this.ui.ownedToggle = document.getElementById('atkOwnedToggle');
+      if (this.ui.ownedToggle) {
+        this.ui.ownedToggle.checked = this.hideOwned();
+        this.ui.ownedToggle.addEventListener('change', () => this.setHideOwned(this.ui.ownedToggle.checked));
+      }
       this.apply();
       if (this.on()) setTimeout(() => this.hydrate(), 1500);
       window.addEventListener('pagehide', () => this.persist());
