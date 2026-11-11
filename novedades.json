@@ -1,6 +1,16 @@
 {
   "releases": [
     {
+      "version": "v76",
+      "date": "noviembre 2026",
+      "title": "Liquid ATK viene encendido",
+      "items": [
+        "Liquid ATK viene encendido: ya no hay que activarlo. Si algo no está en Liquid, el buscador lo encuentra fuera desde el primer momento.",
+        "Se apaga en Ajustes → Liquid ATK → «Modo ATK», y Liquid lo recuerda: si lo apagaste, sigue apagado.",
+        "Con ATK apagado, Liquid no consulta ninguna fuente de fuera."
+      ]
+    },
+    {
       "version": "v75",
       "date": "noviembre 2026",
       "title": "Liquid ATK no repite lo que ya tienes",

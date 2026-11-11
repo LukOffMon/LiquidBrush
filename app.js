@@ -659,7 +659,8 @@
       // Modo ultraligero: sin vidrio, sombras, animaciones, fondo, visualizador ni letras descargadas
       ultra: saved.ultra === true,
       // Liquid ATK: el buscador llega más allá de la biblioteca (Audius, Internet Archive, Jamendo)
-      atk: saved.atk === true,
+      // Encendido de serie (v76): solo se apaga si lo desactivas en Ajustes → Liquid ATK
+      atk: saved.atk !== false,
       // Liquid ATK: lo que ya está en Liquid no se repite desde fuera (se puede ver con un toque)
       atkHideOwned: saved.atkHideOwned !== false,
       lastBackup: Number(saved.lastBackup) || 0,

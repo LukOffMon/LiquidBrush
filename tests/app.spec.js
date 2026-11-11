@@ -15,6 +15,8 @@ test.beforeEach(async ({ page }) => {
   });
   // Sin red hacia los buckets ni LRCLIB: el audio no es parte de estas pruebas
   await page.route(/r2\.dev|lrclib\.net/, (route) => route.abort());
+  // Liquid ATK viene encendido (v76): sin red hacia sus fuentes salvo en los tests que las simulan
+  await page.route(/api\.audius\.co|archive\.org|api\.jamendo\.com|hearthis\.at|api\.openverse\.org/, (route) => route.abort());
 });
 
 test('abre sin errores y carga la biblioteca', async ({ page }) => {
@@ -1092,25 +1094,42 @@ test.describe('v68: Liquid ATK', () => {
     }
   });
 
-  test('apagado no llama a nadie; encendido desde Ajustes cambia la marca', async ({ page }) => {
+  test('viene encendido de serie; se apaga desde Ajustes, deja de llamar a nadie y se recuerda', async ({ page }) => {
     const seen = [];
     await fuentesFalsas(page, seen);
     await page.goto('./');
     await expect(page.locator('#libCount')).not.toHaveText('0');
+    // Sin haber tocado nada: ATK encendido
+    await expect(page.locator('html')).toHaveClass(/\batk\b/);
+    await expect(page.locator('.brand-name')).toHaveText('LiquidATK');
+    await page.locator('#settingsBtn, [aria-label*="Ajustes"]').first().click();
+    await expect(page.locator('#atkToggle')).toBeChecked();
+    await page.locator('label:has(#atkToggle)').click();
+    await expect(page.locator('#atkToggle')).not.toBeChecked();
+    await expect(page.locator('html')).not.toHaveClass(/\batk\b/);
+    await expect(page.locator('.brand-name')).toHaveText('LiquidBullet');
+    await expect(page.locator('.toast')).toContainText('Liquid ATK desactivado');
+    expect(JSON.parse(await page.evaluate(() => localStorage.getItem('liquidbrush:settings'))).atk).toBe(false);
+    await page.keyboard.press('Escape');
+    // (cerrar Ajustes vuelve atrás en el historial: se espera a que termine antes de recargar)
+    await expect(page.locator('#settingsDialog')).not.toBeVisible();
+    await page.waitForTimeout(400);
+    // Apagado: buscar no llama a ninguna fuente de fuera, y sigue apagado al volver a abrir
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await expect(page.locator('.brand-name')).toHaveText('LiquidBullet');
+    seen.length = 0;
     await page.fill('#searchInput', 'banda prueba');
     await expect(page.locator('#listInfo')).toContainText('resultado');
     await page.waitForTimeout(700);
     await expect(page.locator('#atkResults')).toBeHidden();
     expect(seen).toEqual([]);
-    // En el teléfono, Buscar esconde la barra de arriba: se sale con «Cancelar»
+    // Y se vuelve a encender igual
     if (await page.locator('#searchCancel').isVisible()) await page.locator('#searchCancel').click();
     else await page.fill('#searchInput', '');
     await page.locator('#settingsBtn, [aria-label*="Ajustes"]').first().click();
-    await expect(page.locator('#atkToggle')).not.toBeChecked();
     await page.locator('label:has(#atkToggle)').click();
-    await expect(page.locator('html')).toHaveClass(/\batk\b/);
     await expect(page.locator('.brand-name')).toHaveText('LiquidATK');
-    await expect(page.locator('.toast')).toContainText('Liquid ATK activado');
     expect(JSON.parse(await page.evaluate(() => localStorage.getItem('liquidbrush:settings'))).atk).toBe(true);
   });
 
@@ -1173,6 +1192,7 @@ test.describe('v68: Liquid ATK', () => {
       sessionStorage.setItem('atk-guardada', '1');
       localStorage.setItem('liquidbrush:atk-tracks', JSON.stringify({ 'atk:au:au1': { t: 'Nébula Prueba', a: 'Banda Prueba', s: 200, u: 'https://api.audius.co/v1/tracks/au1/stream?app_name=liquidbullet' } }));
       localStorage.setItem('liquidbrush:favorites', JSON.stringify(['atk:au:au1']));
+      localStorage.setItem('liquidbrush:settings', JSON.stringify({ atk: false }));
     });
     await page.goto('./?view=favorites');
     await expect(page.locator('#libCount')).not.toHaveText('0');

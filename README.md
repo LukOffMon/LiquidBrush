@@ -306,6 +306,12 @@ Sección propia (barra de abajo en el móvil, pestaña en escritorio) con emisor
 - **Guardado**: `liquidbrush:radio` (favoritas y recientes, solo en este navegador). Al poner una emisora se avisa a Radio Browser (`/json/url/<uuid>`), que es como ordena sus emisoras más escuchadas.
 - **Logos**: si la emisora no tiene, el logo no carga en 4 s o es en realidad su audio, se usa una portada de `covers/songs/`.
 
+## Liquid ATK encendido de serie (v76)
+
+- `settings.atk` vale `true` salvo que se haya apagado a mano (`saved.atk !== false`): quien nunca tocó el interruptor lo tiene encendido; quien lo apagó lo sigue teniendo apagado.
+- Se apaga y se enciende en **Ajustes → Liquid ATK → Modo ATK** (con su animación y aviso). Apagado, Liquid no hace ninguna petición a Audius, Internet Archive, Jamendo, Hearthis.at ni Openverse, y la marca vuelve a «Liquid Bullet».
+- Los tests cortan por defecto la red hacia esas fuentes; los de ATK las simulan.
+
 ## Liquid ATK filtra lo que ya está en Liquid (v75)
 
 - **Cómo reconoce la misma canción** (`atk.liquidTwin()`): compara el título limpio (sin `(Official Video)`, `[Remastered 2013]`, `Original Radio Edit`, `feat.`, signos…) con el de cada canción de Liquid, y el artista: el que la sube (sin `VEVO`, `- Topic`, `Official`), el que va dentro del título («Artista - Título» o «Artista Título») y los `feat.`. Si título y artista coinciden, es la misma.
@@ -355,7 +361,7 @@ Lo que cambió en la app (en todos los dispositivos):
 
 ## Liquid ATK (v68)
 
-Modo opcional (**Ajustes → Liquid ATK**, se recuerda como el ultraligero). Al encenderlo, la marca pasa a **Liquid ATK** con una animación corta (sin animación con «reducir movimiento» o en ultraligero).
+Viene encendido desde v76; se apaga en **Ajustes → Liquid ATK** y se recuerda, como el ultraligero. Al encenderlo, la marca pasa a **Liquid ATK** con una animación corta (sin animación con «reducir movimiento» o en ultraligero).
 
 - **Fuentes** (todas gratis, con CORS, llamadas desde el navegador):
   - **Audius** (`api.audius.co`, sin clave; `app_name=liquidbullet`): búsqueda, tendencias por género y audio completo.
