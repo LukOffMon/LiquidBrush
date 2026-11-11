@@ -1,6 +1,18 @@
 {
   "releases": [
     {
+      "version": "v77",
+      "date": "noviembre 2026",
+      "title": "Descargas a fondo, ahora que los servidores lo permiten",
+      "items": [
+        "Las canciones de Liquid ya se pueden descargar en iPhone y iPad: los 6 servidores de música lo permiten.",
+        "Nuevo: descarga a un artista entero desde su página, con el botón de descarga junto a Seguir y Radio.",
+        "Nuevo: descarga todas tus Favoritas de una vez desde la cabecera de Favoritas.",
+        "En Android, las descargas antiguas se pasan solas a copias completas: ocupan menos, se puede adelantar mejor sin conexión y no hay que hacer nada.",
+        "Liquid recuerda qué servidores permiten descargar: en iPhone las descargas empiezan antes, sin volver a comprobarlo en cada visita."
+      ]
+    },
+    {
       "version": "v76",
       "date": "noviembre 2026",
       "title": "Liquid ATK viene encendido",

@@ -9,7 +9,7 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -25,7 +25,10 @@ jobs:
       - name: ESLint
         run: npm run lint
       - name: Navegador para los tests
-        run: npx playwright install --with-deps chromium
+        # Si los repositorios de Ubuntu no responden (pasa a veces en los servidores de GitHub), se instala
+        # solo Chromium: las bibliotecas que necesita ya vienen en la imagen; lo que falla son fuentes extra
+        # (con un tope de 3 minutos para no gastar el tiempo de los tests esperando a Ubuntu)
+        run: timeout 180 npx playwright install --with-deps chromium || npx playwright install chromium
       - name: Tests de extremo a extremo (móvil y escritorio)
         run: npm test
       - uses: actions/upload-artifact@v4
