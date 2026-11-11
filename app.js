@@ -217,6 +217,8 @@
     sort: 'original',
     countedId: null,
     statsOffset: 0,
+    // Stats (v78): periodo a la vista — 'month', 'year' o 'all' (desde siempre)
+    statsRange: 'month',
     query: '',
     // Filtros rápidos de la lista: all | downloaded | favorites | unplayed, y un género de verdad
     // («Rock», «Indie»…: ver tools/generos.py). genreOpen: se ve la fila para elegir el género
@@ -2992,7 +2994,7 @@
 
   function aggregate(keys) {
     const result = { seconds: 0, plays: 0, perDay: [], hours: new Array(24).fill(0), weekdays: new Array(7).fill(0),
-      tracks: new Map(), artists: new Map(), genres: new Map() };
+      tracks: new Map(), artists: new Map(), genres: new Map(), trackPlays: new Map(), months: new Map() };
     keys.forEach((key) => {
       const entry = listen.log[key];
       let daySeconds = 0;
@@ -3006,13 +3008,18 @@
           const genre = track?.generos[0] || 'Sin género';
           result.genres.set(genre, (result.genres.get(genre) || 0) + secs);
         });
-        Object.values(entry.p || {}).forEach((n) => { result.plays += n; });
+        Object.entries(entry.p || {}).forEach(([id, n]) => {
+          result.plays += n;
+          result.trackPlays.set(id, (result.trackPlays.get(id) || 0) + n);
+        });
         (entry.h || []).forEach((secs, hour) => { result.hours[hour] += secs || 0; });
       }
       const [y, m, d] = key.split('-').map(Number);
       result.weekdays[new Date(y, m - 1, d).getDay()] += daySeconds;
       result.perDay.push({ key, day: Number(key.slice(8)), seconds: daySeconds });
       result.seconds += daySeconds;
+      const monthKey = key.slice(0, 7);
+      result.months.set(monthKey, (result.months.get(monthKey) || 0) + daySeconds);
     });
     return result;
   }
@@ -3086,18 +3093,160 @@
     return list;
   }
 
+  /* ---------- Stats v78: periodos, comparación, tu perfil, descubrimientos y récords ---------- */
+  const STATS_RANGES = [['month', 'Mes'], ['year', 'Año'], ['all', 'Desde siempre']];
+  const SHORT_MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  // Días de un periodo: un mes, un año o todo lo registrado
+  function periodInfo(range = state.statsRange, offset = state.statsOffset) {
+    if (range === 'all') {
+      const keys = Object.keys(listen.log).sort();
+      return { keys, label: 'Desde siempre', short: 'desde siempre', range };
+    }
+    if (range === 'year') {
+      const year = new Date().getFullYear() + offset;
+      const keys = [];
+      for (let d = new Date(year, 0, 1); d.getFullYear() === year; d.setDate(d.getDate() + 1)) keys.push(dayKey(d));
+      return { keys, label: String(year), short: `en ${year}`, range, year };
+    }
+    const info = monthInfo(offset);
+    return { ...info, short: `en ${info.label.split(' ')[0]}`, range };
+  }
+  // El periodo anterior. Con el actual aún en curso, solo sus mismos días (11 días de este mes contra
+  // los 11 primeros del anterior: si no, cualquier mes a medias parecía ir peor)
+  function previousPeriod(range, offset) {
+    if (range === 'all') return null;
+    const prev = periodInfo(range, offset - 1);
+    if (offset !== 0) return { ...prev, partial: false };
+    const today = dayKey();
+    const elapsed = periodInfo(range, 0).keys.filter((k) => k <= today).length;
+    return { ...prev, keys: prev.keys.slice(0, elapsed), partial: elapsed < prev.keys.length };
+  }
+
+  // «+12 %» frente al periodo anterior (solo si antes hubo algo con lo que comparar)
+  function deltaBadge(now, before) {
+    if (!(before > 0)) return null;
+    const pct = Math.round(((now - before) / before) * 100);
+    if (!pct) return makeEl('span', 'stat-delta is-flat', '= igual');
+    return makeEl('span', `stat-delta ${pct > 0 ? 'is-up' : 'is-down'}`, `${pct > 0 ? '▲' : '▼'} ${Math.abs(pct)} %`);
+  }
+  function statTileDelta(value, label, now, before) {
+    const tile = statTile(value, label);
+    const badge = deltaBadge(now, before);
+    if (badge) {
+      badge.title = 'Frente a los mismos días del periodo anterior';
+      tile.append(badge);
+    }
+    return tile;
+  }
+
+  // Primer día en que sonó cada artista (para «Descubrimientos»)
+  let firstSeenCache = null;
+  function firstSeenArtists() {
+    const keys = Object.keys(listen.log).sort();
+    const stamp = `${keys.length}:${keys[keys.length - 1] || ''}`;
+    if (firstSeenCache?.stamp === stamp) return firstSeenCache.map;
+    const map = new Map();
+    keys.forEach((key) => Object.keys(listen.log[key]?.s || {}).forEach((id) => {
+      creditedArtists(getTrack(id)).forEach((name) => { if (!map.has(name)) map.set(name, key); });
+    }));
+    firstSeenCache = { stamp, map };
+    return map;
+  }
+
+  // Tu perfil de oyente: cuándo, cuánto variado y cuánto fiel
+  function listenerProfile(current) {
+    const total = current.seconds || 1;
+    const sumHours = (from, to) => current.hours.slice(from, to + 1).reduce((x, y) => x + y, 0);
+    const night = (sumHours(0, 5) + sumHours(21, 23)) / total;
+    const morning = sumHours(6, 11) / total;
+    const weekend = (current.weekdays[0] + current.weekdays[6]) / total;
+    const variety = current.plays ? current.tracks.size / current.plays : 0;
+    const topArtist = topOf(current.artists, 1)[0];
+    const loyalty = topArtist ? topArtist[1] / total : 0;
+    const genres = [...current.genres.keys()].filter((g) => g !== 'Sin género').length;
+    const when = night > 0.4 ? ['Nocturno', 'moon', `${Math.round(night * 100)} % de tu música suena de noche`]
+      : morning > 0.4 ? ['Madrugador', 'spark', `${Math.round(morning * 100)} % suena por la mañana`]
+        : weekend > 0.45 ? ['De fin de semana', 'gift', `${Math.round(weekend * 100)} % suena en sábado y domingo`]
+          : ['De todo el día', 'clock', 'Tu música se reparte por todo el día'];
+    const how = variety > 0.7 ? ['explorador', 'compass', `${Math.round(variety * 100)} % de lo que pones es distinto cada vez`]
+      : loyalty > 0.25 ? ['fiel', 'heart', `${topArtist[0]} se lleva el ${Math.round(loyalty * 100)} % de tu tiempo`]
+        : genres >= 8 ? ['ecléctico', 'palette', `${genres} estilos distintos`]
+          : ['de costumbres', 'repeat', 'Vuelves a lo que te gusta'];
+    const card = statCard('Tu perfil de oyente');
+    card.classList.add('stat-profile');
+    card.append(makeEl('p', 'profile-name', `${when[0]} ${how[0]}`));
+    const list = makeEl('ul', 'profile-facts');
+    [when, how].forEach(([, icon, text]) => {
+      const li = makeEl('li', 'profile-fact');
+      li.append(svgIcon(icon), makeEl('span', '', text));
+      list.append(li);
+    });
+    if (genres && !(how[0] === 'ecléctico')) {
+      const li = makeEl('li', 'profile-fact');
+      li.append(svgIcon('palette'), makeEl('span', '', `${genres} estilo${genres === 1 ? '' : 's'} distinto${genres === 1 ? '' : 's'}`));
+      list.append(li);
+    }
+    card.append(list);
+    return card;
+  }
+
+  function statsRangeChips() {
+    const row = makeEl('div', 'chips stats-ranges');
+    row.setAttribute('role', 'toolbar');
+    row.setAttribute('aria-label', 'Periodo de las estadísticas');
+    STATS_RANGES.forEach(([key, label]) => {
+      const chip = makeChip('stats-range', key, label, state.statsRange === key);
+      chip.addEventListener('click', () => {
+        if (state.statsRange === key) return;
+        state.statsRange = key;
+        state.statsOffset = 0;
+        haptic(8);
+        renderList();
+      });
+      row.append(chip);
+    });
+    return row;
+  }
+
+  function songRow(id, meta) {
+    const track = getTrack(id);
+    if (!track) return null;
+    const li = document.createElement('li');
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'top-song';
+    button.dataset.action = 'stats-play';
+    button.dataset.value = id;
+    const img = document.createElement('img');
+    img.src = track.thumb;
+    img.alt = '';
+    img.width = 40;
+    img.height = 40;
+    img.loading = 'lazy';
+    const text = makeEl('span', 'top-song-text');
+    text.append(makeEl('span', 'top-song-title', splitTitle(track.title).main), makeEl('span', 'top-song-meta', meta));
+    button.append(img, text);
+    li.append(button);
+    return li;
+  }
+
   function renderStats() {
     flushListening();
+    const range = state.statsRange;
     // Tu Año Líquido: cuenta atrás en diciembre, el evento en temporada o «volver a verlo»
-    const invite = state.statsOffset === 0 ? resumenInvite('stats') : null;
-    const info = monthInfo(state.statsOffset);
+    const invite = state.statsOffset === 0 && range !== 'all' ? resumenInvite('stats') : null;
+    const info = periodInfo();
     const current = aggregate(info.keys);
-    const previous = aggregate(monthInfo(state.statsOffset - 1).keys);
+    const prevInfo = previousPeriod(range, state.statsOffset);
+    const previous = prevInfo ? aggregate(prevInfo.keys) : null;
     const panel = els.statsPanel;
+    const chips = statsRangeChips();
 
     if (current.seconds < 60) {
-      panel.replaceChildren(...[invite].filter(Boolean), emptyState('p', 'chart', state.statsOffset === 0
-        ? 'Todavía no hay suficiente música este mes. Escucha un rato y vuelve: aquí verás tus minutos, géneros y artistas.'
+      panel.replaceChildren(...[chips, invite].filter(Boolean), emptyState('p', 'chart', state.statsOffset === 0
+        ? range === 'all'
+          ? 'Todavía no hay música registrada. Escucha un rato y vuelve: aquí verás tus minutos, géneros, artistas y récords.'
+          : `Todavía no hay suficiente música ${info.short}. Escucha un rato y vuelve: aquí verás tus minutos, géneros y artistas.`
         : `No hay registros de ${info.label}.`), ...(state.statsOffset === 0 ? [plus.hitosCard()] : []));
       return;
     }
@@ -3105,38 +3254,97 @@
     const activeDays = current.perDay.filter((d) => d.seconds >= 60);
     let streak = 0;
     let run = 0;
+    let prevDate = null;
     current.perDay.forEach((d) => {
-      run = d.seconds >= 60 ? run + 1 : 0;
+      const [y, m, dd] = d.key.split('-').map(Number);
+      const date = new Date(y, m - 1, dd).getTime();
+      const next = prevDate !== null && Math.round((date - prevDate) / DAY_MS) === 1;
+      run = d.seconds >= 60 ? (next ? run + 1 : 1) : 0;
+      prevDate = date;
       streak = Math.max(streak, run);
     });
     const topHour = current.hours.indexOf(Math.max(...current.hours));
     const topWeekday = current.weekdays.indexOf(Math.max(...current.weekdays));
+    const topArtist = topOf(current.artists, 1)[0];
+    const topSong = topOf(current.trackPlays.size ? current.trackPlays : current.tracks, 1)[0];
+    const topGenre = topOf(current.genres, 1)[0];
+
+    // Tu periodo en una frase
+    const story = makeEl('p', 'stats-story');
+    const before = previous?.seconds || 0;
+    const change = before > 0 ? Math.round(((current.seconds - before) / before) * 100) : null;
+    const when = range === 'all' ? 'Desde que usas Liquid' : `${info.label.charAt(0).toUpperCase()}${info.label.slice(1)}`;
+    story.append(`${when}: `, makeEl('b', '', minutesLabel(current.seconds)), ' de música');
+    const unit = range === 'year' ? 'año' : 'mes';
+    if (change !== null && change) story.append(`, un ${Math.abs(change)} % ${change > 0 ? 'más' : 'menos'} que ${prevInfo.partial ? `en los mismos días del ${unit} anterior` : `el ${unit} anterior`}`);
+    story.append('.');
+    if (topArtist) story.append(' Tu artista: ', makeEl('b', '', topArtist[0]), '.');
+    const topSongTrack = topSong && getTrack(topSong[0]);
+    if (topSongTrack) story.append(' Tu canción: ', makeEl('b', '', splitTitle(topSongTrack.title).main), '.');
+    if (topGenre && topGenre[0] !== 'Sin género') story.append(' Tu estilo: ', makeEl('b', '', topGenre[0]), '.');
 
     const tiles = makeEl('div', 'stat-tiles');
     tiles.append(
-      statTile(minutesLabel(current.seconds), 'escuchados'),
-      statTile(String(current.plays), 'reproducciones'),
-      statTile(String(current.tracks.size), 'canciones distintas'),
-      statTile(String(current.artists.size), 'artistas'),
+      statTileDelta(minutesLabel(current.seconds), 'escuchados', current.seconds, previous?.seconds),
+      statTileDelta(String(current.plays), 'reproducciones', current.plays, previous?.plays),
+      statTileDelta(String(current.tracks.size), 'canciones distintas', current.tracks.size, previous?.tracks.size),
+      statTileDelta(String(current.artists.size), 'artistas', current.artists.size, previous?.artists.size),
+      statTileDelta(`${activeDays.length}`, `día${activeDays.length === 1 ? '' : 's'} con música`, activeDays.length, previous?.perDay.filter((d) => d.seconds >= 60).length),
       statTile(`${streak} día${streak === 1 ? '' : 's'}`, 'racha más larga'),
       statTile(`${String(topHour).padStart(2, '0')}:00`, `tu hora · más los ${WEEKDAYS[topWeekday]}`),
       ...[atk.statTile(current)].filter(Boolean)
     );
 
-    const daily = statCard('Minutos por día', `${activeDays.length} de ${info.keys.length} días con música`);
-    daily.append(columnChart(
-      current.perDay.map((d) => d.seconds / 60),
-      (i) => String(i + 1),
-      (v, i) => `${i + 1} de ${info.label.split(' ')[0]}: ${Math.round(v)} min`,
-      5
-    ));
+    // Minutos en el tiempo: por día (mes) o por mes (año y desde siempre)
+    let timeline;
+    if (range === 'month') {
+      timeline = statCard('Minutos por día', `${activeDays.length} de ${info.keys.length} días con música`);
+      timeline.append(columnChart(
+        current.perDay.map((d) => d.seconds / 60),
+        (i) => String(i + 1),
+        (v, i) => `${i + 1} de ${info.label.split(' ')[0]}: ${Math.round(v)} min`,
+        5
+      ));
+    } else {
+      let months;
+      if (range === 'year') months = Array.from({ length: 12 }, (_, i) => `${info.year}-${String(i + 1).padStart(2, '0')}`);
+      else {
+        const all = [...current.months.keys()].sort();
+        const [fy, fm] = (all[0] || dayKey().slice(0, 7)).split('-').map(Number);
+        const now = new Date();
+        months = [];
+        for (let y = fy, m = fm; y < now.getFullYear() || (y === now.getFullYear() && m <= now.getMonth() + 1); m === 12 ? (y++, m = 1) : m++) {
+          months.push(`${y}-${String(m).padStart(2, '0')}`);
+        }
+        months = months.slice(-24);
+      }
+      const label = (k) => SHORT_MONTHS[Number(k.slice(5, 7)) - 1];
+      timeline = statCard('Horas por mes', range === 'year' ? `${[...current.months.values()].filter((v) => v >= 60).length} meses con música` : 'Tus últimos meses');
+      timeline.append(columnChart(
+        months.map((k) => (current.months.get(k) || 0) / 3600),
+        (i) => label(months[i]),
+        (v, i) => `${label(months[i])} ${months[i].slice(0, 4)}: ${minutesLabel(v * 3600)}`,
+        months.length > 12 ? 3 : 1
+      ));
+    }
 
     const hours = statCard('¿A qué hora escuchas?', 'Minutos por hora del día');
     hours.append(columnChart(
-      current.hours.map((s) => s / 60),
+      current.hours.map((secs) => secs / 60),
       (i) => `${i}h`,
       (v, i) => `${String(i).padStart(2, '0')}:00 – ${String(i).padStart(2, '0')}:59: ${Math.round(v)} min`,
       6
+    ));
+
+    // Días de la semana, de lunes a domingo
+    const order = [1, 2, 3, 4, 5, 6, 0];
+    const dayNames = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+    const weekdays = statCard('Días de la semana', `Tu día: ${dayNames[topWeekday]}`);
+    weekdays.append(columnChart(
+      order.map((d) => current.weekdays[d] / 60),
+      (i) => ['L', 'M', 'X', 'J', 'V', 'S', 'D'][i],
+      (v, i) => `${dayNames[order[i]]}: ${minutesLabel(v * 60)}`,
+      1
     ));
 
     const genres = statCard('Géneros más escuchados');
@@ -3145,74 +3353,103 @@
       text: `${Math.round((secs / current.seconds) * 100)} %`, tip: minutesLabel(secs)
     })), 'stats-genre'));
 
-    const artists = statCard('Artistas del mes', 'Toca uno para ver sus canciones');
-    artists.append(barList(topOf(current.artists, 8).map(([name, secs]) => ({
+    const artistTitle = range === 'month' ? 'Artistas del mes' : range === 'year' ? 'Artistas del año' : 'Tus artistas';
+    const artists = statCard(artistTitle, 'Toca uno para ver sus canciones');
+    artists.append(barList(topOf(current.artists, 10).map(([name, secs]) => ({
       key: name, label: name, value: secs, text: minutesLabel(secs)
     })), 'stats-artist'));
 
-    // Tendencia personal: quién ganó más peso frente al mes anterior
-    const trending = [...current.artists.entries()]
-      .filter(([, secs]) => secs >= 120)
-      .map(([name, secs]) => {
-        const before = previous.artists.get(name) || 0;
-        const delta = secs / current.seconds - (previous.seconds ? before / previous.seconds : 0);
-        return { name, secs, before, delta };
-      })
-      .filter((a) => a.delta > 0)
-      .sort((a, b) => b.delta - a.delta)
-      .slice(0, 5);
-    const trend = statCard('En tendencia para ti', 'Los que más subieron frente al mes anterior');
-    if (trending.length) {
-      const list = makeEl('ol', 'trend-list');
-      trending.forEach((a) => {
-        const li = document.createElement('li');
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'trend-row';
-        button.dataset.action = 'stats-artist';
-        button.dataset.value = a.name;
-        button.append(
-          makeEl('span', 'trend-name', a.name),
-          makeEl('span', a.before ? 'trend-up' : 'trend-new', a.before ? `+${Math.round(a.delta * 100)} pts` : 'Nuevo'),
-          makeEl('span', 'trend-time', minutesLabel(a.secs))
-        );
-        li.append(button);
-        list.append(li);
-      });
-      trend.append(list);
-    } else {
-      trend.append(makeEl('p', 'stat-sub', 'Sigue escuchando: cuando alguien suba posiciones aparecerá aquí.'));
+    // Tendencia personal: quién ganó más peso frente al periodo anterior
+    let trend = null;
+    if (previous) {
+      const trending = [...current.artists.entries()]
+        .filter(([, secs]) => secs >= 120)
+        .map(([name, secs]) => {
+          const was = previous.artists.get(name) || 0;
+          const delta = secs / current.seconds - (previous.seconds ? was / previous.seconds : 0);
+          return { name, secs, before: was, delta };
+        })
+        .filter((x) => x.delta > 0)
+        .sort((x, y) => y.delta - x.delta)
+        .slice(0, 5);
+      trend = statCard('En tendencia para ti', `Los que más subieron frente ${range === 'year' ? 'al año' : 'al mes'} anterior`);
+      if (trending.length) {
+        const list = makeEl('ol', 'trend-list');
+        trending.forEach((x) => {
+          const li = document.createElement('li');
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'trend-row';
+          button.dataset.action = 'stats-artist';
+          button.dataset.value = x.name;
+          button.append(
+            makeEl('span', 'trend-name', x.name),
+            makeEl('span', x.before ? 'trend-up' : 'trend-new', x.before ? `+${Math.round(x.delta * 100)} pts` : 'Nuevo'),
+            makeEl('span', 'trend-time', minutesLabel(x.secs))
+          );
+          li.append(button);
+          list.append(li);
+        });
+        trend.append(list);
+      } else {
+        trend.append(makeEl('p', 'stat-sub', 'Sigue escuchando: cuando alguien suba posiciones aparecerá aquí.'));
+      }
     }
 
-    const songs = statCard('Canciones del mes');
+    // Descubrimientos: artistas que sonaron por primera vez en este periodo
+    let discoveries = null;
+    if (range !== 'all') {
+      const first = firstSeenArtists();
+      const start = info.keys[0];
+      const end = info.keys[info.keys.length - 1];
+      const fresh = [...current.artists.entries()].filter(([name]) => {
+        const k = first.get(name);
+        return k && k >= start && k <= end;
+      }).sort((x, y) => y[1] - x[1]);
+      if (fresh.length) {
+        discoveries = statCard('Descubrimientos', `${fresh.length} artista${fresh.length === 1 ? '' : 's'} que sonaron por primera vez ${info.short}`);
+        discoveries.append(barList(fresh.slice(0, 6).map(([name, secs]) => ({ key: name, label: name, value: secs, text: minutesLabel(secs) })), 'stats-artist'));
+      }
+    }
+
+    // Récords del periodo
+    const records = statCard('Récords');
+    const bestDay = current.perDay.reduce((x, y) => (y.seconds > x.seconds ? y : x), { seconds: 0 });
+    const repeat = topOf(current.trackPlays, 1)[0];
+    const facts = makeEl('ul', 'records');
+    const fact = (icon, label, value) => {
+      const li = makeEl('li', 'record');
+      li.append(svgIcon(icon), makeEl('span', 'record-label', label), makeEl('span', 'record-value', value));
+      facts.append(li);
+    };
+    if (bestDay.seconds) {
+      const [y, m, d] = bestDay.key.split('-').map(Number);
+      fact('bolt', 'Tu día más musical', `${new Date(y, m - 1, d).toLocaleDateString('es', { day: 'numeric', month: 'long', ...(range === 'all' ? { year: 'numeric' } : {}) })} · ${minutesLabel(bestDay.seconds)}`);
+    }
+    if (repeat && getTrack(repeat[0])) fact('repeat', 'La que más repetiste', `${splitTitle(getTrack(repeat[0]).title).main} · ${repeat[1]} ${repeat[1] === 1 ? 'vez' : 'veces'}`);
+    fact('flame', 'Racha más larga', `${streak} día${streak === 1 ? '' : 's'} seguidos`);
+    if (activeDays.length) fact('clock', 'Media en los días con música', minutesLabel(current.seconds / activeDays.length));
+    records.append(facts);
+
+    // Canciones: las 10 que más sonaron (reproducciones y tiempo)
+    const songs = statCard(range === 'month' ? 'Canciones del mes' : range === 'year' ? 'Canciones del año' : 'Tus canciones');
     const songList = makeEl('ol', 'top-songs');
-    topOf(current.tracks, 5).forEach(([id, secs]) => {
+    const ranked = [...current.tracks.keys()]
+      .map((id) => ({ id, secs: current.tracks.get(id) || 0, plays: current.trackPlays.get(id) || 0 }))
+      .sort((x, y) => y.plays - x.plays || y.secs - x.secs)
+      .slice(0, 10);
+    ranked.forEach(({ id, secs, plays }) => {
       const track = getTrack(id);
-      if (!track) return;
-      const li = document.createElement('li');
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'top-song';
-      button.dataset.action = 'stats-play';
-      button.dataset.value = id;
-      const img = document.createElement('img');
-      img.src = track.thumb;
-      img.alt = '';
-      img.width = 40;
-      img.height = 40;
-      const text = makeEl('span', 'top-song-text');
-      text.append(makeEl('span', 'top-song-title', track.title), makeEl('span', 'top-song-meta', `${track.knownArtist || track.genre || ''} · ${minutesLabel(secs)}`));
-      button.append(img, text);
-      li.append(button);
-      songList.append(li);
+      const row = track && songRow(id, `${track.knownArtist || track.genre || ''} · ${plays ? `${plays} ${plays === 1 ? 'vez' : 'veces'} · ` : ''}${minutesLabel(secs)}`);
+      if (row) songList.append(row);
     });
     songs.append(songList);
 
     const grid = makeEl('div', 'stat-grid');
-    grid.append(...[daily, hours, v73.heatCard(), genres, artists, trend, songs, plus.hitosCard()].filter(Boolean));
+    grid.append(...[timeline, hours, weekdays, v73.heatCard(), listenerProfile(current), genres, artists, discoveries, trend, records, songs, plus.hitosCard()].filter(Boolean));
     const csv = makeButton('btn btn-ghost stats-csv', 'export-csv', 'Descargar todo tu historial de escucha (CSV, para Excel o Google Sheets)', 'download', 'Descargar mi historial (CSV)');
     csv.addEventListener('click', exportListeningCsv);
-    panel.replaceChildren(...[invite, tiles, grid, csv].filter(Boolean));
+    panel.replaceChildren(...[chips, invite, story, tiles, grid, csv].filter(Boolean));
     if (!signedIn()) panel.append(makeEl('p', 'pl-note', 'Sin sesión, tus estadísticas se guardan solo en este dispositivo y se pierden si borras los datos del sitio. Para no perderlas, basta con iniciar sesión.'));
   }
 
@@ -4109,7 +4346,7 @@
       library: ['Toda tu música', 'Biblioteca'],
       playlists: searching ? ['Buscando en la biblioteca', 'Resultados'] : ['Oficiales, compartidas y tuyas', 'Playlists'],
       favorites: ['Tus corazones', 'Favoritas'],
-      stats: [monthInfo(state.statsOffset).label, 'Tus estadísticas'],
+      stats: [periodInfo().label, 'Tus estadísticas'],
       lab: ['Mezclas a tu medida', 'Lab'],
       radio: [radio.total ? `${radio.total.toLocaleString('es')} emisoras en directo` : 'En directo, de todo el mundo', 'Radio']
     };
@@ -4130,10 +4367,14 @@
     if (state.view === 'lab' || state.view === 'home' || state.view === 'artists' || state.view === 'radio') {
       // Sin acciones en la cabecera: todo está en su panel
     } else if (state.view === 'stats') {
-      const prevMonth = makeButton('icon-btn', 'stats-prev', 'Mes anterior', 'back');
-      const nextMonth = makeButton('icon-btn stats-next', 'stats-next', 'Mes siguiente', 'back');
-      nextMonth.disabled = state.statsOffset >= 0;
-      actions.append(prevMonth, nextMonth);
+      // Mes o año anterior y siguiente («Desde siempre» no tiene)
+      if (state.statsRange !== 'all') {
+        const unit = state.statsRange === 'year' ? 'Año' : 'Mes';
+        const prevMonth = makeButton('icon-btn', 'stats-prev', `${unit} anterior`, 'back');
+        const nextMonth = makeButton('icon-btn stats-next', 'stats-next', `${unit} siguiente`, 'back');
+        nextMonth.disabled = state.statsOffset >= 0;
+        actions.append(prevMonth, nextMonth);
+      }
     } else if (state.view === 'playlists' && !searching) {
       const asList = settings.plView === 'list';
       actions.append(
@@ -15687,66 +15928,240 @@
       return playlistTracksOf(pl).filter((t) => playsOf(t.id) === 0 && !isDisliked(t.id));
     },
 
-    /* --- Hitos: pequeñas metas que se desbloquean escuchando --- */
-    hitos() {
+    /* --- Hitos (v78): 108 metas en 24 categorías, con niveles bronce, plata, oro y platino ---
+       Los ids de los 12 primeros (v66) se conservan: los ya conseguidos siguen contando. */
+    hitosFacts() {
       let seconds = 0;
       let best = 0;
       let run = 0;
       let prev = null;
-      Object.keys(listen.log).sort().forEach((key) => {
-        const s = Object.values(listen.log[key]?.s || {}).reduce((a, b) => a + b, 0);
-        seconds += s;
-        if (s < 60) return;
+      let activeDays = 0;
+      let maxDay = 0;
+      let weekend = 0;
+      let atkSecs = 0;
+      const moments = { madrugada: 0, manana: 0, tarde: 0, noche: 0 };
+      const songs = new Set();
+      const artists = new Map();
+      const genres = new Set();
+      const months = new Map();
+      const keys = Object.keys(listen.log).sort();
+      keys.forEach((key) => {
+        const entry = listen.log[key] || {};
+        let day = 0;
+        Object.entries(entry.s || {}).forEach(([id, secs]) => {
+          day += secs;
+          if (id.startsWith('atk:')) atkSecs += secs;
+          const track = getTrack(id);
+          if (!track) return;
+          songs.add(id);
+          creditedArtists(track).forEach((name) => artists.set(name, (artists.get(name) || 0) + secs));
+          (track.generos || []).forEach((g) => genres.add(g));
+        });
+        (entry.h || []).forEach((secs, hour) => {
+          const v = Number(secs) || 0;
+          if (hour <= 5) moments.madrugada += v;
+          else if (hour <= 11) moments.manana += v;
+          else if (hour <= 19) moments.tarde += v;
+          else moments.noche += v;
+        });
+        seconds += day;
+        maxDay = Math.max(maxDay, day);
+        months.set(key.slice(0, 7), (months.get(key.slice(0, 7)) || 0) + day);
         const [y, m, d] = key.split('-').map(Number);
-        const date = new Date(y, m - 1, d).getTime();
-        run = prev !== null && Math.round((date - prev) / DAY_MS) === 1 ? run + 1 : 1;
-        prev = date;
+        const date = new Date(y, m - 1, d);
+        if ([0, 6].includes(date.getDay())) weekend += day;
+        if (day < 60) return;
+        activeDays++;
+        const time = date.getTime();
+        run = prev !== null && Math.round((time - prev) / DAY_MS) === 1 ? run + 1 : 1;
+        prev = time;
         best = Math.max(best, run);
       });
-      const counts = Object.values(library.plays).map(Number).filter((n) => n > 0);
-      const plays = counts.reduce((a, b) => a + b, 0);
-      const hours = seconds / 3600;
-      const complete = systemPlaylists().some((pl) => pl.trackIds.length >= 5 && pl.trackIds.every((id) => playsOf(id) > 0)) ? 1 : 0;
-      return [
-        ['primera', 'Primera gota', 'Tu primera canción en Liquid', 'note', plays, 1],
-        ['cien', 'Cien gotas', '100 reproducciones', 'disc', plays, 100],
-        ['mil', 'Mil gotas', '1.000 reproducciones', 'trophy', plays, 1000],
-        ['diez-horas', 'Diez horas líquidas', '10 horas de música', 'clock', hours, 10],
-        ['cien-horas', 'Cien horas líquidas', '100 horas de música', 'headphones', hours, 100],
-        ['semana', 'Semana completa', '7 días seguidos con música', 'flame', best, 7],
-        ['mes', 'Mes sin fallar', '30 días seguidos con música', 'bolt', best, 30],
-        ['explorador', 'Explorador', '100 canciones distintas', 'compass', counts.length, 100],
-        ['coleccionista', 'Coleccionista', '25 favoritas', 'heart', state.favorites.size, 25],
-        ['curador', 'Curador', '3 playlists tuyas', 'playlist-add', library.local.length, 3],
-        ['fan', 'Fan declarado', 'Sigues a 5 artistas', 'star', library.follows.length, 5],
-        ['completista', 'Completista', 'Una playlist de Liquid escuchada entera', 'check', complete, 1]
-      ].map(([id, name, desc, icon, value, goal]) => ({ id, name, desc, icon, value, goal, done: value >= goal }));
+      const counts = Object.values(library.plays).map(Number).filter((x) => x > 0);
+      const first = keys.find((k) => Object.keys(listen.log[k]?.s || {}).length);
+      const [fy, fm, fd] = (first || dayKey()).split('-').map(Number);
+      return {
+        plays: counts.reduce((x, y) => x + y, 0),
+        hours: seconds / 3600,
+        streak: best,
+        days: activeDays,
+        songs: Math.max(songs.size, counts.length),
+        artists: artists.size,
+        genres: genres.size,
+        favorites: state.favorites.size,
+        playlists: library.local.length,
+        follows: library.follows.length,
+        complete: systemPlaylists().filter((pl) => pl.trackIds.length >= 5 && pl.trackIds.every((id) => playsOf(id) > 0)).length,
+        repeat: Math.max(0, ...counts),
+        artistHours: Math.max(0, ...artists.values()) / 3600,
+        madrugada: moments.madrugada / 3600,
+        manana: moments.manana / 3600,
+        tarde: moments.tarde / 3600,
+        noche: moments.noche / 3600,
+        maxDay: maxDay / 3600,
+        weekend: weekend / 3600,
+        downloads: offline.downloaded.size,
+        atk: atkSecs / 60,
+        radioHeard: radio.saved.recent.length,
+        radioFavs: radio.saved.favs.length,
+        age: first ? Math.floor((Date.now() - new Date(fy, fm - 1, fd).getTime()) / DAY_MS) : 0,
+        months: [...months.values()].filter((v) => v >= 3600).length,
+        themes: temas.lista.length,
+        account: signedIn() ? 1 : 0
+      };
     },
+    // Cada categoría: [clave, nombre, icono, dato, descripción(meta), escalones [meta, nombre, id antiguo?]]
+    HITOS: [
+      ['plays', 'Reproducciones', 'disc', 'plays', (g) => `${g.toLocaleString('es')} reproducci${g === 1 ? 'ón' : 'ones'}`, [
+        [1, 'Primera gota', 'primera'], [10, 'Llovizna'], [50, 'Chaparrón'], [100, 'Cien gotas', 'cien'], [250, 'Charco hondo'],
+        [500, 'Arroyo'], [1000, 'Mil gotas', 'mil'], [2500, 'Río crecido'], [5000, 'Cascada'], [10000, 'Océano']]],
+      ['hours', 'Horas de música', 'clock', 'hours', (g) => `${g.toLocaleString('es')} hora${g === 1 ? '' : 's'} de música`, [
+        [1, 'Primera hora'], [5, 'Tarde entera'], [10, 'Diez horas líquidas', 'diez-horas'], [25, 'Día y pico'], [50, 'Cincuenta horas'],
+        [100, 'Cien horas líquidas', 'cien-horas'], [250, 'Sumergido'], [500, 'Abisal'], [1000, 'Mil horas líquidas']]],
+      ['streak', 'Rachas', 'flame', 'streak', (g) => `${g} días seguidos con música`, [
+        [3, 'Tres al hilo'], [7, 'Semana completa', 'semana'], [14, 'Quincena'], [30, 'Mes sin fallar', 'mes'], [60, 'Dos lunas'],
+        [100, 'Centenario'], [180, 'Medio año seguido'], [365, 'Año sin pausa']]],
+      ['days', 'Días con música', 'chart', 'days', (g) => `${g} días con música`, [
+        [10, 'Diez días'], [30, 'Treinta días'], [100, 'Cien días'], [365, 'Un año de días']]],
+      ['songs', 'Canciones distintas', 'compass', 'songs', (g) => `${g.toLocaleString('es')} canciones distintas`, [
+        [10, 'Curioso'], [50, 'Picoteo'], [100, 'Explorador', 'explorador'], [250, 'Buscador'], [500, 'Cartógrafo'],
+        [1000, 'Navegante'], [2000, 'Gran explorador'], [3000, 'Lo has oído (casi) todo']]],
+      ['artists', 'Artistas', 'person', 'artists', (g) => `${g} artistas distintos`, [
+        [5, 'Primeras caras'], [25, 'Buen oído'], [50, 'Coleccionista de voces'], [100, 'Cien voces'], [250, 'Festival propio'], [500, 'Enciclopedia']]],
+      ['genres', 'Estilos', 'palette', 'genres', (g) => `${g} estilos distintos`, [
+        [3, 'Tres colores'], [10, 'Paleta'], [20, 'Arcoíris'], [30, 'Todos los colores']]],
+      ['favorites', 'Favoritas', 'heart', 'favorites', (g) => `${g} favorita${g === 1 ? '' : 's'}`, [
+        [1, 'Primer corazón'], [10, 'Diez latidos'], [25, 'Coleccionista', 'coleccionista'], [50, 'Corazón grande'], [100, 'Cien corazones'], [250, 'Enamoradizo']]],
+      ['playlists', 'Tus playlists', 'playlist-add', 'playlists', (g) => `${g} playlist${g === 1 ? '' : 's'} tuya${g === 1 ? '' : 's'}`, [
+        [1, 'Primera playlist'], [3, 'Curador', 'curador'], [10, 'Programador'], [25, 'Discográfica']]],
+      ['follows', 'Artistas que sigues', 'star', 'follows', (g) => `Sigues a ${g} artista${g === 1 ? '' : 's'}`, [
+        [1, 'Primer seguimiento'], [5, 'Fan declarado', 'fan'], [15, 'Club de fans'], [30, 'Superfán']]],
+      ['complete', 'Playlists completas', 'check', 'complete', (g) => (g === 1 ? 'Una playlist de Liquid escuchada entera' : `${g} playlists de Liquid escuchadas enteras`), [
+        [1, 'Completista', 'completista'], [3, 'Tres de tres'], [10, 'Diez enteras'], [25, 'Medio catálogo']]],
+      ['repeat', 'En bucle', 'repeat', 'repeat', (g) => `Una misma canción ${g} veces`, [
+        [10, 'En bucle'], [25, 'Disco rayado'], [50, 'Obsesión'], [100, 'Himno personal']]],
+      ['artistHours', 'Fidelidad', 'headphones', 'artistHours', (g) => `${g} hora${g === 1 ? '' : 's'} con un mismo artista`, [
+        [1, 'Una hora con alguien'], [5, 'Fiel'], [10, 'Incondicional'], [24, 'Un día entero con un artista']]],
+      ['madrugada', 'Madrugada', 'moon', 'madrugada', (g) => `${g} h de música de 0:00 a 5:59`, [[1, 'Búho'], [10, 'Búho real']]],
+      ['manana', 'Mañana', 'spark', 'manana', (g) => `${g} h de música de 6:00 a 11:59`, [[1, 'Mañanero'], [10, 'Buenos días']]],
+      ['tarde', 'Tarde', 'wave', 'tarde', (g) => `${g} h de música de 12:00 a 19:59`, [[1, 'Sobremesa'], [10, 'Tarde larga']]],
+      ['noche', 'Noche', 'bubbles', 'noche', (g) => `${g} h de música de 20:00 a 23:59`, [[1, 'Nocturno'], [10, 'Noche eterna']]],
+      ['maxDay', 'Maratones', 'bolt', 'maxDay', (g) => `${g} horas de música en un solo día`, [[2, 'Maratón'], [4, 'Ultramaratón'], [8, 'Jornada completa']]],
+      ['weekend', 'Fines de semana', 'gift', 'weekend', (g) => `${g} horas en sábados y domingos`, [[10, 'Fin de semana sonoro'], [50, 'Domingos líquidos']]],
+      ['downloads', 'Descargas', 'download-done', 'downloads', (g) => `${g} canci${g === 1 ? 'ón descargada' : 'ones descargadas'}`, [
+        [1, 'Para el camino'], [25, 'Mochila'], [100, 'Sin cobertura']]],
+      ['atk', 'Liquid ATK', 'flask', 'atk', (g) => (g < 60 ? `${g} minuto${g === 1 ? '' : 's'} en Liquid ATK` : `${g / 60} horas en Liquid ATK`), [
+        [1, 'Primer viaje ATK'], [60, 'Más allá'], [600, 'Explorador ATK']]],
+      ['radio', 'Radio', 'radio', 'radioHeard', (g) => `${g} emisora${g === 1 ? '' : 's'} escuchada${g === 1 ? '' : 's'}`, [[1, 'Al dial']]],
+      ['age', 'Antigüedad', 'feather', 'age', (g) => (g === 365 ? 'Un año desde tu primera canción' : `${g} días desde tu primera canción`), [
+        [30, 'Un mes en Liquid'], [180, 'Medio año en Liquid'], [365, 'Un año en Liquid']]],
+      ['months', 'Meses activos', 'trophy', 'months', (g) => `${g} meses con al menos una hora de música`, [
+        [3, 'Tres meses vivos'], [6, 'Medio año activo'], [12, 'Doce meses de música']]],
+      ['extras', 'Detalles', 'cloud', null, null, []],
+      ['meta', 'Coleccionista de hitos', 'trophy', 'meta', (g) => `${g} hitos conseguidos`, [
+        [10, 'Diez medallas'], [25, 'Vitrina'], [50, 'Medio camino'], [100, 'Leyenda líquida']]]
+    ],
+    TIERS: [['bronce', 'Bronce'], ['plata', 'Plata'], ['oro', 'Oro'], ['platino', 'Platino']],
+    hitos() {
+      const facts = this.hitosFacts();
+      const tierOf = (i, len) => (len <= 1 ? 1 : i === len - 1 && len >= 4 ? 3 : Math.min(2, Math.floor((i / (len - 1)) * 3)));
+      const list = [];
+      this.HITOS.forEach(([cat, catName, icon, fact, desc, steps]) => {
+        if (cat === 'meta') return;
+        steps.forEach(([goal, name, legacy], i) => {
+          const value = facts[fact] || 0;
+          list.push({ id: legacy || `${cat}-${goal}`, cat, catName, name, desc: desc(goal), icon, value, goal, done: value >= goal, tier: this.TIERS[tierOf(i, steps.length)][0] });
+        });
+      });
+      // Detalles sueltos: un tema propio, guardar en la nube y una emisora guardada
+      list.push(
+        { id: 'extra-tema', cat: 'extras', catName: 'Detalles', name: 'Diseñador', desc: 'Un tema propio en el Taller de temas', icon: 'palette', value: facts.themes, goal: 1, done: facts.themes >= 1, tier: 'plata' },
+        { id: 'extra-cuenta', cat: 'extras', catName: 'Detalles', name: 'En la nube', desc: 'Tu música guardada en tu cuenta', icon: 'cloud', value: facts.account, goal: 1, done: facts.account >= 1, tier: 'plata' },
+        { id: 'extra-emisora', cat: 'extras', catName: 'Detalles', name: 'Tu emisora', desc: 'Una emisora guardada en Radio', icon: 'radio', value: facts.radioFavs, goal: 1, done: facts.radioFavs >= 1, tier: 'bronce' }
+      );
+      const done = list.filter((h) => h.done).length;
+      const meta = this.HITOS.find(([cat]) => cat === 'meta');
+      meta[5].forEach(([goal, name], i) => list.push({ id: `meta-${goal}`, cat: 'meta', catName: meta[1], name, desc: meta[4](goal), icon: meta[2], value: done, goal, done: done >= goal, tier: this.TIERS[tierOf(i, meta[5].length)][0] }));
+      return list;
+    },
+    hitoItem(h) {
+      const li = makeEl('li', `hito tier-${h.tier}${h.done ? ' is-done' : ''}`);
+      li.title = `${h.name}: ${h.desc}${h.done ? ' · conseguido' : ''} · ${this.TIERS.find(([k]) => k === h.tier)[1]}`;
+      const badge = makeEl('span', 'hito-badge');
+      badge.setAttribute('aria-hidden', 'true');
+      badge.append(svgIcon(h.done ? h.icon : 'lock'));
+      const text = makeEl('span', 'hito-text');
+      const pct = clamp(h.value / h.goal, 0, 1);
+      text.append(makeEl('span', 'hito-name', h.name), makeEl('span', 'hito-desc', h.done ? h.desc : `${h.desc} · ${Math.floor(pct * 100)} %`));
+      li.append(badge, text);
+      if (!h.done) {
+        const bar = makeEl('span', 'hito-bar');
+        const fill = makeEl('span', 'hito-fill');
+        fill.style.width = `${Math.round(pct * 100)}%`;
+        bar.append(fill);
+        li.append(bar);
+      }
+      return li;
+    },
+    hitosView: 'all',
     hitosCard() {
       const list = this.hitos();
-      const done = list.filter((h) => h.done).length;
-      const card = statCard('Tus hitos', `${done} de ${list.length} conseguidos`);
+      const done = list.filter((h) => h.done);
+      const card = statCard('Tus hitos', `${done.length} de ${list.length} conseguidos`);
       card.classList.add('hitos-card');
-      const grid = makeEl('ul', 'hitos');
-      list.forEach((h) => {
-        const li = makeEl('li', `hito${h.done ? ' is-done' : ''}`);
-        const badge = makeEl('span', 'hito-badge');
-        badge.setAttribute('aria-hidden', 'true');
-        badge.append(svgIcon(h.done ? h.icon : 'lock'));
-        const text = makeEl('span', 'hito-text');
-        const pct = clamp(h.value / h.goal, 0, 1);
-        text.append(makeEl('span', 'hito-name', h.name), makeEl('span', 'hito-desc', h.done ? h.desc : `${h.desc} · ${Math.floor(pct * 100)} %`));
-        li.append(badge, text);
-        if (!h.done) {
-          const bar = makeEl('span', 'hito-bar');
-          const fill = makeEl('span', 'hito-fill');
-          fill.style.width = `${Math.round(pct * 100)}%`;
-          bar.append(fill);
-          li.append(bar);
-        }
-        grid.append(li);
+      // Progreso total y medallas por nivel
+      const total = makeEl('div', 'hitos-total');
+      const bar = makeEl('span', 'hito-bar hitos-total-bar');
+      const fill = makeEl('span', 'hito-fill');
+      fill.style.width = `${Math.round((done.length / list.length) * 100)}%`;
+      bar.append(fill);
+      const medals = makeEl('div', 'hitos-medals');
+      this.TIERS.forEach(([key, label]) => {
+        const of = list.filter((h) => h.tier === key);
+        const medal = makeEl('span', `hitos-medal tier-${key}`, `${label} ${of.filter((h) => h.done).length}/${of.length}`);
+        medals.append(medal);
       });
-      card.append(grid);
+      total.append(bar, medals);
+      card.append(total);
+      // Los próximos: los que tienes más cerca
+      const next = list.filter((h) => !h.done && h.value > 0).sort((x, y) => y.value / y.goal - x.value / x.goal).slice(0, 3);
+      if (next.length) {
+        card.append(makeEl('h4', 'hitos-sub', 'Los tienes cerca'));
+        const ul = makeEl('ul', 'hitos hitos-next');
+        next.forEach((h) => ul.append(this.hitoItem(h)));
+        card.append(ul);
+      }
+      // Todos, por categoría (plegado para no ocupar media pantalla)
+      const all = makeEl('details', 'hitos-all');
+      all.append(makeEl('summary', 'hitos-all-summary', `Ver los ${list.length} hitos`));
+      const filters = makeEl('div', 'chips hitos-filters');
+      filters.setAttribute('role', 'toolbar');
+      filters.setAttribute('aria-label', 'Filtrar los hitos');
+      const body = makeEl('div', 'hitos-groups');
+      const paint = () => {
+        const groups = new Map();
+        list.filter((h) => this.hitosView === 'all' || (this.hitosView === 'done') === h.done)
+          .forEach((h) => { if (!groups.has(h.catName)) groups.set(h.catName, []); groups.get(h.catName).push(h); });
+        body.replaceChildren(...[...groups.entries()].flatMap(([name, items]) => {
+          const ul = makeEl('ul', 'hitos');
+          items.forEach((h) => ul.append(this.hitoItem(h)));
+          return [makeEl('h4', 'hitos-sub', `${name} · ${items.filter((h) => h.done).length}/${items.length}`), ul];
+        }));
+        if (!groups.size) body.append(makeEl('p', 'stat-sub', this.hitosView === 'done' ? 'Aún no hay ninguno: el primero llega con tu primera canción.' : '¡Los tienes todos!'));
+        filters.querySelectorAll('.chip').forEach((chip) => {
+          const on = chip.dataset.value === this.hitosView;
+          chip.classList.toggle('is-active', on);
+          chip.setAttribute('aria-pressed', String(on));
+        });
+      };
+      [['all', 'Todos'], ['done', `Conseguidos · ${done.length}`], ['todo', `Por conseguir · ${list.length - done.length}`]].forEach(([key, label]) => {
+        const chip = makeChip('hitos-filter', key, label, this.hitosView === key);
+        chip.addEventListener('click', () => { this.hitosView = key; paint(); });
+        filters.append(chip);
+      });
+      all.append(filters, body);
+      paint();
+      card.append(all);
       return card;
     },
     // Tras cada reproducción: si se acaba de conseguir un hito, se celebra una vez

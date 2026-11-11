@@ -10784,3 +10784,199 @@ body.is-radio #lyricsBtn {
   position: absolute;
   inset: -10px -6px;
 }
+
+/* =========================================================
+   v78: Stats a fondo y 108 hitos
+   ========================================================= */
+.stats-ranges {
+  margin: 0 0 10px;
+}
+
+.stats-story {
+  margin: 0 2px 12px;
+  color: var(--text);
+  font-family: var(--song-font);
+  font-size: 1rem;
+  letter-spacing: normal;
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+.stats-story b {
+  font-weight: 800;
+}
+
+.stat-tile {
+  position: relative;
+}
+
+.stat-delta {
+  display: inline-block;
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-family: var(--song-font);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: normal;
+  white-space: nowrap;
+}
+
+.stat-delta.is-up {
+  background: color-mix(in srgb, #3ddc84 18%, transparent);
+  color: #3ddc84;
+}
+
+.stat-delta.is-down {
+  background: color-mix(in srgb, #ff6b6b 16%, transparent);
+  color: #ff8a8a;
+}
+
+.stat-delta.is-flat {
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+  color: var(--text-muted);
+}
+
+[data-theme="minimal"] .stat-delta.is-up { color: #137a3e; }
+[data-theme="minimal"] .stat-delta.is-down { color: #b42318; }
+
+/* Tu perfil de oyente */
+.profile-name {
+  margin: 6px 0 10px;
+  font-family: var(--title-font);
+  font-size: 1.35rem;
+  line-height: 1.2;
+}
+
+.profile-facts,
+.records {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.profile-fact,
+.record {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: center;
+  gap: 2px 10px;
+  font-family: var(--song-font);
+  font-size: 0.9rem;
+  letter-spacing: normal;
+}
+
+.profile-fact .icon,
+.record .icon {
+  width: 20px;
+  height: 20px;
+  color: var(--accent);
+}
+
+.record {
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+}
+
+.record-label {
+  color: var(--text-muted);
+}
+
+.record-value {
+  grid-column: 2 / -1;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+/* Hitos: progreso total, medallas por nivel y niveles en cada insignia */
+.hitos-total {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.hitos-total-bar {
+  height: 8px;
+}
+
+.hitos-total-bar .hito-fill {
+  background: var(--accent);
+}
+
+.hitos-medals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.hitos-medal {
+  padding: 2px 9px;
+  border: 1px solid var(--tier, var(--border));
+  border-radius: 999px;
+  color: var(--tier, var(--text-muted));
+  font-family: var(--song-font);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: normal;
+}
+
+.tier-bronce { --tier: #cd8a4f; }
+.tier-plata { --tier: #b9c3cf; }
+.tier-oro { --tier: #f2c94c; }
+.tier-platino { --tier: #8be9fd; }
+[data-theme="minimal"] .tier-plata { --tier: #6b7785; }
+[data-theme="minimal"] .tier-oro { --tier: #a87b00; }
+[data-theme="minimal"] .tier-platino { --tier: #0b7f99; }
+
+.hito.is-done .hito-badge {
+  background: var(--tier, var(--accent));
+  color: #10131a;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--tier, var(--accent)) 35%, transparent);
+}
+
+.hito.is-done {
+  border-color: color-mix(in srgb, var(--tier, var(--accent)) 55%, var(--border));
+  background: color-mix(in srgb, var(--tier, var(--accent)) 10%, transparent);
+}
+
+.hitos-sub {
+  margin: 14px 2px 0;
+  color: var(--text-muted);
+  font-family: var(--song-font);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.hitos-all {
+  margin-top: 14px;
+}
+
+.hitos-all-summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-family: var(--song-font);
+  font-weight: 700;
+  letter-spacing: normal;
+  cursor: pointer;
+  list-style: none;
+}
+
+.hitos-all-summary::-webkit-details-marker {
+  display: none;
+}
+
+.hitos-all[open] .hitos-all-summary {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.hitos-filters {
+  margin-top: 12px;
+}

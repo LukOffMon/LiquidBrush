@@ -1,6 +1,22 @@
 {
   "releases": [
     {
+      "version": "v78",
+      "date": "noviembre 2026",
+      "title": "Stats a fondo y 108 hitos",
+      "items": [
+        "Stats ahora se ve por Mes, por Año o Desde siempre, con flechas para ir a meses o años anteriores.",
+        "Una frase resume tu periodo: cuánto escuchaste, tu artista, tu canción y tu estilo.",
+        "Cada dato se compara con el periodo anterior (▲/▼ %). Con el mes en curso se compara con los mismos días del mes anterior, para que sea justo.",
+        "Nuevo «Tu perfil de oyente»: nocturno, madrugador o de fin de semana; explorador, fiel o ecléctico, con el porqué.",
+        "Nuevos «Días de la semana», «Descubrimientos» (artistas que sonaron por primera vez) y «Récords» (tu día más musical, la canción que más repetiste y tu racha).",
+        "En Año y Desde siempre, «Horas por mes» en vez de minutos por día.",
+        "Canciones del periodo: ahora las 10 que más sonaron, con cuántas veces y cuánto tiempo.",
+        "Hitos: de 12 a 108, en 25 categorías (reproducciones, horas, rachas, artistas, estilos, madrugada, maratones, descargas, Liquid ATK, Radio…), con niveles Bronce, Plata, Oro y Platino.",
+        "Los hitos que tienes más cerca salen arriba; todos se ven en «Ver los 108 hitos», con filtros Conseguidos y Por conseguir. Los que ya tenías se conservan."
+      ]
+    },
+    {
       "version": "v77",
       "date": "noviembre 2026",
       "title": "Descargas a fondo, ahora que los servidores lo permiten",

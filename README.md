@@ -306,6 +306,12 @@ Sección propia (barra de abajo en el móvil, pestaña en escritorio) con emisor
 - **Guardado**: `liquidbrush:radio` (favoritas y recientes, solo en este navegador). Al poner una emisora se avisa a Radio Browser (`/json/url/<uuid>`), que es como ordena sus emisoras más escuchadas.
 - **Logos**: si la emisora no tiene, el logo no carga en 4 s o es en realidad su audio, se usa una portada de `covers/songs/`.
 
+## Stats a fondo y 108 hitos (v78)
+
+- **Periodos**: `state.statsRange` = `month`, `year` o `all` (chips arriba en Stats); las flechas de la cabecera van de mes en mes o de año en año. `periodInfo()` da los días de cada periodo y `previousPeriod()` el anterior; con el periodo en curso, el anterior se recorta a los mismos días transcurridos (comparación justa).
+- **Nuevo en Stats**: frase resumen del periodo, cambio ▲/▼ % en cada dato, «Días de la semana», «Tu perfil de oyente» (`listenerProfile()`: cuándo escuchas y si eres explorador, fiel o ecléctico), «Descubrimientos» (artistas cuya primera escucha cae en el periodo), «Récords», «Horas por mes» en Año y Desde siempre, y las 10 canciones con más reproducciones.
+- **108 hitos** (`plus.HITOS`): 24 categorías con escalones, más 3 detalles sueltos (tema propio, cuenta, emisora guardada) y 4 de «Coleccionista de hitos». Cada uno tiene nivel (Bronce, Plata, Oro, Platino) según su escalón. Los ids de los 12 de v66 se conservan, así que lo ya conseguido sigue contando. La tarjeta enseña el progreso total, las medallas por nivel, los 3 más cercanos y, plegados, todos por categoría con filtros.
+
 ## Descargas con CORS activo (v77)
 
 - **Estado de los buckets** (`python3 tools/r2_cors.py`, comprobado el 11 de noviembre de 2026): **los 6 envían CORS** (pepper, salt, brush3, db4, db5 y db6). Si se suma un bucket nuevo, hay que activarle la misma política; mientras no la tenga, en iPhone/iPad sus canciones se saltan con aviso.
