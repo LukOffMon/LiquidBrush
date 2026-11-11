@@ -47,7 +47,7 @@
   <link rel="dns-prefetch" href="https://pub-0854e4225565462db16fa787cf2ab81c.r2.dev">
   <link rel="dns-prefetch" href="https://pub-864cd199a5e04cb0b5faf77320b1e47b.r2.dev">
   <link rel="dns-prefetch" href="https://lrclib.net">
-  <link rel="stylesheet" href="styles.css?v=60">
+  <link rel="stylesheet" href="styles.css?v=62">
   <script>
     /* Aplica el tema, la fuente y el tamaño de letra guardados antes de pintar (sin parpadeos) */
     (function () {
@@ -865,9 +865,17 @@
         <label class="setting switch">
           <span class="setting-text">
             <span class="setting-name">Modo ATK</span>
-            <span class="setting-hint">Si algo no está en Liquid, el buscador lo encuentra en millones de canciones abiertas (artistas independientes, directos, sellos libres), elige la mejor versión y la reproduce aquí. Tus playlists, mixes y radios de Liquid no cambian.</span>
+            <span class="setting-hint">Si algo no está en Liquid, el buscador lo encuentra en millones de canciones abiertas (artistas independientes, directos, sellos libres), elige la mejor versión y la reproduce aquí. Tus playlists, mixes y radios de Liquid no cambian. Viene encendido: apágalo aquí para volver a Liquid Bullet.</span>
           </span>
           <input id="atkToggle" type="checkbox" role="switch">
+          <span class="switch-track" aria-hidden="true"></span>
+        </label>
+        <label class="setting switch">
+          <span class="setting-text">
+            <span class="setting-name">Ocultar lo que ya está en Liquid</span>
+            <span class="setting-hint">Las canciones que ya tienes en Liquid no se repiten desde fuera, aunque vengan escritas de otra forma («Artista - Título», «(Official Video)», «Remastered»…). Los remixes, directos y covers sí salen. Apágalo para verlas marcadas «En Liquid».</span>
+          </span>
+          <input id="atkOwnedToggle" type="checkbox" role="switch">
           <span class="switch-track" aria-hidden="true"></span>
         </label>
         <button id="atkAbout" class="btn btn-ghost btn-small atk-about-btn" type="button">Acerca de ATK y créditos</button>
@@ -1084,6 +1092,6 @@
   <!-- Reproductores para el ecualizador (necesitan CORS en el servidor del audio) -->
   <audio id="audio3" preload="metadata" crossorigin="anonymous"></audio>
   <audio id="audio4" preload="auto" crossorigin="anonymous"></audio>
-  <script src="app.js?v=63" defer></script>
+  <script src="app.js?v=65" defer></script>
 </body>
 </html>

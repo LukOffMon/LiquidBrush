@@ -1,6 +1,28 @@
 {
   "releases": [
     {
+      "version": "v76",
+      "date": "noviembre 2026",
+      "title": "Liquid ATK viene encendido",
+      "items": [
+        "Liquid ATK viene encendido: ya no hay que activarlo. Si algo no está en Liquid, el buscador lo encuentra fuera desde el primer momento.",
+        "Se apaga en Ajustes → Liquid ATK → «Modo ATK», y Liquid lo recuerda: si lo apagaste, sigue apagado.",
+        "Con ATK apagado, Liquid no consulta ninguna fuente de fuera."
+      ]
+    },
+    {
+      "version": "v75",
+      "date": "noviembre 2026",
+      "title": "Liquid ATK no repite lo que ya tienes",
+      "items": [
+        "Liquid ATK aparta las canciones que ya están en Liquid aunque vengan escritas de otra forma: «Artista - Título», «(Official Video)», «[Remastered]», «Original Radio Edit», el artista delante del título o subidas por cuentas como «ArtistaVEVO» o «Artista - Topic».",
+        "Los remixes, directos, versiones acústicas, covers, karaokes, sped up y mezclas o edits de otras personas sí salen: no son lo que ya tienes.",
+        "Debajo de los resultados se dice cuántas se apartaron, con «Mostrarlas» para verlas marcadas «En Liquid» (y «Ocultarlas» para volver).",
+        "Nuevo interruptor en Ajustes → Liquid ATK: «Ocultar lo que ya está en Liquid» (encendido de serie).",
+        "El filtro vale en todo ATK: Buscar, tendencias de Inicio, radios, Lab y la página de cada artista."
+      ]
+    },
+    {
       "version": "v74",
       "date": "noviembre 2026",
       "title": "Descargas que funcionan, también en iPhone y iPad",
