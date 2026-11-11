@@ -10730,3 +10730,14 @@ body.is-radio #lyricsBtn {
     letter-spacing: 0;
   }
 }
+
+/* v74: Ajustes → Descargas, servidores que aún no dejan descargar en iPhone/iPad */
+.storage-warn {
+  display: block;
+  margin-top: 6px;
+  color: #ffb547;
+}
+
+[data-theme="minimal"] .storage-warn {
+  color: #a35b00;
+}

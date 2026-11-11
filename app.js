@@ -412,6 +412,7 @@
     queueList: $('queueList'),
     addPlayNext: $('addPlayNext'),
     addQueueEnd: $('addQueueEnd'),
+    addDownload: $('addDownload'),
     sleepBtn: $('sleepBtn'),
     sleepBadge: $('sleepBadge'),
     sleepDialog: $('sleepDialog'),
@@ -1168,6 +1169,8 @@
       const keys = await (await caches.open(AUDIO_CACHE)).keys();
       offline.downloaded = new Set(keys.map((request) => request.url));
     } catch (error) {
+      // Navegación privada (Firefox, algunos Safari): no hay dónde guardar
+      offline.supported = false;
       console.warn('[LiquidBullet] No se pudieron leer las descargas.', error);
     }
   }
@@ -1180,14 +1183,17 @@
   function updatePlaylistHeader(header) {
     const key = header.dataset.key;
     const name = getPlaylist(key)?.name || '';
-    const tracks = playlistTracks(key);
+    const tracks = playlistTracks(key).filter(canDownload);
     const saved = tracks.filter(isDownloaded).length;
     const job = offline.jobs.get(key);
     const meta = header.querySelector('.playlist-meta');
     if (!meta) return;
     let status = '';
-    if (job) status = ` · Descargando ${job.done}/${job.total}…`;
-    else if (saved && saved === tracks.length) status = ' · Disponible sin conexión';
+    if (job) {
+      const part = job.partial ? ` (${Math.round(job.partial * 100)} %)` : '';
+      status = job.paused ? ` · Descarga en pausa ${job.done}/${job.total}: vuelve a Liquid para seguir`
+        : ` · Descargando ${job.done}/${job.total}${part}…`;
+    } else if (saved && saved === tracks.length) status = ' · Disponible sin conexión';
     else if (saved) status = ` · ${saved}/${tracks.length} descargadas`;
     meta.textContent = meta.dataset.base + status;
 
@@ -1217,7 +1223,7 @@
     const name = getPlaylist(key)?.name || '';
     if (!confirm(`¿Quitar las descargas de «${name}»? Ya no se podrá escuchar sin conexión.`)) return;
     const cache = await caches.open(AUDIO_CACHE);
-    await Promise.all(playlistTracks(key).map((t) => cache.delete(cacheKey(t.src))));
+    await Promise.all(playlistTracks(key).map((t) => { forgetLocalAudio(t); return cache.delete(cacheKey(t.src)); }));
     await refreshDownloads();
     updateDownloadUI();
     showToast(`Descargas de «${name}» eliminadas.`);
@@ -1227,47 +1233,284 @@
   // Todos los navegadores de iPhone/iPad usan WebKit: mismas limitaciones de audio que Safari
   const IS_IOS = DEVICE.apple;
 
-  // Descarga una canción para guardarla en la caché. Si el servidor no envía CORS (p. ej. un bucket
-  // de R2 sin política CORS), se guarda una copia "opaca": no se puede leer desde aquí, pero el
-  // service worker sí puede entregársela al reproductor. Safari no reproduce copias opacas.
-  async function fetchForOffline(track) {
-    let response;
+  /* --- v74: descargas que funcionan también en iPhone/iPad ---
+     Por qué fallaban en iOS: para guardar un MP3, la app tiene que poder leerlo, y un navegador solo deja
+     leer archivos de otro servidor si ese servidor lo permite (CORS). Los buckets de Cloudflare R2 no lo
+     permitían. Android se apañaba guardando una copia «opaca» (sin leerla), pero Safari no reproduce esas
+     copias, así que en iPhone/iPad no había forma. Con CORS activado en los buckets (tools/r2_cors.py) se
+     descarga en todos los dispositivos. Además:
+     - Cada canción se comprueba (tamaño completo, que sea audio y no una página de error) y se reintenta.
+     - Si la conexión se queda colgada a mitad, se corta a los 30 s sin datos y se vuelve a intentar.
+     - Las descargas de una playlist sobreviven a cerrar la app o bloquear el teléfono: siguen al volver.
+     - Con la descarga en marcha, la pantalla no se apaga sola (iOS para la app al bloquearse).
+     - Sin conexión, lo descargado suena desde el propio teléfono, aunque el modo offline no esté listo. */
+  const DL_PENDING_KEY = 'liquidbrush:dl-pending';
+  const DL_TIPS_KEY = 'liquidbrush:dl-ios-tip';
+  const DL_STALL_MS = 30000;
+  const DL_MIN_BYTES = 16000;
+  const canDownload = (track) => Boolean(track?.src) && !track.atk && !track.radio;
+  offline.cors = new Map();
+  offline.urls = new Map();
+  offline.wake = null;
+
+  const corsError = () => Object.assign(new Error('El servidor del audio no permite guardarlo (CORS)'), { cors: true });
+
+  // ¿El servidor deja leer su audio (CORS)? Se pregunta una vez por servidor. Si la petición normal falla
+  // pero una «a ciegas» funciona, es CORS seguro (y no un fallo de red)
+  async function corsAllowed(src) {
+    const origin = originOf(src);
+    if (!origin || origin === location.origin) return true;
+    if (offline.cors.has(origin)) return offline.cors.get(origin);
+    let verdict;
     try {
-      response = await fetch(track.src, { mode: 'cors', cache: 'no-store' });
-    } catch (error) {
-      if (IS_IOS) throw Object.assign(new Error('Sin CORS en el servidor del audio'), { cors: true });
-      return fetch(track.src, { mode: 'no-cors', cache: 'no-store' });
+      const response = await fetch(src, { method: 'HEAD', mode: 'cors', cache: 'no-store' });
+      verdict = response.ok || response.status === 405 ? true : null;
+    } catch {
+      try {
+        await fetch(src, { method: 'HEAD', mode: 'no-cors', cache: 'no-store' });
+        verdict = false;
+      } catch { verdict = null; }
     }
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const blob = await response.blob();
-    return new Response(blob, {
-      headers: { 'Content-Type': blob.type || 'audio/mpeg', 'Content-Length': String(blob.size) }
-    });
+    if (verdict !== null) {
+      offline.cors.set(origin, verdict);
+      // El ecualizador usa la misma respuesta
+      eq.cors.set(origin, verdict);
+    }
+    return verdict;
   }
 
-  // Descarga una sola canción (corazón con «Descargar favoritas» activado)
-  async function downloadTrack(track) {
-    if (!offline.supported || !track || track.atk || track.radio || isDownloaded(track) || !navigator.onLine) return false;
+  // Lee la respuesta por trozos: avisa del progreso y corta si deja de llegar audio durante 30 s
+  async function readAudio(response, controller, onProgress) {
+    const total = Number(response.headers.get('content-length')) || 0;
+    if (!response.body?.getReader) return response.blob();
+    const reader = response.body.getReader();
+    const chunks = [];
+    let received = 0;
+    let timer = setTimeout(() => controller.abort(), DL_STALL_MS);
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        received += value.length;
+        clearTimeout(timer);
+        timer = setTimeout(() => controller.abort(), DL_STALL_MS);
+        if (total) onProgress?.(received / total);
+      }
+    } finally {
+      clearTimeout(timer);
+    }
+    return new Blob(chunks, { type: response.headers.get('content-type') || 'audio/mpeg' });
+  }
+
+  // Descarga una canción para guardarla. Si el servidor no permite CORS: en Android se guarda una copia
+  // «opaca» (el service worker se la entrega al reproductor); en iPhone/iPad no se puede (Safari no las reproduce)
+  async function fetchForOffline(track, { signal, onProgress } = {}) {
+    if (offline.cors.get(originOf(track.src)) === false) {
+      if (IS_IOS) throw corsError();
+      return fetch(track.src, { mode: 'no-cors', cache: 'no-store', signal });
+    }
+    const controller = new AbortController();
+    const stop = () => controller.abort();
+    signal?.addEventListener('abort', stop, { once: true });
+    // Hasta que empiece a llegar el audio, el mismo límite de 30 s
+    const firstByte = setTimeout(stop, DL_STALL_MS);
+    let response;
+    try {
+      try {
+        response = await fetch(track.src, { mode: 'cors', cache: 'no-store', signal: controller.signal });
+      } catch (error) {
+        if (signal?.aborted) throw error;
+        // ¿Fue CORS o la red? Si es CORS, ya se sabe para todas las del mismo servidor
+        if (navigator.onLine && await corsAllowed(track.src) === false) {
+          if (IS_IOS) throw corsError();
+          return fetch(track.src, { mode: 'no-cors', cache: 'no-store', signal });
+        }
+        throw error;
+      } finally {
+        clearTimeout(firstByte);
+      }
+      offline.cors.set(originOf(track.src), true);
+      if (!response.ok) throw Object.assign(new Error(`HTTP ${response.status}`), { status: response.status });
+      const type = response.headers.get('content-type') || '';
+      // Una página de error o un aviso del servidor no es una canción
+      if (/text\/html|application\/json|text\/xml/i.test(type)) throw new Error(`No es audio (${type})`);
+      const expected = Number(response.headers.get('content-length')) || 0;
+      const blob = await readAudio(response, controller, onProgress);
+      if (expected && blob.size < expected) throw new Error(`Descarga incompleta (${blob.size}/${expected})`);
+      if (blob.size < DL_MIN_BYTES) throw new Error('Archivo demasiado pequeño');
+      return new Response(blob, {
+        headers: { 'Content-Type': /^audio\//.test(type) ? type : 'audio/mpeg', 'Content-Length': String(blob.size) }
+      });
+    } finally {
+      signal?.removeEventListener('abort', stop);
+    }
+  }
+
+  // Hasta 3 intentos (1 s y 4 s de espera). No se reintenta lo que no va a cambiar: CORS, sin espacio,
+  // la canción no existe (404) o se canceló
+  async function fetchWithRetry(track, options = {}) {
+    let lastError;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        return await fetchForOffline(track, options);
+      } catch (error) {
+        lastError = error;
+        if (error.cors || error.name === 'QuotaExceededError' || options.signal?.aborted || [401, 403, 404, 410].includes(error.status)) throw error;
+        if (!navigator.onLine) throw error;
+        await new Promise((done) => setTimeout(done, attempt ? 4000 : 1000));
+      }
+    }
+    throw lastError;
+  }
+
+  async function storeDownload(track, response) {
+    const cache = await caches.open(AUDIO_CACHE);
+    await cache.put(cacheKey(track.src), response);
+    offline.downloaded.add(cacheKey(track.src));
+    if (state.queue.slice(state.queueIndex, state.queueIndex + 3).includes(track.id)) warmLocalAudio();
+  }
+
+  // Descarga una sola canción (menú + de la canción, o el corazón con «Descargar favoritas» activado)
+  async function downloadTrack(track, { quiet = true } = {}) {
+    if (!offline.supported || !canDownload(track) || isDownloaded(track) || !navigator.onLine) return false;
     const connection = navigator.connection;
-    if (connection?.saveData || ['slow-2g', '2g'].includes(connection?.effectiveType)) return false;
+    if (quiet && (connection?.saveData || ['slow-2g', '2g'].includes(connection?.effectiveType))) return false;
     try {
       navigator.storage?.persist?.().catch(() => {});
-      const response = await fetchForOffline(track);
-      await (await caches.open(AUDIO_CACHE)).put(cacheKey(track.src), response);
-      offline.downloaded.add(cacheKey(track.src));
+      await storeDownload(track, await fetchWithRetry(track));
       updateDownloadUI();
       return true;
     } catch (error) {
       console.warn(`[LiquidBullet] No se pudo descargar «${track.title}».`, error);
+      if (!quiet) showToast(downloadErrorText(error, track));
       return false;
     }
+  }
+
+  function downloadErrorText(error, track) {
+    if (error?.cors) return IS_IOS
+      ? 'En iPhone/iPad esta canción aún no se puede descargar: su servidor no lo permite todavía (falta activar CORS).'
+      : 'El servidor de esta canción no permite descargarla.';
+    if (error?.name === 'QuotaExceededError') return 'No queda espacio en el dispositivo para más descargas.';
+    if (error?.status === 404) return `«${track.title}» ya no está en el servidor.`;
+    return navigator.onLine ? `No se pudo descargar «${track.title}». Inténtalo de nuevo.` : 'Sin conexión: conéctate para descargar.';
+  }
+
+  // Menú + de una canción: «Descargar» o «Quitar la descarga»
+  async function toggleTrackDownload(track) {
+    if (!canDownload(track)) return;
+    if (isDownloaded(track)) {
+      forgetLocalAudio(track);
+      await (await caches.open(AUDIO_CACHE)).delete(cacheKey(track.src));
+      await refreshDownloads();
+      updateDownloadUI();
+      showToast(`Quitada la descarga de «${track.title}».`);
+      return;
+    }
+    if (!navigator.onLine) { showToast('Sin conexión: conéctate para descargar.'); return; }
+    if (IS_IOS && await corsAllowed(track.src) === false) { showToast(downloadErrorText(corsError(), track)); return; }
+    iosStorageTip();
+    showToast(`Descargando «${track.title}»…`);
+    holdScreen(true);
+    const ok = await downloadTrack(track, { quiet: false });
+    holdScreen(offline.jobs.size > 0);
+    if (ok) showToast(`«${track.title}» lista para escuchar sin conexión.`);
+  }
+
+  // iPhone/iPad sin instalar: Safari borra lo guardado por las webs que no se abren en 7 días
+  function iosStorageTip() {
+    if (!IS_IOS || DEVICE.standalone || window.matchMedia('(display-mode: standalone)').matches || navigator.standalone) return;
+    if (storage.get(DL_TIPS_KEY, false)) return;
+    storage.set(DL_TIPS_KEY, true);
+    setTimeout(() => showToast('Consejo: añade Liquid a la pantalla de inicio (Compartir → Añadir a pantalla de inicio). Así Safari no borra tus descargas si pasas unos días sin abrirla.'), 3600);
+  }
+
+  // Con la descarga en marcha la pantalla no se apaga sola: al bloquearse, iOS para la app y la descarga
+  async function holdScreen(on) {
+    if (!('wakeLock' in navigator)) return;
+    if (!on) {
+      offline.wake?.release?.().catch(() => {});
+      offline.wake = null;
+      return;
+    }
+    if (offline.wake || document.hidden) return;
+    try {
+      offline.wake = await navigator.wakeLock.request('screen');
+      offline.wake.addEventListener('release', () => { offline.wake = null; });
+    } catch { /* sin permiso o batería baja */ }
+  }
+
+  // Playlists con la descarga a medias: se apuntan para seguir al volver (iOS para la app en segundo plano)
+  const pendingDownloads = () => (storage.get(DL_PENDING_KEY, []) || []).filter((k) => typeof k === 'string');
+  function markPending(key, on) {
+    const list = pendingDownloads().filter((k) => k !== key);
+    storage.set(DL_PENDING_KEY, on ? [...list, key] : list);
+  }
+  function resumeDownloads(tries = 0) {
+    if (!offline.supported || !navigator.onLine || document.hidden) return;
+    // Aún sin canciones (la biblioteca está llegando): se vuelve a mirar en un momento
+    if (!state.tracks.length) { if (tries < 10) setTimeout(() => resumeDownloads(tries + 1), 2000); return; }
+    pendingDownloads().forEach((key) => {
+      if (offline.jobs.has(key)) return;
+      const pl = getPlaylist(key);
+      if (!pl || !playlistTracks(key).some((t) => canDownload(t) && !isDownloaded(t))) { markPending(key, false); return; }
+      toggleDownload(key, { resume: true });
+    });
+  }
+
+  /* --- Sonar lo descargado desde el propio teléfono ---
+     Sin conexión, el audio descargado normalmente lo entrega el service worker. Si aún no está activo
+     (primera visita, recién actualizada) o el navegador no le pasa el audio, la canción se lee de la
+     caché y suena desde una dirección local (blob:). Se guardan pocas a la vez para no gastar memoria. */
+  const LOCAL_AUDIO_MAX = 4;
+  const needsLocalAudio = () => !navigator.onLine || !navigator.serviceWorker?.controller;
+  const audioSrc = (track) => offline.urls.get(cacheKey(track.src)) || track.src;
+  async function localAudioUrl(track) {
+    if (!offline.supported || !track || !isDownloaded(track)) return null;
+    const key = cacheKey(track.src);
+    if (offline.urls.has(key)) return offline.urls.get(key);
+    try {
+      const cached = await (await caches.open(AUDIO_CACHE)).match(key);
+      if (!cached || cached.type === 'opaque') return null;
+      const blob = await cached.blob();
+      if (offline.urls.has(key)) return offline.urls.get(key);
+      const url = URL.createObjectURL(blob.type ? blob : new Blob([blob], { type: 'audio/mpeg' }));
+      offline.urls.set(key, url);
+      // Las más antiguas se sueltan (salvo la que esté sonando)
+      const inUse = new Set(decks.map((deck) => deck.getAttribute('src')));
+      for (const [k, u] of offline.urls) {
+        if (offline.urls.size <= LOCAL_AUDIO_MAX) break;
+        if (inUse.has(u)) continue;
+        URL.revokeObjectURL(u);
+        offline.urls.delete(k);
+      }
+      return url;
+    } catch {
+      return null;
+    }
+  }
+  function forgetLocalAudio(track) {
+    const key = cacheKey(track.src);
+    const url = offline.urls.get(key);
+    if (!url || decks.some((deck) => deck.getAttribute('src') === url)) return;
+    URL.revokeObjectURL(url);
+    offline.urls.delete(key);
+  }
+  // Prepara la que suena y las dos siguientes: al tocarlas, ya están listas
+  function warmLocalAudio() {
+    if (!needsLocalAudio() || !offline.downloaded.size) return;
+    [0, 1, 2].forEach((step) => {
+      const track = getTrack(state.queue[state.queueIndex + step]);
+      if (track && isDownloaded(track)) localAudioUrl(track);
+    });
   }
 
   // Ajustes → Descargas: espacio usado y borrar todo
   async function renderStorageInfo() {
     if (!els.storageInfo) return;
     if (!offline.supported) {
-      els.storageInfo.textContent = 'Este navegador no permite descargar canciones.';
+      els.storageInfo.textContent = 'Este navegador no permite descargar canciones (en navegación privada no se puede).';
       els.clearDownloads.hidden = true;
       return;
     }
@@ -1284,11 +1527,26 @@
       if (persisted) text += ' · protegidas contra el borrado automático';
     } catch { /* sin estimación */ }
     els.storageInfo.textContent = `${text}.`;
+    // En iPhone/iPad: qué servidores de música aún no dejan descargar (se pregunta a cada uno una vez)
+    if (IS_IOS && navigator.onLine) {
+      await Promise.all(CONFIG.sources.map((source) => {
+        const sample = state.tracks.find((t) => t.id.startsWith(`${source.name}:`));
+        return sample ? corsAllowed(sample.src) : null;
+      }));
+    }
+    if (IS_IOS) {
+      const blocked = CONFIG.sources.filter((source) => offline.cors.get(originOf(source.base)) === false).length;
+      if (blocked) els.storageInfo.append(' ', makeEl('span', 'storage-warn', `En iPhone/iPad, ${blocked === CONFIG.sources.length ? 'la música' : `${blocked} de los ${CONFIG.sources.length} servidores de música`} aún no permite${blocked === 1 ? '' : 'n'} descargas (falta activar CORS en ${blocked === 1 ? 'su bucket' : 'sus buckets'}).`));
+    }
     els.clearDownloads.hidden = !count;
   }
 
   async function clearAllDownloads() {
     if (!confirm('¿Borrar todas las canciones descargadas? Tendrás que volver a descargarlas para escucharlas sin conexión.')) return;
+    offline.jobs.forEach((job) => { job.cancelled = true; job.controller.abort(); });
+    storage.set(DL_PENDING_KEY, []);
+    offline.urls.forEach((url) => { if (!decks.some((deck) => deck.getAttribute('src') === url)) URL.revokeObjectURL(url); });
+    offline.urls.clear();
     await caches.delete(AUDIO_CACHE);
     await refreshDownloads();
     updateDownloadUI();
@@ -1296,71 +1554,131 @@
     showToast('Descargas borradas.');
   }
 
-  async function toggleDownload(key) {
+  async function toggleDownload(key, { resume = false } = {}) {
     const running = offline.jobs.get(key);
     if (running) {
       running.cancelled = true;
+      running.controller.abort();
+      return;
+    }
+    if (!offline.supported) {
+      showToast('Este navegador no permite descargar canciones (en navegación privada no se puede).');
       return;
     }
     const name = getPlaylist(key)?.name || '';
-    const tracks = playlistTracks(key);
-    const missing = tracks.filter((t) => !isDownloaded(t));
+    const tracks = playlistTracks(key).filter(canDownload);
+    let missing = tracks.filter((t) => !isDownloaded(t));
     if (!missing.length) {
-      removeDownloads(key);
+      markPending(key, false);
+      if (!resume) removeDownloads(key);
       return;
     }
     if (!navigator.onLine) {
-      showToast('Sin conexión: conéctate para descargar.');
+      if (!resume) showToast('Sin conexión: conéctate para descargar.');
       return;
     }
-    const estimate = missing.reduce((sum, t) => sum + parseDuration(t.duration), 0) * BYTES_PER_SECOND;
-    const songs = `${missing.length} canci${missing.length === 1 ? 'ón' : 'ones'}`;
-    if (!confirm(`¿Descargar ${songs} de «${name}» para escucharlas sin conexión? Ocupará unos ${formatBytes(estimate)} en este dispositivo.`)) return;
+    // iPhone/iPad: antes de empezar, qué servidores dejan guardar su audio (si no, no se intenta en vano)
+    if (IS_IOS) {
+      const origins = [...new Set(missing.map((t) => originOf(t.src)))];
+      const verdicts = new Map(await Promise.all(origins.map(async (origin) => [origin, await corsAllowed(missing.find((t) => originOf(t.src) === origin).src)])));
+      const allowed = missing.filter((t) => verdicts.get(originOf(t.src)) !== false);
+      if (!allowed.length) {
+        markPending(key, false);
+        if (!resume) showToast('En iPhone/iPad estas canciones aún no se pueden descargar: su servidor no lo permite todavía (falta activar CORS en Cloudflare R2). En Android y en el ordenador sí se puede.');
+        return;
+      }
+      if (allowed.length < missing.length && !resume) {
+        showToast(`${songsLabel(missing.length - allowed.length)} de «${name}» aún no se pueden descargar en iPhone/iPad (su servidor no lo permite todavía). Se descargan las demás.`);
+      }
+      missing = allowed;
+    }
+    if (!resume) {
+      const estimate = missing.reduce((sum, t) => sum + parseDuration(t.duration), 0) * BYTES_PER_SECOND;
+      const songs = songsLabel(missing.length);
+      let room = '';
+      try {
+        const { usage = 0, quota = 0 } = (await navigator.storage?.estimate?.()) || {};
+        if (quota && quota - usage < estimate) room = ` Ojo: parece que solo quedan unos ${formatBytes(Math.max(0, quota - usage))} libres para la app.`;
+      } catch { /* sin estimación */ }
+      if (!confirm(`¿Descargar ${songs} de «${name}» para escucharlas sin conexión? Ocupará unos ${formatBytes(estimate)} en este dispositivo.${IS_IOS ? ' Deja Liquid abierta mientras se descarga: si bloqueas el teléfono, se pausa y sigue al volver.' : ''}${room}`)) return;
+      iosStorageTip();
+    }
 
     // Pide al navegador que no borre las descargas cuando falte espacio
     navigator.storage?.persist?.().catch(() => {});
-    const job = { done: tracks.length - missing.length, total: tracks.length, cancelled: false, noSpace: false };
+    markPending(key, true);
+    const job = { done: tracks.length - missing.length, total: tracks.length, cancelled: false, noSpace: false, paused: false, partial: 0, controller: new AbortController() };
     offline.jobs.set(key, job);
+    holdScreen(true);
     updateDownloadUI();
 
-    const cache = await caches.open(AUDIO_CACHE);
     const pending = missing.slice();
     let failed = 0;
     let blockedByCors = 0;
-    // Dos descargas a la vez: rápido sin saturar la conexión
+    const progress = new Map();
+    let paintQueued = false;
+    const paint = () => {
+      if (paintQueued) return;
+      paintQueued = true;
+      requestAnimationFrame(() => {
+        paintQueued = false;
+        job.partial = progress.size ? [...progress.values()].reduce((a, b) => a + b, 0) / progress.size : 0;
+        updateDownloadUI();
+      });
+    };
+    // iOS: al pasar a segundo plano la descarga se pausa (iOS la congelaría a medias) y sigue al volver
+    const onHide = () => {
+      if (!document.hidden || !IS_IOS) return;
+      job.paused = true;
+      job.controller.abort();
+    };
+    document.addEventListener('visibilitychange', onHide);
+    // Dos descargas a la vez en iPhone/iPad, tres en lo demás: rápido sin saturar la conexión
     const worker = async () => {
-      while (pending.length && !job.cancelled) {
+      while (pending.length && !job.cancelled && !job.paused) {
         const track = pending.shift();
+        progress.set(track.id, 0);
         try {
-          // Un reintento si falla la red a medias
-          const response = await fetchForOffline(track).catch((error) => {
-            if (error.cors || error.name === 'QuotaExceededError') throw error;
-            return fetchForOffline(track);
-          });
-          await cache.put(cacheKey(track.src), response);
-          offline.downloaded.add(cacheKey(track.src));
+          const response = await fetchWithRetry(track, { signal: job.controller.signal, onProgress: (f) => { progress.set(track.id, f); paint(); } });
+          if (job.cancelled || job.paused) break;
+          await storeDownload(track, response);
           job.done++;
         } catch (error) {
+          if (job.cancelled || job.paused) break;
           failed++;
           if (error.cors) blockedByCors++;
           console.warn(`[LiquidBullet] No se pudo descargar «${track.title}».`, error);
           if (error.name === 'QuotaExceededError') {
             job.noSpace = true;
             job.cancelled = true;
+            job.controller.abort();
           }
+          // Se fue la conexión: se para y se sigue cuando vuelva
+          if (!navigator.onLine) { job.paused = true; job.controller.abort(); }
+        } finally {
+          progress.delete(track.id);
         }
-        updateDownloadUI();
+        paint();
       }
     };
-    await Promise.all([worker(), worker()]);
+    await Promise.all(Array.from({ length: IS_IOS ? 2 : 3 }, worker));
+    document.removeEventListener('visibilitychange', onHide);
     offline.jobs.delete(key);
+    holdScreen(offline.jobs.size > 0);
     updateDownloadUI();
 
+    if (job.paused && !job.cancelled) {
+      // Sigue apuntada: continúa al volver a Liquid o a tener conexión
+      if (!document.hidden) showToast(`Descarga de «${name}» en pausa (${job.done}/${job.total}): sigue en cuanto vuelva la conexión.`);
+      return;
+    }
+    markPending(key, false);
     if (job.noSpace) showToast('No queda espacio en el dispositivo para más descargas.');
     else if (job.cancelled) showToast(`Descarga de «${name}» detenida (${job.done}/${job.total}).`);
-    else if (blockedByCors) showToast(`En iPhone/iPad, ${blockedByCors} canci${blockedByCors === 1 ? 'ón' : 'ones'} de Cloudflare no se pueden descargar hasta que el bucket tenga CORS activado.`);
-    else if (failed) showToast(`«${name}»: ${failed} canci${failed === 1 ? 'ón' : 'ones'} no se pudieron descargar. Toca Descargar para reintentar.`);
+    else if (blockedByCors) showToast(`En iPhone/iPad, ${songsLabel(blockedByCors)} aún no se ${blockedByCors === 1 ? 'puede' : 'pueden'} descargar: su servidor no lo permite todavía.`);
+    else if (failed) showToast(`«${name}»: ${songsLabel(failed)} no se ${failed === 1 ? 'pudo' : 'pudieron'} descargar. Toca Descargar para reintentar.`, { label: 'Reintentar', run: () => toggleDownload(key, { resume: true }) });
     else showToast(`«${name}» lista para escuchar sin conexión.`);
+    if (els.settingsDialog.open) renderStorageInfo();
   }
 
   function updateOnlineStatus(notify = false) {
@@ -1486,6 +1804,7 @@
   }
 
   function watchRegistration(registration) {
+    if (!registration) return;
     updater.registration = registration;
     if (registration.waiting && navigator.serviceWorker.controller) showUpdateBanner(registration.waiting);
     registration.addEventListener('updatefound', () => {
@@ -1952,6 +2271,12 @@
     const track = getTrack(trackId);
     if (!track) return;
     addTarget = trackId;
+    if (els.addDownload) {
+      els.addDownload.hidden = !offline.supported || !canDownload(track);
+      const label = els.addDownload.querySelector('span');
+      if (label) label.textContent = isDownloaded(track) ? 'Quitar la descarga' : 'Descargar (sin conexión)';
+      setIcon(els.addDownload, isDownloaded(track) ? 'download-done' : 'download');
+    }
     els.addTrackName.textContent = `${track.title} · ${track.artist}`;
     atk.decorateAdd(track);
     if (!library.local.length) {
@@ -6702,8 +7027,11 @@
     prepareDeck(track, autoplay, fade);
     state.retried = false;
     state.silentFail = false;
-    els.audio.src = track.src;
+    state.localTried = false;
+    // Descargada y sin conexión (o sin el modo offline listo): suena desde el propio teléfono si ya está preparada
+    els.audio.src = audioSrc(track);
     applySpeed();
+    setTimeout(warmLocalAudio, 0);
 
     if (settings.motion && els.cover.src !== track.cover) {
       els.cover.classList.remove('is-swapping');
@@ -6786,6 +7114,16 @@
     }
     if (eq.ctx && eq.ctx.state !== 'running') eq.ctx.resume().catch(() => {});
     const deck = els.audio;
+    // Descargada, sin conexión o sin modo offline, y con su copia local lista: suena desde el teléfono
+    const current = state.currentTrack;
+    if (current && needsLocalAudio() && isDownloaded(current) && !/^blob:/.test(deck.getAttribute('src') || '')) {
+      const local = offline.urls.get(cacheKey(current.src));
+      if (local) {
+        state.silentFail = false;
+        state.pendingSeek = deck.currentTime || state.pendingSeek;
+        deck.src = local;
+      }
+    }
     // La canción no cargó cuando se preparó (sin que nadie la pidiera): ahora sí, se vuelve a pedir
     if (state.silentFail) {
       state.silentFail = false;
@@ -7586,7 +7924,7 @@
     deckGain.set(target, 1);
     applyVolume(target);
     state.pendingSeek = from.currentTime;
-    target.src = track.src;
+    target.src = audioSrc(track);
     if (!playing) {
       releaseDeck(from);
       return;
@@ -8535,6 +8873,26 @@
     on('error', () => {
       if (!els.audio.getAttribute('src')) return;
       if (recoverFromEqError()) return;
+      // Descargada pero no cargó (sin conexión y el modo offline no la entregó): se lee del teléfono y suena
+      const failedTrack = state.currentTrack;
+      if (failedTrack && isDownloaded(failedTrack) && !state.localTried && !/^blob:/.test(els.audio.getAttribute('src') || '')) {
+        state.localTried = true;
+        const at = els.audio.currentTime || 0;
+        const wantsPlay = state.wantsPlay;
+        localAudioUrl(failedTrack).then((url) => {
+          if (state.currentTrack !== failedTrack) return;
+          if (!url) {
+            setPlayingUI(false);
+            if (wantsPlay) showToast(`No se pudo leer la descarga de «${failedTrack.title}». Quítala y vuelve a descargarla.`);
+            return;
+          }
+          state.pendingSeek = at;
+          els.audio.src = url;
+          els.audio.load();
+          if (wantsPlay) play({ quiet: true });
+        });
+        return;
+      }
       // Corte de red a mitad de canción: un reintento desde el mismo segundo
       const code = els.audio.error?.code;
       if (navigator.onLine && !state.retried && (code === 2 || code === 4) && state.currentTrack) {
@@ -8543,7 +8901,7 @@
         const wantsPlay = state.wantsPlay;
         setTimeout(() => {
           state.pendingSeek = at;
-          els.audio.src = state.currentTrack.src;
+          els.audio.src = audioSrc(state.currentTrack);
           els.audio.load();
           if (wantsPlay) play({ quiet: true });
         }, 900);
@@ -8630,7 +8988,15 @@
     });
 
     // Conexión
-    window.addEventListener('online', () => updateOnlineStatus(true));
+    window.addEventListener('online', () => { updateOnlineStatus(true); setTimeout(() => resumeDownloads(), 1500); });
+    // Al volver a Liquid: siguen las descargas en pausa y la pantalla vuelve a no apagarse si hace falta
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) return;
+      setTimeout(() => resumeDownloads(), 800);
+      if (offline.jobs.size) holdScreen(true);
+    });
+    // Sin conexión: lo descargado de la cola se prepara para sonar desde el teléfono
+    window.addEventListener('offline', () => warmLocalAudio());
     window.addEventListener('offline', () => updateOnlineStatus(true));
 
     // Volumen
@@ -8904,6 +9270,10 @@
     els.addQueueEnd.addEventListener('click', () => {
       els.addDialog.close();
       queueTrack(addTarget, true);
+    });
+    els.addDownload?.addEventListener('click', () => {
+      els.addDialog.close();
+      toggleTrackDownload(getTrack(addTarget));
     });
 
     // Cola "A continuación": tocar una canción salta a ella; la X la quita
@@ -15386,6 +15756,8 @@
     updateOnlineStatus();
     registerServiceWorker();
     loadTracks();
+    // Descargas que se quedaron a medias (app cerrada, teléfono bloqueado): siguen solas
+    if (!LAB_MODE) setTimeout(resumeDownloads, 3000);
   }
 
   init();

@@ -1,6 +1,7 @@
 // Recorridos principales de Liquid Bullet en móvil y escritorio.
 // No dependen del audio (los MP3 viven en Cloudflare R2): prueban la interfaz y la lógica.
 import { test, expect } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 
 const isPhone = (page) => page.viewportSize().width <= 860;
 
@@ -1484,5 +1485,151 @@ test.describe('v73: Liquid ATK afinado y pulido general', () => {
     const ayuda = page.locator('.settings-index .chip', { hasText: 'Ayuda' });
     await ayuda.click();
     await expect(page.locator('#shortcutsBtn')).toBeInViewport();
+  });
+});
+
+test.describe('v74: descargas (también en iPhone/iPad)', () => {
+  // Sin service worker: Playwright no intercepta lo que pide el service worker (el MP3 iría a la red de verdad)
+  test.use({ serviceWorkers: 'block' });
+  // Un MP3 de verdad (silencio): tramas MPEG-1 capa III de 128 kbps
+  const frame = Buffer.concat([Buffer.from([0xff, 0xfb, 0x90, 0x64]), Buffer.alloc(413)]);
+  const mp3 = Buffer.concat(Array.from({ length: 120 }, () => frame));
+  const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1';
+  // Los MP3 de R2: con o sin CORS; «caido» los corta (como sin conexión)
+  async function servidor(page, opts = {}) {
+    const state = { cors: opts.cors !== false, caido: false, peticiones: 0, fallarPrimera: Boolean(opts.fallarPrimera), lento: opts.lento || 0 };
+    await page.route(/r2\.dev/, async (route) => {
+      if (state.caido) return route.abort();
+      const req = route.request();
+      state.peticiones++;
+      if (state.fallarPrimera && req.method() === 'GET') { state.fallarPrimera = false; return route.abort(); }
+      // Sin CORS, el navegador corta las peticiones que quieren leer el audio (fetch normal); las «a ciegas» pasan
+      if (!state.cors && (await req.allHeaders()).origin) return route.abort();
+      if (state.lento) await new Promise((done) => setTimeout(done, state.lento));
+      const headers = { 'Content-Type': 'audio/mpeg', 'Accept-Ranges': 'bytes', 'Content-Length': String(mp3.length) };
+      if (state.cors) headers['Access-Control-Allow-Origin'] = '*';
+      return route.fulfill({ status: 200, headers, body: req.method() === 'HEAD' ? '' : mp3 }).catch(() => {});
+    });
+    return state;
+  }
+  // Una playlist propia con 3 canciones de la Biblioteca
+  const IDS = JSON.parse(readFileSync(new URL('../musica/pepper.json', import.meta.url), 'utf8')).slice(0, 3).map((t) => `pepper:${t.id}`);
+  async function conPlaylist(page) {
+    await page.addInitScript((trackIds) => {
+      if (!localStorage.getItem('liquidbrush:playlists')) {
+        localStorage.setItem('liquidbrush:playlists', JSON.stringify([{ id: 'dl1', name: 'Para el avión', trackIds, emoji: 'note', color: '#8a93a6', createdAt: Date.now() }]));
+      }
+    }, IDS);
+  }
+  async function abrirPlaylist(page) {
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.evaluate(() => document.querySelector('.tab[data-view="playlists"]').click());
+    await page.locator('#playlistGrid .pl-card', { hasText: 'Para el avión' }).first().click();
+    await expect(page.locator('.playlist-download')).toBeVisible();
+  }
+  const guardadas = (page) => page.evaluate(async () => (await (await caches.open('liquidbrush-audio')).keys()).length);
+
+  test('una playlist se descarga entera, se comprueba y queda «Disponible sin conexión»', async ({ page }) => {
+    page.on('dialog', (dialog) => dialog.accept());
+    await servidor(page);
+    await conPlaylist(page);
+    await abrirPlaylist(page);
+    await page.locator('.playlist-download').click();
+    await expect(page.locator('.toast')).toContainText('lista para escuchar sin conexión');
+    await expect(page.locator('.playlist-meta')).toContainText('Disponible sin conexión');
+    expect(await guardadas(page)).toBe(3);
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('liquidbrush:dl-pending') || '[]'))).toEqual([]);
+  });
+
+  test('si la red falla a mitad, reintenta solo', async ({ page }) => {
+    page.on('dialog', (dialog) => dialog.accept());
+    await servidor(page, { fallarPrimera: true });
+    await conPlaylist(page);
+    await abrirPlaylist(page);
+    await page.locator('.playlist-download').click();
+    await expect(page.locator('.toast')).toContainText('lista para escuchar sin conexión', { timeout: 15000 });
+    expect(await guardadas(page)).toBe(3);
+  });
+
+  test('una canción sola desde su menú +, y se puede quitar', async ({ page }) => {
+    await servidor(page);
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.evaluate(() => document.querySelector('.tab[data-view="library"]').click());
+    await page.locator('#trackList .track [data-action="add"]').first().click();
+    await expect(page.locator('#addDownload')).toContainText('Descargar');
+    await page.locator('#addDownload').click();
+    await expect(page.locator('.toast')).toContainText('lista para escuchar sin conexión');
+    await expect(page.locator('#trackList .track').first()).toHaveClass(/is-downloaded/);
+    await page.locator('#trackList .track [data-action="add"]').first().click();
+    await expect(page.locator('#addDownload')).toContainText('Quitar la descarga');
+    await page.locator('#addDownload').click();
+    await expect(page.locator('.toast')).toContainText('Quitada la descarga');
+    expect(await guardadas(page)).toBe(0);
+  });
+
+  test('sin conexión, lo descargado suena desde el propio teléfono', async ({ browser }) => {
+    // Sin service worker (como en la primera visita o si el navegador no le pasa el audio)
+    const context = await browser.newContext({ serviceWorkers: 'block', viewport: { width: 1280, height: 800 } });
+    const page = await context.newPage();
+    await page.addInitScript(() => { localStorage.setItem('liquidbrush:tour', 'true'); localStorage.setItem('liquidbrush:cuenta-ofrecida', 'true'); });
+    await page.route(/lrclib\.net/, (route) => route.abort());
+    const server = await servidor(page);
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.evaluate(() => document.querySelector('.tab[data-view="library"]').click());
+    await page.locator('#trackList .track [data-action="add"]').first().click();
+    await page.locator('#addDownload').click();
+    await expect(page.locator('.toast')).toContainText('lista para escuchar sin conexión');
+    // Se corta la red: la canción descargada se lee de la caché y suena (dirección blob:)
+    server.caido = true;
+    await page.locator('#trackList .track .track-main').first().click();
+    await expect.poll(() => page.evaluate(() => [...document.querySelectorAll('audio')].some((a) => /^blob:/.test(a.getAttribute('src') || ''))), { timeout: 10000 }).toBe(true);
+    await context.close();
+  });
+
+  test('iPhone sin CORS en el servidor: lo explica y no intenta en vano', async ({ browser }) => {
+    const context = await browser.newContext({ userAgent: IPHONE, viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+    const page = await context.newPage();
+    page.on('dialog', (dialog) => dialog.accept());
+    await page.addInitScript(() => { localStorage.setItem('liquidbrush:tour', 'true'); localStorage.setItem('liquidbrush:cuenta-ofrecida', 'true'); });
+    await page.route(/lrclib\.net/, (route) => route.abort());
+    await servidor(page, { cors: false });
+    await conPlaylist(page);
+    await abrirPlaylist(page);
+    await page.locator('.playlist-download').click();
+    await expect(page.locator('.toast')).toContainText('falta activar CORS');
+    expect(await guardadas(page)).toBe(0);
+    await context.close();
+  });
+
+  test('iPhone con CORS: descarga y, si se cierra la app a medias, sigue sola al volver', async ({ browser }) => {
+    const context = await browser.newContext({ userAgent: IPHONE, viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+    const page = await context.newPage();
+    page.on('dialog', (dialog) => dialog.accept());
+    await page.addInitScript(() => { localStorage.setItem('liquidbrush:tour', 'true'); localStorage.setItem('liquidbrush:cuenta-ofrecida', 'true'); });
+    await page.route(/lrclib\.net/, (route) => route.abort());
+    await servidor(page, { lento: 1500 });
+    await conPlaylist(page);
+    await abrirPlaylist(page);
+    await page.locator('.playlist-download').click();
+    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('liquidbrush:dl-pending') || '[]').length)).toBe(1);
+    // Se cierra a medias: al volver a abrirla, la descarga continúa sin preguntar
+    await page.reload();
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await expect.poll(() => guardadas(page), { timeout: 20000 }).toBe(3);
+    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('liquidbrush:dl-pending') || '[]').length)).toBe(0);
+    await context.close();
+  });
+
+  test('Android sin CORS: se guarda igual (copia opaca)', async ({ page }) => {
+    page.on('dialog', (dialog) => dialog.accept());
+    await servidor(page, { cors: false });
+    await conPlaylist(page);
+    await abrirPlaylist(page);
+    await page.locator('.playlist-download').click();
+    await expect(page.locator('.toast')).toContainText('lista para escuchar sin conexión', { timeout: 15000 });
+    expect(await guardadas(page)).toBe(3);
   });
 });
