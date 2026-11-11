@@ -5011,6 +5011,7 @@
     }
     const eyebrow = makeEl('span', 'search-top-eyebrow', 'Mejor resultado');
     if (top.track?.atk) eyebrow.append(' ', makeEl('span', 'atk-mark', 'ATK'));
+    if (top.track?.unverified) eyebrow.append(' ', makeEl('span', 'atk-unverified', 'No verificado'));
     text.append(eyebrow, makeEl('span', 'search-top-title', title), makeEl('span', 'search-top-meta', meta));
     open.append(img, text);
     const play = makeButton('icon-btn play-btn search-top-play', top.kind === 'artist' ? 'search-play-artist' : 'search-play-track', `Reproducir ${title}`, 'play');
@@ -6110,6 +6111,7 @@
     // Liquid ATK: su etiqueta; con ATK apagado, la fila atenuada
     if (track.atk) {
       title.append(' ', makeEl('span', 'atk-mark', 'ATK'));
+      if (track.unverified) title.append(' ', makeEl('span', 'atk-unverified', 'No verificado'));
       if (!settings.atk) {
         li.classList.add('is-atk-off');
         artist.textContent = `Solo en Liquid ATK · ${track.knownArtist || track.artist}`;
@@ -13125,7 +13127,7 @@
       this.referenced().forEach((id) => {
         const t = this.cache.get(id);
         if (!t) return;
-        out[id] = { t: t.title, a: t.knownArtist, al: t.album, s: t.seconds, u: t.src, g: t.genre, c: t.credit };
+        out[id] = { t: t.title, a: t.knownArtist, al: t.album, s: t.seconds, u: t.src, g: t.genre, c: t.credit, ...(t.unverified ? { nv: 1 } : {}) };
       });
       storage.set(ATK_STORE, out);
     },
@@ -13134,7 +13136,8 @@
       Object.entries(saved).forEach(([id, d]) => {
         if (!d || typeof d.u !== 'string') return;
         const src = id.split(':')[1];
-        this.register(this.make({ id, src, title: d.t, artist: d.a, album: d.al, seconds: d.s, url: d.u, genre: d.g, credit: d.c }));
+        const t = this.register(this.make({ id, src, title: d.t, artist: d.a, album: d.al, seconds: d.s, url: d.u, genre: d.g, credit: d.c }));
+        if (d.nv) t.unverified = true;
       });
     },
     // En otro dispositivo (cuenta) llegan ids ATK sin sus datos: se piden a la fuente
@@ -13205,8 +13208,8 @@
         credit: { author: t.user?.name || '', license: t.license || 'Todos los derechos reservados por su autor', link: `https://audius.co${t.permalink || ''}`, service: 'Audius' }
       });
     },
-    async audius(q, signal) {
-      const data = await this.json(`https://api.audius.co/v1/tracks/search?query=${encodeURIComponent(q)}&app_name=${ATK_APP}&limit=25`, signal, 6000);
+    async audius(q, signal, offset = 0) {
+      const data = await this.json(`https://api.audius.co/v1/tracks/search?query=${encodeURIComponent(q)}&app_name=${ATK_APP}&limit=25&offset=${offset}`, signal, 8000);
       return (data?.data || []).map((t) => this.fromAudius(t)).filter(Boolean);
     },
 
@@ -13237,17 +13240,26 @@
       if (s.includes(':')) return s.split(':').reduce((acc, part) => acc * 60 + Number(part || 0), 0);
       return Math.round(Number(s) || 0);
     },
-    async archive(q, signal) {
+    // Una página de discos o conciertos (8). Cada uno se entrega en cuanto llega (onItem): el Archive es lento
+    // y no hace falta esperar al último para pintar los primeros. Devuelve cuántos discos había en la página.
+    async archive(q, signal, page = 1, onItem = null) {
       const words = q.replace(/[^\p{L}\p{N}\s]+/gu, ' ').trim();
-      if (!words) return [];
-      const query = `(${words}) AND ${ATK_IA_FILTER}`;
-      const url = `https://archive.org/advancedsearch.php?q=${encodeURIComponent(query)}&fl[]=identifier&fl[]=downloads&rows=6&output=json`;
-      const docs = (await this.json(url, signal, 7000))?.response?.docs || [];
+      if (!words) return 0;
+      const search = (query, rows, p) => this.json(`https://archive.org/advancedsearch.php?q=${encodeURIComponent(`${query} AND ${ATK_IA_FILTER}`)}&fl[]=identifier&fl[]=downloads&rows=${rows}&page=${p}&output=json`, signal, 15000)
+        .then((d) => d?.response?.docs || []).catch(() => []);
+      // En la primera página, antes que nada los discos o conciertos cuyo autor es exactamente lo escrito
+      // (si no, «grateful dead» trae antes a las bandas tributo que a la banda)
+      const [own, general] = await Promise.all([page === 1 ? search(`creator:("${words.replace(/"/g, '')}")`, 4, 1) : [], search(`(${words})`, 8, page)]);
+      const seenIds = new Set();
+      const docs = [...own, ...general].filter((d) => !seenIds.has(d.identifier) && seenIds.add(d.identifier));
       const tokens = normalize(q).split(/\s+/).filter(Boolean);
-      const items = await Promise.all(docs.slice(0, 5).map((d) => this.json(`https://archive.org/metadata/${encodeURIComponent(d.identifier)}`, signal, 7000)
-        .then((meta) => ({ d, meta })).catch(() => null)));
+      await Promise.all(docs.map((d) => this.json(`https://archive.org/metadata/${encodeURIComponent(d.identifier)}`, signal, 15000)
+        .then((meta) => onItem?.(this.archiveTracks(d, meta, tokens))).catch(() => null)));
+      return general.length;
+    },
+    archiveTracks(d, meta, tokens) {
       const out = [];
-      items.filter(Boolean).forEach(({ d, meta }) => {
+      [{ d, meta }].forEach(({ d, meta }) => {
         const files = meta?.files || [];
         const vbr = files.filter((f) => f.format === 'VBR MP3');
         const mp3 = vbr.length ? vbr : files.filter((f) => /\.mp3$/i.test(f.name) && f.source !== 'metadata');
@@ -13255,7 +13267,7 @@
         const tracks = mp3.map((f) => this.fromArchiveFile(d.identifier, meta, f)).filter((t) => t.seconds >= 40 && t.seconds <= 1500);
         // De cada disco o concierto, las pistas que encajan con lo buscado (o las primeras si encaja el disco)
         const hits = tracks.filter((t) => tokens.some((tok) => normalize(`${t.title} ${t.knownArtist}`).includes(tok)));
-        out.push(...(hits.length ? hits.slice(0, 4) : tracks.slice(0, 2)));
+        out.push(...(hits.length ? hits.slice(0, 6) : tracks.slice(0, 3)));
       });
       return out;
     },
@@ -13275,31 +13287,43 @@
         credit: { author: t.artist_name || '', license: t.license_ccurl || 'Creative Commons', link: t.shareurl || '', service: 'Jamendo' }
       });
     },
-    async jamendo(q, signal) {
+    async jamendo(q, signal, offset = 0) {
       if (!CONFIG.jamendoClientId) return [];
-      const data = await this.json(`https://api.jamendo.com/v3.0/tracks/?client_id=${CONFIG.jamendoClientId}&format=json&limit=20&search=${encodeURIComponent(q)}&audioformat=mp32&include=musicinfo+stats&order=relevance`, signal, 6000);
+      const data = await this.json(`https://api.jamendo.com/v3.0/tracks/?client_id=${CONFIG.jamendoClientId}&format=json&limit=20&offset=${offset}&search=${encodeURIComponent(q)}&audioformat=mp32&include=musicinfo+stats&order=relevance`, signal, 8000);
       return (data?.results || []).map((t) => this.fromJamendo(t)).filter(Boolean);
     },
 
-    /* --- La mejor opción: la que mejor encaja con lo escrito, completa, con buena pinta y sin copias --- */
+    /* --- La mejor opción: la que mejor encaja con lo escrito (aunque tenga erratas), completa y sin copias --- */
+    // Una palabra buscada encaja exacta (1), con una errata o a medias (0,85) o no encaja (0)
+    tokenHit(tok, hay, words) {
+      if (hay.includes(tok)) return 1;
+      if (tok.length < 4) return 0;
+      const max = tok.length >= 7 ? 2 : 1;
+      return words.some((w) => editDistance(w, tok, max) <= max || (w.length > tok.length && editDistance(w.slice(0, tok.length), tok, 1) <= 1)) ? 0.85 : 0;
+    },
     score(t, qn, tokens) {
       const title = normalize(t.title);
       const artist = normalize(t.knownArtist);
       const album = normalize(t.album);
       const main = `${title} ${artist}`;
       const hay = `${main} ${album}`;
-      const hit = tokens.filter((tok) => hay.includes(tok)).length / tokens.length;
-      if (hit < 1 && !(tokens.length >= 3 && hit >= 0.66)) return 0;
+      const words = hay.split(/\s+/).filter(Boolean);
+      const hits = tokens.map((tok) => this.tokenHit(tok, hay, words));
+      const hit = hits.reduce((a, b) => a + b, 0) / tokens.length;
+      const matched = hits.filter(Boolean).length / tokens.length;
+      if (matched < 1 && !(tokens.length >= 3 && matched >= 0.66)) return 0;
       let s = hit * 50;
       const plain = normalize(splitTitle(t.title).main);
-      // Buscar a un artista: sus canciones primero
-      if (artist === qn) s += 26;
+      // Buscar a un artista (o su perfil completo): sus canciones primero
+      if (artist === qn || t.profileOf === qn) s += 26;
       if (plain === qn || `${artist} ${plain}` === qn || `${plain} ${artist}` === qn) s += 32;
       else if (title.startsWith(qn) || main.startsWith(qn) || `${artist} ${title}`.startsWith(qn)) s += 18;
       else if (tokens.every((tok) => main.includes(tok))) s += 10;
       if (!ATK_JUNK.test(qn) && ATK_JUNK.test(title)) s -= 16;
       if (t.seconds && t.seconds < 60) s -= 12;
       if (t.seconds > 900) s -= 10;
+      // Lo no verificado va detrás de lo original
+      if (t.unverified) s -= 10;
       s += Math.min(12, Math.log10(1 + t.popularity) * 2);
       s += { au: 3, ja: 2, ia: 0 }[t.atkSource] || 0;
       return s;
@@ -13309,38 +13333,50 @@
       if (this.index?.n === state.libraryTracks.length) return this.index;
       const songs = new Set();
       const artists = new Set();
+      const compact = new Set();
       state.libraryTracks.forEach((t) => {
         songs.add(`${normalize(splitTitle(t.title).main)}|${normalize(t.knownArtist)}`);
-        creditedArtists(t).forEach((name) => artists.add(normalize(name)));
+        creditedArtists(t).forEach((name) => {
+          artists.add(normalize(name));
+          compact.add(normalize(name).replace(/[^\p{L}\p{N}]+/gu, ''));
+        });
       });
-      this.index = { n: state.libraryTracks.length, songs, artists };
+      this.index = { n: state.libraryTracks.length, songs, artists, compact };
       return this.index;
+    },
+    // «No verificado»: en Audius, una cuenta sin verificar que sube algo a nombre de un artista de Liquid
+    // (suele ser una resubida o un remix de una canción comercial: se enseña, pero avisando)
+    markUnverified(t, known, named) {
+      if (t.atkSource !== 'au' || t.verified) return;
+      const who = normalize(t.knownArtist);
+      const said = normalize(`${t.title} ${t.knownArtist}`);
+      const lead = normalize(String(t.title).split(/\s+[-–—]\s+/)[0]);
+      const flat = (x) => x.replace(/[^\p{L}\p{N}]+/gu, '');
+      if (known.artists.has(who) || known.compact.has(flat(who)) || (lead !== normalize(t.title) && known.artists.has(lead) && lead !== who)
+        || named.some((a) => said.includes(a))) t.unverified = true;
     },
     rank(q, lists) {
       const qn = normalize(q);
       const tokens = qn.split(/\s+/).filter(Boolean);
       const best = new Map();
       const known = this.liquidIndex();
-      // Artistas de Liquid que salen en lo buscado: de ellos, en Audius solo vale su cuenta verificada
-      // (las demás subidas con su nombre son resubidas o remixes de canciones comerciales)
       const named = [...known.artists].filter((a) => a.length >= 4 && qn.includes(a));
       lists.flat().forEach((t) => {
-        if (t.atkSource === 'au' && !t.verified && named.some((a) => normalize(`${t.title} ${t.knownArtist}`).includes(a))) return;
         // «Suponiendo que Liquid no lo tiene»: lo que ya está en Liquid no se repite desde fuera
         if (known.songs.has(`${normalize(splitTitle(t.title).main)}|${normalize(t.knownArtist)}`)) return;
-        // Una cuenta sin verificar con el nombre de un artista de Liquid casi siempre es un impostor
-        if (t.atkSource === 'au' && !t.verified && known.artists.has(normalize(t.knownArtist))) return;
+        this.markUnverified(t, known, named);
         const s = this.score(t, qn, tokens);
         if (s <= 0) return;
-        // La misma canción en varias fuentes: se queda la mejor
+        // La misma canción en varias fuentes (o dos veces en una): se queda la mejor
         const key = `${normalize(splitTitle(t.title).main.replace(/\(.*?\)|\[.*?\]/g, ''))}|${normalize(t.knownArtist)}`;
         const prev = best.get(key);
         if (!prev || s > prev.s) best.set(key, { t, s });
       });
-      return [...best.values()].sort((a, b) => b.s - a.s).slice(0, 24).map((x) => x.t);
+      return [...best.values()].sort((a, b) => b.s - a.s).map((x) => x.t);
     },
 
-    /* --- Búsqueda: se pide a las tres a la vez y se pinta en cuanto responde cada una --- */
+    /* --- Búsqueda: las tres fuentes a la vez, páginas con «Ver más», perfil del artista y erratas --- */
+    PAGE: 24,
     entry(q) {
       return this.results.get(normalize(q)) || null;
     },
@@ -13361,28 +13397,87 @@
       this.pending = null;
       this.timer = setTimeout(() => this.run(q, qn), 320);
     },
+    // Lo escrito, «a medias»: el principio de cada palabra larga (Audius encuentra por prefijos, no con erratas)
+    loose(qn) {
+      const out = qn.split(/\s+/).filter(Boolean).map((w) => (w.length >= 5 ? w.slice(0, 4) : w)).join(' ');
+      return out !== qn ? out : '';
+    },
+    cursors(entry, signal) {
+      const q = entry.q;
+      return {
+        au: { off: 0, step: 25, done: false, fetch: (off) => this.audius(q, signal, off) },
+        ja: { off: 0, step: 20, done: !CONFIG.jamendoClientId, fetch: (off) => this.jamendo(q, signal, off) },
+        // El Archive es lento: cada disco o concierto se pinta en cuanto llega
+        ia: { off: 1, step: 1, done: false, fetch: (page) => this.archive(q, signal, page, (list) => this.add(entry, 'ia', list)) }
+      };
+    },
+    add(entry, key, list) {
+      if (!list?.length || entry.signal.aborted) return;
+      entry.lists[key] = [...(entry.lists[key] || []), ...list];
+      entry.tracks = this.rank(entry.q, Object.values(entry.lists)).map((t) => this.register(t));
+      this.refresh(entry.qn);
+    },
+    async pull(entry, key) {
+      const c = entry.cur[key];
+      if (!c || c.done || c.busy) return;
+      c.busy = true;
+      try {
+        const got = await c.fetch(c.off);
+        // La fuente del Archive avisa de cuántos discos había; las demás devuelven canciones
+        const n = typeof got === 'number' ? got : got?.length || 0;
+        if (Array.isArray(got)) this.add(entry, key, got);
+        c.off += c.step;
+        if (n < (key === 'ia' ? 8 : c.step / 2)) c.done = true;
+      } catch {
+        c.done = true;
+      } finally {
+        c.busy = false;
+      }
+    },
     async run(q, qn) {
       if (!navigator.onLine) return;
       const controller = new AbortController();
-      const entry = { tracks: [], done: false, lists: [] };
+      const entry = { q, qn, lists: {}, tracks: [], shown: this.PAGE, done: false, artist: null, signal: controller.signal };
+      entry.cur = this.cursors(entry, controller.signal);
       this.pending = { qn, controller };
       this.results.set(qn, entry);
       if (this.results.size > 40) this.results.delete(this.results.keys().next().value);
       this.render();
-      const sources = [this.audius(q, controller.signal), this.jamendo(q, controller.signal), this.archive(q, controller.signal)];
-      let left = sources.length;
-      await new Promise((resolve) => {
-        sources.forEach((p) => p.then((list) => {
-          if (controller.signal.aborted) return;
-          entry.lists.push(list);
-          entry.tracks = this.rank(q, entry.lists).map((t) => this.register(t));
-          this.refresh(qn);
-        }).catch(() => {}).finally(() => { if (--left === 0) resolve(); }));
-      });
+      // El Archive va a su ritmo (cada disco se pinta al llegar); lo rápido no lo espera
+      const slow = this.pull(entry, 'ia');
+      await Promise.all([this.pull(entry, 'au'), this.pull(entry, 'ja'), this.profile(entry).catch(() => {})]);
+      // Con erratas o palabras a medias casi no sale nada: segundo intento con el principio de cada palabra
+      const loose = this.loose(qn);
+      if (!controller.signal.aborted && entry.tracks.length < 5 && loose) {
+        entry.cur.au2 = { off: 0, step: 25, done: false, fetch: (off) => this.audius(loose, controller.signal, off) };
+        entry.cur.ja2 = { off: 0, step: 20, done: !CONFIG.jamendoClientId, fetch: (off) => this.jamendo(loose, controller.signal, off) };
+        await Promise.all([this.pull(entry, 'au2'), this.pull(entry, 'ja2')]);
+      }
+      await slow;
       if (controller.signal.aborted) return;
       entry.done = true;
       if (this.pending?.qn === qn) this.pending = null;
       this.refresh(qn);
+    },
+    // «Ver más»: primero lo ya encontrado; si no queda, la página siguiente de cada fuente
+    async more() {
+      const entry = this.entry(state.query);
+      if (!entry || entry.loadingMore) return;
+      entry.shown += this.PAGE;
+      // Si con lo ya encontrado no se llena la página, se pide la siguiente a cada fuente
+      if (entry.tracks.length >= entry.shown || !Object.values(entry.cur).some((c) => !c.done)) {
+        this.render();
+        return;
+      }
+      entry.loadingMore = true;
+      this.render();
+      await Promise.all(Object.keys(entry.cur).map((key) => this.pull(entry, key)));
+      entry.loadingMore = false;
+      this.refresh(entry.qn);
+      this.render();
+    },
+    canMore(entry) {
+      return entry.tracks.length > entry.shown || Object.values(entry.cur).some((c) => !c.done);
     },
     refresh(qn) {
       if (normalize(state.query) !== qn || !isGlobalSearch()) return;
@@ -13390,6 +13485,48 @@
       this.render();
     },
 
+    /* --- Perfil completo: si lo buscado es un artista de Audius o Jamendo, toda su música --- */
+    sameName(a, qn) {
+      const n = normalize(a);
+      if (!n) return false;
+      const max = qn.length >= 7 ? 2 : qn.length >= 4 ? 1 : 0;
+      return n === qn || n.replace(/\s+/g, '') === qn.replace(/\s+/g, '') || (max && editDistance(n, qn, max) <= max);
+    },
+    async profile(entry) {
+      const { q, qn, signal } = entry;
+      if (qn.length < 3) return;
+      const [au, ja] = await Promise.all([
+        this.json(`https://api.audius.co/v1/users/search?query=${encodeURIComponent(q)}&app_name=${ATK_APP}&limit=8`, signal, 7000)
+          .then((d) => (d?.data || []).filter((u) => this.sameName(u.name, qn) || this.sameName(u.handle, qn))
+            .sort((a, b) => (b.is_verified - a.is_verified) || (b.follower_count - a.follower_count))[0] || null).catch(() => null),
+        CONFIG.jamendoClientId
+          ? this.json(`https://api.jamendo.com/v3.0/artists/?client_id=${CONFIG.jamendoClientId}&format=json&limit=5&namesearch=${encodeURIComponent(q)}`, signal, 7000)
+            .then((d) => (d?.results || []).find((a) => this.sameName(a.name, qn)) || null).catch(() => null)
+          : null
+      ]);
+      if (signal.aborted || (!au && !ja)) return;
+      const known = this.liquidIndex();
+      if (au) {
+        entry.artist = { name: au.name, total: Number(au.track_count) || 0, verified: Boolean(au.is_verified), source: 'au',
+          unverified: !au.is_verified && known.compact.has(normalize(au.name).replace(/[^\p{L}\p{N}]+/gu, '')) };
+        entry.cur.pa = { off: 0, step: 50, done: false, fetch: (off) => this.json(`https://api.audius.co/v1/users/${encodeURIComponent(au.id)}/tracks?app_name=${ATK_APP}&limit=50&offset=${off}`, signal, 8000)
+          .then((d) => (d?.data || []).map((t) => this.fromAudius(t)).filter(Boolean).map((t) => Object.assign(t, { profileOf: qn }))) };
+        await this.pull(entry, 'pa');
+      }
+      if (ja) {
+        if (!entry.artist) entry.artist = { name: ja.name, total: 0, verified: true, source: 'ja', unverified: false };
+        entry.cur.pj = { off: 0, step: 50, done: false, fetch: (off) => this.json(`https://api.jamendo.com/v3.0/tracks/?client_id=${CONFIG.jamendoClientId}&format=json&limit=50&offset=${off}&artist_id=${encodeURIComponent(ja.id)}&audioformat=mp32&include=musicinfo`, signal, 8000)
+          .then((d) => (d?.results || []).map((t) => this.fromJamendo(t)).filter(Boolean).map((t) => Object.assign(t, { profileOf: qn }))) };
+        await this.pull(entry, 'pj');
+      }
+      this.refresh(qn);
+    },
+    playArtist() {
+      const entry = this.entry(state.query);
+      const tracks = entry ? entry.tracks.filter((t) => t.profileOf === entry.qn) : [];
+      const start = tracks.find(isPlayable);
+      if (start) playCollection(tracks, start.id, `Liquid ATK · ${entry.artist?.name || ''}`, `atk-artist:${entry.qn}`);
+    },
 
     /* --- ATK en todo Liquid: Inicio, Lab, radios, artistas, Stats y Buscar ---
        Las tendencias de cada estilo (Audius) se piden una vez por sesión y se reutilizan. */
@@ -13544,7 +13681,10 @@
       if (this.artistEntry?.key === key) return;
       this.artistEntry = { key, name: entry.name, tracks: [], done: false };
       const ae = this.artistEntry;
-      const lists = await Promise.all([this.audius(entry.name).catch(() => []), this.archive(entry.name).catch(() => []), this.jamendo(entry.name).catch(() => [])]);
+      const live = [];
+      await this.archive(entry.name, null, 1, (list) => live.push(...list)).catch(() => 0);
+      const lists = await Promise.all([this.audius(entry.name).catch(() => []), this.jamendo(entry.name).catch(() => [])]);
+      lists.push(live);
       if (this.artistEntry !== ae) return;
       const own = new Set(entry.tracks.map((t) => t.songKey));
       ae.tracks = this.rank(entry.name, lists)
@@ -13591,7 +13731,7 @@
       const saved = storage.get(ATK_STORE, {}) || {};
       ids.forEach((id) => {
         const t = this.cache.get(id);
-        if (t) saved[id] = { t: t.title, a: t.knownArtist, al: t.album, s: t.seconds, u: t.src, g: t.genre, c: t.credit, at: Date.now() };
+        if (t) saved[id] = { t: t.title, a: t.knownArtist, al: t.album, s: t.seconds, u: t.src, g: t.genre, c: t.credit, at: Date.now(), ...(t.unverified ? { nv: 1 } : {}) };
       });
       try { localStorage.setItem(ATK_STORE, JSON.stringify(saved)); } catch { /* sin espacio */ }
     },
@@ -13626,15 +13766,25 @@
       title.append(mark, artistPage ? `Más de ${e?.name || ''} en Liquid ATK` : 'Más allá de Liquid');
       const status = makeEl('span', 'atk-status');
       const tracks = e?.tracks || [];
-      const searching = !e?.done;
+      const searching = !e?.done || Boolean(e?.loadingMore);
       status.textContent = searching ? (tracks.length ? 'Buscando en más sitios…' : 'Buscando…') : tracks.length ? songsLabel(tracks.length) : 'Nada por aquí';
       status.classList.toggle('is-busy', searching);
       head.append(title, status);
       const parts = [head];
+      // Perfil completo: lo buscado es un artista de Audius o Jamendo
+      if (!artistPage && e?.artist) parts.push(this.artistCard(e));
       if (tracks.length) {
         const ul = makeEl('ul', 'track-list atk-list');
-        tracks.forEach((t, i) => ul.append(createTrackItem(t, i)));
+        const shown = artistPage ? tracks : tracks.slice(0, e.shown);
+        shown.forEach((t, i) => ul.append(createTrackItem(t, i)));
         parts.push(ul);
+        if (!artistPage && this.canMore(e)) {
+          const more = makeEl('button', 'btn atk-more', e.loadingMore ? 'Buscando más…' : 'Ver más en Liquid ATK');
+          more.type = 'button';
+          more.disabled = Boolean(e.loadingMore);
+          more.addEventListener('click', () => this.more());
+          parts.push(more);
+        }
       } else if (searching) {
         const sk = makeEl('ul', 'track-list atk-list');
         sk.setAttribute('aria-hidden', 'true');
@@ -13649,6 +13799,24 @@
       }
       box.replaceChildren(...parts);
       highlightCurrent();
+    },
+
+    artistCard(e) {
+      const a = e.artist;
+      const own = e.tracks.filter((t) => t.profileOf === e.qn);
+      const card = makeEl('div', 'atk-artist');
+      const img = photoImg(own[0]?.cover, 64, 'atk-artist-img');
+      const text = makeEl('span', 'atk-artist-text');
+      const name = makeEl('span', 'atk-artist-name', a.name);
+      if (a.unverified) name.append(' ', makeEl('span', 'atk-unverified', 'No verificado'));
+      const total = Math.max(a.total, own.length);
+      text.append(makeEl('span', 'atk-artist-eyebrow', 'Artista en Liquid ATK'), name,
+        makeEl('span', 'atk-artist-meta', total ? `Perfil completo · ${songsLabel(total)}` : 'Perfil completo'));
+      const play = makeButton('icon-btn play-btn atk-artist-play', 'atk-artist-play', `Reproducir todo de ${a.name}`, 'play');
+      play.addEventListener('click', (event) => { event.stopPropagation(); this.playArtist(); });
+      play.disabled = !own.length;
+      card.append(img, text, play);
+      return card;
     },
 
     /* --- Encender y apagar (con su animación) --- */
@@ -13763,6 +13931,9 @@
       }
       const license = /^https?:/.test(c.license || '') ? 'licencia Creative Commons' : c.license || 'licencia de su autor';
       credit.replaceChildren(makeEl('span', 'atk-mark', 'ATK'), ` Créditos: ${c.author || 'su autor'} · ${license} · vía ${c.service}${c.link ? ' · ' : ''}`, ...(c.link ? [link] : []));
+      if (track.unverified) {
+        credit.append(makeEl('span', 'atk-credit-warning', ' No verificado: la subió una cuenta que no es la oficial del artista; puede ser una copia, un remix o un cover.'));
+      }
       if (/^https?:/.test(c.license || '')) {
         const lic = makeEl('a', '', ' (ver licencia)');
         lic.href = c.license;

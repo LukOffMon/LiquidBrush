@@ -1051,6 +1051,14 @@ test.describe('v68: Liquid ATK', () => {
         audiusTrack('au3', 'Radiohead - Creep', 'Un Fan')
       ] } });
     });
+    await page.route(/api\.audius\.co\/v1\/users\/search/, (route) => {
+      seen.push(route.request().url());
+      route.fulfill({ json: { data: [{ id: 'u1', name: 'Banda Prueba', handle: 'bandaprueba', is_verified: false, track_count: 2, follower_count: 10 }] } });
+    });
+    await page.route(/api\.audius\.co\/v1\/users\/u1\/tracks/, (route) => route.fulfill({ json: { data: [
+      audiusTrack('au1', 'Nébula Prueba', 'Banda Prueba'),
+      audiusTrack('au4', 'Otra del Perfil', 'Banda Prueba')
+    ] } }));
     await page.route(/api\.audius\.co\/v1\/tracks\/trending/, (route) => {
       seen.push(route.request().url());
       route.fulfill({ json: { data: Array.from({ length: 10 }, (_, i) => audiusTrack(`tr${i}`, `Tendencia ${i}`, `Artista ${i}`)) } });
@@ -1109,8 +1117,12 @@ test.describe('v68: Liquid ATK', () => {
     await page.goto('./');
     await expect(page.locator('#libCount')).not.toHaveText('0');
     await page.fill('#searchInput', 'banda prueba');
-    await expect(page.locator('.atk-status')).toHaveText('2 canciones');
+    await expect(page.locator('.atk-status')).toHaveText('3 canciones');
+    // Perfil completo: «Banda Prueba» es un artista de Audius y trae toda su música
+    await expect(page.locator('.atk-artist-name')).toHaveText('Banda Prueba');
+    await expect(page.locator('.atk-artist-meta')).toContainText('Perfil completo');
     const titles = await page.locator('.atk-list .track-title').allTextContents();
+    expect(titles.join('|')).toContain('Otra del Perfil');
     expect(titles.join('|')).toContain('Nébula Prueba');
     expect(titles.join('|')).toContain('Canción del Directo');
     // Fuera: el pódcast y la pista de 20 s
@@ -1133,10 +1145,16 @@ test.describe('v68: Liquid ATK', () => {
     await expect.poll(() => page.evaluate(() => Object.keys(JSON.parse(localStorage.getItem('liquidbrush:atk-tracks') || '{}')).length)).toBeGreaterThan(0);
     await page.goto('./?view=favorites');
     await expect(page.locator('#trackList .track .atk-mark').first()).toBeVisible();
-    // Un artista de Liquid: las subidas sin verificar con su nombre no salen
-    await page.fill('#searchInput', 'radiohead');
-    await page.waitForTimeout(1200);
-    expect(await page.locator('.atk-list .track-title').allTextContents()).not.toContain('Radiohead - Creep');
+    // Un artista de Liquid: las subidas sin verificar con su nombre salen, pero «No verificado»
+    // (desde la Biblioteca: en escritorio, buscar dentro de Favoritas solo filtra las favoritas)
+    await page.goto('./?view=library');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.fill('#searchInput', 'radiohead creep');
+    const impostor = page.locator('.atk-list .track', { hasText: 'Radiohead - Creep' });
+    await expect(impostor.locator('.atk-unverified')).toHaveText('No verificado');
+    await impostor.locator('[data-action="add"]').click();
+    await expect(page.locator('.add-credit')).toContainText('No verificado');
+    await page.keyboard.press('Escape');
     expect(errors).toEqual([]);
   });
 
@@ -1168,5 +1186,50 @@ test.describe('v68: Liquid ATK', () => {
     await expect(page.locator('#miniTitle')).toContainText('Tendencia');
     await page.goto('./lab.html');
     await expect(page.locator('.atk-lab-note')).toBeVisible();
+  });
+});
+
+test.describe('v70: Liquid ATK sin límites', () => {
+  const pista = (n) => ({ id: `p${n}`, title: `Pista ${n}`, duration: 180, genre: 'Electronic', is_streamable: true, access: { stream: true },
+    play_count: 1000 - n, favorite_count: 1, permalink: `/p/${n}`, user: { name: `Productor ${n}`, is_verified: true } });
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      if (!sessionStorage.getItem('atk-puesto')) {
+        localStorage.setItem('liquidbrush:settings', JSON.stringify({ atk: true }));
+        sessionStorage.setItem('atk-puesto', '1');
+      }
+    });
+    // Audius da 25 por página; el Archive y Jamendo no tienen nada
+    await page.route(/api\.audius\.co\/v1\/tracks\/search/, (route) => {
+      const url = new URL(route.request().url());
+      const off = Number(url.searchParams.get('offset') || 0);
+      const q = url.searchParams.get('query');
+      const list = q.startsWith('pista') ? (off < 50 ? Array.from({ length: 25 }, (_, i) => pista(off + i + 1)) : [])
+        : [{ ...pista(99), title: 'Medianoche Eléctrica', user: { name: 'Neón Sur', is_verified: true } }];
+      route.fulfill({ json: { data: list } });
+    });
+    await page.route(/api\.audius\.co\/v1\/(users|tracks\/trending)/, (route) => route.fulfill({ json: { data: [] } }));
+    await page.route(/archive\.org\/advancedsearch/, (route) => route.fulfill({ json: { response: { numFound: 0, docs: [] } } }));
+    await page.route(/api\.jamendo\.com/, (route) => route.fulfill({ json: { headers: { status: 'success' }, results: [] } }));
+  });
+
+  test('«Ver más» enseña lo encontrado y luego pide la página siguiente', async ({ page }) => {
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.fill('#searchInput', 'pista');
+    await expect(page.locator('.atk-list .track')).toHaveCount(24);
+    await page.locator('.atk-more').click();
+    // Las 25 primeras ya estaban; con la siguiente página llegan 25 más
+    await expect(page.locator('.atk-list .track')).toHaveCount(48);
+    await page.locator('.atk-more').click();
+    await expect(page.locator('.atk-list .track')).toHaveCount(50);
+    await expect(page.locator('.atk-more')).toHaveCount(0);
+  });
+
+  test('erratas: «medianoxe electrica» encuentra «Medianoche Eléctrica»', async ({ page }) => {
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.fill('#searchInput', 'medianoxe electrica');
+    await expect(page.locator('.atk-list .track').first()).toContainText('Medianoche Eléctrica');
   });
 });

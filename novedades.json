@@ -1,6 +1,19 @@
 {
   "releases": [
     {
+      "version": "v70",
+      "date": "noviembre 2026",
+      "title": "Liquid ATK llega más lejos",
+      "items": [
+        "«Ver más» en los resultados de Liquid ATK: carga más páginas de cada fuente, sin límite de 24 canciones.",
+        "Perfil completo del artista: si lo que buscas es un artista de ATK, trae toda su música (no solo lo que mencione su nombre), con un botón para escucharla entera.",
+        "ATK entiende erratas y palabras a medias, como el buscador de Liquid.",
+        "Más paciencia con el Internet Archive: espera más y pinta cada disco o concierto en cuanto llega. Al buscar una banda, sus propios conciertos salen antes que los de las bandas tributo.",
+        "Las subidas que no son de la cuenta oficial del artista ya no se esconden: salen con la etiqueta «No verificado» (puede ser una copia, un remix o un cover), y el menú + lo explica.",
+        "Las búsquedas ATK terminan mucho antes: lo rápido ya no espera al Archive."
+      ]
+    },
+    {
       "version": "v69",
       "date": "noviembre 2026",
       "title": "Jamendo se suma a Liquid ATK",
