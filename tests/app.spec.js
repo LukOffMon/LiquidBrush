@@ -1716,3 +1716,58 @@ test.describe('v75: Liquid ATK filtra lo que ya está en Liquid', () => {
     await expect(page.locator('.atk-status')).toHaveText('6 canciones');
   });
 });
+
+test.describe('v77: descargas con CORS activo', () => {
+  test.use({ serviceWorkers: 'block' });
+  const frame = Buffer.concat([Buffer.from([0xff, 0xfb, 0x90, 0x64]), Buffer.alloc(413)]);
+  const mp3 = Buffer.concat(Array.from({ length: 120 }, () => frame));
+  const ARTIST_IDS = JSON.parse(readFileSync(new URL('../musica/pepper.json', import.meta.url), 'utf8')).slice(0, 2).map((t) => `pepper:${t.id}`);
+  test.beforeEach(async ({ page }) => {
+    page.on('dialog', (dialog) => dialog.accept());
+    await page.route(/r2\.dev/, (route) => route.fulfill({ status: 200, headers: { 'Content-Type': 'audio/mpeg', 'Access-Control-Allow-Origin': '*', 'Content-Length': String(mp3.length) }, body: route.request().method() === 'HEAD' ? '' : mp3 }));
+  });
+  const guardadas = (page) => page.evaluate(async () => (await (await caches.open('liquidbrush-audio')).keys()).length);
+
+  test('Favoritas se descargan todas de una vez', async ({ page }) => {
+    await page.addInitScript((ids) => { if (!localStorage.getItem('liquidbrush:favorites')) localStorage.setItem('liquidbrush:favorites', JSON.stringify(ids)); }, ARTIST_IDS);
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.evaluate(() => document.querySelector('.tab[data-view="favorites"]').click());
+    await page.locator('.playlist-download[data-value="fav"]').click();
+    await expect(page.locator('.toast')).toContainText('«Favoritas» lista para escuchar sin conexión');
+    expect(await guardadas(page)).toBe(2);
+    await expect(page.locator('.view-dl-meta')).toContainText('Disponible sin conexión');
+  });
+
+  test('un artista se descarga entero desde su página', async ({ page }) => {
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.evaluate(() => document.querySelector('.tab[data-view="artists"]').click());
+    await page.locator('#homePanel [data-action="open-artist"]').first().click();
+    const button = page.locator('.artist-hero ~ .pl-actions .playlist-download, .pl-actions .playlist-download').first();
+    await expect(button).toHaveAttribute('data-value', /^artist:/);
+    const total = await page.evaluate(() => document.querySelectorAll('#trackList .track').length);
+    await button.click();
+    await expect(page.locator('.toast')).toContainText('lista para escuchar sin conexión', { timeout: 25000 });
+    expect(await guardadas(page)).toBeGreaterThanOrEqual(Math.min(total, 1));
+    await expect(page.locator('.artist-hero .playlist-meta')).toContainText('Disponible sin conexión');
+  });
+
+  test('las copias opacas de antes pasan solas a copia completa', async ({ page }) => {
+    test.setTimeout(45000);
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    // Una descarga hecha cuando el bucket no tenía CORS: copia opaca
+    const url = 'https://pub-cb798ce2901a49a6a6363d57fbd5ee19.r2.dev/' + encodeURI(JSON.parse(readFileSync(new URL('../musica/pepper.json', import.meta.url), 'utf8'))[0].src);
+    await page.evaluate(async (u) => {
+      const opaque = await fetch(u, { mode: 'no-cors' });
+      await (await caches.open('liquidbrush-audio')).put(u, opaque);
+    }, url);
+    const tipo = () => page.evaluate(async (u) => (await (await caches.open('liquidbrush-audio')).match(u))?.type, url);
+    expect(await tipo()).toBe('opaque');
+    await page.reload();
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await expect.poll(tipo, { timeout: 30000 }).not.toBe('opaque');
+    expect(await guardadas(page)).toBe(1);
+  });
+});

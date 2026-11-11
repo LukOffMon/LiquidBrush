@@ -1164,7 +1164,16 @@
     : track?.atk && !settings.atk
     ? 'Esta canción es de Liquid ATK: actívalo en Ajustes para escucharla.'
     : 'Sin conexión: esta canción no está descargada.');
-  const playlistTracks = (key) => playlistTracksOf(getPlaylist(key));
+  // Lo que se puede descargar de una vez (v77): una playlist, un artista o tus Favoritas
+  function dlTarget(key) {
+    if (key === 'fav') return { name: 'Favoritas', tracks: state.tracks.filter((t) => state.favorites.has(t.id)) };
+    if (typeof key === 'string' && key.startsWith('artist:')) {
+      const entry = getArtist(key.slice(7));
+      return entry ? { name: entry.name, tracks: entry.tracks.slice() } : null;
+    }
+    const pl = getPlaylist(key);
+    return pl ? { name: pl.name, tracks: playlistTracksOf(pl) } : null;
+  }
 
   async function refreshDownloads() {
     if (!offline.supported) return;
@@ -1184,9 +1193,10 @@
   }
 
   function updatePlaylistHeader(header) {
-    const key = header.dataset.key;
-    const name = getPlaylist(key)?.name || '';
-    const tracks = playlistTracks(key).filter(canDownload);
+    const key = header.dataset.dlKey;
+    const target = dlTarget(key);
+    const name = target?.name || '';
+    const tracks = (target?.tracks || []).filter(canDownload);
     const saved = tracks.filter(isDownloaded).length;
     const job = offline.jobs.get(key);
     const meta = header.querySelector('.playlist-meta');
@@ -1214,8 +1224,8 @@
   }
 
   function updateDownloadUI() {
-    // Solo las cabeceras de playlist (la de un artista también es .pl-hero, pero sin descargas)
-    els.viewHead.querySelectorAll('.pl-hero[data-key]').forEach(updatePlaylistHeader);
+    // Cabeceras con descarga: playlists, artistas y Favoritas
+    [els.viewHead, ...els.viewHead.querySelectorAll('[data-dl-key]')].filter((el) => el.dataset.dlKey).forEach(updatePlaylistHeader);
     els.trackList.querySelectorAll('.track').forEach((li) => {
       const track = getTrack(li.dataset.id);
       if (track) li.classList.toggle('is-downloaded', isDownloaded(track));
@@ -1223,10 +1233,11 @@
   }
 
   async function removeDownloads(key) {
-    const name = getPlaylist(key)?.name || '';
+    const target = dlTarget(key);
+    const name = target?.name || '';
     if (!confirm(`¿Quitar las descargas de «${name}»? Ya no se podrá escuchar sin conexión.`)) return;
     const cache = await caches.open(AUDIO_CACHE);
-    await Promise.all(playlistTracks(key).map((t) => { forgetLocalAudio(t); return cache.delete(cacheKey(t.src)); }));
+    await Promise.all((target?.tracks || []).map((t) => { forgetLocalAudio(t); return cache.delete(cacheKey(t.src)); }));
     await refreshDownloads();
     updateDownloadUI();
     showToast(`Descargas de «${name}» eliminadas.`);
@@ -1276,6 +1287,7 @@
     }
     if (verdict !== null) {
       offline.cors.set(origin, verdict);
+      rememberCors(origin, verdict);
       // El ecualizador usa la misma respuesta
       eq.cors.set(origin, verdict);
     }
@@ -1333,7 +1345,7 @@
       } finally {
         clearTimeout(firstByte);
       }
-      offline.cors.set(originOf(track.src), true);
+      if (offline.cors.get(originOf(track.src)) !== true) { offline.cors.set(originOf(track.src), true); rememberCors(originOf(track.src), true); }
       if (!response.ok) throw Object.assign(new Error(`HTTP ${response.status}`), { status: response.status });
       const type = response.headers.get('content-type') || '';
       // Una página de error o un aviso del servidor no es una canción
@@ -1348,6 +1360,54 @@
     } finally {
       signal?.removeEventListener('abort', stop);
     }
+  }
+
+  function downloadButton(key) {
+    const button = makeButton('icon-btn playlist-download', 'download-playlist', 'Descargar', 'download');
+    button.dataset.value = key;
+    return button;
+  }
+
+  // Lo que se sabe de cada servidor se recuerda (v77): «sí» un día y «no» una hora, así un bucket recién
+  // arreglado se nota enseguida y en iPhone no se pregunta otra vez en cada visita
+  const CORS_KEY = 'liquidbrush:cors';
+  (() => {
+    const saved = storage.get(CORS_KEY, {}) || {};
+    Object.entries(saved).forEach(([origin, [ok, at]]) => {
+      if (Date.now() - at < (ok ? 86400000 : 3600000)) offline.cors.set(origin, ok);
+    });
+  })();
+  function rememberCors(origin, ok) {
+    const saved = storage.get(CORS_KEY, {}) || {};
+    saved[origin] = [ok, Date.now()];
+    storage.set(CORS_KEY, saved);
+  }
+
+  /* --- Copias «opacas» → copias completas (v77) ---
+     Mientras los buckets no tenían CORS, Android guardaba copias opacas: suenan, pero no se pueden leer, se
+     entregan enteras (adelantar sin conexión va peor) y Chrome las cuenta como si ocuparan ~7 MB cada una.
+     Con CORS activo se vuelven a bajar, de una en una y sin prisa, como copias normales. */
+  async function upgradeOpaqueDownloads() {
+    if (!offline.supported || upgradeOpaqueDownloads.running || !navigator.onLine || document.hidden) return;
+    if (navigator.connection?.saveData || ['slow-2g', '2g'].includes(navigator.connection?.effectiveType)) return;
+    upgradeOpaqueDownloads.running = true;
+    let upgraded = 0;
+    try {
+      const cache = await caches.open(AUDIO_CACHE);
+      for (const request of await cache.keys()) {
+        if (!navigator.onLine || document.hidden || offline.jobs.size) break;
+        const cached = await cache.match(request);
+        if (cached?.type !== 'opaque') continue;
+        if (await corsAllowed(request.url) !== true) continue;
+        try {
+          const response = await fetchWithRetry({ src: request.url, title: request.url });
+          await cache.put(request, response);
+          upgraded++;
+        } catch { /* se intentará otro día */ }
+      }
+    } catch { /* sin caché */ }
+    upgradeOpaqueDownloads.running = false;
+    if (upgraded) console.info(`[LiquidBullet] ${upgraded} descargas pasadas a copia completa.`);
   }
 
   // Hasta 3 intentos (1 s y 4 s de espera). No se reintenta lo que no va a cambiar: CORS, sin espacio,
@@ -1456,8 +1516,8 @@
     if (!state.tracks.length) { if (tries < 10) setTimeout(() => resumeDownloads(tries + 1), 2000); return; }
     pendingDownloads().forEach((key) => {
       if (offline.jobs.has(key)) return;
-      const pl = getPlaylist(key);
-      if (!pl || !playlistTracks(key).some((t) => canDownload(t) && !isDownloaded(t))) { markPending(key, false); return; }
+      const target = dlTarget(key);
+      if (!target || !target.tracks.some((t) => canDownload(t) && !isDownloaded(t))) { markPending(key, false); return; }
       toggleDownload(key, { resume: true });
     });
   }
@@ -1568,8 +1628,10 @@
       showToast('Este navegador no permite descargar canciones (en navegación privada no se puede).');
       return;
     }
-    const name = getPlaylist(key)?.name || '';
-    const tracks = playlistTracks(key).filter(canDownload);
+    const target = dlTarget(key);
+    if (!target) return;
+    const name = target.name;
+    const tracks = target.tracks.filter(canDownload);
     let missing = tracks.filter((t) => !isDownloaded(t));
     if (!missing.length) {
       markPending(key, false);
@@ -4030,6 +4092,7 @@
     const searching = Boolean(normalize(state.query));
     head.className = 'view-head';
 
+    head.dataset.dlKey = '';
     if (state.view === 'playlist') {
       head.replaceChildren(renderPlaylistHead(getPlaylist(state.openPlaylist)));
       return;
@@ -4053,6 +4116,15 @@
     const [eyebrow, title] = titles[state.view];
     const text = makeEl('div', 'view-text');
     text.append(makeEl('p', 'view-eyebrow', eyebrow), makeEl('h2', 'view-title', title));
+    // Favoritas: se descargan todas de una vez (y se ve cuántas están ya en el teléfono)
+    const favDownload = state.view === 'favorites' && !searching && offline.supported && state.tracks.some((t) => state.favorites.has(t.id));
+    head.dataset.dlKey = favDownload ? 'fav' : '';
+    if (favDownload) {
+      const meta = makeEl('p', 'playlist-meta view-dl-meta');
+      meta.dataset.base = songsLabel(state.tracks.filter((t) => state.favorites.has(t.id)).length);
+      meta.textContent = meta.dataset.base;
+      text.append(meta);
+    }
 
     const actions = makeEl('div', 'view-actions');
     if (state.view === 'lab' || state.view === 'home' || state.view === 'artists' || state.view === 'radio') {
@@ -4078,6 +4150,7 @@
         makeButton('icon-btn', 'shuffle-view', 'Reproducir en aleatorio', 'shuffle'),
         makeButton('icon-btn', 'add-all', 'Añadir todas estas canciones a una playlist', 'playlist-add')
       );
+      if (favDownload) actions.append(downloadButton('fav'));
       if (state.view === 'library') {
         const label = makeEl('label', 'sort');
         const select = document.createElement('select');
@@ -4103,6 +4176,7 @@
 
     const header = makeEl('div', 'pl-hero');
     header.dataset.key = pl.key;
+    header.dataset.dlKey = pl.key;
     header.style.setProperty('--pl-color', pl.color || 'var(--accent)');
     tintFromCover(pl, header);
     const text = makeEl('div', 'pl-hero-text');
@@ -4124,7 +4198,7 @@
     // Lo que te falta: solo las canciones de esta playlist que aún no has puesto nunca
     const missing = progress ? plus.unheardOf(pl).length : 0;
     if (missing && missing < tracks.length) actions.append(makeButton('btn btn-small pl-unheard', 'play-unheard', `Reproducir solo las ${missing} que aún no has escuchado`, 'spark', `Lo que te falta · ${missing}`));
-    if (offline.supported && tracks.length) actions.append(makeButton('icon-btn playlist-download', 'download-playlist', 'Descargar', 'download'));
+    if (offline.supported && tracks.length) actions.append(downloadButton(pl.key));
     const pinned = isPinned(pl.key);
     const pin = makeButton(`icon-btn pin-btn${pinned ? ' is-active' : ''}`, 'pin-playlist', pinned ? 'Dejar de fijar' : 'Fijar arriba en Playlists', 'pin');
     pin.setAttribute('aria-pressed', String(pinned));
@@ -5177,11 +5251,14 @@
     }
     const plays = artistPlays(entry);
     const header = makeEl('div', 'pl-hero artist-hero');
+    header.dataset.dlKey = `artist:${entry.key}`;
     const text = makeEl('div', 'pl-hero-text');
+    const artistMeta = makeEl('span', 'artist-hero-meta playlist-meta', `${songsLabel(entry.tracks.length)} en Liquid${plays ? ` · lo escuchaste ${plays} ${plays === 1 ? 'vez' : 'veces'}` : ''}`);
+    artistMeta.dataset.base = artistMeta.textContent;
     text.append(
       makeEl('span', 'pl-kind pl-kind-system', isFollowing(entry.key) ? 'Artista · Siguiendo' : 'Artista'),
       makeEl('h2', 'pl-hero-name', entry.name),
-      makeEl('span', 'artist-hero-meta', `${songsLabel(entry.tracks.length)} en Liquid${plays ? ` · lo escuchaste ${plays} ${plays === 1 ? 'vez' : 'veces'}` : ''}`)
+      artistMeta
     );
     header.append(photoImg(entry.tracks[0]?.cover, 112, 'artist-photo artist-photo-lg'), text);
 
@@ -5197,6 +5274,7 @@
       follow,
       radio
     );
+    if (offline.supported && entry.tracks.some(canDownload)) actions.append(downloadButton(`artist:${entry.key}`));
     wrap.append(back, header, actions);
 
     // Dónde aparece y a quién escuchar después
@@ -9126,7 +9204,7 @@
           if (rest.length) playCollection(rest, rest[0].id, `${pl.name} · lo que te falta`);
           break;
         }
-        case 'download-playlist': toggleDownload(state.openPlaylist); break;
+        case 'download-playlist': toggleDownload(target.dataset.value || state.openPlaylist); break;
         case 'new-playlist':
           createPlaylist().then((created) => { if (created) openPlaylist(`local:${created.id}`); });
           break;
@@ -15868,6 +15946,8 @@
     loadTracks();
     // Descargas que se quedaron a medias (app cerrada, teléfono bloqueado): siguen solas
     if (!LAB_MODE) setTimeout(resumeDownloads, 3000);
+    // Y las copias opacas de antes, a copia completa (cuando no hay nada más que hacer)
+    if (!LAB_MODE) setTimeout(() => (window.requestIdleCallback || setTimeout)(() => upgradeOpaqueDownloads()), 8000);
   }
 
   init();
