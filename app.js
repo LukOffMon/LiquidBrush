@@ -13169,7 +13169,8 @@
     make(d) {
       const n = (hashString(d.id) % ATK_SONG_COVERS) + 1;
       const pad = String(n).padStart(2, '0');
-      d = { ...d, title: this.text(d.title), artist: this.text(d.artist), album: this.text(d.album) };
+      // «01 Midnight Thoughts», «03 - Tema»: el número de pista con cero delante no es parte del título
+      d = { ...d, title: this.text(d.title).replace(/^0\d\s*[-.)]?\s+(?=\S)/, ''), artist: this.text(d.artist), album: this.text(d.album) };
       const genre = this.text(d.genre);
       return {
         id: d.id,
@@ -13469,20 +13470,22 @@
 
     /* --- La mejor opción: la que mejor encaja con lo escrito (aunque tenga erratas), completa y sin copias --- */
     // Una palabra buscada encaja exacta (1), con una errata o a medias (0,85) o no encaja (0)
-    tokenHit(tok, hay, words) {
+    tokenHit(tok, hay, words, weak = false) {
       if (hay.includes(tok)) return 1;
       if (tok.length < 4) return 0;
       const max = tok.length >= 7 ? 2 : 1;
-      return words.some((w) => editDistance(w, tok, max) <= max || (w.length > tok.length && editDistance(w.slice(0, tok.length), tok, 1) <= 1)) ? 0.85 : 0;
+      if (words.some((w) => editDistance(w, tok, max) <= max || (w.length > tok.length && editDistance(w.slice(0, tok.length), tok, 1) <= 1))) return 0.85;
+      // Solo cuando casi no hay nada: una palabra larga que empieza igual («midnite» ~ «midnight»)
+      return weak && tok.length >= 5 && words.some((w) => w.length >= 5 && w.slice(0, 4) === tok.slice(0, 4)) ? 0.6 : 0;
     },
-    score(t, qn, tokens) {
+    score(t, qn, tokens, weak = false) {
       const title = normalize(t.title);
       const artist = normalize(t.knownArtist);
       const album = normalize(t.album);
       const main = `${title} ${artist}`;
       const hay = `${main} ${album}`;
       const words = hay.split(/\s+/).filter(Boolean);
-      const hits = tokens.map((tok) => this.tokenHit(tok, hay, words));
+      const hits = tokens.map((tok) => this.tokenHit(tok, hay, words, weak));
       const hit = hits.reduce((a, b) => a + b, 0) / tokens.length;
       const matched = hits.filter(Boolean).length / tokens.length;
       if (matched < 1 && !(tokens.length >= 3 && matched >= 0.66)) return 0;
@@ -13533,21 +13536,29 @@
     rank(q, lists) {
       const qn = normalize(q);
       const tokens = qn.split(/\s+/).filter(Boolean);
-      const best = new Map();
       const known = this.liquidIndex();
       const named = [...known.artists].filter((a) => a.length >= 4 && qn.includes(a));
-      lists.flat().forEach((t) => {
-        // «Suponiendo que Liquid no lo tiene»: lo que ya está en Liquid no se repite desde fuera
-        if (known.songs.has(`${normalize(splitTitle(t.title).main)}|${normalize(t.knownArtist)}`)) return;
-        this.markUnverified(t, known, named);
-        const s = this.score(t, qn, tokens);
-        if (s <= 0) return;
-        // La misma canción en varias fuentes (o dos veces en una): se queda la mejor
-        const key = `${normalize(splitTitle(t.title).main.replace(/\(.*?\)|\[.*?\]/g, ''))}|${normalize(t.knownArtist)}`;
-        const prev = best.get(key);
-        if (!prev || s > prev.s) best.set(key, { t, s });
-      });
-      return [...best.values()].sort((a, b) => b.s - a.s).map((x) => x.t);
+      const all = lists.flat();
+      const pass = (weak) => {
+        const best = new Map();
+        all.forEach((t) => {
+          // «Suponiendo que Liquid no lo tiene»: lo que ya está en Liquid no se repite desde fuera
+          if (known.songs.has(`${normalize(splitTitle(t.title).main)}|${normalize(t.knownArtist)}`)) return;
+          this.markUnverified(t, known, named);
+          const s = this.score(t, qn, tokens, weak);
+          if (s <= 0) return;
+          // La misma canción en varias fuentes (o dos veces en una): se queda la mejor
+          const key = `${normalize(splitTitle(t.title).main.replace(/\(.*?\)|\[.*?\]/g, ''))}|${normalize(t.knownArtist)}`;
+          const prev = best.get(key);
+          if (!prev || s > prev.s) best.set(key, { t, s });
+        });
+        return [...best.values()].sort((a, b) => b.s - a.s).map((x) => x.t);
+      };
+      const strict = pass(false);
+      // Con erratas gordas casi no sale nada: segunda pasada más tolerante, detrás de lo que sí encaja
+      if (strict.length >= 5 || !tokens.some((tok) => tok.length >= 5)) return strict;
+      const have = new Set(strict.map((t) => t.id));
+      return [...strict, ...pass(true).filter((t) => !have.has(t.id))];
     },
 
     /* --- Búsqueda: las tres fuentes a la vez, páginas con «Ver más», perfil del artista y erratas --- */

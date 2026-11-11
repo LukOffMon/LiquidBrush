@@ -10721,3 +10721,12 @@ body.is-radio #lyricsBtn {
     opacity: 0.8;
   }
 }
+
+/* En el teléfono, «No verificado» ocupa menos para dejar sitio al nombre del artista */
+@media (max-width: 520px) {
+  .track-artist .atk-unverified {
+    padding: 1px 4px 0;
+    font-size: 0.56rem;
+    letter-spacing: 0;
+  }
+}

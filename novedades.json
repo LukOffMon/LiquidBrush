@@ -10,6 +10,8 @@
         "Liquid ATK: filtros nuevos dentro de sus resultados: Canciones, Sesiones y directos largos, y sin «No verificado». Suena lo que ves filtrado.",
         "Liquid ATK: si no hay conexión o las fuentes no responden, lo dice y deja «Reintentar» (antes salía «Nada por aquí»).",
         "Liquid ATK: títulos y géneros limpios (sin «&amp;» ni «Cl&#xE1;sico», sin números de pista ni códigos de cinta delante).",
+        "Liquid ATK: aguanta erratas más gordas: «ljaz midnite» encuentra «Midnight» de Ljazz (lo que encaja de verdad sigue saliendo primero).",
+        "Las emisoras de Radio y los directos de Liquid ATK ya no pasan por el modo offline de la app: menos cortes en escuchas largas.",
         "Liquid ATK: «Reproducir todo» del perfil de un artista incluye de verdad todas sus canciones, y el perfil solo sale si tiene algo que escuchar.",
         "Liquid ATK: en la página de un artista, «Más de X en Liquid ATK» aparece según responde cada fuente (antes esperaba hasta 30 s a la más lenta).",
         "Liquid ATK: una canción que su fuente ya no sirve se marca «No disponible ahora» y la cola la salta sola.",

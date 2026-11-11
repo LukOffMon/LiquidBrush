@@ -148,7 +148,13 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
 
-  if (request.destination === 'audio' || /\.mp3$/i.test(url.pathname)) {
+  // Emisoras en directo y streams de Liquid ATK (audio de otros sitios que no es un MP3): no pasan por aquí.
+  // Nunca se descargan, y un directo sin fin no debe depender de que el service worker siga despierto
+  const isMp3 = /\.mp3$/i.test(url.pathname);
+  const ownAudio = url.origin === self.location.origin || /\.r2\.dev$/i.test(url.hostname);
+  if (request.destination === 'audio' && !isMp3 && !ownAudio) return;
+
+  if (request.destination === 'audio' || isMp3) {
     event.respondWith(
       caches.open(AUDIO_CACHE)
         .then((cache) => cache.match(request.url))
