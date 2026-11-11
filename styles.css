@@ -10054,3 +10054,99 @@ body.is-private .np-eyebrow::after {
   border: 0;
   inset: 0;
 }
+
+/* =========================================================
+   v70: Liquid ATK — «Ver más», perfil del artista y «No verificado»
+   ========================================================= */
+.atk-unverified {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+  padding: 1px 6px 0;
+  border: 1px dashed color-mix(in srgb, #ffb547 70%, var(--border));
+  border-radius: 5px;
+  color: #ffb547;
+  font-family: var(--song-font);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.5;
+  vertical-align: 2px;
+  -webkit-text-fill-color: currentColor;
+  white-space: nowrap;
+}
+
+[data-theme="minimal"] .atk-unverified {
+  color: #a35b00;
+}
+
+.atk-credit-warning {
+  display: block;
+  margin-top: 4px;
+  color: #ffb547;
+}
+
+[data-theme="minimal"] .atk-credit-warning {
+  color: #a35b00;
+}
+
+.atk-more {
+  display: flex;
+  margin: 10px auto 4px;
+}
+
+.atk-artist {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 4px 12px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--atk) 35%, var(--border));
+  border-radius: 18px;
+  background: linear-gradient(120deg, color-mix(in srgb, var(--atk) 12%, transparent), transparent 70%);
+}
+
+.atk-artist-img {
+  flex: none;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.atk-artist-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.atk-artist-eyebrow {
+  color: var(--text-muted);
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.atk-artist-name {
+  overflow: hidden;
+  font-family: var(--title-font);
+  font-size: 1.2rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.atk-artist-meta {
+  color: var(--text-muted);
+  font-family: var(--song-font);
+  font-size: 0.84rem;
+  letter-spacing: normal;
+}
+
+.atk-artist-play {
+  flex: none;
+  width: 48px;
+  height: 48px;
+}
