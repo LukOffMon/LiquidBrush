@@ -860,9 +860,11 @@ test.describe('v66: 15 ideas', () => {
     const current = await page.evaluate(() => JSON.parse(localStorage.getItem('liquidbrush:resume')).id);
     expect(pl.trackIds.slice(40)).toContain(current);
     await page.evaluate(() => document.querySelector('.tab[data-view="stats"]').click());
-    await expect(page.locator('.hitos .hito')).toHaveCount(12);
-    await expect(page.locator('.hito.is-done')).toHaveCount(2);
-    await expect(page.locator('.hito.is-done').first()).toContainText('Primera gota');
+    // v78: 108 hitos (los de siempre conservan su nombre); todos están en «Ver los 108 hitos»
+    await expect(page.locator('.hitos-card .stat-sub').first()).toContainText('de 108 conseguidos');
+    await expect(page.locator('.hitos-groups .hito')).toHaveCount(108);
+    await page.locator('.hitos-all-summary').click();
+    await expect(page.locator('.hitos-groups .hito', { hasText: 'Primera gota' })).toHaveClass(/is-done/);
     expect(errors).toEqual([]);
   });
 
@@ -1769,5 +1771,64 @@ test.describe('v77: descargas con CORS activo', () => {
     await expect(page.locator('#libCount')).not.toHaveText('0');
     await expect.poll(tipo, { timeout: 30000 }).not.toBe('opaque');
     expect(await guardadas(page)).toBe(1);
+  });
+});
+
+test.describe('v78: Stats a fondo y 108 hitos', () => {
+  const IDS = JSON.parse(readFileSync(new URL('../musica/pepper.json', import.meta.url), 'utf8')).slice(0, 40).map((t) => `pepper:${t.id}`);
+  test.beforeEach(async ({ page }) => {
+    // 70 días de escucha: 30 minutos cada día, a las 22:00
+    await page.addInitScript((ids) => {
+      if (sessionStorage.getItem('historial-v78')) return;
+      sessionStorage.setItem('historial-v78', '1');
+      const log = {};
+      const plays = {};
+      for (let d = 0; d < 70; d++) {
+        const date = new Date(Date.now() - d * 86400000);
+        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        const id = ids[d % ids.length];
+        const h = new Array(24).fill(0);
+        h[22] = 1800;
+        log[key] = { s: { [id]: 1800 }, p: { [id]: 4 }, h };
+        plays[id] = (plays[id] || 0) + 4;
+      }
+      localStorage.setItem('liquidbrush:listen', JSON.stringify(log));
+      localStorage.setItem('liquidbrush:plays', JSON.stringify(plays));
+    }, IDS);
+  });
+
+  test('periodos, frase resumen, comparación, perfil, récords y 108 hitos por categorías', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.evaluate(() => document.querySelector('.tab[data-view="stats"]').click());
+    // Mes: frase, comparación con los mismos días del mes anterior y tarjetas nuevas
+    await expect(page.locator('.stats-ranges .chip[data-value="month"]')).toHaveClass(/is-active/);
+    await expect(page.locator('.stats-story')).toContainText('de música');
+    await expect(page.locator('.stats-story')).toContainText('Tu artista');
+    await expect(page.locator('.stat-title', { hasText: 'Días de la semana' })).toBeVisible();
+    await expect(page.locator('.profile-name')).toContainText('Nocturno');
+    await expect(page.locator('.records')).toContainText('Tu día más musical');
+    await expect(page.locator('.records')).toContainText('Racha más larga');
+    // Año y desde siempre: horas por mes y sin flechas de mes en «Desde siempre»
+    await page.locator('.stats-ranges .chip[data-value="year"]').click();
+    await expect(page.locator('.view-eyebrow')).toHaveText(String(new Date().getFullYear()));
+    await expect(page.locator('.stat-title', { hasText: 'Horas por mes' })).toBeVisible();
+    await page.locator('.stats-ranges .chip[data-value="all"]').click();
+    await expect(page.locator('.stats-story')).toContainText('Desde que usas Liquid: 35 h');
+    await expect(page.locator('[data-action="stats-prev"]')).toHaveCount(0);
+    // Hitos: 108, con 70 días seguidos ya caen «Semana completa» y «Mes sin fallar»
+    await expect(page.locator('.hitos-card .stat-sub').first()).toContainText('de 108 conseguidos');
+    await page.locator('.hitos-all-summary').click();
+    await expect(page.locator('.hitos-groups .hito')).toHaveCount(108);
+    await expect(page.locator('.hitos-groups .hito', { hasText: 'Semana completa' })).toHaveClass(/is-done/);
+    await expect(page.locator('.hitos-groups .hito', { hasText: 'Mes sin fallar' })).toHaveClass(/is-done/);
+    await expect(page.locator('.hitos-groups .hito', { hasText: 'Año sin pausa' })).not.toHaveClass(/is-done/);
+    await page.locator('.hitos-filters .chip[data-value="done"]').click();
+    const done = await page.locator('.hitos-groups .hito').count();
+    expect(done).toBeGreaterThan(5);
+    await expect(page.locator('.hitos-groups .hito:not(.is-done)')).toHaveCount(0);
+    expect(errors).toEqual([]);
   });
 });
