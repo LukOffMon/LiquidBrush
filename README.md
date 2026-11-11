@@ -308,7 +308,7 @@ Sección propia (barra de abajo en el móvil, pestaña en escritorio) con emisor
 
 ## Descargas con CORS activo (v77)
 
-- **Estado de los buckets** (`python3 tools/r2_cors.py`, comprobado el 11 de noviembre de 2026): salt, brush3, db4, db5 y db6 envían CORS; **pepper (`liquidpepper4db`) aún no**. En iPhone/iPad sus canciones se saltan con aviso hasta que tenga la política.
+- **Estado de los buckets** (`python3 tools/r2_cors.py`, comprobado el 11 de noviembre de 2026): **los 6 envían CORS** (pepper, salt, brush3, db4, db5 y db6). Si se suma un bucket nuevo, hay que activarle la misma política; mientras no la tenga, en iPhone/iPad sus canciones se saltan con aviso.
 - **Descargar un artista o Favoritas**: además de las playlists, el botón de descarga está en la página de cada artista (`artist:<clave>`) y en la cabecera de Favoritas (`fav`). Todo pasa por `dlTarget(key)`, así que pausa, reanudación (`liquidbrush:dl-pending`), progreso y «Quitar las descargas» funcionan igual.
 - **Copias opacas → completas**: las descargas que Android guardó sin CORS (opacas) se vuelven a bajar solas, de una en una, a los pocos segundos de abrir la app y sin descargas en marcha (`upgradeOpaqueDownloads()`). Así se pueden leer, se adelantan bien sin conexión y Chrome deja de contarlas como ~7 MB cada una.
 - **CORS recordado**: lo que responde cada servidor se guarda en `liquidbrush:cors` (un día si lo permite, una hora si no, para notar enseguida un bucket recién arreglado).
@@ -328,7 +328,7 @@ Sección propia (barra de abajo en el móvil, pestaña en escritorio) con emisor
 
 ## Descargas en iPhone/iPad (v74)
 
-**Por qué no se podía descargar en iOS**: para guardar un MP3 y escucharlo sin conexión, la app tiene que poder *leerlo*, y un navegador solo deja leer un archivo de otro servidor si ese servidor lo permite con la cabecera CORS (`Access-Control-Allow-Origin`). Los buckets de R2 no la enviaban; desde v77, 5 de 6 ya la envían (ver «Descargas con CORS activo»). Android se apaña guardando una copia «opaca» que no lee pero sí reproduce; Safari (y todos los navegadores de iPhone/iPad, que usan su motor) no reproduce esas copias. Ningún cambio en la web lo evita: **hay que activar CORS en los 6 buckets**, una sola vez.
+**Por qué no se podía descargar en iOS**: para guardar un MP3 y escucharlo sin conexión, la app tiene que poder *leerlo*, y un navegador solo deja leer un archivo de otro servidor si ese servidor lo permite con la cabecera CORS (`Access-Control-Allow-Origin`). Los buckets de R2 no la enviaban; desde noviembre de 2026 los 6 la envían (ver «Descargas con CORS activo»). Android se apaña guardando una copia «opaca» que no lee pero sí reproduce; Safari (y todos los navegadores de iPhone/iPad, que usan su motor) no reproduce esas copias. Ningún cambio en la web lo evita: **hay que activar CORS en los 6 buckets**, una sola vez.
 
 ```bash
 python3 tools/r2_cors.py            # comprueba cada bucket (OK / FALTA CORS), sin claves
