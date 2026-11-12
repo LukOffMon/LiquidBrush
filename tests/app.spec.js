@@ -1923,3 +1923,24 @@ test.describe('v79: Liquid ATK + SKd (Soulseek por tu servidor)', () => {
     await expect(page.locator('.skd-mark:visible')).toHaveCount(0);
   });
 });
+
+test.describe('v80: parche de estabilidad', () => {
+  test('saltar a la Z con el índice no crea miles de filas de golpe y las de en medio aparecen al subir', async ({ page }) => {
+    await page.addInitScript(() => { try { localStorage.setItem('liquidbrush:sort', JSON.stringify('title')); } catch { /* sin almacenamiento */ } });
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.evaluate(() => document.querySelector('.tab[data-view="library"]').click());
+    await expect(page.locator('#alphaRail')).toBeVisible();
+    const last = await page.locator('.alpha-letter').last().getAttribute('data-letter');
+    await page.locator(`.alpha-letter[data-letter="${last}"]`).click();
+    // Solo las filas cerca de la Z son filas completas; el resto, huecos ligeros
+    expect(await page.locator('#trackList .track').count()).toBeLessThan(400);
+    expect(await page.locator('#trackList .track-stub').count()).toBeGreaterThan(100);
+    const first = await page.evaluate(() => document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2)?.closest('.track')?.dataset.id);
+    expect(first).toBeTruthy();
+    // Al subir, los huecos se convierten en canciones
+    await page.mouse.wheel(0, -3000);
+    await expect.poll(() => page.evaluate(() => document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2)?.closest('.track, .track-stub')?.className || '')).toContain('track');
+    await expect.poll(() => page.evaluate(() => document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2)?.closest('.track-stub') === null)).toBe(true);
+  });
+});

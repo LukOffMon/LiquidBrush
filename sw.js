@@ -6,7 +6,7 @@
    - Los MP3 descargados desde la app viven en AUDIO_CACHE y se
      reproducen desde ahí (con soporte de rangos para poder adelantar).
    ========================================================= */
-const VERSION = 'v79';
+const VERSION = 'v80';
 const SHELL_CACHE = `liquidbrush-shell-${VERSION}`;
 const DATA_CACHE = 'liquidbrush-data';
 const AUDIO_CACHE = 'liquidbrush-audio';
@@ -15,8 +15,8 @@ const SHELL = [
   './',
   'index.html',
   'lab.html',
-  'styles.css?v=65',
-  'app.js?v=68',
+  'styles.css?v=66',
+  'app.js?v=69',
   'favicon.png',
   'logo.svg',
   'manifest.webmanifest',
@@ -48,8 +48,26 @@ self.addEventListener('install', (event) => {
   // No se activa sola: la app avisa «Hay una versión nueva» y la aplica al pulsar Actualizar
 });
 
+// v80: lista en memoria de los MP3 descargados. Así, una canción que NO está descargada no pasa por el
+// service worker: el navegador la pide directamente (antes cada trozo del audio daba un rodeo por aquí,
+// y en móviles con poca memoria eso hacía que la música se trabara o se cortara)
+let audioKeys = null;
+let audioKeysLoading = null;
+function loadAudioKeys() {
+  if (!audioKeysLoading) {
+    audioKeysLoading = caches.open(AUDIO_CACHE)
+      .then((cache) => cache.keys())
+      .then((keys) => { audioKeys = new Set(keys.map((key) => key.url)); })
+      .catch(() => { audioKeys = null; })
+      .finally(() => { audioKeysLoading = null; });
+  }
+  return audioKeysLoading;
+}
+loadAudioKeys();
+
 self.addEventListener('message', (event) => {
   if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
+  if (event.data?.type === 'AUDIO_CHANGED') event.waitUntil(loadAudioKeys());
   if (event.data?.type === 'GET_VERSION') event.source?.postMessage({ type: 'VERSION', version: VERSION });
 });
 
@@ -155,6 +173,9 @@ self.addEventListener('fetch', (event) => {
   if (request.destination === 'audio' && !isMp3 && !ownAudio) return;
 
   if (request.destination === 'audio' || isMp3) {
+    // No está descargada: directa a la red, sin rodeo (si la lista aún no se ha leído, se mira la caché)
+    if (audioKeys && !audioKeys.has(request.url)) return;
+    if (!audioKeys) loadAudioKeys();
     event.respondWith(
       caches.open(AUDIO_CACHE)
         .then((cache) => cache.match(request.url))
