@@ -1178,11 +1178,17 @@
     return pl ? { name: pl.name, tracks: playlistTracksOf(pl) } : null;
   }
 
+  // El service worker lleva su propia lista de descargas (para no hacer de intermediario con el resto)
+  function notifyAudioChanged() {
+    try { navigator.serviceWorker?.controller?.postMessage({ type: 'AUDIO_CHANGED' }); } catch { /* sin service worker */ }
+  }
+
   async function refreshDownloads() {
     if (!offline.supported) return;
     try {
       const keys = await (await caches.open(AUDIO_CACHE)).keys();
       offline.downloaded = new Set(keys.map((request) => request.url));
+      notifyAudioChanged();
     } catch (error) {
       // Navegación privada (Firefox, algunos Safari): no hay dónde guardar
       offline.supported = false;
@@ -1434,6 +1440,7 @@
     const cache = await caches.open(AUDIO_CACHE);
     await cache.put(cacheKey(track.src), response);
     offline.downloaded.add(cacheKey(track.src));
+    notifyAudioChanged();
     if (state.queue.slice(state.queueIndex, state.queueIndex + 3).includes(track.id)) warmLocalAudio();
   }
 
@@ -1770,7 +1777,7 @@
   // Actualizaciones: cuando se publica una versión nueva, sale un aviso con «Actualizar».
   // El service worker nuevo espera (no se activa solo) hasta que lo pides; entonces se guarda
   // la canción y el segundo exacto, se recarga y sigue donde ibas.
-  const updater = { registration: null, waiting: null, reloading: false };
+  const updater = { registration: null, waiting: null, reloading: false, requested: false };
 
   function showUpdateBanner(worker) {
     updater.waiting = worker;
@@ -1789,6 +1796,7 @@
 
   function applyUpdate() {
     const worker = updater.waiting || updater.registration?.waiting;
+    updater.requested = true;
     state.resumeAfterReload = !els.audio.paused;
     resume.save(true);
     resume.flushQueue();
@@ -1920,6 +1928,10 @@
     const hadController = Boolean(navigator.serviceWorker.controller);
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       if (!hadController || updater.reloading) return;
+      // v80: solo se recarga si la actualización se pidió en esta ventana. Antes, actualizar desde otra
+      // pestaña (o desde Liquid Lab) recargaba esta a mitad de canción: «se reinicia sola»
+      // (la versión nueva se carga la próxima vez que se abra la app)
+      if (!updater.requested) return;
       updater.reloading = true;
       location.reload();
     });
@@ -2676,7 +2688,7 @@
     // Sesión privada: nada de lo que suena se apunta
     if (plus.private || state.currentTrack?.radio) { listen.pendingId = null; return; }
     if (listen.pendingId !== id) {
-      flushListening();
+      flushListening({ lazy: true });
       listen.pendingId = id;
       listen.lastPos = time;
       return;
@@ -2684,10 +2696,25 @@
     const delta = time - (listen.lastPos ?? time);
     listen.lastPos = time;
     if (delta > 0 && delta < 3 && !els.audio.paused) listen.pending += delta;
-    if (listen.pending >= 30) flushListening();
+    if (listen.pending >= 30) flushListening({ lazy: true });
   }
 
-  function flushListening() {
+  // v80: mientras suena, el registro (hasta 400 días, puede pasar de 1 MB) se escribe como mucho cada
+  // 2 minutos y cuando el teléfono está libre. Antes se reescribía entero cada 30 s y daba tirones.
+  // Al esconder o cerrar la app se guarda al momento, como siempre.
+  const LISTEN_SAVE_MS = 120000;
+  let listenSaveTimer = 0;
+  let listenSavedAt = 0;
+  function saveListeningSoon() {
+    if (listenSaveTimer) return;
+    const wait = Math.max(0, LISTEN_SAVE_MS - (Date.now() - listenSavedAt));
+    listenSaveTimer = setTimeout(() => {
+      const write = () => { listenSaveTimer = 0; if (listen.dirty) saveListening(); };
+      if (window.requestIdleCallback) requestIdleCallback(write, { timeout: 5000 }); else write();
+    }, wait);
+  }
+
+  function flushListening({ lazy = false } = {}) {
     if (listen.pendingId && listen.pending > 0) {
       const entry = dayEntry();
       entry.s[listen.pendingId] = Math.round((entry.s[listen.pendingId] || 0) + listen.pending);
@@ -2704,17 +2731,21 @@
       listen.dirty = true;
       taste.profile = null;
     }
-    if (listen.dirty) saveListening();
+    if (!listen.dirty) return;
+    if (lazy) saveListeningSoon();
+    else saveListening();
   }
 
   function countPlayInLog(id) {
     const entry = dayEntry();
     entry.p[id] = (entry.p[id] || 0) + 1;
     listen.dirty = true;
-    saveListening();
+    saveListeningSoon();
   }
 
   function saveListening() {
+    if (listenSaveTimer) { clearTimeout(listenSaveTimer); listenSaveTimer = 0; }
+    listenSavedAt = Date.now();
     const keys = Object.keys(listen.log).sort();
     keys.slice(0, Math.max(0, keys.length - LISTEN_DAYS)).forEach((key) => { delete listen.log[key]; });
     storage.set(KEYS.listen, listen.log);
@@ -6294,6 +6325,7 @@
     list.items = visible;
     list.removable = removable;
     list.rendered = 0;
+    list.stubObserver?.disconnect();
 
     if (!visible.length) {
       let li = makeEl('li', 'list-empty');
@@ -6389,8 +6421,7 @@
   function jumpToLetter(letter) {
     const index = list.items.findIndex((track) => letterOfTrack(track) === letter);
     if (index < 0) return;
-    if (index >= list.rendered) appendListChunk(index - list.rendered + LIST_CHUNK);
-    const item = els.trackList.children[index];
+    const item = ensureListRow(index);
     if (!item) return;
     // Las filas fuera de pantalla tienen un alto estimado (content-visibility): se corrige
     // el salto un par de veces mientras se pintan las de alrededor
@@ -6407,7 +6438,65 @@
 
   const LIST_FIRST_CHUNK = 40;
   const LIST_CHUNK = 80;
-  const list = { items: [], rendered: 0, removable: false, sentinel: null, observer: null };
+  const list = { items: [], rendered: 0, removable: false, sentinel: null, observer: null, stubObserver: null };
+
+  /* v80: saltar lejos (índice alfabético, «Ir a la que suena») ya no crea de golpe miles de filas completas
+     (en un móvil medio, saltar a la Z congelaba la app ~3 s). Las de en medio se ponen como huecos ligeros
+     del mismo alto, que se convierten en filas de verdad al acercarse a la pantalla. */
+  const STUB_PAD = 20;
+  function stubHeight() {
+    const row = els.trackList.querySelector('.track');
+    return row?.offsetHeight || 62;
+  }
+
+  function hydrateStub(stub) {
+    if (!stub?.isConnected || !stub.classList.contains('track-stub')) return stub;
+    list.stubObserver?.unobserve(stub);
+    const index = Number(stub.dataset.idx);
+    const track = list.items[index];
+    if (!track) { stub.remove(); return null; }
+    const row = createTrackItem(track, index, list.removable);
+    stub.replaceWith(row);
+    return row;
+  }
+
+  function appendStubs(upTo) {
+    if (upTo <= list.rendered) return;
+    if (!list.stubObserver) {
+      list.stubObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => { if (entry.isIntersecting) hydrateStub(entry.target); });
+      }, { rootMargin: '800px 0px' });
+    }
+    const height = `${stubHeight()}px`;
+    const fragment = document.createDocumentFragment();
+    const stubs = [];
+    for (let i = list.rendered; i < upTo; i++) {
+      const stub = document.createElement('li');
+      stub.className = 'track-stub';
+      stub.dataset.idx = String(i);
+      stub.setAttribute('aria-hidden', 'true');
+      stub.style.height = height;
+      fragment.appendChild(stub);
+      stubs.push(stub);
+    }
+    list.rendered = upTo;
+    els.trackList.insertBefore(fragment, list.sentinel?.isConnected ? list.sentinel : null);
+    stubs.forEach((stub) => list.stubObserver.observe(stub));
+  }
+
+  // Deja lista (y de verdad, no hueco) la fila «index» y las de su alrededor; devuelve la fila
+  function ensureListRow(index) {
+    if (index < 0 || index >= list.items.length) return null;
+    if (index >= list.rendered) {
+      appendStubs(Math.max(list.rendered, index - STUB_PAD));
+      appendListChunk(index - list.rendered + LIST_CHUNK);
+    }
+    const children = els.trackList.children;
+    for (let i = Math.max(0, index - STUB_PAD); i <= Math.min(list.rendered - 1, index + STUB_PAD); i++) {
+      if (children[i]?.classList.contains('track-stub')) hydrateStub(children[i]);
+    }
+    return els.trackList.children[index] || null;
+  }
 
   function appendListChunk(size = LIST_CHUNK) {
     const end = Math.min(list.items.length, list.rendered + size);
@@ -6766,7 +6855,8 @@
     const eq = document.createElement('span');
     eq.className = 'eq';
     eq.setAttribute('aria-hidden', 'true');
-    for (let i = 0; i < 4; i++) eq.appendChild(document.createElement('span'));
+    // v80: las 4 barras solo en la fila que suena (antes, 4 elementos más en cada una de las ~4800 filas)
+    if (li.classList.contains('is-current')) fillEq(eq);
     num.append(indexEl, eq);
 
     const img = document.createElement('img');
@@ -6851,10 +6941,16 @@
     return li;
   }
 
+  function fillEq(eq) {
+    if (eq && !eq.childElementCount) for (let i = 0; i < 4; i++) eq.appendChild(document.createElement('span'));
+  }
+
   function highlightCurrent() {
     const currentId = state.currentTrack?.id;
     els.library.querySelectorAll('#trackList .track, .atk-list .track').forEach((li) => {
-      li.classList.toggle('is-current', li.dataset.id === currentId);
+      const current = li.dataset.id === currentId;
+      li.classList.toggle('is-current', current);
+      if (current) fillEq(li.querySelector('.eq'));
     });
   }
 
@@ -9018,14 +9114,23 @@
   // y si sigue atascada, pasa a la siguiente.
   const stallGuard = (() => {
     const CHECK_MS = 2500;
+    // v80: antes bastaban 5 s quieta para «arreglarla» (saltito, recarga o pasar a la siguiente). Con la red
+    // lenta eso cortaba y reiniciaba canciones que solo estaban cargando. Ahora, mientras sigan llegando datos
+    // (el búfer crece), se espera; solo se actúa tras ~10 s sin avanzar y sin recibir nada.
+    const STILL_TICKS = 4;
     let lastTime = -1;
+    let lastBuffered = -1;
     let still = 0;
     let attempts = 0;
     let timer = null;
+    const bufferedEnd = (audio) => {
+      try { return audio.buffered.length ? audio.buffered.end(audio.buffered.length - 1) : 0; } catch { return 0; }
+    };
     function reset() {
       still = 0;
       attempts = 0;
       lastTime = els.audio.currentTime;
+      lastBuffered = bufferedEnd(els.audio);
     }
     function tick() {
       const audio = els.audio;
@@ -9033,8 +9138,11 @@
       // Sin conexión y sin descarga no hay nada que recuperar
       if (!navigator.onLine && !isDownloaded(state.currentTrack)) return;
       const time = audio.currentTime;
-      if (Math.abs(time - lastTime) > 0.05) { lastTime = time; still = 0; attempts = 0; return; }
-      if (++still < 2) return;
+      if (Math.abs(time - lastTime) > 0.05) { lastTime = time; lastBuffered = bufferedEnd(audio); still = 0; attempts = 0; return; }
+      // Sigue descargando: está cargando, no atascada
+      const buffered = bufferedEnd(audio);
+      if (buffered > lastBuffered + 0.05) { lastBuffered = buffered; still = 0; return; }
+      if (++still < STILL_TICKS) return;
       still = 0;
       attempts++;
       errorLog.add(`Audio atascado (intento ${attempts})`, state.currentTrack?.id || '');
@@ -9178,9 +9286,16 @@
       if (left > 0 && left < 25) preloadNext();
       updatePositionState();
       resume.save();
-      if (state.isSeeking) return;
+      // v80: con la app escondida (pantalla bloqueada, otra app) no se repinta nada: menos batería y
+      // menos trabajo para el teléfono mientras suena en segundo plano. Al volver se pone al día.
+      if (state.isSeeking || document.hidden) return;
       updateProgressUI(time, getDuration());
       syncLyrics(time);
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden || state.isSeeking || !state.currentTrack) return;
+      updateProgressUI(els.audio.currentTime, getDuration());
+      syncLyrics(els.audio.currentTime, true);
     });
     on('loadedmetadata', () => {
       if (state.pendingSeek !== null) {
@@ -12619,8 +12734,7 @@
       showToast('La canción que suena no está en esta lista.', state.queueSource ? { label: 'Ir a ella', run: () => els.npContext.click() } : null);
       return;
     }
-    if (index >= list.rendered) appendListChunk(index - list.rendered + LIST_CHUNK);
-    const item = els.trackList.querySelector(`.track[data-id="${CSS.escape(id)}"]`);
+    const item = ensureListRow(index);
     if (!item) return;
     const center = (tries) => {
       const rect = item.getBoundingClientRect();

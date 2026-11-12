@@ -1,6 +1,21 @@
 {
   "releases": [
     {
+      "version": "v80",
+      "date": "noviembre 2026",
+      "title": "Parche de estabilidad: menos cortes, tirones y reinicios",
+      "items": [
+        "Con la red lenta, la canción ya no se corta ni vuelve a empezar sola: Liquid espera mientras sigan llegando datos y solo interviene si de verdad se ha atascado.",
+        "Las canciones que no están descargadas van directas del servidor al reproductor, sin dar un rodeo por el modo offline: suenan más fluidas y con menos memoria.",
+        "Actualizar Liquid en otra pestaña (o desde Liquid Lab) ya no reinicia esta a mitad de canción: la versión nueva entra la próxima vez que la abras.",
+        "Saltar con el índice A–Z o a «la que suena» en una lista enorme es instantáneo: antes podía congelar la app unos segundos en el móvil.",
+        "La Biblioteca pesa menos en memoria (menos elementos por canción): menos riesgo de que el teléfono cierre la app al bajar por toda la lista.",
+        "Mientras suena, el registro de Stats se guarda cada 2 minutos y en los ratos libres (antes, todo cada 30 s): adiós a los tirones periódicos.",
+        "Con la pantalla bloqueada o en otra app, Liquid no repinta la barra ni la letra: gasta menos batería.",
+        "Los brillos que se animaban sin fin en la barra de arriba ahora paran: la app no trabaja cuando no haces nada."
+      ]
+    },
+    {
       "version": "v79",
       "date": "noviembre 2026",
       "title": "Liquid ATK + SKd: Soulseek en tu propio servidor",

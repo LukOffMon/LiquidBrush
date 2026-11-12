@@ -612,6 +612,12 @@ body.is-playing .cover-wrap {
   contain-intrinsic-size: auto 62px;
 }
 
+/* v80: hueco ligero que ocupa el sitio de una fila hasta que se acerca a la pantalla */
+.track-stub {
+  list-style: none;
+  pointer-events: none;
+}
+
 .track:hover,
 .track:focus-within {
   background: var(--surface-hover);
@@ -6107,7 +6113,7 @@ textarea {
    ========================================================= */
 .cuenta-btn { position: relative; width: 40px; height: 40px; padding: 0; border-radius: 50%; overflow: visible; }
 .cuenta-btn .cuenta-avatar.is-barra { width: 34px; height: 34px; font-size: .95rem; }
-.cuenta-btn:not(.is-sesion)::after { content: ''; position: absolute; top: 4px; right: 4px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: cuenta-latido 2.4s ease-in-out infinite; }
+.cuenta-btn:not(.is-sesion)::after { content: ''; position: absolute; top: 4px; right: 4px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: cuenta-latido 2.4s ease-in-out 5; }
 .cuenta-btn.is-sesion::before { content: ''; position: absolute; inset: 0; border-radius: 50%; border: 2px solid #3ddc97; pointer-events: none; }
 .cuenta-btn[data-estado="sincronizando"]::before { border-color: transparent; border-top-color: var(--accent); animation: spin 1s linear infinite; }
 .cuenta-btn[data-estado="error"]::before { border-color: #ffb020; }
@@ -9666,7 +9672,8 @@ body.is-private .np-eyebrow::after {
 }
 
 :root.atk:not(.no-motion) .brand-name span {
-  animation: atk-shine 6s linear infinite;
+  /* v80: unas pasadas y para. En bucle, el brillo repintaba la barra 60 veces por segundo sin parar */
+  animation: atk-shine 6s linear 3;
 }
 
 @keyframes atk-shine {
