@@ -7708,9 +7708,7 @@
     document.body.classList.toggle('is-playing', isPlaying);
     setIcon(els.playBtn, isPlaying ? 'pause' : 'play');
     els.playBtn.setAttribute('aria-label', isPlaying ? 'Pausar' : 'Reproducir');
-    if ('mediaSession' in navigator) {
-      navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
-    }
+    syncPlaybackState(true);
     if (isPlaying) visualizer.start();
     syncPlayButtons();
     updateDocTitle();
@@ -9167,24 +9165,71 @@
     return { reset, start };
   })();
 
-  function updateMediaSession(track) {
-    if (!('mediaSession' in navigator) || typeof MediaMetadata === 'undefined') return;
+  // v81: pantalla de bloqueo (iOS y Android). Antes, al cambiar de canción salía el título nuevo con la
+  // portada de la anterior (o en blanco) durante unos segundos: el sistema baja la imagen por su cuenta y,
+  // mientras tanto, deja la que tenía. Ahora la portada se pide antes (también la de la siguiente en la
+  // cola) y, en cuanto está, se vuelven a dar los datos para que el sistema la ponga al momento.
+  const artworkLoaded = new Set();
+  const artworkOf = (track) => (track.hue !== null || !track.cover
+    ? [{ src: new URL('icon-512.png', location.href).href, sizes: '512x512', type: 'image/png' }]
+    : [{ src: new URL(track.cover, location.href).href, sizes: '600x600', type: 'image/jpeg' }]);
+
+  function warmArtwork(track) {
+    if (!track) return Promise.resolve(false);
+    const src = artworkOf(track)[0].src;
+    if (artworkLoaded.has(src)) return Promise.resolve(true);
+    return new Promise((done) => {
+      const img = new Image();
+      img.decoding = 'async';
+      img.onload = () => { artworkLoaded.add(src); done(true); };
+      img.onerror = () => done(false);
+      img.src = src;
+    });
+  }
+
+  function setMediaMetadata(track) {
     try {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: track.title,
         artist: track.artist,
         album: track.album,
-        // Las portadas generadas son SVG en línea: la pantalla de bloqueo muestra el logo
-        artwork: track.hue !== null
-          ? [{ src: 'icon-192.png', sizes: '192x192', type: 'image/png' }, { src: 'icon-512.png', sizes: '512x512', type: 'image/png' }]
-          : [
-            track.thumb && track.thumb !== track.cover ? { src: new URL(track.thumb, location.href).href, sizes: '320x320', type: 'image/jpeg' } : null,
-            { src: new URL(track.cover, location.href).href, sizes: '600x600', type: 'image/jpeg' }
-          ].filter(Boolean)
+        artwork: artworkOf(track)
       });
     } catch {
       /* metadatos no soportados */
     }
+  }
+
+  function updateMediaSession(track) {
+    if (!('mediaSession' in navigator) || typeof MediaMetadata === 'undefined') return;
+    setMediaMetadata(track);
+    // Los controles se vuelven a registrar con cada canción: así «siguiente» no se queda atenuado
+    applyMediaHandlers();
+    syncPlaybackState(true);
+    // La barra del sistema empieza en 0 con la duración nueva (antes enseñaba un rato la de la anterior)
+    const seconds = parseDuration(track.duration);
+    if (seconds > 0 && typeof navigator.mediaSession.setPositionState === 'function') {
+      try { navigator.mediaSession.setPositionState({ duration: seconds, playbackRate: 1, position: 0 }); } catch { /* fuera de rango */ }
+    }
+    const src = artworkOf(track)[0].src;
+    if (!artworkLoaded.has(src)) {
+      warmArtwork(track).then((ok) => { if (ok && state.currentTrack === track) setMediaMetadata(track); });
+    }
+    // La de la siguiente en la cola, ya lista para cuando pulses «siguiente» en la pantalla de bloqueo
+    const nextTrack = getTrack(state.queue[state.queueIndex + 1]);
+    if (nextTrack && nextTrack !== track) setTimeout(() => warmArtwork(nextTrack), 1500);
+  }
+
+  // Estado ▶/❚❚ de la pantalla de bloqueo. Mientras carga la canción siguiente cuenta como «sonando»:
+  // si no, el sistema mostraba ▶ (y en iOS a veces atenuaba los controles) en cada cambio de canción.
+  // También se corrige solo si el sistema y la app no coinciden (se mira con cada avance del audio).
+  function syncPlaybackState(force = false) {
+    if (!('mediaSession' in navigator)) return;
+    const audio = els.audio;
+    const loading = state.wantsPlay && !audio.error && Boolean(audio.getAttribute('src')) && audio.readyState < 3;
+    const wanted = !audio.paused || loading ? 'playing' : 'paused';
+    if (!force && navigator.mediaSession.playbackState === wanted) return;
+    try { navigator.mediaSession.playbackState = wanted; } catch { /* sin soporte */ }
   }
 
   // Barra de progreso en la pantalla de bloqueo / centro de control
@@ -9209,14 +9254,24 @@
     } catch { /* valores fuera de rango */ }
   }
 
+  let lastLockTap = 0;
+  function lockTap() {
+    const now = performance.now();
+    if (now - lastLockTap < 500) return false;
+    lastLockTap = now;
+    return true;
+  }
+
   function setupMediaSessionHandlers() {
     if (LAB_MODE) return;
     if (!('mediaSession' in navigator)) return;
     const handlers = {
       play: () => play(),
       pause: () => pauseByUser(),
-      previoustrack: () => prev(),
-      nexttrack: () => next(true),
+      // Un toque en la pantalla de bloqueo a veces llega dos veces (o se pulsa mientras carga):
+      // se ignora el segundo si llega en menos de medio segundo, para no saltarse una canción
+      previoustrack: () => { if (lockTap()) prev(); },
+      nexttrack: () => { if (lockTap()) next(true); },
       // Sin «±10 s»: con esos dos, iPhone (y algunos Android) muestran adelantar/retrasar
       // en la pantalla de bloqueo en lugar de anterior y siguiente. Para moverse dentro de la canción queda la barra.
       seekbackward: null,
@@ -9285,6 +9340,7 @@
       const left = getDuration() - time;
       if (left > 0 && left < 25) preloadNext();
       updatePositionState();
+      syncPlaybackState();
       resume.save();
       // v80: con la app escondida (pantalla bloqueada, otra app) no se repinta nada: menos batería y
       // menos trabajo para el teléfono mientras suena en segundo plano. Al volver se pone al día.
