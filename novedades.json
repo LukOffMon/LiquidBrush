@@ -1,6 +1,18 @@
 {
   "releases": [
     {
+      "version": "v81",
+      "date": "noviembre 2026",
+      "title": "Pantalla de bloqueo afinada (iPhone y Android)",
+      "items": [
+        "Al cambiar de canción desde la pantalla de bloqueo o el centro de control, la portada nueva sale al momento: ya no se queda la de la anterior ni aparece en blanco.",
+        "La portada de la siguiente canción de la cola se prepara antes, para que el cambio sea instantáneo.",
+        "El botón ▶/❚❚ de la pantalla de bloqueo ya no se pone en ▶ mientras suena ni al pasar de canción, y «siguiente» ya no se atenúa un momento.",
+        "Un doble toque (o un toque mientras carga) en «siguiente» ya no se salta dos canciones.",
+        "La barra de tiempo del sistema empieza en 0:00 con la duración de la canción nueva, sin arrastrar la de la anterior."
+      ]
+    },
+    {
       "version": "v80",
       "date": "noviembre 2026",
       "title": "Parche de estabilidad: menos cortes, tirones y reinicios",

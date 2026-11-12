@@ -599,6 +599,44 @@ test.describe('pantalla de bloqueo', () => {
     expect(last.seekforward).toBe('object');
     expect(last.seekbackward).toBe('object');
   });
+
+  test('v81: al cambiar de canción, la portada es la suya, sigue «sonando» y un doble toque no salta dos', async ({ page }) => {
+    await page.addInitScript(() => {
+      window.__handlers = {};
+      const original = navigator.mediaSession.setActionHandler.bind(navigator.mediaSession);
+      navigator.mediaSession.setActionHandler = (action, handler) => {
+        window.__handlers[action] = handler;
+        return original(action, handler);
+      };
+    });
+    const wav = silentWav();
+    await page.route(/r2\.dev/, (route) => route.fulfill({ status: 200, contentType: 'audio/wav', body: wav }));
+    await page.goto('./?view=library');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.locator('.track').nth(3).locator('.track-main').click();
+    await expect(page.locator('body')).toHaveClass(/is-playing/);
+    const first = await page.locator('#miniTitle').textContent();
+    // Dos toques seguidos en «siguiente» de la pantalla de bloqueo: solo avanza una canción
+    await page.evaluate(() => { window.__handlers.nexttrack(); window.__handlers.nexttrack(); });
+    await expect(page.locator('#miniTitle')).not.toHaveText(first || '');
+    await expect(page.locator('body')).toHaveClass(/is-playing/);
+    const info = await page.evaluate(() => ({
+      title: navigator.mediaSession.metadata?.title,
+      art: navigator.mediaSession.metadata?.artwork?.map((a) => a.src) || [],
+      state: navigator.mediaSession.playbackState,
+      mini: document.querySelector('#miniTitle').textContent,
+      fourth: document.querySelectorAll('.track')[4]?.dataset.id,
+      current: document.querySelector('.track.is-current')?.dataset.id
+    }));
+    // Una sola canción adelante (la 5.ª de la lista), con sus datos y su propia portada
+    expect(info.current).toBe(info.fourth);
+    expect(info.mini).toContain(info.title.split(' (')[0].slice(0, 8));
+    expect(info.art.length).toBe(1);
+    const cover = await page.evaluate((id) => document.querySelector(`.track[data-id="${CSS.escape(id)}"] .track-cover`)?.getAttribute('src') || '', info.current);
+    const base = (src) => src.split('/').pop().replace(/-sm(?=\.)/, '');
+    expect(base(info.art[0])).toBe(base(cover));
+    expect(info.state).toBe('playing');
+  });
 });
 
 test('cuenta: el tema elegido en este dispositivo no lo pisa el que estaba guardado en la cuenta', async ({ page }) => {
