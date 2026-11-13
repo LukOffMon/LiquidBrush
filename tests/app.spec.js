@@ -906,7 +906,7 @@ test.describe('v66: 15 ideas', () => {
     expect(errors).toEqual([]);
   });
 
-  test('Sonando: Luego, historia y nota, bucle, sesión privada, letra grande y modo coche', async ({ page }) => {
+  test('Sonando: Luego, sin «historia», bucle, sesión privada, letra grande y modo coche', async ({ page }) => {
     const errors = [];
     page.on('pageerror', (error) => errors.push(error.message));
     await conHistorial(page);
@@ -921,13 +921,8 @@ test.describe('v66: 15 ideas', () => {
     await expect(page.locator('.np-next')).toBeVisible();
     await expect(page.locator('.np-next-name')).not.toBeEmpty();
     expect(await page.evaluate(() => document.querySelector('link[rel="icon"]').getAttribute('href'))).toMatch(/covers\//);
-    // Historia y nota
-    await expect(page.locator('.np-story')).toContainText('Tu historia con esta canción');
-    await page.locator('.story-note').click();
-    await page.locator('.note-area').fill('La del viaje a la playa');
-    await page.locator('.note-sheet .btn-primary').click();
-    await expect(page.locator('.story-note.has-note')).toContainText('La del viaje a la playa');
-    expect(await page.evaluate(() => Object.values(JSON.parse(localStorage.getItem('liquidbrush:notes'))))).toEqual(['La del viaje a la playa']);
+    // v82: la tarjeta «Tu historia con esta canción» (y sus notas) ya no sale
+    await expect(page.locator('.np-story, .story-note')).toHaveCount(0);
     // Bucle: el primer toque marca el principio
     await page.locator('.plus-loop').click();
     await expect(page.locator('.plus-loop')).toHaveAttribute('aria-pressed', 'true');

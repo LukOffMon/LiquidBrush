@@ -16235,14 +16235,14 @@
      Letra a pantalla completa, bucle A–B, modo coche, sesión privada, notas, la historia de cada canción,
      «Luego» a la vista, la carátula en la pestaña, racha en Inicio, elegir gustos al empezar, progreso de
      cada playlist, «Lo que te falta», hitos, pestañas siempre a mano y deslizar una canción a la cola. */
-  const PLUS_KEYS = { notes: 'liquidbrush:notes', hitos: 'liquidbrush:hitos', gustos: 'liquidbrush:gustos-hecho' };
+  // v82: «Tu historia con esta canción» y sus notas se quitaron; lo guardado en liquidbrush:notes no se toca
+  const PLUS_KEYS = { hitos: 'liquidbrush:hitos', gustos: 'liquidbrush:gustos-hecho' };
   const fechaLarga = (key) => {
     const [y, m, d] = key.split('-').map(Number);
     return new Date(y, m - 1, d).toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' });
   };
 
   const plus = {
-    notes: (() => { const n = storage.get(PLUS_KEYS.notes, {}); return n && typeof n === 'object' ? n : {}; })(),
     loop: { a: null, b: null },
     private: false,
     ui: {},
@@ -16418,98 +16418,6 @@
       fav.setAttribute('aria-pressed', String(liked));
     },
 
-    /* --- Notas: un recuerdo por canción («la del viaje a la playa») --- */
-    openNote() {
-      const track = state.currentTrack;
-      if (!track) { showToast('Pon una canción para escribirle una nota.'); return; }
-      if (!this.ui.note) {
-        const d = makeEl('dialog', 'sheet note-sheet');
-        d.setAttribute('aria-labelledby', 'noteTitle');
-        const body = makeEl('form', 'sheet-body');
-        body.method = 'dialog';
-        const title = makeEl('h2', 'sheet-title', 'Tu nota');
-        title.id = 'noteTitle';
-        const area = document.createElement('textarea');
-        area.className = 'note-area';
-        area.maxLength = 280;
-        area.rows = 4;
-        area.placeholder = '¿A qué te recuerda? ¿Quién te la enseñó?';
-        area.setAttribute('aria-label', 'Nota sobre esta canción');
-        const actions = makeEl('div', 'sheet-actions');
-        const cancel = makeEl('button', 'btn', 'Cancelar');
-        cancel.type = 'button';
-        cancel.addEventListener('click', () => d.close());
-        const erase = makeEl('button', 'btn note-erase', 'Borrar');
-        erase.type = 'button';
-        erase.addEventListener('click', () => { area.value = ''; d.close('save'); });
-        const save = makeEl('button', 'btn btn-primary', 'Guardar');
-        save.value = 'save';
-        actions.append(cancel, erase, save);
-        body.append(title, makeEl('p', 'sheet-text note-for'), area, makeEl('p', 'sheet-note', 'Solo la ves tú: se guarda en este navegador.'), actions);
-        d.append(body);
-        d.addEventListener('click', (event) => { if (event.target === d) d.close(); });
-        d.addEventListener('close', () => {
-          if (d.returnValue !== 'save' || !d.dataset.id) return;
-          const text = area.value.trim().slice(0, 280);
-          if (text) this.notes[d.dataset.id] = text; else delete this.notes[d.dataset.id];
-          storage.set(PLUS_KEYS.notes, this.notes);
-          showToast(text ? 'Nota guardada.' : 'Nota borrada.');
-          this.renderStory();
-        });
-        document.body.append(d);
-        this.ui.note = d;
-      }
-      const d = this.ui.note;
-      d.dataset.id = track.id;
-      d.querySelector('.note-for').textContent = `${splitTitle(track.title).main} · ${track.knownArtist || track.artist}`;
-      d.querySelector('.note-area').value = this.notes[track.id] || '';
-      d.querySelector('.note-erase').hidden = !this.notes[track.id];
-      d.returnValue = '';
-      d.showModal();
-    },
-
-    /* --- Tu historia con la canción que suena: veces, minutos, primera vez, puesto --- */
-    songStory(track) {
-      const plays = playsOf(track.id);
-      let seconds = 0;
-      let first = null;
-      Object.keys(listen.log).sort().forEach((key) => {
-        const s = listen.log[key]?.s?.[track.id];
-        if (s) { seconds += s; if (!first) first = key; }
-      });
-      const heard = Number(taste.heard[track.id]) || 0;
-      const facts = [];
-      if (plays) facts.push(`${plays} ${plays === 1 ? 'vez' : 'veces'}`);
-      if (seconds >= 60) facts.push(minutesLabel(seconds));
-      if (first) facts.push(`desde el ${fechaLarga(first)}`);
-      if (heard) facts.push(`la última, ${haceTiempo(heard)}`);
-      let rank = 0;
-      if (plays >= 3) {
-        rank = 1 + Object.values(library.plays).filter((n) => Number(n) > plays).length;
-        if (rank <= 50) facts.push(`tu n.º ${rank}`);
-      }
-      return { plays, seconds, first, heard, rank, facts };
-    },
-    renderStory() {
-      const box = this.ui.story;
-      const track = state.currentTrack;
-      if (!box) return;
-      box.hidden = !track || Boolean(track.radio);
-      if (box.hidden) return;
-      const story = this.songStory(track);
-      const head = makeEl('p', 'about-eyebrow', 'Tu historia con esta canción');
-      const line = makeEl('p', 'story-facts', story.facts.length ? story.facts.join(' · ') : 'Es la primera vez que la pones. Aquí verás cuánto la escuchas.');
-      const parts = [head, line];
-      const note = this.notes[track.id];
-      const edit = makeEl('button', `story-note${note ? ' has-note' : ''}`, note || 'Añadir una nota');
-      edit.type = 'button';
-      edit.setAttribute('aria-label', note ? `Tu nota: ${note}. Tocar para editarla` : 'Añadir una nota a esta canción');
-      edit.prepend(svgIcon('edit'));
-      edit.addEventListener('click', () => this.openNote());
-      parts.push(edit);
-      box.replaceChildren(...parts);
-    },
-
     /* --- «Luego»: lo siguiente de la cola, siempre a la vista --- */
     renderNext() {
       const el = this.ui.next;
@@ -16543,7 +16451,6 @@
 
     onTrack(track) {
       this.clearLoop();
-      this.renderStory();
       this.renderNext();
       this.setFavicon(track);
       if (this.ui.car?.open) this.syncCar();
@@ -16956,13 +16863,8 @@
       nextUp.addEventListener('click', () => openQueue());
       this.ui.next = nextUp;
 
-      const story = makeEl('div', 'np-story');
-      story.hidden = true;
-      this.ui.story = story;
-
       const tools = els.nowPlaying.querySelector('.np-tools');
       tools.after(row, nextUp);
-      els.npAbout.before(story);
 
       // Cada cambio en la cola refresca «Luego»
       const saveQueue = resume.saveQueue;
