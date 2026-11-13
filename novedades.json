@@ -1,6 +1,17 @@
 {
   "releases": [
     {
+      "version": "v82",
+      "date": "noviembre 2026",
+      "title": "Playlists sin tirones al bajar",
+      "items": [
+        "Al bajar por una playlist larga la vista ya no se queda «arrastrada» ni salta hacia arriba: cuando llegan datos nuevos o marcas algo, la lista conserva su largo y su posición.",
+        "El panel de canciones en el móvil lleva un cristal más denso: se lee mejor sobre cualquier fondo y el scroll va más fino.",
+        "En el táctil las filas ya no se encogen y rebotan al empezar a desplazar.",
+        "En iPhone/iPad las filas ya no aparecen en blanco o con restos al desplazarte rápido."
+      ]
+    },
+    {
       "version": "v81",
       "date": "noviembre 2026",
       "title": "Pantalla de bloqueo afinada (iPhone y Android)",

@@ -1982,3 +1982,27 @@ test.describe('v80: parche de estabilidad', () => {
     await expect.poll(() => page.evaluate(() => document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2)?.closest('.track-stub') === null)).toBe(true);
   });
 });
+
+test.describe('v82: playlists sin tirones al bajar', () => {
+  test('repintar una playlist larga no la recorta ni mueve el scroll', async ({ page }) => {
+    await page.goto('./?view=playlists');
+    await expect(page.locator('.pl-card').first()).toBeVisible();
+    await page.evaluate(() => document.querySelector('.pl-card').click());
+    await expect(page.locator('#trackList .track').first()).toBeVisible();
+    // Bajar hasta que haya muchas filas pintadas
+    for (let i = 0; i < 6; i++) {
+      await page.evaluate(() => window.scrollBy(0, 1500));
+      await page.waitForTimeout(250);
+    }
+    const before = await page.evaluate(() => ({ y: Math.round(window.scrollY), rows: document.querySelectorAll('#trackList > li').length }));
+    test.skip(before.rows <= 60, 'La playlist de prueba es corta');
+    // Repinta la misma lista (como al llegar datos nuevos o marcar una favorita)
+    await page.evaluate(() => document.querySelector('#filterChips .chip.is-active, #filterChips .chip').click());
+    await page.waitForTimeout(300);
+    const after = await page.evaluate(() => ({ y: Math.round(window.scrollY), rows: document.querySelectorAll('#trackList > li').length }));
+    expect(Math.abs(after.y - before.y)).toBeLessThan(4);
+    expect(after.rows).toBeGreaterThanOrEqual(before.rows - 1);
+    // Lo que se ve en el centro es una canción de verdad, no un hueco
+    expect(await page.evaluate(() => Boolean(document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2)?.closest('.track')))).toBe(true);
+  });
+});

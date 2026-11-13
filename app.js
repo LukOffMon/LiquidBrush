@@ -906,7 +906,7 @@
     if (state.view === 'playlist' && !getPlaylist(state.openPlaylist)) state.view = 'playlists';
     const scroll = window.scrollY;
     setView(state.view, { keepScroll: true });
-    window.scrollTo(0, scroll);
+    if (Math.abs(window.scrollY - scroll) > 1) window.scrollTo({ top: scroll, behavior: 'instant' });
 
     if (previousId && getTrack(previousId)) {
       // Llegaron datos nuevos con algo sonando: se conserva la canción y la cola
@@ -6322,6 +6322,13 @@
     const removable = pl?.kind === 'local';
     const fragment = document.createDocumentFragment();
     // Solo se pintan las primeras filas; el resto se añade al acercarse al final (listas de 1000+)
+    // v82: repintar la MISMA lista (llegan datos nuevos, una favorita, una descarga…) ya no la recorta a
+    // las primeras 40 filas. Antes la página se acortaba de golpe bajo el dedo y el navegador recolocaba
+    // el scroll: en las playlists largas la vista «se arrastraba» hacia arriba mientras bajabas.
+    const contextKey = `${state.view}|${state.openPlaylist?.key || state.openPlaylist || ''}|${state.openArtist || ''}|${normalize(state.query)}|${state.sort}|${state.filter || ''}|${state.genre || ''}`;
+    const keepRows = contextKey === list.contextKey ? list.rendered : 0;
+    const keepScroll = keepRows > LIST_FIRST_CHUNK ? window.scrollY : null;
+    list.contextKey = contextKey;
     list.items = visible;
     list.removable = removable;
     list.rendered = 0;
@@ -6351,7 +6358,12 @@
       if (li) fragment.appendChild(li);
     }
     els.trackList.replaceChildren(fragment);
-    if (visible.length) appendListChunk(LIST_FIRST_CHUNK);
+    if (visible.length) {
+      appendListChunk(LIST_FIRST_CHUNK);
+      const rowH = els.trackList.querySelector('.track')?.offsetHeight;
+      if (rowH) els.trackList.style.setProperty('--row-h', `${rowH}px`);
+      restoreListDepth(Math.min(keepRows, visible.length), keepScroll);
+    }
     renderAlphaRail(visible);
 
     renderListInfo();
@@ -6438,7 +6450,7 @@
 
   const LIST_FIRST_CHUNK = 40;
   const LIST_CHUNK = 80;
-  const list = { items: [], rendered: 0, removable: false, sentinel: null, observer: null, stubObserver: null };
+  const list = { items: [], rendered: 0, removable: false, sentinel: null, observer: null, stubObserver: null, contextKey: '' };
 
   /* v80: saltar lejos (índice alfabético, «Ir a la que suena») ya no crea de golpe miles de filas completas
      (en un móvil medio, saltar a la Z congelaba la app ~3 s). Las de en medio se ponen como huecos ligeros
@@ -6482,6 +6494,22 @@
     list.rendered = upTo;
     els.trackList.insertBefore(fragment, list.sentinel?.isConnected ? list.sentinel : null);
     stubs.forEach((stub) => list.stubObserver.observe(stub));
+  }
+
+  // Vuelve a dar a la lista el largo que tenía (filas reales cerca de la pantalla, huecos ligeros en el
+  // resto) y deja el scroll exactamente donde estaba, sin animación
+  function restoreListDepth(rows, scrollY) {
+    if (rows <= list.rendered) return;
+    appendStubs(rows);
+    const top = els.trackList.getBoundingClientRect().top;
+    const rowH = stubHeight() || 62;
+    const first = Math.max(0, Math.floor((-top) / rowH) - STUB_PAD);
+    const last = Math.min(rows - 1, Math.ceil((window.innerHeight - top) / rowH) + STUB_PAD);
+    const children = els.trackList.children;
+    for (let i = first; i <= last; i++) {
+      if (children[i]?.classList.contains('track-stub')) hydrateStub(children[i]);
+    }
+    if (scrollY !== null && Math.abs(window.scrollY - scrollY) > 1) window.scrollTo({ top: scrollY, behavior: 'instant' });
   }
 
   // Deja lista (y de verdad, no hueco) la fila «index» y las de su alrededor; devuelve la fila

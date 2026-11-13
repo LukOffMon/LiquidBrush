@@ -4391,7 +4391,10 @@ textarea {
   transition: background-color 0.3s var(--ease-fluid), box-shadow 0.3s var(--ease-fluid), transform 0.45s var(--spring);
 }
 
-:root:not(.no-motion) .track:active { transform: scale(0.985); }
+/* Solo con ratón: en el táctil, cada fila que tocabas al empezar a desplazar se encogía y rebotaba */
+@media (hover: hover) and (pointer: fine) {
+  :root:not(.no-motion) .track:active { transform: scale(0.985); }
+}
 
 /* Las filas entran en cascada al cambiar de vista */
 :root:not(.no-motion) .library-view.rows-in .track {
@@ -4428,9 +4431,9 @@ textarea {
 
 :root:not(.no-motion) .toast { transition: transform 0.55s var(--spring), opacity 0.3s var(--ease-fluid); }
 
-@media (prefers-reduced-motion: no-preference) {
-  :root:not(.no-motion) { scroll-behavior: smooth; }
-}
+/* v82: sin scroll suave global. Hacía suaves también los saltos internos (al repintar una lista o
+   llegar datos nuevos) y peleaban con el dedo: la playlist «se arrastraba» al bajar. Los botones que
+   deben deslizar (subir arriba, ir a la que suena) ya lo piden ellos mismos. */
 
 @media (prefers-reduced-motion: reduce) {
   .library-view.rows-in .track,
@@ -11097,3 +11100,38 @@ body.is-radio #lyricsBtn {
 }
 
 [data-theme="minimal"] .skd-progress { color: #0b7f99; }
+
+/* =========================================================
+   v82: desplazamiento limpio en listas largas (playlists)
+   ========================================================= */
+
+/* El panel de la Biblioteca mide miles de píxeles en una playlist larga. Desenfocar lo que hay detrás
+   de algo tan alto supera el tamaño de capa que admite la GPU del móvil: al bajar se veían trozos
+   viejos pegados, como si la vista se arrastrara. En el táctil el panel lleva un cristal más denso,
+   sin desenfoque en vivo (a la vista casi igual, y el scroll va fino). */
+@media (pointer: coarse), (max-width: 860px) {
+  :root:not(.lite) .library,
+  .has-wall .library,
+  .has-wall[data-theme="chrome"] .library {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background-color: color-mix(in srgb, var(--glass-tint, var(--surface)) 84%, transparent);
+  }
+}
+
+/* Alto estimado de las filas fuera de pantalla = alto real (lo mide app.js), para que la barra de
+   scroll y la posición no salten al pintarse */
+.track {
+  contain-intrinsic-size: auto var(--row-h, 62px);
+}
+
+/* Safari (iPhone/iPad) pinta a veces en blanco o con restos las filas con content-visibility mientras
+   se desplaza rápido. La lista ya se pinta por tandas, así que ahí no hace falta. */
+.is-ios .track {
+  content-visibility: visible;
+}
+
+/* La fila que deslizas a la cola vuelve a su sitio con suavidad */
+:root:not(.no-motion) .track:not(.is-swiping) {
+  transition: background-color 0.3s var(--ease-fluid, ease), box-shadow 0.3s var(--ease-fluid, ease), transform 0.3s var(--ease-fluid, ease);
+}

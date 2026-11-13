@@ -6,7 +6,7 @@
    - Los MP3 descargados desde la app viven en AUDIO_CACHE y se
      reproducen desde ahí (con soporte de rangos para poder adelantar).
    ========================================================= */
-const VERSION = 'v81';
+const VERSION = 'v82';
 const SHELL_CACHE = `liquidbrush-shell-${VERSION}`;
 const DATA_CACHE = 'liquidbrush-data';
 const AUDIO_CACHE = 'liquidbrush-audio';
@@ -15,8 +15,8 @@ const SHELL = [
   './',
   'index.html',
   'lab.html',
-  'styles.css?v=67',
-  'app.js?v=70',
+  'styles.css?v=68',
+  'app.js?v=71',
   'favicon.png',
   'logo.svg',
   'manifest.webmanifest',
