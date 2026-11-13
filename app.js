@@ -906,7 +906,7 @@
     if (state.view === 'playlist' && !getPlaylist(state.openPlaylist)) state.view = 'playlists';
     const scroll = window.scrollY;
     setView(state.view, { keepScroll: true });
-    window.scrollTo(0, scroll);
+    if (Math.abs(window.scrollY - scroll) > 1) window.scrollTo({ top: scroll, behavior: 'instant' });
 
     if (previousId && getTrack(previousId)) {
       // Llegaron datos nuevos con algo sonando: se conserva la canción y la cola
@@ -6322,6 +6322,13 @@
     const removable = pl?.kind === 'local';
     const fragment = document.createDocumentFragment();
     // Solo se pintan las primeras filas; el resto se añade al acercarse al final (listas de 1000+)
+    // v82: repintar la MISMA lista (llegan datos nuevos, una favorita, una descarga…) ya no la recorta a
+    // las primeras 40 filas. Antes la página se acortaba de golpe bajo el dedo y el navegador recolocaba
+    // el scroll: en las playlists largas la vista «se arrastraba» hacia arriba mientras bajabas.
+    const contextKey = `${state.view}|${state.openPlaylist?.key || state.openPlaylist || ''}|${state.openArtist || ''}|${normalize(state.query)}|${state.sort}|${state.filter || ''}|${state.genre || ''}`;
+    const keepRows = contextKey === list.contextKey ? list.rendered : 0;
+    const keepScroll = keepRows > LIST_FIRST_CHUNK ? window.scrollY : null;
+    list.contextKey = contextKey;
     list.items = visible;
     list.removable = removable;
     list.rendered = 0;
@@ -6351,7 +6358,12 @@
       if (li) fragment.appendChild(li);
     }
     els.trackList.replaceChildren(fragment);
-    if (visible.length) appendListChunk(LIST_FIRST_CHUNK);
+    if (visible.length) {
+      appendListChunk(LIST_FIRST_CHUNK);
+      const rowH = els.trackList.querySelector('.track')?.offsetHeight;
+      if (rowH) els.trackList.style.setProperty('--row-h', `${rowH}px`);
+      restoreListDepth(Math.min(keepRows, visible.length), keepScroll);
+    }
     renderAlphaRail(visible);
 
     renderListInfo();
@@ -6438,7 +6450,7 @@
 
   const LIST_FIRST_CHUNK = 40;
   const LIST_CHUNK = 80;
-  const list = { items: [], rendered: 0, removable: false, sentinel: null, observer: null, stubObserver: null };
+  const list = { items: [], rendered: 0, removable: false, sentinel: null, observer: null, stubObserver: null, contextKey: '' };
 
   /* v80: saltar lejos (índice alfabético, «Ir a la que suena») ya no crea de golpe miles de filas completas
      (en un móvil medio, saltar a la Z congelaba la app ~3 s). Las de en medio se ponen como huecos ligeros
@@ -6482,6 +6494,22 @@
     list.rendered = upTo;
     els.trackList.insertBefore(fragment, list.sentinel?.isConnected ? list.sentinel : null);
     stubs.forEach((stub) => list.stubObserver.observe(stub));
+  }
+
+  // Vuelve a dar a la lista el largo que tenía (filas reales cerca de la pantalla, huecos ligeros en el
+  // resto) y deja el scroll exactamente donde estaba, sin animación
+  function restoreListDepth(rows, scrollY) {
+    if (rows <= list.rendered) return;
+    appendStubs(rows);
+    const top = els.trackList.getBoundingClientRect().top;
+    const rowH = stubHeight() || 62;
+    const first = Math.max(0, Math.floor((-top) / rowH) - STUB_PAD);
+    const last = Math.min(rows - 1, Math.ceil((window.innerHeight - top) / rowH) + STUB_PAD);
+    const children = els.trackList.children;
+    for (let i = first; i <= last; i++) {
+      if (children[i]?.classList.contains('track-stub')) hydrateStub(children[i]);
+    }
+    if (scrollY !== null && Math.abs(window.scrollY - scrollY) > 1) window.scrollTo({ top: scrollY, behavior: 'instant' });
   }
 
   // Deja lista (y de verdad, no hueco) la fila «index» y las de su alrededor; devuelve la fila
@@ -6533,12 +6561,14 @@
       location.assign(VIEWS.includes(view) && view !== 'home' ? `${LIQUID_URL}?view=${view}` : LIQUID_URL);
       return;
     }
-    if (view !== 'library' && state.searchOpen) {
+    if (view !== 'library' && (state.searchOpen || !els.searchPanel.hidden)) {
       state.searchOpen = false;
       state.searchPrev = null;
       state.query = '';
       els.searchInput.value = '';
       if (document.activeElement === els.searchInput) els.searchInput.blur();
+      els.searchPanel.hidden = true;
+      updateSearchMode();
     }
     const previous = state.view;
     const previousPlaylist = state.openPlaylist;
@@ -6784,6 +6814,24 @@
 
     return { open, close, isOpen, init };
   })();
+
+  // v82: salir de Buscar del todo (texto, teclado, panel de recientes/explorar y modo búsqueda).
+  // Antes, al tocar otra sección sin haber escrito nada, el panel de Buscar se quedaba encima de Inicio,
+  // Biblioteca… hasta pulsar «Cancelar».
+  function leaveSearch() {
+    const wasOpen = state.searchOpen || !els.searchPanel.hidden || document.body.classList.contains('search-mode');
+    state.searchOpen = false;
+    state.searchPrev = null;
+    state.searchScope = 'all';
+    if (document.activeElement === els.searchInput) els.searchInput.blur();
+    if (state.query || els.searchInput.value) {
+      state.query = '';
+      els.searchInput.value = '';
+      if (wasOpen) renderList();
+    }
+    renderSearchPanel();
+    updateSearchMode();
+  }
 
   function clearSearch() {
     if (!state.query && !els.searchInput.value) return;
@@ -7446,8 +7494,28 @@
 
   /* ---------- Reproducción ---------- */
   let lyricsDelay = null;
+  // v82: abre de antemano la conexión con el servidor de la canción (y de la siguiente): ahorra el
+  // saludo inicial (DNS + TLS, ~0,3–0,6 s en el móvil) al darle a reproducir. Con el ecualizador el
+  // audio va en modo CORS, que usa otra conexión: se abre la que de verdad se va a usar.
+  const warmed = new Set();
+  function warmConnection(track) {
+    if (!track?.src || /^(blob|data):/.test(track.src) || track.radio) return;
+    const origin = originOf(track.src);
+    if (!origin || origin === location.origin) return;
+    const cors = wantsEq(track);
+    const key = `${origin}|${cors}`;
+    if (warmed.has(key)) return;
+    warmed.add(key);
+    const link = document.createElement('link');
+    link.rel = 'preconnect';
+    link.href = origin;
+    if (cors) link.crossOrigin = 'anonymous';
+    document.head.append(link);
+  }
+
   function loadTrack(track, autoplay = true, fade = 0) {
     if (!track) return;
+    warmConnection(track);
     state.currentTrack = track;
     state.pendingSeek = null;
     state.countedId = null;
@@ -7523,6 +7591,7 @@
     if (els.queueDialog.open) renderQueue();
     plus.onTrack(track);
     radio.onTrack(track);
+    setTimeout(() => warmConnection(getTrack(state.queue[state.queueIndex + 1])), 1500);
 
     if (autoplay) play();
   }
@@ -7540,6 +7609,15 @@
       if (!quiet) showToast(unplayableMessage(state.currentTrack));
       return;
     }
+    // v82: pausar y darle a ▶ enseguida: el fundido de la pausa (180 ms) seguía y al terminar paraba la
+    // canción otra vez. Ahora se cancela y el volumen vuelve a su sitio.
+    if (softFade.timer) {
+      clearInterval(softFade.timer);
+      softFade.timer = null;
+      deckGain.set(els.audio, 1);
+      applyVolume(els.audio);
+    }
+    routeDeckForEq();
     if (eq.ctx && eq.ctx.state !== 'running') eq.ctx.resume().catch(() => {});
     const deck = els.audio;
     // Descargada, sin conexión o sin modo offline, y con su copia local lista: suena desde el teléfono
@@ -8242,11 +8320,15 @@
 
   /* ---------- Ecualizador (Web Audio, requiere CORS en el audio) ---------- */
   const EQ_BANDS = [
-    { freq: 60, type: 'lowshelf', label: 'Bajos', hz: '60 Hz' },
+    // v82: los extremos son «estantes»: a su frecuencia solo dan la mitad del realce. Con el de bajos en
+    // 60 Hz, el +9 entero caía por debajo de 30 Hz (el móvil y los auriculares casi no lo reproducen) y los
+    // bajos apenas se notaban. Ahora el realce completo llega a todo lo que está por debajo de ~60 Hz,
+    // y el de agudos a todo lo que está por encima de ~14 kHz.
+    { freq: 110, type: 'lowshelf', label: 'Bajos', hz: '≤ 60 Hz', at: 50 },
     { freq: 230, type: 'peaking', label: 'Graves', hz: '230 Hz' },
     { freq: 910, type: 'peaking', label: 'Medios', hz: '910 Hz' },
     { freq: 3600, type: 'peaking', label: 'Voces', hz: '3,6 kHz' },
-    { freq: 14000, type: 'highshelf', label: 'Agudos', hz: '14 kHz' }
+    { freq: 9000, type: 'highshelf', label: 'Agudos', hz: '≥ 12 kHz', at: 15000 }
   ];
   const EQ_PRESETS = {
     flat: { name: 'Plano', gains: [0, 0, 0, 0, 0] },
@@ -8264,7 +8346,13 @@
   };
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
   // cors: origen → true/false según si su servidor permite leer el audio (se comprueba una vez por sesión)
-  const eq = { ctx: null, input: null, filters: [], analyser: null, freqData: null, cors: new Map(), probing: null, swapFrom: null, warned: new Set() };
+  const eq = { ctx: null, input: null, filters: [], limiter: null, analyser: null, freqData: null, cors: new Map(), probing: null, swapFrom: null, warned: new Set() };
+  // v82: los 6 buckets de R2 de Liquid ya tienen CORS activado. Se dan por buenos desde el arranque: antes
+  // la primera canción se preparaba antes de que terminara la comprobación y sonaba sin ecualizar.
+  // Si alguno dejara de permitirlo, la comprobación de abajo (y el fallo al reproducir) lo corrigen.
+  CONFIG.sources.forEach((source) => {
+    try { if (source.base) eq.cors.set(new URL(source.base).origin, true); } catch { /* base mal escrita */ }
+  });
 
   const eqActive = () => Boolean(AudioContextClass) && settings.eq.gains.some((g) => Math.abs(g) >= 0.5);
   const originOf = (src) => {
@@ -8291,13 +8379,26 @@
         filter.Q.value = 1.1;
         return filter;
       });
+      // Limitador suave al final: con +9 dB en los bajos los picos ya no distorsionan
+      const limiter = ctx.createDynamicsCompressor();
+      limiter.threshold.value = -1.5;
+      limiter.knee.value = 2;
+      limiter.ratio.value = 12;
+      limiter.attack.value = 0.003;
+      limiter.release.value = 0.2;
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 128;
       analyser.smoothingTimeConstant = 0.8;
-      [input, ...filters].reduce((from, to) => { from.connect(to); return to; }).connect(analyser);
+      [input, ...filters].reduce((from, to) => { from.connect(to); return to; }).connect(limiter);
+      limiter.connect(analyser);
       analyser.connect(ctx.destination);
       eqDecks.forEach((deck) => ctx.createMediaElementSource(deck).connect(input));
-      Object.assign(eq, { ctx, input, filters, analyser, freqData: new Uint8Array(analyser.frequencyBinCount) });
+      // iOS suspende (o «interrumpe») el audio con llamadas, Siri o al salir: se reanuda en cuanto se puede
+      ctx.addEventListener?.('statechange', () => {
+        if (ctx.state !== 'running' && eqDecks.includes(els.audio) && !els.audio.paused) ctx.resume().catch(() => {});
+        updateEqNote();
+      });
+      Object.assign(eq, { ctx, input, filters, limiter, analyser, freqData: new Uint8Array(analyser.frequencyBinCount) });
       applyEqGains();
       return true;
     } catch (error) {
@@ -8327,9 +8428,11 @@
     eq.probing = Promise.all([...samples].map(async ([origin, src]) => {
       try {
         const response = await fetch(src, { method: 'HEAD', mode: 'cors', cache: 'no-store' });
-        eq.cors.set(origin, response.ok);
+        // Llegó respuesta legible: el servidor permite CORS (aunque ese archivo concreto no exista)
+        eq.cors.set(origin, response.type === 'cors' || response.ok);
       } catch {
-        eq.cors.set(origin, false);
+        // Sin conexión no se sabe nada: no se marca como «no permitido»
+        if (navigator.onLine) eq.cors.set(origin, false);
       }
     })).finally(() => { eq.probing = null; });
     return eq.probing;
@@ -8365,12 +8468,61 @@
     play({ quiet: true });
   }
 
+  // v82: al darle a reproducir (es un toque: iOS deja cambiar de reproductor) la canción pasa al reproductor
+  // que le toca. Con el ecualizador encendido, al ecualizado; con «Plano», al normal, que en iPhone sigue
+  // sonando con la pantalla bloqueada. Antes, tras abrir la app, la canción se quedaba en el normal y el
+  // ecualizador no se oía hasta tocar sus ajustes.
+  function routeDeckForEq() {
+    const track = state.currentTrack;
+    const from = els.audio;
+    const src = from.getAttribute('src');
+    if (!track || !src || !from.paused || dj.timer || eq.swapFrom || !canSwitchDeck()) return;
+    const onEq = eqDecks.includes(from);
+    const want = wantsEq(track) && ensureEqGraph();
+    if (onEq === want) return;
+    const target = (want ? eqDecks : plainDecks)[0];
+    target.muted = from.muted;
+    deckGain.set(target, 1);
+    applyVolume(target);
+    if (from.currentTime > 0.3) state.pendingSeek = from.currentTime;
+    target.playbackRate = from.playbackRate;
+    els.audio = target;
+    // Una copia local (blob) se reutiliza; si no, la dirección normal de la canción
+    target.src = /^blob:/.test(src) ? src : audioSrc(track);
+    releaseDeck(from);
+  }
+
+  // v82: «suena pero no se oye». Con el ecualizador, el audio pasa por el procesador de sonido de la web.
+  // iOS lo suspende al salir a otra app (Instagram, TikTok, una llamada) y a veces no deja reanudarlo solo:
+  // la canción seguía avanzando en silencio. Si al volver no arranca, se pausa de verdad y se ofrece
+  // reanudar con un toque (un toque sí permite reanudarlo).
+  let eqWatchTimer = 0;
+  function checkEqAlive(delay = 600) {
+    clearTimeout(eqWatchTimer);
+    eqWatchTimer = setTimeout(() => {
+      if (!eq.ctx || document.hidden || !eqDecks.includes(els.audio) || els.audio.paused) return;
+      if (eq.ctx.state === 'running') return;
+      eq.ctx.resume().catch(() => {}).finally(() => {
+        setTimeout(() => {
+          if (!eq.ctx || eq.ctx.state === 'running' || els.audio.paused || !eqDecks.includes(els.audio)) return;
+          els.audio.pause();
+          showToast('iOS pausó el sonido al cambiar de app.', { label: 'Seguir escuchando', run: () => play() });
+        }, 900);
+      });
+    }, delay);
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) checkEqAlive(); });
+
   // Un servidor sin CORS no deja ecualizar: la canción vuelve a sonar sin ecualizador
   function recoverFromEqError() {
     const track = state.currentTrack;
     if (!track || !eqDecks.includes(els.audio)) return false;
     const origin = originOf(track.src);
-    eq.cors.set(origin, false);
+    // v82: un corte de red no es «el servidor no deja ecualizar». Se vuelve a comprobar y solo si de verdad
+    // no lo permite se apaga para ese servidor; mientras, esta canción sigue sin ecualizador.
+    const confirmed = eq.cors.get(origin) === false;
+    eq.cors.delete(origin);
+    const recheck = confirmed ? Promise.resolve() : probeCors();
     const failed = els.audio;
     if (eq.swapFrom?.getAttribute('src')) {
       els.audio = eq.swapFrom;
@@ -8382,24 +8534,153 @@
       loadTrack(track, autoplay);
       state.pendingSeek = time || null;
     }
-    if (!eq.warned.has(origin)) {
-      eq.warned.add(origin);
-      showToast('Esta canción no se puede ecualizar (su servidor no lo permite): suena sin ecualizador.');
-    }
-    updateEqNote();
+    if (confirmed) eq.cors.set(origin, false);
+    recheck.then(() => {
+      if (eq.cors.get(origin) === false && !eq.warned.has(origin)) {
+        eq.warned.add(origin);
+        showToast('Esta canción no se puede ecualizar (su servidor no lo permite): suena sin ecualizador.');
+      }
+      updateEqNote();
+    });
     return true;
   }
 
-  function updateEqNote() {
-    if (!AudioContextClass) {
-      els.eqNote.textContent = 'Este navegador no permite ecualizar el audio.';
-      return;
+  // v82: el aviso dice lo que pasa AHORA (ecualizando, pendiente de reproducir, esta canción no se puede…)
+  function eqStatus() {
+    if (!AudioContextClass) return { tone: 'off', text: 'Este navegador no permite ecualizar el audio.' };
+    if (!eqActive()) return { tone: 'off', text: 'Apagado: con «Plano» la música suena tal cual.' };
+    const track = state.currentTrack;
+    if (!track) return { tone: 'ready', text: 'Listo: se aplica en cuanto suene una canción.' };
+    if (track.radio || track.atk) return { tone: 'warn', text: 'La radio y Liquid ATK suenan sin ecualizar; tu música de Liquid, sí.' };
+    if (!eqCanPlay(track)) {
+      return eq.cors.get(originOf(track.src)) === false
+        ? { tone: 'warn', text: 'El servidor de esta canción no deja ecualizarla: suena sin ecualizador.' }
+        : { tone: 'ready', text: 'Comprobando el servidor de esta canción…' };
     }
-    const notes = ['Se aplica al momento. Solo funciona con canciones cuyo servidor lo permite (CORS); las demás suenan igual, sin ecualizar.'];
-    if ([...eq.cors.values()].some((ok) => !ok)) notes.push('Ahora mismo las canciones de Cloudflare R2 no se pueden ecualizar: hace falta activar CORS en el bucket.');
-    if (IS_IOS) notes.push('En iPhone/iPad, con el ecualizador activado la música podría pararse al salir de la app. Con «Plano» suena como siempre.');
-    els.eqNote.textContent = notes.join(' ');
+    if (!eqDecks.includes(els.audio)) return { tone: 'ready', text: 'Listo: se aplica al darle a reproducir.' };
+    if (eq.ctx && eq.ctx.state !== 'running' && !els.audio.paused) return { tone: 'warn', text: 'El sistema pausó el ecualizador: toca reproducir para reanudarlo.' };
+    return { tone: 'on', text: `Ecualizando «${track.title}».` };
   }
+
+  function updateEqNote() {
+    const status = eqStatus();
+    const pill = makeEl('span', `eq-status is-${status.tone}`, status.text);
+    pill.setAttribute('role', 'status');
+    const notes = [];
+    if (eqActive() && AudioContextClass) notes.push('Los cambios se oyen al momento. Un limitador evita que los realces distorsionen.');
+    if (IS_IOS) notes.push('En iPhone/iPad, con el ecualizador encendido la música puede pararse al bloquear la pantalla o salir de la app (iOS no deja procesar el audio en segundo plano). Con «Plano» suena como siempre.');
+    els.eqNote.replaceChildren(pill, ...(notes.length ? [makeEl('span', 'eq-note-text', notes.join(' '))] : []));
+  }
+
+  /* v82: curva del ecualizador. Se calcula con filtros iguales en un contexto sin sonido
+     (OfflineAudioContext), así se dibuja aunque no suene nada y sin pedir permiso de audio. */
+  const eqCurve = (() => {
+    const POINTS = 160;
+    const freqs = new Float32Array(POINTS);
+    for (let i = 0; i < POINTS; i++) freqs[i] = 20 * 1000 ** (i / (POINTS - 1));
+    let filters = null;
+    let frame = 0;
+    const ensure = () => {
+      if (filters) return true;
+      const Offline = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+      if (!Offline) return false;
+      try {
+        const ctx = new Offline(1, 1, 44100);
+        filters = EQ_BANDS.map((band) => {
+          const filter = ctx.createBiquadFilter();
+          filter.type = band.type;
+          filter.frequency.value = band.freq;
+          filter.Q.value = 1.1;
+          return filter;
+        });
+        return true;
+      } catch { return false; }
+    };
+    const xOf = (freq, width) => (Math.log10(freq / 20) / 3) * width;
+    function paint() {
+      frame = 0;
+      const canvas = document.getElementById('eqCurve');
+      if (!canvas || !ensure()) return;
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      if (!width || !height) return;
+      const dpr = Math.min(window.devicePixelRatio || 1, 3);
+      if (canvas.width !== Math.round(width * dpr)) canvas.width = Math.round(width * dpr);
+      if (canvas.height !== Math.round(height * dpr)) canvas.height = Math.round(height * dpr);
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+      const total = new Float32Array(POINTS);
+      const mag = new Float32Array(POINTS);
+      const phase = new Float32Array(POINTS);
+      filters.forEach((filter, i) => {
+        filter.gain.value = settings.eq.gains[i] || 0;
+        filter.getFrequencyResponse(freqs, mag, phase);
+        for (let j = 0; j < POINTS; j++) total[j] += 20 * Math.log10(Math.max(mag[j], 1e-4));
+      });
+      const dotFreqs = new Float32Array(EQ_BANDS.map((band) => band.at || band.freq));
+      const dots = new Float32Array(EQ_BANDS.length);
+      const dotMag = new Float32Array(EQ_BANDS.length);
+      const dotPhase = new Float32Array(EQ_BANDS.length);
+      filters.forEach((filter) => {
+        filter.getFrequencyResponse(dotFreqs, dotMag, dotPhase);
+        for (let j = 0; j < dots.length; j++) dots[j] += 20 * Math.log10(Math.max(dotMag[j], 1e-4));
+      });
+      const pad = 8;
+      const yOf = (db) => height / 2 - (clamp(db, -15, 15) / 15) * (height / 2 - pad);
+      const style = getComputedStyle(canvas);
+      const accent = style.color || '#9cf';
+      // Rejilla: 0 dB y las frecuencias de cada banda
+      ctx.strokeStyle = style.getPropertyValue('--grid').trim() || 'rgba(255,255,255,0.12)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 4]);
+      ctx.beginPath();
+      ctx.moveTo(0, yOf(0));
+      ctx.lineTo(width, yOf(0));
+      EQ_BANDS.forEach((band) => {
+        const x = xOf(band.at || band.freq, width);
+        ctx.moveTo(x, pad);
+        ctx.lineTo(x, height - pad);
+      });
+      ctx.stroke();
+      ctx.setLineDash([]);
+      // Relleno entre la curva y 0 dB
+      ctx.beginPath();
+      ctx.moveTo(0, yOf(0));
+      for (let j = 0; j < POINTS; j++) ctx.lineTo((j / (POINTS - 1)) * width, yOf(total[j]));
+      ctx.lineTo(width, yOf(0));
+      ctx.closePath();
+      ctx.globalAlpha = 0.22;
+      ctx.fillStyle = accent;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      // Curva
+      ctx.beginPath();
+      for (let j = 0; j < POINTS; j++) {
+        const x = (j / (POINTS - 1)) * width;
+        if (j) ctx.lineTo(x, yOf(total[j])); else ctx.moveTo(x, yOf(total[j]));
+      }
+      ctx.strokeStyle = accent;
+      ctx.lineWidth = 2.2;
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+      // Un punto por banda, a su ganancia
+      ctx.fillStyle = accent;
+      EQ_BANDS.forEach((band, i) => {
+        ctx.beginPath();
+        ctx.arc(xOf(band.at || band.freq, width), yOf(dots[i]), 3.5, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+    const draw = () => { if (!frame) frame = requestAnimationFrame(paint); };
+    let observed = false;
+    const watch = (canvas) => {
+      if (observed || !canvas || !('ResizeObserver' in window)) return;
+      observed = true;
+      new ResizeObserver(draw).observe(canvas);
+    };
+    return { draw, watch };
+  })();
 
   /* ---------- Visualizador (Canvas) ---------- */
   const visualizer = (() => {
@@ -9365,6 +9646,8 @@
     // seguía mostrando la anterior terminada, «3:35 · −0:00»)
     ['playing', 'seeked', 'ratechange', 'durationchange'].forEach((type) => on(type, updatePositionStateNow));
     on('playing', applyMediaHandlers);
+    on('playing', updateEqNote);
+    on('playing', () => checkEqAlive(1500));
     on('playing', () => stallGuard.reset());
     on('durationchange', () => {
       if (!state.isSeeking) updateProgressUI(els.audio.currentTime, getDuration());
@@ -9921,7 +10204,7 @@
     els.tabsBar.addEventListener('click', (event) => {
       const tab = event.target.closest('.tab');
       if (!tab) return;
-      clearSearch();
+      if (state.searchOpen || !els.searchPanel.hidden) leaveSearch(); else clearSearch();
       setView(tab.dataset.view);
     });
     // Quita el degradado del borde cuando ya se ve la última pestaña
@@ -10042,6 +10325,14 @@
       renderEqBands();
       onEqChange();
     });
+    els.eqBands.addEventListener('dblclick', (event) => {
+      const row = event.target.closest('.eq-band');
+      const input = row?.querySelector('input[data-band]');
+      if (!input || input.disabled || Number(input.value) === 0) return;
+      event.preventDefault();
+      input.value = '0';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
     els.eqBands.addEventListener('input', (event) => {
       const input = event.target.closest('input[data-band]');
       if (!input) return;
@@ -10050,6 +10341,7 @@
       settings.eq.preset = match ? match[0] : 'custom';
       els.eqPreset.value = settings.eq.preset;
       updateBandLabel(input);
+      eqCurve.draw();
       onEqChange();
     });
 
@@ -10060,11 +10352,7 @@
       const target = button.dataset.nav;
       npSheet.close();
       // Cambiar de sección deja atrás la búsqueda (antes el texto seguía escrito en Inicio y Lab sin filtrar nada)
-      if (target !== 'search') {
-        state.searchOpen = false;
-        state.searchPrev = null;
-        clearSearch();
-      }
+      if (target !== 'search') leaveSearch();
       if (target === 'home' && state.view !== 'home') setView('home');
       if (target === 'library' && state.view !== 'library') setView('library');
       if (target === 'playlists' && state.view !== 'playlists') setView('playlists');
@@ -12497,6 +12785,17 @@
 
   function renderEqBands() {
     els.eqPreset.value = settings.eq.preset in EQ_PRESETS ? settings.eq.preset : 'custom';
+    let curve = document.getElementById('eqCurve');
+    if (!curve) {
+      curve = document.createElement('canvas');
+      curve.id = 'eqCurve';
+      curve.className = 'eq-curve';
+      curve.setAttribute('role', 'img');
+      els.eqBands.before(curve);
+      eqCurve.watch(curve);
+    }
+    curve.setAttribute('aria-label', `Curva del ecualizador: ${EQ_BANDS.map((band, i) => `${band.label} ${settings.eq.gains[i] > 0 ? '+' : ''}${settings.eq.gains[i]} dB`).join(', ')}`);
+    eqCurve.draw();
     els.eqBands.replaceChildren(...EQ_BANDS.map((band, i) => {
       const row = makeEl('label', 'eq-band');
       const name = makeEl('span', 'eq-name');
@@ -12521,6 +12820,8 @@
     saveSettings();
     if (!eqActive()) {
       applyEqGains();
+      if (els.audio.paused) routeDeckForEq();
+      updateEqNote();
       return;
     }
     // Se crea dentro del toque: los navegadores solo dejan arrancar el audio así
@@ -12658,6 +12959,51 @@
     // Lo decide la detección del dispositivo (index.html): iPhone y iPad nunca entran aquí por sus núcleos
     autoLite = DEVICE.lowEnd || DEVICE.saveData || DEVICE.slowNet;
     if (autoLite) document.documentElement.classList.add('lite');
+  }
+
+  /* v82: iPhone/iPad (sobre todo la app instalada). A veces Safari deja la «ventana de diseño» (donde se
+     anclan el reproductor, la barra inferior y la cabecera) desfasada de lo que se ve: tras cerrar el
+     teclado, al volver de segundo plano o tras un rebote al bajar por una lista. El reproductor y la barra
+     se quedaban a media pantalla, la cabecera desaparecía por arriba y la lista seguía por debajo, como
+     si la vista se hubiera quedado arrastrada. Al terminar cada gesto se comprueba y se recoloca. */
+  function guardIosViewport() {
+    const vv = window.visualViewport;
+    if (!IS_IOS || !vv) return;
+    const root = document.documentElement;
+    const editing = () => Boolean(document.activeElement?.matches?.('input:not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="file"]), textarea, select, [contenteditable="true"]'));
+    // Cuánto queda el borde inferior de la ventana de diseño por encima del borde visible
+    const gapNow = () => Math.round(vv.offsetTop + vv.height - window.innerHeight);
+    const setShift = (px) => {
+      if (px > 1) root.style.setProperty('--vv-shift', `${px}px`);
+      else root.style.removeProperty('--vv-shift');
+    };
+    let timer = 0;
+    let touching = false;
+    const fix = () => {
+      timer = 0;
+      if (touching || document.hidden) return;
+      // Con el teclado abierto o con zoom, el desfase es normal
+      if (editing() || vv.scale > 1.01) { setShift(0); return; }
+      if (vv.offsetTop < 2 && gapNow() < 2) { setShift(0); return; }
+      // Mover la ventana de diseño a donde está la visible (sin animación) la vuelve a alinear
+      window.scrollTo({ top: Math.round(vv.pageTop), behavior: 'instant' });
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        // Si Safari no se deja, al menos el reproductor y la barra bajan a su sitio
+        setShift(editing() ? 0 : gapNow());
+      }));
+    };
+    const later = (delay = 180) => { clearTimeout(timer); timer = setTimeout(fix, delay); };
+    window.addEventListener('scroll', () => later(), { passive: true });
+    vv.addEventListener('resize', () => later());
+    vv.addEventListener('scroll', () => later());
+    document.addEventListener('touchstart', () => { touching = true; }, { passive: true, capture: true });
+    const release = () => { touching = false; later(); };
+    document.addEventListener('touchend', release, { passive: true, capture: true });
+    document.addEventListener('touchcancel', release, { passive: true, capture: true });
+    document.addEventListener('focusout', () => later(350));
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) later(250); });
+    window.addEventListener('pageshow', () => later(250));
+    window.addEventListener('orientationchange', () => later(450));
   }
 
   // Abierta dentro de Instagram, TikTok, Facebook…: la música se corta al salir de esa app, no se puede
@@ -15956,14 +16302,14 @@
      Letra a pantalla completa, bucle A–B, modo coche, sesión privada, notas, la historia de cada canción,
      «Luego» a la vista, la carátula en la pestaña, racha en Inicio, elegir gustos al empezar, progreso de
      cada playlist, «Lo que te falta», hitos, pestañas siempre a mano y deslizar una canción a la cola. */
-  const PLUS_KEYS = { notes: 'liquidbrush:notes', hitos: 'liquidbrush:hitos', gustos: 'liquidbrush:gustos-hecho' };
+  // v82: «Tu historia con esta canción» y sus notas se quitaron; lo guardado en liquidbrush:notes no se toca
+  const PLUS_KEYS = { hitos: 'liquidbrush:hitos', gustos: 'liquidbrush:gustos-hecho' };
   const fechaLarga = (key) => {
     const [y, m, d] = key.split('-').map(Number);
     return new Date(y, m - 1, d).toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' });
   };
 
   const plus = {
-    notes: (() => { const n = storage.get(PLUS_KEYS.notes, {}); return n && typeof n === 'object' ? n : {}; })(),
     loop: { a: null, b: null },
     private: false,
     ui: {},
@@ -16139,98 +16485,6 @@
       fav.setAttribute('aria-pressed', String(liked));
     },
 
-    /* --- Notas: un recuerdo por canción («la del viaje a la playa») --- */
-    openNote() {
-      const track = state.currentTrack;
-      if (!track) { showToast('Pon una canción para escribirle una nota.'); return; }
-      if (!this.ui.note) {
-        const d = makeEl('dialog', 'sheet note-sheet');
-        d.setAttribute('aria-labelledby', 'noteTitle');
-        const body = makeEl('form', 'sheet-body');
-        body.method = 'dialog';
-        const title = makeEl('h2', 'sheet-title', 'Tu nota');
-        title.id = 'noteTitle';
-        const area = document.createElement('textarea');
-        area.className = 'note-area';
-        area.maxLength = 280;
-        area.rows = 4;
-        area.placeholder = '¿A qué te recuerda? ¿Quién te la enseñó?';
-        area.setAttribute('aria-label', 'Nota sobre esta canción');
-        const actions = makeEl('div', 'sheet-actions');
-        const cancel = makeEl('button', 'btn', 'Cancelar');
-        cancel.type = 'button';
-        cancel.addEventListener('click', () => d.close());
-        const erase = makeEl('button', 'btn note-erase', 'Borrar');
-        erase.type = 'button';
-        erase.addEventListener('click', () => { area.value = ''; d.close('save'); });
-        const save = makeEl('button', 'btn btn-primary', 'Guardar');
-        save.value = 'save';
-        actions.append(cancel, erase, save);
-        body.append(title, makeEl('p', 'sheet-text note-for'), area, makeEl('p', 'sheet-note', 'Solo la ves tú: se guarda en este navegador.'), actions);
-        d.append(body);
-        d.addEventListener('click', (event) => { if (event.target === d) d.close(); });
-        d.addEventListener('close', () => {
-          if (d.returnValue !== 'save' || !d.dataset.id) return;
-          const text = area.value.trim().slice(0, 280);
-          if (text) this.notes[d.dataset.id] = text; else delete this.notes[d.dataset.id];
-          storage.set(PLUS_KEYS.notes, this.notes);
-          showToast(text ? 'Nota guardada.' : 'Nota borrada.');
-          this.renderStory();
-        });
-        document.body.append(d);
-        this.ui.note = d;
-      }
-      const d = this.ui.note;
-      d.dataset.id = track.id;
-      d.querySelector('.note-for').textContent = `${splitTitle(track.title).main} · ${track.knownArtist || track.artist}`;
-      d.querySelector('.note-area').value = this.notes[track.id] || '';
-      d.querySelector('.note-erase').hidden = !this.notes[track.id];
-      d.returnValue = '';
-      d.showModal();
-    },
-
-    /* --- Tu historia con la canción que suena: veces, minutos, primera vez, puesto --- */
-    songStory(track) {
-      const plays = playsOf(track.id);
-      let seconds = 0;
-      let first = null;
-      Object.keys(listen.log).sort().forEach((key) => {
-        const s = listen.log[key]?.s?.[track.id];
-        if (s) { seconds += s; if (!first) first = key; }
-      });
-      const heard = Number(taste.heard[track.id]) || 0;
-      const facts = [];
-      if (plays) facts.push(`${plays} ${plays === 1 ? 'vez' : 'veces'}`);
-      if (seconds >= 60) facts.push(minutesLabel(seconds));
-      if (first) facts.push(`desde el ${fechaLarga(first)}`);
-      if (heard) facts.push(`la última, ${haceTiempo(heard)}`);
-      let rank = 0;
-      if (plays >= 3) {
-        rank = 1 + Object.values(library.plays).filter((n) => Number(n) > plays).length;
-        if (rank <= 50) facts.push(`tu n.º ${rank}`);
-      }
-      return { plays, seconds, first, heard, rank, facts };
-    },
-    renderStory() {
-      const box = this.ui.story;
-      const track = state.currentTrack;
-      if (!box) return;
-      box.hidden = !track || Boolean(track.radio);
-      if (box.hidden) return;
-      const story = this.songStory(track);
-      const head = makeEl('p', 'about-eyebrow', 'Tu historia con esta canción');
-      const line = makeEl('p', 'story-facts', story.facts.length ? story.facts.join(' · ') : 'Es la primera vez que la pones. Aquí verás cuánto la escuchas.');
-      const parts = [head, line];
-      const note = this.notes[track.id];
-      const edit = makeEl('button', `story-note${note ? ' has-note' : ''}`, note || 'Añadir una nota');
-      edit.type = 'button';
-      edit.setAttribute('aria-label', note ? `Tu nota: ${note}. Tocar para editarla` : 'Añadir una nota a esta canción');
-      edit.prepend(svgIcon('edit'));
-      edit.addEventListener('click', () => this.openNote());
-      parts.push(edit);
-      box.replaceChildren(...parts);
-    },
-
     /* --- «Luego»: lo siguiente de la cola, siempre a la vista --- */
     renderNext() {
       const el = this.ui.next;
@@ -16264,7 +16518,6 @@
 
     onTrack(track) {
       this.clearLoop();
-      this.renderStory();
       this.renderNext();
       this.setFavicon(track);
       if (this.ui.car?.open) this.syncCar();
@@ -16677,13 +16930,8 @@
       nextUp.addEventListener('click', () => openQueue());
       this.ui.next = nextUp;
 
-      const story = makeEl('div', 'np-story');
-      story.hidden = true;
-      this.ui.story = story;
-
       const tools = els.nowPlaying.querySelector('.np-tools');
       tools.after(row, nextUp);
-      els.npAbout.before(story);
 
       // Cada cambio en la cola refresca «Luego»
       const saveQueue = resume.saveQueue;
@@ -16724,6 +16972,7 @@
   function init() {
     errorLog.init();
     detectLiteMode();
+    guardIosViewport();
     applyLook();
     els.eqPreset.replaceChildren(...Object.entries(EQ_PRESETS).map(([value, preset]) => new Option(preset.name, value)));
     document.documentElement.classList.toggle('is-ios', IS_IOS);

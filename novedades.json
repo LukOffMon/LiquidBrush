@@ -1,6 +1,28 @@
 {
   "releases": [
     {
+      "version": "v82",
+      "date": "noviembre 2026",
+      "title": "Música que arranca antes, ecualizador de verdad y playlists sin tirones",
+      "items": [
+        "La música empieza antes: la conexión con el servidor se abre de antemano y, en iPhone, el audio ya no da un rodeo por el modo offline cuando la canción no está descargada (ese rodeo la atascaba o la dejaba en silencio).",
+        "Si iOS deja el sonido en pausa al volver de otra app (Instagram, TikTok, una llamada), Liquid ya no se queda «sonando» en silencio: te avisa y vuelve a sonar con un toque.",
+        "Pausar y darle a reproducir enseguida ya no deja la canción parada.",
+        "Buscar ya no se queda pegado encima de Inicio, Biblioteca o Playlists si cambias de sección sin pulsar «Cancelar».",
+        "Ecualizador: ya funciona con toda tu música de Liquid (los servidores ya permiten ecualizar). Antes, al abrir la app, la canción sonaba sin ecualizar aunque tuvieras un perfil puesto; ahora se aplica al darle a reproducir.",
+        "Bajos y agudos se notan de verdad: el realce completo llega a los bajos que oyes en el móvil y en los auriculares (antes +9 dB en bajos se quedaba en +4,5) y a los agudos brillantes.",
+        "Curva del ecualizador para ver cómo suena tu perfil, un aviso en vivo (ecualizando, listo, esta canción no se puede…) y doble toque en una banda para volver a 0 dB.",
+        "Un limitador evita que los realces fuertes distorsionen, y un corte de red ya no apaga el ecualizador toda la sesión.",
+        "En iPhone, al poner «Plano» y reanudar, la música vuelve al reproductor normal para seguir sonando con la pantalla bloqueada.",
+        "iPhone (sobre todo con la app instalada): el reproductor y la barra de abajo ya no se quedan a media pantalla con la lista asomando por debajo. Si Safari desalinea la pantalla (al cerrar el teclado, volver a la app o rebotar al final de una lista), Liquid lo recoloca solo.",
+        "Al bajar por una playlist larga la vista ya no se queda «arrastrada» ni salta hacia arriba: cuando llegan datos nuevos o marcas algo, la lista conserva su largo y su posición.",
+        "El panel de canciones en el móvil lleva un cristal más denso: se lee mejor sobre cualquier fondo y el scroll va más fino.",
+        "En el táctil las filas ya no se encogen y rebotan al empezar a desplazar.",
+        "En iPhone/iPad las filas ya no aparecen en blanco o con restos al desplazarte rápido.",
+        "Sonando ya no muestra la tarjeta «Tu historia con esta canción» ni sus notas (las que escribiste siguen guardadas en tu navegador)."
+      ]
+    },
+    {
       "version": "v81",
       "date": "noviembre 2026",
       "title": "Pantalla de bloqueo afinada (iPhone y Android)",

@@ -4391,7 +4391,10 @@ textarea {
   transition: background-color 0.3s var(--ease-fluid), box-shadow 0.3s var(--ease-fluid), transform 0.45s var(--spring);
 }
 
-:root:not(.no-motion) .track:active { transform: scale(0.985); }
+/* Solo con ratón: en el táctil, cada fila que tocabas al empezar a desplazar se encogía y rebotaba */
+@media (hover: hover) and (pointer: fine) {
+  :root:not(.no-motion) .track:active { transform: scale(0.985); }
+}
 
 /* Las filas entran en cascada al cambiar de vista */
 :root:not(.no-motion) .library-view.rows-in .track {
@@ -4428,9 +4431,9 @@ textarea {
 
 :root:not(.no-motion) .toast { transition: transform 0.55s var(--spring), opacity 0.3s var(--ease-fluid); }
 
-@media (prefers-reduced-motion: no-preference) {
-  :root:not(.no-motion) { scroll-behavior: smooth; }
-}
+/* v82: sin scroll suave global. Hacía suaves también los saltos internos (al repintar una lista o
+   llegar datos nuevos) y peleaban con el dedo: la playlist «se arrastraba» al bajar. Los botones que
+   deben deslizar (subir arriba, ir a la que suena) ya lo piden ellos mismos. */
 
 @media (prefers-reduced-motion: reduce) {
   .library-view.rows-in .track,
@@ -8645,84 +8648,6 @@ body.is-private .np-eyebrow::after {
   white-space: nowrap;
 }
 
-/* ---------- Tu historia con la canción (y su nota) ---------- */
-.np-story {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  background: var(--surface-2);
-}
-
-.story-facts {
-  font-family: var(--song-font);
-  font-size: 0.88rem;
-  line-height: 1.45;
-  letter-spacing: normal;
-}
-
-.story-note {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 8px 10px;
-  border: 1px dashed var(--border);
-  border-radius: 12px;
-  background: transparent;
-  color: var(--text-muted);
-  font-family: var(--song-font);
-  font-size: 0.84rem;
-  line-height: 1.4;
-  letter-spacing: normal;
-  text-align: left;
-  overflow-wrap: anywhere;
-  cursor: pointer;
-}
-
-.story-note .icon {
-  flex: none;
-  width: 16px;
-  height: 16px;
-  margin-top: 2px;
-}
-
-.story-note.has-note {
-  border-style: solid;
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
-  color: var(--text);
-  font-style: italic;
-}
-
-.story-note:hover {
-  background: var(--surface-hover);
-}
-
-.note-area {
-  width: 100%;
-  padding: 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: var(--surface-2);
-  color: var(--text);
-  font-size: 1rem;
-  line-height: 1.45;
-  resize: vertical;
-}
-
-.note-area:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
-}
-
-.note-sheet .sheet-body {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
 /* ---------- Pantallas completas: letra grande y modo coche ---------- */
 .plus-overlay {
   position: fixed;
@@ -11097,3 +11022,143 @@ body.is-radio #lyricsBtn {
 }
 
 [data-theme="minimal"] .skd-progress { color: #0b7f99; }
+
+/* =========================================================
+   v82: desplazamiento limpio en listas largas (playlists)
+   ========================================================= */
+
+/* El panel de la Biblioteca mide miles de píxeles en una playlist larga. Desenfocar lo que hay detrás
+   de algo tan alto supera el tamaño de capa que admite la GPU del móvil: al bajar se veían trozos
+   viejos pegados, como si la vista se arrastrara. En el táctil el panel lleva un cristal más denso,
+   sin desenfoque en vivo (a la vista casi igual, y el scroll va fino). */
+@media (pointer: coarse), (max-width: 860px) {
+  :root:not(.lite) .library,
+  .has-wall .library,
+  .has-wall[data-theme="chrome"] .library {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background-color: color-mix(in srgb, var(--glass-tint, var(--surface)) 84%, transparent);
+  }
+}
+
+/* Alto estimado de las filas fuera de pantalla = alto real (lo mide app.js), para que la barra de
+   scroll y la posición no salten al pintarse */
+.track {
+  contain-intrinsic-size: auto var(--row-h, 62px);
+}
+
+/* Safari (iPhone/iPad) pinta a veces en blanco o con restos las filas con content-visibility mientras
+   se desplaza rápido. La lista ya se pinta por tandas, así que ahí no hace falta. */
+.is-ios .track {
+  content-visibility: visible;
+}
+
+/* La fila que deslizas a la cola vuelve a su sitio con suavidad */
+:root:not(.no-motion) .track:not(.is-swiping) {
+  transition: background-color 0.3s var(--ease-fluid, ease), box-shadow 0.3s var(--ease-fluid, ease), transform 0.3s var(--ease-fluid, ease);
+}
+
+/* v82: iPhone/iPad. Si Safari deja desfasada la ventana donde se ancla lo fijo (ver guardIosViewport en
+   app.js), el reproductor, la barra inferior, los botones flotantes y los avisos bajan a su sitio.
+   «translate» se suma a los transform que ya llevan sus animaciones. */
+.is-ios .player,
+.is-ios .float-actions,
+.is-ios .toast {
+  translate: 0 var(--vv-shift, 0px);
+}
+
+/* =========================================================
+   v82: Ecualizador. Curva, estado en vivo y selector legible
+   ========================================================= */
+.eq-curve {
+  display: block;
+  width: 100%;
+  height: 96px;
+  margin: 6px 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--accent) 7%, transparent), transparent 50%, color-mix(in srgb, var(--accent) 4%, transparent)),
+    color-mix(in srgb, var(--surface-2, var(--surface)) 70%, transparent);
+  color: var(--accent);
+  --grid: color-mix(in srgb, var(--text) 14%, transparent);
+}
+
+.eq-band {
+  grid-template-columns: minmax(70px, 88px) minmax(0, 1fr) 56px;
+  min-height: 44px;
+}
+
+.eq-range {
+  touch-action: pan-y;
+}
+
+.eq-value {
+  color: var(--text);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+#eqNote {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.eq-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--text);
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+}
+
+.eq-status::before {
+  content: '';
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.eq-status.is-on { background: color-mix(in srgb, #3ddc84 16%, transparent); }
+.eq-status.is-on::before { background: #3ddc84; box-shadow: 0 0 0 3px color-mix(in srgb, #3ddc84 25%, transparent); }
+.eq-status.is-ready::before { background: var(--accent); }
+.eq-status.is-warn { background: color-mix(in srgb, #ffb340 16%, transparent); }
+.eq-status.is-warn::before { background: #ffb340; }
+
+:root:not(.no-motion) .eq-status.is-on::before {
+  animation: eq-live 1.6s ease-in-out infinite;
+}
+
+@keyframes eq-live {
+  50% { box-shadow: 0 0 0 6px color-mix(in srgb, #3ddc84 0%, transparent); }
+}
+
+.eq-note-text {
+  display: block;
+}
+
+/* Los selectores no cortan el texto contra la flecha; la flecha es un chevrón nítido (antes, en iPhone,
+   se veía como un guion) */
+.setting-select {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  padding-right: 34px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1.5 1.5 6 6l4.5-4.5' fill='none' stroke='%23999' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-position: right 14px center;
+  background-size: 12px 8px;
+}
+
+#eqPreset {
+  max-width: 64%;
+}

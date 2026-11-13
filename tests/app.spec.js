@@ -906,7 +906,7 @@ test.describe('v66: 15 ideas', () => {
     expect(errors).toEqual([]);
   });
 
-  test('Sonando: Luego, historia y nota, bucle, sesión privada, letra grande y modo coche', async ({ page }) => {
+  test('Sonando: Luego, sin «historia», bucle, sesión privada, letra grande y modo coche', async ({ page }) => {
     const errors = [];
     page.on('pageerror', (error) => errors.push(error.message));
     await conHistorial(page);
@@ -921,13 +921,8 @@ test.describe('v66: 15 ideas', () => {
     await expect(page.locator('.np-next')).toBeVisible();
     await expect(page.locator('.np-next-name')).not.toBeEmpty();
     expect(await page.evaluate(() => document.querySelector('link[rel="icon"]').getAttribute('href'))).toMatch(/covers\//);
-    // Historia y nota
-    await expect(page.locator('.np-story')).toContainText('Tu historia con esta canción');
-    await page.locator('.story-note').click();
-    await page.locator('.note-area').fill('La del viaje a la playa');
-    await page.locator('.note-sheet .btn-primary').click();
-    await expect(page.locator('.story-note.has-note')).toContainText('La del viaje a la playa');
-    expect(await page.evaluate(() => Object.values(JSON.parse(localStorage.getItem('liquidbrush:notes'))))).toEqual(['La del viaje a la playa']);
+    // v82: la tarjeta «Tu historia con esta canción» (y sus notas) ya no sale
+    await expect(page.locator('.np-story, .story-note')).toHaveCount(0);
     // Bucle: el primer toque marca el principio
     await page.locator('.plus-loop').click();
     await expect(page.locator('.plus-loop')).toHaveAttribute('aria-pressed', 'true');
@@ -1980,5 +1975,89 @@ test.describe('v80: parche de estabilidad', () => {
     await page.mouse.wheel(0, -3000);
     await expect.poll(() => page.evaluate(() => document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2)?.closest('.track, .track-stub')?.className || '')).toContain('track');
     await expect.poll(() => page.evaluate(() => document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2)?.closest('.track-stub') === null)).toBe(true);
+  });
+});
+
+test.describe('v82: playlists sin tirones al bajar', () => {
+  test('repintar una playlist larga no la recorta ni mueve el scroll', async ({ page }) => {
+    await page.goto('./?view=playlists');
+    await expect(page.locator('.pl-card').first()).toBeVisible();
+    await page.evaluate(() => document.querySelector('.pl-card').click());
+    await expect(page.locator('#trackList .track').first()).toBeVisible();
+    // Bajar hasta que haya muchas filas pintadas
+    for (let i = 0; i < 6; i++) {
+      await page.evaluate(() => window.scrollBy(0, 1500));
+      await page.waitForTimeout(250);
+    }
+    const before = await page.evaluate(() => ({ y: Math.round(window.scrollY), rows: document.querySelectorAll('#trackList > li').length }));
+    test.skip(before.rows <= 60, 'La playlist de prueba es corta');
+    // Repinta la misma lista (como al llegar datos nuevos o marcar una favorita)
+    await page.evaluate(() => document.querySelector('#filterChips .chip.is-active, #filterChips .chip').click());
+    await page.waitForTimeout(300);
+    const after = await page.evaluate(() => ({ y: Math.round(window.scrollY), rows: document.querySelectorAll('#trackList > li').length }));
+    expect(Math.abs(after.y - before.y)).toBeLessThan(4);
+    expect(after.rows).toBeGreaterThanOrEqual(before.rows - 1);
+    // Lo que se ve en el centro es una canción de verdad, no un hueco
+    expect(await page.evaluate(() => Boolean(document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2)?.closest('.track')))).toBe(true);
+  });
+});
+
+test.describe('v82: ecualizador con CORS en R2', () => {
+  test.use({ serviceWorkers: 'block' });
+  test('al abrir la app con un perfil, ▶ suena por el ecualizador; con «Plano» vuelve al reproductor normal', async ({ page }) => {
+    test.setTimeout(45000);
+    await page.addInitScript(() => {
+      if (sessionStorage.getItem('eq-ok')) return;
+      sessionStorage.setItem('eq-ok', '1');
+      const saved = JSON.parse(localStorage.getItem('liquidbrush:settings') || '{}');
+      saved.eq = { preset: 'deep', gains: [9, 5, -1, 0, 1] };
+      localStorage.setItem('liquidbrush:settings', JSON.stringify(saved));
+    });
+    // R2 con CORS activado (como ya está en los 6 buckets)
+    const wav = silentWav(20);
+    await page.route(/r2\.dev/, (route) => route.fulfill({ status: 200, contentType: 'audio/wav', body: wav, headers: { 'Access-Control-Allow-Origin': '*' } }));
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.evaluate(() => document.querySelectorAll('dialog[open]').forEach((d) => d.close()));
+    await page.locator('#playBtn').click();
+    const deckSonando = () => page.evaluate(() => [...document.querySelectorAll('audio')].find((a) => a.getAttribute('src') && !a.paused)?.id || '');
+    await expect.poll(deckSonando, { timeout: 20000 }).toMatch(/^audio[34]$/);
+    await expect(page.locator('#eqNote .eq-status')).toHaveClass(/is-on/);
+    await page.evaluate(() => document.getElementById('settingsBtn').click());
+    await expect(page.locator('#eqCurve')).toHaveAttribute('aria-label', /Bajos \+9 dB/);
+    await page.evaluate(() => document.querySelectorAll('dialog[open]').forEach((d) => d.close()));
+    await expect(page.locator('dialog[open]')).toHaveCount(0);
+    // Plano con la música en pausa: al reanudar pasa al reproductor normal (en iPhone sigue con la pantalla bloqueada)
+    await page.locator('#playBtn').click();
+    await expect(page.locator('#playBtn')).toHaveAttribute('aria-label', 'Reproducir');
+    await page.evaluate(() => {
+      const select = document.getElementById('eqPreset');
+      select.value = 'flat';
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await page.locator('#playBtn').click();
+    await expect.poll(deckSonando, { timeout: 20000 }).toMatch(/^audio2?$/);
+    await expect(page.locator('#eqNote .eq-status')).toHaveClass(/is-off/);
+  });
+});
+
+test.describe('v82: salir de Buscar sin «Cancelar»', () => {
+  test('tocar otra sección de la barra de abajo quita el panel de Buscar aunque el teclado ya estuviera cerrado', async ({ page }) => {
+    test.skip(!isPhone(page), 'La barra de abajo es del teléfono');
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    for (const target of ['home', 'playlists', 'library', 'radio']) {
+      await page.locator('.nav-btn[data-nav="search"]').click();
+      await expect(page.locator('#searchPanel')).toBeVisible();
+      // En el iPhone el teclado suele cerrarse antes (al desplazar): el buscador ya no tiene el foco
+      await page.evaluate(() => document.activeElement?.blur());
+      await page.waitForTimeout(200);
+      await page.locator(`.nav-btn[data-nav="${target}"]`).click();
+      await expect(page.locator('#searchPanel')).toBeHidden();
+      await expect(page.locator('body')).not.toHaveClass(/search-mode/);
+    }
+    await expect(page.locator('#homePanel')).toBeHidden();
+    await page.locator('.nav-btn[data-nav="home"]').click();
+    await expect(page.locator('#homePanel')).toBeVisible();
   });
 });
