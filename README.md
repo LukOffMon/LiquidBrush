@@ -53,6 +53,17 @@ python3 tools/build_catalog.py
 
 `sync_r2.py` lista cada bucket, crea una fila por MP3 (todas a la Biblioteca; título y artista sacados de `001 - Artista - Título.mp3`; duración leída del propio archivo) y respeta lo que hayas editado a mano en las filas que ya existían. Cada bucket está en una cuenta distinta de Cloudflare y necesita su clave de API de R2 en variables de entorno: `R2_PEPPER_*`, `R2_SALT_*` y `R2_BRUSH3_*` (`ACCESS_KEY_ID` y `SECRET_ACCESS_KEY` de cada una).
 
+### Que la música arranque rápido (portadas dentro de los MP3)
+
+Muchos MP3 llevan su carátula incrustada al principio del archivo (de 30 KB a casi 2 MB): el teléfono tiene que descargarla entera antes del primer segundo de audio. La app no usa esas carátulas ni los datos de dentro del MP3, así que se pueden quitar sin perder nada (el audio no se toca y las URL siguen iguales):
+
+```bash
+python3 tools/r2_slim.py            # solo mira cuánto se ahorra en cada bucket
+python3 tools/r2_slim.py --apply    # quita las portadas y vuelve a subir los MP3 con Cache-Control
+```
+
+Usa las mismas claves que `sync_r2.py`, con permiso de escritura. Los MP3 nuevos que subas conviene pasarlos también. Además, las URL `pub-….r2.dev` son de desarrollo: Cloudflare no las guarda en caché y les pone límite de velocidad. Para que suene más rápido aún, conecta un dominio propio a cada bucket (R2 → bucket → Settings → Custom Domains) y cambia `base` en `CONFIG.sources`.
+
 ### Letras
 
 Si `lyrics` está vacío, la app busca la letra automáticamente en [LRCLIB](https://lrclib.net) (gratis, sin clave; muchas vienen sincronizadas) y la guarda en el navegador. Funciona mejor cuando la canción tiene `artist` y `duration` correctos. Si escribes tu propia letra en `lyrics`, se usa esa.

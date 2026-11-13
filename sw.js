@@ -6,7 +6,7 @@
    - Los MP3 descargados desde la app viven en AUDIO_CACHE y se
      reproducen desde ahí (con soporte de rangos para poder adelantar).
    ========================================================= */
-const VERSION = 'v85';
+const VERSION = 'v86';
 const SHELL_CACHE = `liquidbrush-shell-${VERSION}`;
 const DATA_CACHE = 'liquidbrush-data';
 const AUDIO_CACHE = 'liquidbrush-audio';
@@ -15,8 +15,8 @@ const SHELL = [
   './',
   'index.html',
   'lab.html',
-  'styles.css?v=71',
-  'app.js?v=74',
+  'styles.css?v=72',
+  'app.js?v=75',
   'favicon.png',
   'logo.svg',
   'manifest.webmanifest',
@@ -173,9 +173,15 @@ self.addEventListener('fetch', (event) => {
   if (request.destination === 'audio' && !isMp3 && !ownAudio) return;
 
   if (request.destination === 'audio' || isMp3) {
-    // No está descargada: directa a la red, sin rodeo (si la lista aún no se ha leído, se mira la caché)
+    // No está descargada: directa a la red, sin rodeo
     if (audioKeys && !audioKeys.has(request.url)) return;
-    if (!audioKeys) loadAudioKeys();
+    // v82: iOS apaga el service worker a menudo y al despertar no recuerda qué está descargado. Antes, en
+    // ese rato, TODO el audio pasaba por aquí a trozos (Safari se atascaba o se quedaba en silencio).
+    // Con conexión va directo a la red; sin conexión se busca la copia guardada.
+    if (!audioKeys) {
+      loadAudioKeys();
+      if (self.navigator.onLine !== false) return;
+    }
     event.respondWith(
       caches.open(AUDIO_CACHE)
         .then((cache) => cache.match(request.url))

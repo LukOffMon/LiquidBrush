@@ -3,8 +3,12 @@
     {
       "version": "v82",
       "date": "noviembre 2026",
-      "title": "Ecualizador que funciona de verdad y playlists sin tirones",
+      "title": "Música que arranca antes, ecualizador de verdad y playlists sin tirones",
       "items": [
+        "La música empieza antes: la conexión con el servidor se abre de antemano y, en iPhone, el audio ya no da un rodeo por el modo offline cuando la canción no está descargada (ese rodeo la atascaba o la dejaba en silencio).",
+        "Si iOS deja el sonido en pausa al volver de otra app (Instagram, TikTok, una llamada), Liquid ya no se queda «sonando» en silencio: te avisa y vuelve a sonar con un toque.",
+        "Pausar y darle a reproducir enseguida ya no deja la canción parada.",
+        "Buscar ya no se queda pegado encima de Inicio, Biblioteca o Playlists si cambias de sección sin pulsar «Cancelar».",
         "Ecualizador: ya funciona con toda tu música de Liquid (los servidores ya permiten ecualizar). Antes, al abrir la app, la canción sonaba sin ecualizar aunque tuvieras un perfil puesto; ahora se aplica al darle a reproducir.",
         "Bajos y agudos se notan de verdad: el realce completo llega a los bajos que oyes en el móvil y en los auriculares (antes +9 dB en bajos se quedaba en +4,5) y a los agudos brillantes.",
         "Curva del ecualizador para ver cómo suena tu perfil, un aviso en vivo (ecualizando, listo, esta canción no se puede…) y doble toque en una banda para volver a 0 dB.",

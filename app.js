@@ -6561,12 +6561,14 @@
       location.assign(VIEWS.includes(view) && view !== 'home' ? `${LIQUID_URL}?view=${view}` : LIQUID_URL);
       return;
     }
-    if (view !== 'library' && state.searchOpen) {
+    if (view !== 'library' && (state.searchOpen || !els.searchPanel.hidden)) {
       state.searchOpen = false;
       state.searchPrev = null;
       state.query = '';
       els.searchInput.value = '';
       if (document.activeElement === els.searchInput) els.searchInput.blur();
+      els.searchPanel.hidden = true;
+      updateSearchMode();
     }
     const previous = state.view;
     const previousPlaylist = state.openPlaylist;
@@ -6812,6 +6814,24 @@
 
     return { open, close, isOpen, init };
   })();
+
+  // v82: salir de Buscar del todo (texto, teclado, panel de recientes/explorar y modo búsqueda).
+  // Antes, al tocar otra sección sin haber escrito nada, el panel de Buscar se quedaba encima de Inicio,
+  // Biblioteca… hasta pulsar «Cancelar».
+  function leaveSearch() {
+    const wasOpen = state.searchOpen || !els.searchPanel.hidden || document.body.classList.contains('search-mode');
+    state.searchOpen = false;
+    state.searchPrev = null;
+    state.searchScope = 'all';
+    if (document.activeElement === els.searchInput) els.searchInput.blur();
+    if (state.query || els.searchInput.value) {
+      state.query = '';
+      els.searchInput.value = '';
+      if (wasOpen) renderList();
+    }
+    renderSearchPanel();
+    updateSearchMode();
+  }
 
   function clearSearch() {
     if (!state.query && !els.searchInput.value) return;
@@ -7474,8 +7494,28 @@
 
   /* ---------- Reproducción ---------- */
   let lyricsDelay = null;
+  // v82: abre de antemano la conexión con el servidor de la canción (y de la siguiente): ahorra el
+  // saludo inicial (DNS + TLS, ~0,3–0,6 s en el móvil) al darle a reproducir. Con el ecualizador el
+  // audio va en modo CORS, que usa otra conexión: se abre la que de verdad se va a usar.
+  const warmed = new Set();
+  function warmConnection(track) {
+    if (!track?.src || /^(blob|data):/.test(track.src) || track.radio) return;
+    const origin = originOf(track.src);
+    if (!origin || origin === location.origin) return;
+    const cors = wantsEq(track);
+    const key = `${origin}|${cors}`;
+    if (warmed.has(key)) return;
+    warmed.add(key);
+    const link = document.createElement('link');
+    link.rel = 'preconnect';
+    link.href = origin;
+    if (cors) link.crossOrigin = 'anonymous';
+    document.head.append(link);
+  }
+
   function loadTrack(track, autoplay = true, fade = 0) {
     if (!track) return;
+    warmConnection(track);
     state.currentTrack = track;
     state.pendingSeek = null;
     state.countedId = null;
@@ -7551,6 +7591,7 @@
     if (els.queueDialog.open) renderQueue();
     plus.onTrack(track);
     radio.onTrack(track);
+    setTimeout(() => warmConnection(getTrack(state.queue[state.queueIndex + 1])), 1500);
 
     if (autoplay) play();
   }
@@ -7567,6 +7608,14 @@
     if (state.currentTrack?.atk && !isPlayable(state.currentTrack)) {
       if (!quiet) showToast(unplayableMessage(state.currentTrack));
       return;
+    }
+    // v82: pausar y darle a ▶ enseguida: el fundido de la pausa (180 ms) seguía y al terminar paraba la
+    // canción otra vez. Ahora se cancela y el volumen vuelve a su sitio.
+    if (softFade.timer) {
+      clearInterval(softFade.timer);
+      softFade.timer = null;
+      deckGain.set(els.audio, 1);
+      applyVolume(els.audio);
     }
     routeDeckForEq();
     if (eq.ctx && eq.ctx.state !== 'running') eq.ctx.resume().catch(() => {});
@@ -8442,6 +8491,27 @@
     target.src = /^blob:/.test(src) ? src : audioSrc(track);
     releaseDeck(from);
   }
+
+  // v82: «suena pero no se oye». Con el ecualizador, el audio pasa por el procesador de sonido de la web.
+  // iOS lo suspende al salir a otra app (Instagram, TikTok, una llamada) y a veces no deja reanudarlo solo:
+  // la canción seguía avanzando en silencio. Si al volver no arranca, se pausa de verdad y se ofrece
+  // reanudar con un toque (un toque sí permite reanudarlo).
+  let eqWatchTimer = 0;
+  function checkEqAlive(delay = 600) {
+    clearTimeout(eqWatchTimer);
+    eqWatchTimer = setTimeout(() => {
+      if (!eq.ctx || document.hidden || !eqDecks.includes(els.audio) || els.audio.paused) return;
+      if (eq.ctx.state === 'running') return;
+      eq.ctx.resume().catch(() => {}).finally(() => {
+        setTimeout(() => {
+          if (!eq.ctx || eq.ctx.state === 'running' || els.audio.paused || !eqDecks.includes(els.audio)) return;
+          els.audio.pause();
+          showToast('iOS pausó el sonido al cambiar de app.', { label: 'Seguir escuchando', run: () => play() });
+        }, 900);
+      });
+    }, delay);
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) checkEqAlive(); });
 
   // Un servidor sin CORS no deja ecualizar: la canción vuelve a sonar sin ecualizador
   function recoverFromEqError() {
@@ -9577,6 +9647,7 @@
     ['playing', 'seeked', 'ratechange', 'durationchange'].forEach((type) => on(type, updatePositionStateNow));
     on('playing', applyMediaHandlers);
     on('playing', updateEqNote);
+    on('playing', () => checkEqAlive(1500));
     on('playing', () => stallGuard.reset());
     on('durationchange', () => {
       if (!state.isSeeking) updateProgressUI(els.audio.currentTime, getDuration());
@@ -10133,7 +10204,7 @@
     els.tabsBar.addEventListener('click', (event) => {
       const tab = event.target.closest('.tab');
       if (!tab) return;
-      clearSearch();
+      if (state.searchOpen || !els.searchPanel.hidden) leaveSearch(); else clearSearch();
       setView(tab.dataset.view);
     });
     // Quita el degradado del borde cuando ya se ve la última pestaña
@@ -10281,11 +10352,7 @@
       const target = button.dataset.nav;
       npSheet.close();
       // Cambiar de sección deja atrás la búsqueda (antes el texto seguía escrito en Inicio y Lab sin filtrar nada)
-      if (target !== 'search') {
-        state.searchOpen = false;
-        state.searchPrev = null;
-        clearSearch();
-      }
+      if (target !== 'search') leaveSearch();
       if (target === 'home' && state.view !== 'home') setView('home');
       if (target === 'library' && state.view !== 'library') setView('library');
       if (target === 'playlists' && state.view !== 'playlists') setView('playlists');

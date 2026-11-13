@@ -2040,3 +2040,24 @@ test.describe('v82: ecualizador con CORS en R2', () => {
     await expect(page.locator('#eqNote .eq-status')).toHaveClass(/is-off/);
   });
 });
+
+test.describe('v82: salir de Buscar sin «Cancelar»', () => {
+  test('tocar otra sección de la barra de abajo quita el panel de Buscar aunque el teclado ya estuviera cerrado', async ({ page }) => {
+    test.skip(!isPhone(page), 'La barra de abajo es del teléfono');
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    for (const target of ['home', 'playlists', 'library', 'radio']) {
+      await page.locator('.nav-btn[data-nav="search"]').click();
+      await expect(page.locator('#searchPanel')).toBeVisible();
+      // En el iPhone el teclado suele cerrarse antes (al desplazar): el buscador ya no tiene el foco
+      await page.evaluate(() => document.activeElement?.blur());
+      await page.waitForTimeout(200);
+      await page.locator(`.nav-btn[data-nav="${target}"]`).click();
+      await expect(page.locator('#searchPanel')).toBeHidden();
+      await expect(page.locator('body')).not.toHaveClass(/search-mode/);
+    }
+    await expect(page.locator('#homePanel')).toBeHidden();
+    await page.locator('.nav-btn[data-nav="home"]').click();
+    await expect(page.locator('#homePanel')).toBeVisible();
+  });
+});
