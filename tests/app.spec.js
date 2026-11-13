@@ -2006,3 +2006,42 @@ test.describe('v82: playlists sin tirones al bajar', () => {
     expect(await page.evaluate(() => Boolean(document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2)?.closest('.track')))).toBe(true);
   });
 });
+
+test.describe('v82: ecualizador con CORS en R2', () => {
+  test.use({ serviceWorkers: 'block' });
+  test('al abrir la app con un perfil, ▶ suena por el ecualizador; con «Plano» vuelve al reproductor normal', async ({ page }) => {
+    test.setTimeout(45000);
+    await page.addInitScript(() => {
+      if (sessionStorage.getItem('eq-ok')) return;
+      sessionStorage.setItem('eq-ok', '1');
+      const saved = JSON.parse(localStorage.getItem('liquidbrush:settings') || '{}');
+      saved.eq = { preset: 'deep', gains: [9, 5, -1, 0, 1] };
+      localStorage.setItem('liquidbrush:settings', JSON.stringify(saved));
+    });
+    // R2 con CORS activado (como ya está en los 6 buckets)
+    const wav = silentWav(20);
+    await page.route(/r2\.dev/, (route) => route.fulfill({ status: 200, contentType: 'audio/wav', body: wav, headers: { 'Access-Control-Allow-Origin': '*' } }));
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.evaluate(() => document.querySelectorAll('dialog[open]').forEach((d) => d.close()));
+    await page.locator('#playBtn').click();
+    const deckSonando = () => page.evaluate(() => [...document.querySelectorAll('audio')].find((a) => a.getAttribute('src') && !a.paused)?.id || '');
+    await expect.poll(deckSonando, { timeout: 20000 }).toMatch(/^audio[34]$/);
+    await expect(page.locator('#eqNote .eq-status')).toHaveClass(/is-on/);
+    await page.evaluate(() => document.getElementById('settingsBtn').click());
+    await expect(page.locator('#eqCurve')).toHaveAttribute('aria-label', /Bajos \+9 dB/);
+    await page.evaluate(() => document.querySelectorAll('dialog[open]').forEach((d) => d.close()));
+    await expect(page.locator('dialog[open]')).toHaveCount(0);
+    // Plano con la música en pausa: al reanudar pasa al reproductor normal (en iPhone sigue con la pantalla bloqueada)
+    await page.locator('#playBtn').click();
+    await expect(page.locator('#playBtn')).toHaveAttribute('aria-label', 'Reproducir');
+    await page.evaluate(() => {
+      const select = document.getElementById('eqPreset');
+      select.value = 'flat';
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await page.locator('#playBtn').click();
+    await expect.poll(deckSonando, { timeout: 20000 }).toMatch(/^audio2?$/);
+    await expect(page.locator('#eqNote .eq-status')).toHaveClass(/is-off/);
+  });
+});

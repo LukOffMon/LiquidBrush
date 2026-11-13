@@ -7568,6 +7568,7 @@
       if (!quiet) showToast(unplayableMessage(state.currentTrack));
       return;
     }
+    routeDeckForEq();
     if (eq.ctx && eq.ctx.state !== 'running') eq.ctx.resume().catch(() => {});
     const deck = els.audio;
     // Descargada, sin conexión o sin modo offline, y con su copia local lista: suena desde el teléfono
@@ -8270,11 +8271,15 @@
 
   /* ---------- Ecualizador (Web Audio, requiere CORS en el audio) ---------- */
   const EQ_BANDS = [
-    { freq: 60, type: 'lowshelf', label: 'Bajos', hz: '60 Hz' },
+    // v82: los extremos son «estantes»: a su frecuencia solo dan la mitad del realce. Con el de bajos en
+    // 60 Hz, el +9 entero caía por debajo de 30 Hz (el móvil y los auriculares casi no lo reproducen) y los
+    // bajos apenas se notaban. Ahora el realce completo llega a todo lo que está por debajo de ~60 Hz,
+    // y el de agudos a todo lo que está por encima de ~14 kHz.
+    { freq: 110, type: 'lowshelf', label: 'Bajos', hz: '≤ 60 Hz', at: 50 },
     { freq: 230, type: 'peaking', label: 'Graves', hz: '230 Hz' },
     { freq: 910, type: 'peaking', label: 'Medios', hz: '910 Hz' },
     { freq: 3600, type: 'peaking', label: 'Voces', hz: '3,6 kHz' },
-    { freq: 14000, type: 'highshelf', label: 'Agudos', hz: '14 kHz' }
+    { freq: 9000, type: 'highshelf', label: 'Agudos', hz: '≥ 12 kHz', at: 15000 }
   ];
   const EQ_PRESETS = {
     flat: { name: 'Plano', gains: [0, 0, 0, 0, 0] },
@@ -8292,7 +8297,13 @@
   };
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
   // cors: origen → true/false según si su servidor permite leer el audio (se comprueba una vez por sesión)
-  const eq = { ctx: null, input: null, filters: [], analyser: null, freqData: null, cors: new Map(), probing: null, swapFrom: null, warned: new Set() };
+  const eq = { ctx: null, input: null, filters: [], limiter: null, analyser: null, freqData: null, cors: new Map(), probing: null, swapFrom: null, warned: new Set() };
+  // v82: los 6 buckets de R2 de Liquid ya tienen CORS activado. Se dan por buenos desde el arranque: antes
+  // la primera canción se preparaba antes de que terminara la comprobación y sonaba sin ecualizar.
+  // Si alguno dejara de permitirlo, la comprobación de abajo (y el fallo al reproducir) lo corrigen.
+  CONFIG.sources.forEach((source) => {
+    try { if (source.base) eq.cors.set(new URL(source.base).origin, true); } catch { /* base mal escrita */ }
+  });
 
   const eqActive = () => Boolean(AudioContextClass) && settings.eq.gains.some((g) => Math.abs(g) >= 0.5);
   const originOf = (src) => {
@@ -8319,13 +8330,26 @@
         filter.Q.value = 1.1;
         return filter;
       });
+      // Limitador suave al final: con +9 dB en los bajos los picos ya no distorsionan
+      const limiter = ctx.createDynamicsCompressor();
+      limiter.threshold.value = -1.5;
+      limiter.knee.value = 2;
+      limiter.ratio.value = 12;
+      limiter.attack.value = 0.003;
+      limiter.release.value = 0.2;
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 128;
       analyser.smoothingTimeConstant = 0.8;
-      [input, ...filters].reduce((from, to) => { from.connect(to); return to; }).connect(analyser);
+      [input, ...filters].reduce((from, to) => { from.connect(to); return to; }).connect(limiter);
+      limiter.connect(analyser);
       analyser.connect(ctx.destination);
       eqDecks.forEach((deck) => ctx.createMediaElementSource(deck).connect(input));
-      Object.assign(eq, { ctx, input, filters, analyser, freqData: new Uint8Array(analyser.frequencyBinCount) });
+      // iOS suspende (o «interrumpe») el audio con llamadas, Siri o al salir: se reanuda en cuanto se puede
+      ctx.addEventListener?.('statechange', () => {
+        if (ctx.state !== 'running' && eqDecks.includes(els.audio) && !els.audio.paused) ctx.resume().catch(() => {});
+        updateEqNote();
+      });
+      Object.assign(eq, { ctx, input, filters, limiter, analyser, freqData: new Uint8Array(analyser.frequencyBinCount) });
       applyEqGains();
       return true;
     } catch (error) {
@@ -8355,9 +8379,11 @@
     eq.probing = Promise.all([...samples].map(async ([origin, src]) => {
       try {
         const response = await fetch(src, { method: 'HEAD', mode: 'cors', cache: 'no-store' });
-        eq.cors.set(origin, response.ok);
+        // Llegó respuesta legible: el servidor permite CORS (aunque ese archivo concreto no exista)
+        eq.cors.set(origin, response.type === 'cors' || response.ok);
       } catch {
-        eq.cors.set(origin, false);
+        // Sin conexión no se sabe nada: no se marca como «no permitido»
+        if (navigator.onLine) eq.cors.set(origin, false);
       }
     })).finally(() => { eq.probing = null; });
     return eq.probing;
@@ -8393,12 +8419,40 @@
     play({ quiet: true });
   }
 
+  // v82: al darle a reproducir (es un toque: iOS deja cambiar de reproductor) la canción pasa al reproductor
+  // que le toca. Con el ecualizador encendido, al ecualizado; con «Plano», al normal, que en iPhone sigue
+  // sonando con la pantalla bloqueada. Antes, tras abrir la app, la canción se quedaba en el normal y el
+  // ecualizador no se oía hasta tocar sus ajustes.
+  function routeDeckForEq() {
+    const track = state.currentTrack;
+    const from = els.audio;
+    const src = from.getAttribute('src');
+    if (!track || !src || !from.paused || dj.timer || eq.swapFrom || !canSwitchDeck()) return;
+    const onEq = eqDecks.includes(from);
+    const want = wantsEq(track) && ensureEqGraph();
+    if (onEq === want) return;
+    const target = (want ? eqDecks : plainDecks)[0];
+    target.muted = from.muted;
+    deckGain.set(target, 1);
+    applyVolume(target);
+    if (from.currentTime > 0.3) state.pendingSeek = from.currentTime;
+    target.playbackRate = from.playbackRate;
+    els.audio = target;
+    // Una copia local (blob) se reutiliza; si no, la dirección normal de la canción
+    target.src = /^blob:/.test(src) ? src : audioSrc(track);
+    releaseDeck(from);
+  }
+
   // Un servidor sin CORS no deja ecualizar: la canción vuelve a sonar sin ecualizador
   function recoverFromEqError() {
     const track = state.currentTrack;
     if (!track || !eqDecks.includes(els.audio)) return false;
     const origin = originOf(track.src);
-    eq.cors.set(origin, false);
+    // v82: un corte de red no es «el servidor no deja ecualizar». Se vuelve a comprobar y solo si de verdad
+    // no lo permite se apaga para ese servidor; mientras, esta canción sigue sin ecualizador.
+    const confirmed = eq.cors.get(origin) === false;
+    eq.cors.delete(origin);
+    const recheck = confirmed ? Promise.resolve() : probeCors();
     const failed = els.audio;
     if (eq.swapFrom?.getAttribute('src')) {
       els.audio = eq.swapFrom;
@@ -8410,24 +8464,153 @@
       loadTrack(track, autoplay);
       state.pendingSeek = time || null;
     }
-    if (!eq.warned.has(origin)) {
-      eq.warned.add(origin);
-      showToast('Esta canción no se puede ecualizar (su servidor no lo permite): suena sin ecualizador.');
-    }
-    updateEqNote();
+    if (confirmed) eq.cors.set(origin, false);
+    recheck.then(() => {
+      if (eq.cors.get(origin) === false && !eq.warned.has(origin)) {
+        eq.warned.add(origin);
+        showToast('Esta canción no se puede ecualizar (su servidor no lo permite): suena sin ecualizador.');
+      }
+      updateEqNote();
+    });
     return true;
   }
 
-  function updateEqNote() {
-    if (!AudioContextClass) {
-      els.eqNote.textContent = 'Este navegador no permite ecualizar el audio.';
-      return;
+  // v82: el aviso dice lo que pasa AHORA (ecualizando, pendiente de reproducir, esta canción no se puede…)
+  function eqStatus() {
+    if (!AudioContextClass) return { tone: 'off', text: 'Este navegador no permite ecualizar el audio.' };
+    if (!eqActive()) return { tone: 'off', text: 'Apagado: con «Plano» la música suena tal cual.' };
+    const track = state.currentTrack;
+    if (!track) return { tone: 'ready', text: 'Listo: se aplica en cuanto suene una canción.' };
+    if (track.radio || track.atk) return { tone: 'warn', text: 'La radio y Liquid ATK suenan sin ecualizar; tu música de Liquid, sí.' };
+    if (!eqCanPlay(track)) {
+      return eq.cors.get(originOf(track.src)) === false
+        ? { tone: 'warn', text: 'El servidor de esta canción no deja ecualizarla: suena sin ecualizador.' }
+        : { tone: 'ready', text: 'Comprobando el servidor de esta canción…' };
     }
-    const notes = ['Se aplica al momento. Solo funciona con canciones cuyo servidor lo permite (CORS); las demás suenan igual, sin ecualizar.'];
-    if ([...eq.cors.values()].some((ok) => !ok)) notes.push('Ahora mismo las canciones de Cloudflare R2 no se pueden ecualizar: hace falta activar CORS en el bucket.');
-    if (IS_IOS) notes.push('En iPhone/iPad, con el ecualizador activado la música podría pararse al salir de la app. Con «Plano» suena como siempre.');
-    els.eqNote.textContent = notes.join(' ');
+    if (!eqDecks.includes(els.audio)) return { tone: 'ready', text: 'Listo: se aplica al darle a reproducir.' };
+    if (eq.ctx && eq.ctx.state !== 'running' && !els.audio.paused) return { tone: 'warn', text: 'El sistema pausó el ecualizador: toca reproducir para reanudarlo.' };
+    return { tone: 'on', text: `Ecualizando «${track.title}».` };
   }
+
+  function updateEqNote() {
+    const status = eqStatus();
+    const pill = makeEl('span', `eq-status is-${status.tone}`, status.text);
+    pill.setAttribute('role', 'status');
+    const notes = [];
+    if (eqActive() && AudioContextClass) notes.push('Los cambios se oyen al momento. Un limitador evita que los realces distorsionen.');
+    if (IS_IOS) notes.push('En iPhone/iPad, con el ecualizador encendido la música puede pararse al bloquear la pantalla o salir de la app (iOS no deja procesar el audio en segundo plano). Con «Plano» suena como siempre.');
+    els.eqNote.replaceChildren(pill, ...(notes.length ? [makeEl('span', 'eq-note-text', notes.join(' '))] : []));
+  }
+
+  /* v82: curva del ecualizador. Se calcula con filtros iguales en un contexto sin sonido
+     (OfflineAudioContext), así se dibuja aunque no suene nada y sin pedir permiso de audio. */
+  const eqCurve = (() => {
+    const POINTS = 160;
+    const freqs = new Float32Array(POINTS);
+    for (let i = 0; i < POINTS; i++) freqs[i] = 20 * 1000 ** (i / (POINTS - 1));
+    let filters = null;
+    let frame = 0;
+    const ensure = () => {
+      if (filters) return true;
+      const Offline = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+      if (!Offline) return false;
+      try {
+        const ctx = new Offline(1, 1, 44100);
+        filters = EQ_BANDS.map((band) => {
+          const filter = ctx.createBiquadFilter();
+          filter.type = band.type;
+          filter.frequency.value = band.freq;
+          filter.Q.value = 1.1;
+          return filter;
+        });
+        return true;
+      } catch { return false; }
+    };
+    const xOf = (freq, width) => (Math.log10(freq / 20) / 3) * width;
+    function paint() {
+      frame = 0;
+      const canvas = document.getElementById('eqCurve');
+      if (!canvas || !ensure()) return;
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      if (!width || !height) return;
+      const dpr = Math.min(window.devicePixelRatio || 1, 3);
+      if (canvas.width !== Math.round(width * dpr)) canvas.width = Math.round(width * dpr);
+      if (canvas.height !== Math.round(height * dpr)) canvas.height = Math.round(height * dpr);
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+      const total = new Float32Array(POINTS);
+      const mag = new Float32Array(POINTS);
+      const phase = new Float32Array(POINTS);
+      filters.forEach((filter, i) => {
+        filter.gain.value = settings.eq.gains[i] || 0;
+        filter.getFrequencyResponse(freqs, mag, phase);
+        for (let j = 0; j < POINTS; j++) total[j] += 20 * Math.log10(Math.max(mag[j], 1e-4));
+      });
+      const dotFreqs = new Float32Array(EQ_BANDS.map((band) => band.at || band.freq));
+      const dots = new Float32Array(EQ_BANDS.length);
+      const dotMag = new Float32Array(EQ_BANDS.length);
+      const dotPhase = new Float32Array(EQ_BANDS.length);
+      filters.forEach((filter) => {
+        filter.getFrequencyResponse(dotFreqs, dotMag, dotPhase);
+        for (let j = 0; j < dots.length; j++) dots[j] += 20 * Math.log10(Math.max(dotMag[j], 1e-4));
+      });
+      const pad = 8;
+      const yOf = (db) => height / 2 - (clamp(db, -15, 15) / 15) * (height / 2 - pad);
+      const style = getComputedStyle(canvas);
+      const accent = style.color || '#9cf';
+      // Rejilla: 0 dB y las frecuencias de cada banda
+      ctx.strokeStyle = style.getPropertyValue('--grid').trim() || 'rgba(255,255,255,0.12)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 4]);
+      ctx.beginPath();
+      ctx.moveTo(0, yOf(0));
+      ctx.lineTo(width, yOf(0));
+      EQ_BANDS.forEach((band) => {
+        const x = xOf(band.at || band.freq, width);
+        ctx.moveTo(x, pad);
+        ctx.lineTo(x, height - pad);
+      });
+      ctx.stroke();
+      ctx.setLineDash([]);
+      // Relleno entre la curva y 0 dB
+      ctx.beginPath();
+      ctx.moveTo(0, yOf(0));
+      for (let j = 0; j < POINTS; j++) ctx.lineTo((j / (POINTS - 1)) * width, yOf(total[j]));
+      ctx.lineTo(width, yOf(0));
+      ctx.closePath();
+      ctx.globalAlpha = 0.22;
+      ctx.fillStyle = accent;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      // Curva
+      ctx.beginPath();
+      for (let j = 0; j < POINTS; j++) {
+        const x = (j / (POINTS - 1)) * width;
+        if (j) ctx.lineTo(x, yOf(total[j])); else ctx.moveTo(x, yOf(total[j]));
+      }
+      ctx.strokeStyle = accent;
+      ctx.lineWidth = 2.2;
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+      // Un punto por banda, a su ganancia
+      ctx.fillStyle = accent;
+      EQ_BANDS.forEach((band, i) => {
+        ctx.beginPath();
+        ctx.arc(xOf(band.at || band.freq, width), yOf(dots[i]), 3.5, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+    const draw = () => { if (!frame) frame = requestAnimationFrame(paint); };
+    let observed = false;
+    const watch = (canvas) => {
+      if (observed || !canvas || !('ResizeObserver' in window)) return;
+      observed = true;
+      new ResizeObserver(draw).observe(canvas);
+    };
+    return { draw, watch };
+  })();
 
   /* ---------- Visualizador (Canvas) ---------- */
   const visualizer = (() => {
@@ -9393,6 +9576,7 @@
     // seguía mostrando la anterior terminada, «3:35 · −0:00»)
     ['playing', 'seeked', 'ratechange', 'durationchange'].forEach((type) => on(type, updatePositionStateNow));
     on('playing', applyMediaHandlers);
+    on('playing', updateEqNote);
     on('playing', () => stallGuard.reset());
     on('durationchange', () => {
       if (!state.isSeeking) updateProgressUI(els.audio.currentTime, getDuration());
@@ -10070,6 +10254,14 @@
       renderEqBands();
       onEqChange();
     });
+    els.eqBands.addEventListener('dblclick', (event) => {
+      const row = event.target.closest('.eq-band');
+      const input = row?.querySelector('input[data-band]');
+      if (!input || input.disabled || Number(input.value) === 0) return;
+      event.preventDefault();
+      input.value = '0';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
     els.eqBands.addEventListener('input', (event) => {
       const input = event.target.closest('input[data-band]');
       if (!input) return;
@@ -10078,6 +10270,7 @@
       settings.eq.preset = match ? match[0] : 'custom';
       els.eqPreset.value = settings.eq.preset;
       updateBandLabel(input);
+      eqCurve.draw();
       onEqChange();
     });
 
@@ -12525,6 +12718,17 @@
 
   function renderEqBands() {
     els.eqPreset.value = settings.eq.preset in EQ_PRESETS ? settings.eq.preset : 'custom';
+    let curve = document.getElementById('eqCurve');
+    if (!curve) {
+      curve = document.createElement('canvas');
+      curve.id = 'eqCurve';
+      curve.className = 'eq-curve';
+      curve.setAttribute('role', 'img');
+      els.eqBands.before(curve);
+      eqCurve.watch(curve);
+    }
+    curve.setAttribute('aria-label', `Curva del ecualizador: ${EQ_BANDS.map((band, i) => `${band.label} ${settings.eq.gains[i] > 0 ? '+' : ''}${settings.eq.gains[i]} dB`).join(', ')}`);
+    eqCurve.draw();
     els.eqBands.replaceChildren(...EQ_BANDS.map((band, i) => {
       const row = makeEl('label', 'eq-band');
       const name = makeEl('span', 'eq-name');
@@ -12549,6 +12753,8 @@
     saveSettings();
     if (!eqActive()) {
       applyEqGains();
+      if (els.audio.paused) routeDeckForEq();
+      updateEqNote();
       return;
     }
     // Se crea dentro del toque: los navegadores solo dejan arrancar el audio así

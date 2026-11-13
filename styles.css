@@ -11144,3 +11144,99 @@ body.is-radio #lyricsBtn {
 .is-ios .toast {
   translate: 0 var(--vv-shift, 0px);
 }
+
+/* =========================================================
+   v82: Ecualizador. Curva, estado en vivo y selector legible
+   ========================================================= */
+.eq-curve {
+  display: block;
+  width: 100%;
+  height: 96px;
+  margin: 6px 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--accent) 7%, transparent), transparent 50%, color-mix(in srgb, var(--accent) 4%, transparent)),
+    color-mix(in srgb, var(--surface-2, var(--surface)) 70%, transparent);
+  color: var(--accent);
+  --grid: color-mix(in srgb, var(--text) 14%, transparent);
+}
+
+.eq-band {
+  grid-template-columns: minmax(70px, 88px) minmax(0, 1fr) 56px;
+  min-height: 44px;
+}
+
+.eq-range {
+  touch-action: pan-y;
+}
+
+.eq-value {
+  color: var(--text);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+#eqNote {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.eq-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--text);
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+}
+
+.eq-status::before {
+  content: '';
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.eq-status.is-on { background: color-mix(in srgb, #3ddc84 16%, transparent); }
+.eq-status.is-on::before { background: #3ddc84; box-shadow: 0 0 0 3px color-mix(in srgb, #3ddc84 25%, transparent); }
+.eq-status.is-ready::before { background: var(--accent); }
+.eq-status.is-warn { background: color-mix(in srgb, #ffb340 16%, transparent); }
+.eq-status.is-warn::before { background: #ffb340; }
+
+:root:not(.no-motion) .eq-status.is-on::before {
+  animation: eq-live 1.6s ease-in-out infinite;
+}
+
+@keyframes eq-live {
+  50% { box-shadow: 0 0 0 6px color-mix(in srgb, #3ddc84 0%, transparent); }
+}
+
+.eq-note-text {
+  display: block;
+}
+
+/* Los selectores no cortan el texto contra la flecha; la flecha es un chevrón nítido (antes, en iPhone,
+   se veía como un guion) */
+.setting-select {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  padding-right: 34px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1.5 1.5 6 6l4.5-4.5' fill='none' stroke='%23999' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-position: right 14px center;
+  background-size: 12px 8px;
+}
+
+#eqPreset {
+  max-width: 64%;
+}
