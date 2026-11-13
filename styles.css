@@ -11135,3 +11135,12 @@ body.is-radio #lyricsBtn {
 :root:not(.no-motion) .track:not(.is-swiping) {
   transition: background-color 0.3s var(--ease-fluid, ease), box-shadow 0.3s var(--ease-fluid, ease), transform 0.3s var(--ease-fluid, ease);
 }
+
+/* v82: iPhone/iPad. Si Safari deja desfasada la ventana donde se ancla lo fijo (ver guardIosViewport en
+   app.js), el reproductor, la barra inferior, los botones flotantes y los avisos bajan a su sitio.
+   «translate» se suma a los transform que ya llevan sus animaciones. */
+.is-ios .player,
+.is-ios .float-actions,
+.is-ios .toast {
+  translate: 0 var(--vv-shift, 0px);
+}

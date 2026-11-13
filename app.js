@@ -12688,6 +12688,51 @@
     if (autoLite) document.documentElement.classList.add('lite');
   }
 
+  /* v82: iPhone/iPad (sobre todo la app instalada). A veces Safari deja la «ventana de diseño» (donde se
+     anclan el reproductor, la barra inferior y la cabecera) desfasada de lo que se ve: tras cerrar el
+     teclado, al volver de segundo plano o tras un rebote al bajar por una lista. El reproductor y la barra
+     se quedaban a media pantalla, la cabecera desaparecía por arriba y la lista seguía por debajo, como
+     si la vista se hubiera quedado arrastrada. Al terminar cada gesto se comprueba y se recoloca. */
+  function guardIosViewport() {
+    const vv = window.visualViewport;
+    if (!IS_IOS || !vv) return;
+    const root = document.documentElement;
+    const editing = () => Boolean(document.activeElement?.matches?.('input:not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="file"]), textarea, select, [contenteditable="true"]'));
+    // Cuánto queda el borde inferior de la ventana de diseño por encima del borde visible
+    const gapNow = () => Math.round(vv.offsetTop + vv.height - window.innerHeight);
+    const setShift = (px) => {
+      if (px > 1) root.style.setProperty('--vv-shift', `${px}px`);
+      else root.style.removeProperty('--vv-shift');
+    };
+    let timer = 0;
+    let touching = false;
+    const fix = () => {
+      timer = 0;
+      if (touching || document.hidden) return;
+      // Con el teclado abierto o con zoom, el desfase es normal
+      if (editing() || vv.scale > 1.01) { setShift(0); return; }
+      if (vv.offsetTop < 2 && gapNow() < 2) { setShift(0); return; }
+      // Mover la ventana de diseño a donde está la visible (sin animación) la vuelve a alinear
+      window.scrollTo({ top: Math.round(vv.pageTop), behavior: 'instant' });
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        // Si Safari no se deja, al menos el reproductor y la barra bajan a su sitio
+        setShift(editing() ? 0 : gapNow());
+      }));
+    };
+    const later = (delay = 180) => { clearTimeout(timer); timer = setTimeout(fix, delay); };
+    window.addEventListener('scroll', () => later(), { passive: true });
+    vv.addEventListener('resize', () => later());
+    vv.addEventListener('scroll', () => later());
+    document.addEventListener('touchstart', () => { touching = true; }, { passive: true, capture: true });
+    const release = () => { touching = false; later(); };
+    document.addEventListener('touchend', release, { passive: true, capture: true });
+    document.addEventListener('touchcancel', release, { passive: true, capture: true });
+    document.addEventListener('focusout', () => later(350));
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) later(250); });
+    window.addEventListener('pageshow', () => later(250));
+    window.addEventListener('orientationchange', () => later(450));
+  }
+
   // Abierta dentro de Instagram, TikTok, Facebook…: la música se corta al salir de esa app, no se puede
   // instalar y lo guardado puede borrarse. Se ofrece abrirla en el navegador (una vez por sesión).
   function inappNotice() {
@@ -16752,6 +16797,7 @@
   function init() {
     errorLog.init();
     detectLiteMode();
+    guardIosViewport();
     applyLook();
     els.eqPreset.replaceChildren(...Object.entries(EQ_PRESETS).map(([value, preset]) => new Option(preset.name, value)));
     document.documentElement.classList.toggle('is-ios', IS_IOS);
