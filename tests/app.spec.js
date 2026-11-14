@@ -2061,3 +2061,29 @@ test.describe('v82: salir de Buscar sin «Cancelar»', () => {
     await expect(page.locator('#homePanel')).toBeVisible();
   });
 });
+
+test.describe('v87: cierres de golpe en el informe de errores', () => {
+  test('si la app se cerró sola mientras sonaba, al abrir queda apuntado; una marca vieja no', async ({ page }) => {
+    await page.addInitScript(() => {
+      if (sessionStorage.getItem('prueba-cierre')) return;
+      sessionStorage.setItem('prueba-cierre', '1');
+      localStorage.setItem('liquidbrush:errors', '[]');
+      localStorage.setItem('liquidbrush:alive', JSON.stringify({ at: Date.now() - 120000, id: 'x', hidden: true, view: 'home', eq: true, mins: 14 }));
+    });
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    const errors = await page.evaluate(() => JSON.parse(localStorage.getItem('liquidbrush:errors')));
+    expect(errors[0].m).toContain('se cerró sola en segundo plano');
+    expect(errors[0].m).toContain('con ecualizador');
+    expect(await page.evaluate(() => localStorage.getItem('liquidbrush:alive'))).toBe('0');
+    // Una marca de hace días (p. ej. la app se cerró desde el multitarea hace mucho) no cuenta, y
+    // recargar normal tampoco apunta nada
+    await page.evaluate(() => {
+      localStorage.setItem('liquidbrush:errors', '[]');
+      localStorage.setItem('liquidbrush:alive', JSON.stringify({ at: Date.now() - 3 * 86400000, id: 'x' }));
+    });
+    await page.reload();
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    expect(await page.evaluate(() => localStorage.getItem('liquidbrush:errors'))).toBe('[]');
+  });
+});
