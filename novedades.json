@@ -1,6 +1,14 @@
 {
   "releases": [
     {
+      "version": "v87",
+      "date": "noviembre 2026",
+      "title": "Si la app se cierra sola, ahora queda apuntado",
+      "items": [
+        "Cuando el teléfono cierra Liquid de golpe mientras suena música (iOS lo hace si se queda sin memoria), al volver a abrirla queda en Ajustes → «Enviar informe de errores»: si estaba a la vista o en segundo plano, con o sin ecualizador y qué sonaba. Así se puede arreglar la causa exacta."
+      ]
+    },
+    {
       "version": "v82",
       "date": "noviembre 2026",
       "title": "Música que arranca antes, ecualizador de verdad y playlists sin tirones",

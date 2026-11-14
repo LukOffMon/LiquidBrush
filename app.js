@@ -99,6 +99,7 @@
     trash: 'liquidbrush:trash',
     lyricsOffsets: 'liquidbrush:lyrics-offsets',
     errors: 'liquidbrush:errors',
+    alive: 'liquidbrush:alive',
     install: 'liquidbrush:install',
     hidden: 'liquidbrush:hidden-playlists',
     // Motor de gustos: cuándo sonó cada canción por última vez, saltos y lo último que pusiste
@@ -12850,6 +12851,42 @@
         this.add(event.message, `${event.filename || ''}:${event.lineno || ''}`);
       });
       window.addEventListener('unhandledrejection', (event) => this.add(event.reason?.message || event.reason, 'promesa'));
+      this.watchCrashes();
+    },
+    // «Se reinicia sola»: cuando el sistema cierra la app de golpe (iOS lo hace si se queda sin memoria) no
+    // salta ningún error que apuntar. Mientras suena música se deja una marca que se quita al cerrar bien;
+    // si al abrir sigue ahí, la app no se cerró por su cuenta y queda en el informe de errores
+    // (si estaba a la vista o en segundo plano, con o sin ecualizador, qué sonaba).
+    watchCrashes() {
+      if (LAB_MODE) return;
+      const prev = storage.get(KEYS.alive, 0);
+      if (prev?.at && Date.now() - prev.at < 12 * 3600000) {
+        const mins = Math.max(0, Math.round((Date.now() - prev.at) / 60000));
+        this.add(`La app se cerró sola ${prev.hidden ? 'en segundo plano' : 'a la vista'} mientras sonaba `
+          + `(${prev.eq ? 'con' : 'sin'} ecualizador, en ${prev.view || '?'}, ${prev.mins} min abierta); se volvió a abrir ${mins} min después`, prev.id || '');
+      }
+      storage.set(KEYS.alive, 0);
+      const opened = Date.now();
+      let closing = false;
+      const mark = () => {
+        if (closing) return;
+        const audio = els.audio;
+        const playing = Boolean(audio && !audio.paused && state.currentTrack && !state.currentTrack.radio);
+        if (!playing) { if (storage.get(KEYS.alive, 0)) storage.set(KEYS.alive, 0); return; }
+        storage.set(KEYS.alive, {
+          at: Date.now(), id: state.currentTrack.id, hidden: document.hidden, view: state.view,
+          eq: eqDecks.includes(audio), mins: Math.round((Date.now() - opened) / 60000)
+        });
+      };
+      setInterval(mark, 20000);
+      document.addEventListener('visibilitychange', mark);
+      // Los eventos del audio no suben por el documento, pero sí se ven en la fase de captura
+      document.addEventListener('playing', mark, true);
+      document.addEventListener('pause', mark, true);
+      // Cerrar bien (salir, recargar, actualizar): sin marca. Tras «pagehide» el navegador aún avisa de que
+      // la página se oculta: esa marca ya no vale
+      window.addEventListener('pagehide', () => { closing = true; storage.set(KEYS.alive, 0); });
+      window.addEventListener('pageshow', (event) => { if (event.persisted) { closing = false; mark(); } });
     },
     renderButton() {
       const list = this.list();
