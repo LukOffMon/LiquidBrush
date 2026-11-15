@@ -1,6 +1,14 @@
 {
   "releases": [
     {
+      "version": "v88",
+      "date": "noviembre 2026",
+      "title": "Más pistas cuando la app se cierra al cargar una canción",
+      "items": [
+        "Si la app se cierra de golpe mientras una canción todavía está cargando (antes solo se apuntaba si ya sonaba), queda en Ajustes → «Enviar informe de errores» con los últimos pasos de la carga y sus tiempos. Así se ve en qué momento exacto falla."
+      ]
+    },
+    {
       "version": "v87",
       "date": "noviembre 2026",
       "title": "Si la app se cierra sola, ahora queda apuntado",
