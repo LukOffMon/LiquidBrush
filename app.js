@@ -7516,6 +7516,7 @@
 
   function loadTrack(track, autoplay = true, fade = 0) {
     if (!track) return;
+    errorLog.step('carga');
     warmConnection(track);
     state.currentTrack = track;
     state.pendingSeek = null;
@@ -7637,6 +7638,7 @@
       state.retried = false;
       if (deck.error && deck.getAttribute('src')) deck.load();
     }
+    errorLog.step('play');
     const fadeIn = canSoftFade() && deck.paused && deck.currentTime > 0.5;
     if (fadeIn) { deckGain.set(deck, 0); applyVolume(deck); }
     try {
@@ -9470,6 +9472,7 @@
   }
 
   function setMediaMetadata(track) {
+    errorLog.step('bloqueo');
     try {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: track.title,
@@ -12840,7 +12843,7 @@
     list() { return storage.get(KEYS.errors, []) || []; },
     add(message, source = '') {
       const list = this.list();
-      const text = String(message || 'Error').slice(0, 300);
+      const text = String(message || 'Error').slice(0, 500);
       if (list[0]?.m === text) return;
       list.unshift({ t: new Date().toISOString(), m: text, s: String(source).slice(0, 160), v: document.querySelector('script[src^="app.js"]')?.getAttribute('src') || '' });
       storage.set(KEYS.errors, list.slice(0, 15));
@@ -12857,13 +12860,28 @@
     // salta ningún error que apuntar. Mientras suena música se deja una marca que se quita al cerrar bien;
     // si al abrir sigue ahí, la app no se cerró por su cuenta y queda en el informe de errores
     // (si estaba a la vista o en segundo plano, con o sin ecualizador, qué sonaba).
+    // v88: la marca se deja también mientras la canción CARGA (antes solo al sonar: un cierre al empezar a
+    // cargar no quedaba apuntado) y lleva los últimos pasos de la reproducción con sus milisegundos desde que
+    // se eligió la canción (carga › play › loadstart › loadedmetadata › canplay › playing…): el último paso
+    // apuntado dice en qué momento exacto se cae.
+    steps: [],
+    stepFrom: 0,
+    step(name) {
+      if (LAB_MODE) return;
+      if (name === 'carga') { this.steps = []; this.stepFrom = Date.now(); }
+      const ms = this.stepFrom ? Date.now() - this.stepFrom : 0;
+      this.steps.push(`${name} ${ms < 10000 ? ms : `${Math.round(ms / 1000)}s`}`);
+      if (this.steps.length > 10) this.steps.splice(1, this.steps.length - 10);
+      this.mark?.();
+    },
     watchCrashes() {
       if (LAB_MODE) return;
       const prev = storage.get(KEYS.alive, 0);
       if (prev?.at && Date.now() - prev.at < 12 * 3600000) {
         const mins = Math.max(0, Math.round((Date.now() - prev.at) / 60000));
-        this.add(`La app se cerró sola ${prev.hidden ? 'en segundo plano' : 'a la vista'} mientras sonaba `
-          + `(${prev.eq ? 'con' : 'sin'} ecualizador, en ${prev.view || '?'}, ${prev.mins} min abierta); se volvió a abrir ${mins} min después`, prev.id || '');
+        this.add(`La app se cerró sola ${prev.hidden ? 'en segundo plano' : 'a la vista'} ${prev.loading ? 'mientras cargaba la canción' : 'mientras sonaba'} `
+          + `(${prev.eq ? 'con' : 'sin'} ecualizador, en ${prev.view || '?'}, ${prev.mins} min abierta); se volvió a abrir ${mins} min después`
+          + `${prev.steps ? `. Pasos: ${prev.steps}` : ''}`, prev.id || '');
       }
       storage.set(KEYS.alive, 0);
       const opened = Date.now();
@@ -12871,18 +12889,22 @@
       const mark = () => {
         if (closing) return;
         const audio = els.audio;
-        const playing = Boolean(audio && !audio.paused && state.currentTrack && !state.currentTrack.radio);
-        if (!playing) { if (storage.get(KEYS.alive, 0)) storage.set(KEYS.alive, 0); return; }
+        const track = state.currentTrack;
+        const playing = Boolean(audio && !audio.paused);
+        const live = Boolean(track && !track.radio && (playing || state.wantsPlay));
+        if (!live) { if (storage.get(KEYS.alive, 0)) storage.set(KEYS.alive, 0); return; }
         storage.set(KEYS.alive, {
-          at: Date.now(), id: state.currentTrack.id, hidden: document.hidden, view: state.view,
-          eq: eqDecks.includes(audio), mins: Math.round((Date.now() - opened) / 60000)
+          at: Date.now(), id: track.id, hidden: document.hidden, view: state.view, loading: !playing || audio.readyState < 3,
+          eq: eqDecks.includes(audio), mins: Math.round((Date.now() - opened) / 60000), steps: this.steps.join(' › ')
         });
       };
+      this.mark = mark;
       setInterval(mark, 20000);
       document.addEventListener('visibilitychange', mark);
       // Los eventos del audio no suben por el documento, pero sí se ven en la fase de captura
-      document.addEventListener('playing', mark, true);
-      document.addEventListener('pause', mark, true);
+      ['loadstart', 'loadedmetadata', 'canplay', 'playing', 'waiting', 'stalled', 'error', 'pause', 'ended'].forEach((type) => {
+        document.addEventListener(type, (event) => { if (event.target === els.audio) this.step(type); }, true);
+      });
       // Cerrar bien (salir, recargar, actualizar): sin marca. Tras «pagehide» el navegador aún avisa de que
       // la página se oculta: esa marca ya no vale
       window.addEventListener('pagehide', () => { closing = true; storage.set(KEYS.alive, 0); });

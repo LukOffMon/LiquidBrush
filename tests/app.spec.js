@@ -2062,7 +2062,7 @@ test.describe('v82: salir de Buscar sin «Cancelar»', () => {
   });
 });
 
-test.describe('v87: cierres de golpe en el informe de errores', () => {
+test.describe('v87-88: cierres de golpe en el informe de errores', () => {
   test('si la app se cerró sola mientras sonaba, al abrir queda apuntado; una marca vieja no', async ({ page }) => {
     await page.addInitScript(() => {
       if (sessionStorage.getItem('prueba-cierre')) return;
@@ -2085,5 +2085,22 @@ test.describe('v87: cierres de golpe en el informe de errores', () => {
     await page.reload();
     await expect(page.locator('#libCount')).not.toHaveText('0');
     expect(await page.evaluate(() => localStorage.getItem('liquidbrush:errors'))).toBe('[]');
+  });
+
+  test('v88: un cierre mientras la canción carga se apunta con sus pasos', async ({ page }) => {
+    await page.addInitScript(() => {
+      if (sessionStorage.getItem('prueba-cierre-carga')) return;
+      sessionStorage.setItem('prueba-cierre-carga', '1');
+      localStorage.setItem('liquidbrush:errors', '[]');
+      localStorage.setItem('liquidbrush:alive', JSON.stringify({ at: Date.now() - 60000, id: 'x', hidden: false, loading: true, view: 'home', eq: false, mins: 1, steps: 'carga 0 › play 5 › loadstart 40' }));
+    });
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    const errors = await page.evaluate(() => JSON.parse(localStorage.getItem('liquidbrush:errors')));
+    expect(errors[0].m).toContain('a la vista mientras cargaba la canción');
+    expect(errors[0].m).toContain('Pasos: carga 0 › play 5 › loadstart 40');
+    // Elegir una canción (sin red hacia R2 en los tests) ya deja la marca con el primer paso
+    await page.evaluate(() => document.querySelector('#playBtn').click());
+    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('liquidbrush:alive') || '0')?.steps || '')).toContain('play');
   });
 });

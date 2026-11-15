@@ -139,6 +139,15 @@ def fetch(url, byte_range=None):
     return urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=300).read()
 
 
+def public_size(url):
+    """Tamaño total del archivo público (por Content-Range) y sus 10 primeros bytes."""
+    req = urllib.request.Request(url, headers={'User-Agent': 'liquid-tools', 'Range': 'bytes=0-9', 'Cache-Control': 'no-cache'})
+    with urllib.request.urlopen(req, timeout=60) as response:
+        head = response.read()
+        total = (response.headers.get('Content-Range') or '').rpartition('/')[2]
+    return (int(total) if total.isdigit() else -1), head
+
+
 def process(name, apply, min_kb):
     cfg = BUCKETS[name]
     prefix = f'R2_{name.upper()}_'
@@ -146,7 +155,8 @@ def process(name, apply, min_kb):
     if not (access and secret and cfg['account'] and cfg['bucket']):
         print(f'· {name}: sin clave/cuenta en el entorno, se salta')
         return 0, 0
-    keys = [k for k, _ in list_objects(cfg, access, secret) if k.lower().endswith('.mp3')]
+    sizes = {k: s for k, s in list_objects(cfg, access, secret) if k.lower().endswith('.mp3')}
+    keys = list(sizes)
     print(f'· {name}: {len(keys)} MP3')
 
     def one(key):
@@ -161,10 +171,20 @@ def process(name, apply, min_kb):
             if not apply:
                 return key, first, 'pendiente'
             data = fetch(url)
+            # Una descarga cortada a medias NUNCA se sube: reemplazaría la canción por un trozo
+            if sizes[key] and len(data) != sizes[key]:
+                return key, 0, f'error: descarga incompleta ({len(data)} de {sizes[key]} bytes), no se toca'
             slim = slim_mp3(data)
             if not slim or len(data) - len(slim) < min_kb * 1024:
                 return key, 0, 'nada que quitar'
+            # El audio tiene que seguir idéntico, byte a byte
+            if slim[tag_length(slim):] != data[tag_length(data):]:
+                return key, 0, 'error: el audio no coincide, no se toca'
             s3_put(cfg, access, secret, key, slim)
+            # Comprobación final: lo que sirve R2 ya es el archivo ligero y entero
+            total, new_head = public_size(url)
+            if total != len(slim) or new_head != slim[:10]:
+                return key, 0, f'error: tras subir, R2 da {total} bytes (esperados {len(slim)}): revísalo'
             return key, len(data) - len(slim), 'aligerado'
         except (urllib.error.URLError, OSError, ValueError) as error:
             return key, 0, f'error: {error}'
