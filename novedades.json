@@ -1,6 +1,19 @@
 {
   "releases": [
     {
+      "version": "v89",
+      "date": "noviembre 2026",
+      "title": "Descargas que suenan siempre y Liquid sin conexión que abre al momento",
+      "items": [
+        "Las canciones descargadas suenan siempre desde tu teléfono, con o sin conexión. Antes, con poca cobertura o cuando el iPhone dormía el modo offline, una canción descargada se quedaba cargando o en silencio y parecía que ya no estaba descargada.",
+        "Al descargar una playlist entera, las últimas canciones ya no se quedan sin reconocer como descargadas al quitar la conexión.",
+        "Sin conexión, Liquid abre al momento con lo guardado: ya no espera a que la red falle (con poca cobertura en iPhone tardaba una eternidad y en Android no llegaba a abrir).",
+        "Las tipografías (Google Fonts) ya no dejan la pantalla en blanco al abrir la app con mala conexión.",
+        "Si un enlace compartido se abrió alguna vez, ya no deja guardada una copia vieja de la app que después no abría sin conexión.",
+        "Si el iPhone tarda en leer tu biblioteca guardada, la app sigue adelante en vez de quedarse cargando."
+      ]
+    },
+    {
       "version": "v88",
       "date": "noviembre 2026",
       "title": "Más pistas cuando la app se cierra al cargar una canción",
