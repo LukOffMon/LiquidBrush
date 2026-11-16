@@ -1078,7 +1078,11 @@
     let cached = null;
     let cachedSig = '';
     try {
-      cached = await bigStore.get(LIBRARY_IDB_KEY);
+      // v89: en algunos iPhone IndexedDB no responde nunca al abrir la app: como mucho 2,5 s
+      cached = await Promise.race([
+        bigStore.get(LIBRARY_IDB_KEY),
+        new Promise((resolve, reject) => setTimeout(() => reject(new Error('IndexedDB no responde')), 2500))
+      ]);
       cachedSig = cached?.sig || '';
     } catch { /* sin IndexedDB: se usa localStorage como antes */ }
     // Copia antigua en localStorage (versiones anteriores o navegador sin IndexedDB)
@@ -1180,8 +1184,10 @@
   }
 
   // El service worker lleva su propia lista de descargas (para no hacer de intermediario con el resto)
-  function notifyAudioChanged() {
-    try { navigator.serviceWorker?.controller?.postMessage({ type: 'AUDIO_CHANGED' }); } catch { /* sin service worker */ }
+  // v89: con la dirección de la canción, el service worker la apunta al momento (antes releía toda la lista
+  // y, con varias descargas seguidas, se le escapaban las últimas: sin conexión no sonaban)
+  function notifyAudioChanged(url, removed = false) {
+    try { navigator.serviceWorker?.controller?.postMessage({ type: 'AUDIO_CHANGED', url, removed }); } catch { /* sin service worker */ }
   }
 
   async function refreshDownloads() {
@@ -1189,9 +1195,12 @@
     try {
       const keys = await (await caches.open(AUDIO_CACHE)).keys();
       offline.downloaded = new Set(keys.map((request) => request.url));
+      offline.readOnce = true;
       notifyAudioChanged();
     } catch (error) {
-      // Navegación privada (Firefox, algunos Safari): no hay dónde guardar
+      // Navegación privada (Firefox, algunos Safari): no hay dónde guardar. v89: si ya se pudo leer antes,
+      // es un fallo pasajero (iOS al volver de segundo plano): se conserva la lista y no se apagan las descargas
+      if (offline.readOnce) { console.warn('[LiquidBullet] No se pudieron releer las descargas.', error); return; }
       offline.supported = false;
       console.warn('[LiquidBullet] No se pudieron leer las descargas.', error);
     }
@@ -1441,7 +1450,7 @@
     const cache = await caches.open(AUDIO_CACHE);
     await cache.put(cacheKey(track.src), response);
     offline.downloaded.add(cacheKey(track.src));
-    notifyAudioChanged();
+    notifyAudioChanged(cacheKey(track.src));
     if (state.queue.slice(state.queueIndex, state.queueIndex + 3).includes(track.id)) warmLocalAudio();
   }
 
@@ -1534,11 +1543,12 @@
   }
 
   /* --- Sonar lo descargado desde el propio teléfono ---
-     Sin conexión, el audio descargado normalmente lo entrega el service worker. Si aún no está activo
-     (primera visita, recién actualizada) o el navegador no le pasa el audio, la canción se lee de la
-     caché y suena desde una dirección local (blob:). Se guardan pocas a la vez para no gastar memoria. */
+     v89: una canción descargada suena SIEMPRE desde su copia en el teléfono (dirección local blob:), con o
+     sin conexión. Antes, con conexión, se pedía a la red y solo sin conexión se usaba la copia; pero con
+     poca cobertura (hay señal y no datos), con iOS apagando el service worker o con el service worker sin
+     enterarse de una descarga nueva, la canción descargada se quedaba cargando o en silencio.
+     Se preparan pocas a la vez (la que suena y las dos siguientes) para no gastar memoria. */
   const LOCAL_AUDIO_MAX = 4;
-  const needsLocalAudio = () => !navigator.onLine || !navigator.serviceWorker?.controller;
   const audioSrc = (track) => offline.urls.get(cacheKey(track.src)) || track.src;
   async function localAudioUrl(track) {
     if (!offline.supported || !track || !isDownloaded(track)) return null;
@@ -1573,10 +1583,33 @@
   }
   // Prepara la que suena y las dos siguientes: al tocarlas, ya están listas
   function warmLocalAudio() {
-    if (!needsLocalAudio() || !offline.downloaded.size) return;
+    if (!offline.downloaded.size) return;
     [0, 1, 2].forEach((step) => {
       const track = getTrack(state.queue[state.queueIndex + step]);
       if (track && isDownloaded(track)) localAudioUrl(track);
+    });
+  }
+
+  // La canción descargada aún no tenía su copia local preparada: se lee del teléfono y se cambia en cuanto
+  // está (si ya suena bien desde la red, no se corta)
+  function useLocalCopy(track, force = false) {
+    const deck = els.audio;
+    state.localLoading = track;
+    localAudioUrl(track).then((url) => {
+      if (state.localLoading === track) state.localLoading = null;
+      if (state.currentTrack !== track || els.audio !== deck) return;
+      if (/^blob:/.test(deck.getAttribute('src') || '')) return;
+      if (!url) {
+        // Sin copia legible (copia «opaca» de Android: la entrega el service worker). Si ya falló, se avisa
+        state.localTried = true;
+        if (deck.error) deck.dispatchEvent(new Event('error'));
+        return;
+      }
+      if (!force && !deck.error && !deck.paused && deck.readyState >= 3 && navigator.onLine) return;
+      state.localTried = true;
+      if (deck.currentTime > 0.3) state.pendingSeek = deck.currentTime;
+      deck.src = url;
+      if (state.wantsPlay && !state.userPaused) play({ quiet: true });
     });
   }
 
@@ -7526,9 +7559,11 @@
     state.retried = false;
     state.silentFail = false;
     state.localTried = false;
-    // Descargada y sin conexión (o sin el modo offline listo): suena desde el propio teléfono si ya está preparada
+    state.localLoading = null;
+    // Descargada: suena desde el propio teléfono (si su copia aún no está preparada, se cambia al estarlo)
     els.audio.src = audioSrc(track);
     applySpeed();
+    if (isDownloaded(track) && !/^blob:/.test(els.audio.getAttribute('src') || '')) useLocalCopy(track);
     setTimeout(warmLocalAudio, 0);
 
     if (settings.motion && els.cover.src !== track.cover) {
@@ -7622,9 +7657,9 @@
     routeDeckForEq();
     if (eq.ctx && eq.ctx.state !== 'running') eq.ctx.resume().catch(() => {});
     const deck = els.audio;
-    // Descargada, sin conexión o sin modo offline, y con su copia local lista: suena desde el teléfono
+    // Descargada y con su copia local lista: suena desde el teléfono
     const current = state.currentTrack;
-    if (current && needsLocalAudio() && isDownloaded(current) && !/^blob:/.test(deck.getAttribute('src') || '')) {
+    if (current && isDownloaded(current) && !/^blob:/.test(deck.getAttribute('src') || '')) {
       const local = offline.urls.get(cacheKey(current.src));
       if (local) {
         state.silentFail = false;
@@ -9428,6 +9463,13 @@
       still = 0;
       attempts++;
       errorLog.add(`Audio atascado (intento ${attempts})`, state.currentTrack?.id || '');
+      // Descargada pero pedida a la red (poca cobertura): pasa a su copia del teléfono
+      const current = state.currentTrack;
+      if (attempts === 1 && current && isDownloaded(current) && !/^blob:/.test(audio.getAttribute('src') || '') && !state.localLoading) {
+        state.pendingSeek = time;
+        useLocalCopy(current, true);
+        return;
+      }
       if (attempts === 1) {
         try { audio.currentTime = time + 0.01; } catch { /* sin datos aún */ }
         audio.play().catch(() => {});
@@ -9662,6 +9704,8 @@
     on('playing', () => { errorSkips = 0; });
     on('error', () => {
       if (!els.audio.getAttribute('src')) return;
+      // Se está leyendo su copia descargada: al tenerla, se cambia sola (no es un fallo)
+      if (state.localLoading && state.localLoading === state.currentTrack) return;
       if (recoverFromEqError()) return;
       // Descargada pero no cargó (sin conexión y el modo offline no la entregó): se lee del teléfono y suena
       const failedTrack = state.currentTrack;

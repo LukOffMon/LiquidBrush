@@ -6,7 +6,7 @@
    - Los MP3 descargados desde la app viven en AUDIO_CACHE y se
      reproducen desde ahí (con soporte de rangos para poder adelantar).
    ========================================================= */
-const VERSION = 'v88';
+const VERSION = 'v89';
 const SHELL_CACHE = `liquidbrush-shell-${VERSION}`;
 const DATA_CACHE = 'liquidbrush-data';
 const AUDIO_CACHE = 'liquidbrush-audio';
@@ -15,8 +15,8 @@ const SHELL = [
   './',
   'index.html',
   'lab.html',
-  'styles.css?v=74',
-  'app.js?v=77',
+  'styles.css?v=75',
+  'app.js?v=78',
   'favicon.png',
   'logo.svg',
   'manifest.webmanifest',
@@ -39,11 +39,16 @@ const DATA_FILES = [
   'catalog.json'
 ];
 
+// v89: se piden saltándose la caché HTTP del navegador (GitHub Pages la deja 10 min). Antes podía
+// guardarse un index.html viejo que pedía un app.js?v= que ya no estaba guardado: sin conexión, la app
+// se quedaba en blanco
+const fresh = (file) => new Request(file, { cache: 'reload' });
+
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(SHELL_CACHE)
-      .then((cache) => cache.addAll(SHELL)
-        .then(() => Promise.allSettled(DATA_FILES.map((file) => cache.add(file)))))
+      .then((cache) => cache.addAll(SHELL.map(fresh))
+        .then(() => Promise.allSettled(DATA_FILES.map((file) => cache.add(fresh(file))))))
   );
   // No se activa sola: la app avisa «Hay una versión nueva» y la aplica al pulsar Actualizar
 });
@@ -53,21 +58,37 @@ self.addEventListener('install', (event) => {
 // y en móviles con poca memoria eso hacía que la música se trabara o se cortara)
 let audioKeys = null;
 let audioKeysLoading = null;
+// v89: si llega un aviso mientras se lee la lista, se vuelve a leer al acabar. Antes ese aviso se perdía:
+// al descargar una playlist (muchos avisos seguidos) las últimas canciones no entraban en la lista y,
+// sin conexión, el service worker las mandaba a la red y no sonaban
+let audioKeysStale = false;
 function loadAudioKeys() {
-  if (!audioKeysLoading) {
-    audioKeysLoading = caches.open(AUDIO_CACHE)
-      .then((cache) => cache.keys())
-      .then((keys) => { audioKeys = new Set(keys.map((key) => key.url)); })
-      .catch(() => { audioKeys = null; })
-      .finally(() => { audioKeysLoading = null; });
+  if (audioKeysLoading) {
+    audioKeysStale = true;
+    return audioKeysLoading;
   }
+  audioKeysStale = false;
+  audioKeysLoading = caches.open(AUDIO_CACHE)
+    .then((cache) => cache.keys())
+    .then((keys) => { audioKeys = new Set(keys.map((key) => key.url)); })
+    .catch(() => { audioKeys = null; })
+    .finally(() => { audioKeysLoading = null; })
+    .then(() => (audioKeysStale ? loadAudioKeys() : undefined));
   return audioKeysLoading;
 }
 loadAudioKeys();
 
 self.addEventListener('message', (event) => {
   if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
-  if (event.data?.type === 'AUDIO_CHANGED') event.waitUntil(loadAudioKeys());
+  if (event.data?.type === 'AUDIO_CHANGED') {
+    // La canción recién guardada (o quitada) cuenta al momento, sin esperar a releer la lista
+    const { url, removed } = event.data;
+    if (audioKeys && typeof url === 'string') {
+      if (removed) audioKeys.delete(url);
+      else audioKeys.add(url);
+    }
+    event.waitUntil(loadAudioKeys());
+  }
   if (event.data?.type === 'GET_VERSION') event.source?.postMessage({ type: 'VERSION', version: VERSION });
 });
 
@@ -83,22 +104,73 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Red primero; si falla, la copia guardada
+// Una respuesta que llegó tras una redirección no se puede entregar a una navegación (Chrome/Android da
+// error y la app no abre): se copia limpia
+async function cleanResponse(response) {
+  if (!response?.redirected) return response;
+  return new Response(await response.blob(), { status: response.status, statusText: response.statusText, headers: response.headers });
+}
+
+// v89: cuánto se espera a la red antes de abrir con lo guardado. Con «poca cobertura» (hay señal pero no
+// datos) la red no falla: se queda colgada un minuto o más, y la app tardaba una eternidad en abrir
+const NAV_TIMEOUT_MS = 3500;
+const DATA_TIMEOUT_MS = 6000;
+const isDataFile = (url) => /\.json$/i.test(url.pathname);
+
+// Las páginas se guardan sin la parte «?...»: un enlace compartido (?cancion=...) ya no deja su propia
+// copia vieja de la página, que después se abría sin conexión con un app.js que ya no existía
+function navKey(request) {
+  const url = new URL(request.url);
+  url.search = '';
+  url.hash = '';
+  return url.href;
+}
+
+async function fromCache(request, cache) {
+  const navigate = request.mode === 'navigate';
+  const cached = navigate
+    ? await cache.match(navKey(request)) || await cache.match(request, { ignoreSearch: true })
+    : await cache.match(request);
+  if (cached) return cached;
+  if (navigate) {
+    const shell = await caches.match('index.html', { ignoreSearch: true }) || await caches.match('./');
+    if (shell) return shell;
+  }
+  // Otra versión del mismo archivo (app.js?v=...) es mejor que nada
+  return caches.match(request, { ignoreSearch: true });
+}
+
+// Red primero; si falla, tarda demasiado o no hay conexión, la copia guardada
 async function networkFirst(request, cacheName, bypassHttpCache = false) {
   const cache = await caches.open(cacheName);
+  const navigate = request.mode === 'navigate';
+  // Los archivos de la app se piden siempre frescos (GitHub Pages los deja 10 min en caché)
+  const network = fetch(bypassHttpCache ? new Request(request.url, { cache: 'no-cache', credentials: 'same-origin' }) : request)
+    .then((response) => {
+      if (response.ok) cache.put(navigate ? navKey(request) : request, response.clone()).catch(() => {});
+      return response;
+    });
+  network.catch(() => {});
+  const clean = (response) => (navigate ? cleanResponse(response) : response);
+  // Sin conexión: directo a lo guardado, sin esperar a que la red falle
+  if (self.navigator.onLine === false) {
+    const cached = await fromCache(request, cache);
+    if (cached) return clean(cached);
+    return network;
+  }
+  let timer;
+  const slow = new Promise((resolve) => { timer = setTimeout(resolve, isDataFile(new URL(request.url)) ? DATA_TIMEOUT_MS : NAV_TIMEOUT_MS); })
+    .then(() => fromCache(request, cache));
   try {
-    // Los archivos de la app se piden siempre frescos (GitHub Pages los deja 10 min en caché)
-    const response = await fetch(bypassHttpCache ? new Request(request.url, { cache: 'no-cache' }) : request);
-    if (response.ok) cache.put(request, response.clone());
-    return response;
+    // Lo primero que llegue: la red, o la copia guardada si la red se hace esperar
+    const winner = await Promise.race([network, slow.then((cached) => cached || network)]);
+    return clean(winner);
   } catch (error) {
-    const cached = await cache.match(request, { ignoreSearch: request.mode === 'navigate' });
-    if (cached) return cached;
-    if (request.mode === 'navigate') {
-      const shell = await caches.match('index.html');
-      if (shell) return shell;
-    }
+    const cached = await fromCache(request, cache);
+    if (cached) return clean(cached);
     throw error;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
