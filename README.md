@@ -62,6 +62,15 @@ python3 tools/r2_slim.py            # solo mira cuánto se ahorra en cada bucket
 python3 tools/r2_slim.py --apply    # quita las portadas y vuelve a subir los MP3 con Cache-Control
 ```
 
+Para gastar la mitad de datos y que arranquen aún antes, se pueden pasar a 160 kbps (necesita `ffmpeg`; de paso quita la portada). Una canción de 8 MB a 320 kbps queda en ~3,3 MB y en el móvil apenas se nota la diferencia:
+
+```bash
+python3 tools/r2_slim.py --kbps 160            # solo mira cuánto se ahorra
+python3 tools/r2_slim.py --kbps 160 --apply    # recodifica y sube (se puede repetir: lo ya convertido se salta)
+```
+
+Cada archivo se comprueba antes de subirlo (misma duración) y después (R2 sirve el archivo nuevo entero); la URL no cambia. Para la música nueva, pásalo después de `sync_r2.py`.
+
 Usa las mismas claves que `sync_r2.py`, con permiso de escritura. Los MP3 nuevos que subas conviene pasarlos también. Además, las URL `pub-….r2.dev` son de desarrollo: Cloudflare no las guarda en caché y les pone límite de velocidad. Para que suene más rápido aún, conecta un dominio propio a cada bucket (R2 → bucket → Settings → Custom Domains) y cambia `base` en `CONFIG.sources`.
 
 ### Letras
