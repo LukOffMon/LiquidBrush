@@ -6,7 +6,7 @@
    - Los MP3 descargados desde la app viven en AUDIO_CACHE y se
      reproducen desde ahí (con soporte de rangos para poder adelantar).
    ========================================================= */
-const VERSION = 'v89';
+const VERSION = 'v90';
 const SHELL_CACHE = `liquidbrush-shell-${VERSION}`;
 const DATA_CACHE = 'liquidbrush-data';
 const AUDIO_CACHE = 'liquidbrush-audio';
@@ -15,8 +15,8 @@ const SHELL = [
   './',
   'index.html',
   'lab.html',
-  'styles.css?v=75',
-  'app.js?v=78',
+  'styles.css?v=76',
+  'app.js?v=79',
   'favicon.png',
   'logo.svg',
   'manifest.webmanifest',
@@ -87,6 +87,7 @@ self.addEventListener('message', (event) => {
       if (removed) audioKeys.delete(url);
       else audioKeys.add(url);
     }
+    if (removed && audioBlob.url === url) audioBlob = { url: null, blob: null };
     event.waitUntil(loadAudioKeys());
   }
   if (event.data?.type === 'GET_VERSION') event.source?.postMessage({ type: 'VERSION', version: VERSION });
@@ -174,6 +175,35 @@ async function networkFirst(request, cacheName, bypassHttpCache = false) {
   }
 }
 
+const SCOPE_PATH = new URL('./', self.location.href).pathname;
+const DATA_PATHS = new Set(DATA_FILES.map((file) => new URL(file, self.location.href).pathname));
+function isShell(url, request) {
+  if (url.origin !== self.location.origin || !url.pathname.startsWith(SCOPE_PATH)) return false;
+  const path = url.pathname.slice(SCOPE_PATH.length);
+  if (request.mode === 'navigate') return path === '' || path === 'index.html' || path === 'lab.html';
+  return /^(app\.js|styles\.css)$/.test(path) && url.searchParams.has('v');
+}
+
+async function shellFirst(request) {
+  const cache = await caches.open(SHELL_CACHE);
+  const cached = request.mode === 'navigate' ? await cache.match(navKey(request)) : await cache.match(request);
+  if (cached) return request.mode === 'navigate' ? cleanResponse(cached) : cached;
+  return networkFirst(request, SHELL_CACHE, true);
+}
+
+async function dataFirst(event, request) {
+  const cache = await caches.open(SHELL_CACHE);
+  const cached = await cache.match(request, { ignoreSearch: true });
+  if (!cached) return networkFirst(request, SHELL_CACHE, true);
+  // Sin conexión no se intenta nada
+  if (self.navigator.onLine !== false) {
+    event.waitUntil(fetch(new Request(request.url, { cache: 'no-cache', credentials: 'same-origin' }))
+      .then((response) => (response.ok ? cache.put(request.url, response) : undefined))
+      .catch(() => {}));
+  }
+  return cached;
+}
+
 // La caché de portadas, fondos y fuentes no crece sin fin: se quitan las más antiguas
 const DATA_CACHE_LIMIT = 600;
 let trimming = null;
@@ -201,12 +231,40 @@ async function staleWhileRevalidate(request, cacheName) {
   return cached || refresh;
 }
 
+// v90: el archivo de la canción que suena se lee del almacenamiento UNA vez y se reutiliza. Antes cada
+// trozo que pedía el reproductor (iPhone pide muchos) volvía a leer el MP3 entero (8–10 MB) a memoria:
+// sin conexión la canción tardaba muchísimo en cargar y el navegador acababa cerrando la página
+let audioBlob = { url: null, blob: null };
+function blobFor(url, cached) {
+  if (audioBlob.url !== url) {
+    const blob = cached.blob();
+    audioBlob = { url, blob };
+    blob.catch(() => { if (audioBlob.blob === blob) audioBlob = { url: null, blob: null }; });
+  }
+  return audioBlob.blob;
+}
+
+const ASSET_REFRESH_MS = 7 * 86400000;
+async function cacheFirstAsset(event, request) {
+  const cache = await caches.open(DATA_CACHE);
+  const cached = await cache.match(request);
+  if (!cached) return staleWhileRevalidate(request, DATA_CACHE);
+  // Una copia opaca (CSS de Google Fonts) no deja leer su fecha: se queda la guardada
+  const savedAt = cached.type === 'opaque' ? Date.now() : Date.parse(cached.headers.get('date') || '') || 0;
+  if (Date.now() - savedAt > ASSET_REFRESH_MS && self.navigator.onLine !== false) {
+    event.waitUntil(fetch(request)
+      .then((response) => (response.ok || response.type === 'opaque' ? cache.put(request, response) : undefined))
+      .catch(() => {}));
+  }
+  return cached;
+}
+
 // El reproductor pide el audio por trozos (Range); se recortan del archivo guardado
 async function serveAudio(request, cached) {
   const range = request.headers.get('range');
   // Copia opaca (servidor sin CORS): no se puede recortar, se entrega entera
   if (!range || cached.type === 'opaque') return cached;
-  const blob = await cached.blob();
+  const blob = await blobFor(request.url, cached);
   const size = blob.size;
   const match = /bytes=(\d*)-(\d*)/.exec(range);
   let start = 0;
@@ -262,9 +320,26 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Portadas e iconos no cambian: se sirven de la caché al instante
-  if (url.origin === self.location.origin && /\/covers\/|\.(png|jpg|svg)$/.test(url.pathname)) {
-    event.respondWith(staleWhileRevalidate(request, DATA_CACHE));
+  // Portadas, fondos, iconos y tipografías no cambian: se sirven de la caché al instante.
+  // v90: y ya no se vuelven a pedir en cada apertura (eran 100+ peticiones con datos móviles); se renuevan
+  // como mucho una vez por semana
+  if ((url.origin === self.location.origin && /\/covers\/|\.(png|jpg|svg)$/.test(url.pathname))
+    || url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') {
+    event.respondWith(cacheFirstAsset(event, request));
+    return;
+  }
+
+  // v90: la app (página y app.js/styles.css con su ?v=) se abre al instante desde lo guardado. Antes se
+  // esperaba a la red para cada archivo (hasta 3,5 s cada uno): con datos móviles abrir tardaba muchísimo.
+  // Las versiones nuevas llegan igual: sw.js se pide siempre a la red y avisa «Hay una versión nueva»
+  if (isShell(url, request)) {
+    event.respondWith(shellFirst(request));
+    return;
+  }
+
+  // v90: las listas de canciones, al instante desde lo guardado; se renuevan por detrás para la próxima vez
+  if (url.origin === self.location.origin && DATA_PATHS.has(url.pathname)) {
+    event.respondWith(dataFirst(event, request));
     return;
   }
 
@@ -273,7 +348,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com' || request.destination === 'image') {
+  if (request.destination === 'image') {
     event.respondWith(staleWhileRevalidate(request, DATA_CACHE));
   }
 });

@@ -17,6 +17,15 @@ sigue igual, así que playlists, favoritas y descargas no cambian.
     python3 tools/r2_slim.py salt            # lo mismo, solo un bucket
     python3 tools/r2_slim.py --apply         # quita las portadas y sube los MP3 ligeros
     python3 tools/r2_slim.py --apply --min 64   # solo los que tengan más de 64 KB de etiqueta (por defecto 32)
+    python3 tools/r2_slim.py --kbps 160         # mira cuánto se ahorra pasando a 160 kbps
+    python3 tools/r2_slim.py --kbps 160 --apply # recodifica a 160 kbps (y quita la portada de paso)
+
+--kbps (necesita ffmpeg): los MP3 a 320 kbps pesan ~8 MB por canción. A 160 kbps pesan menos de la
+mitad: la canción arranca antes con datos móviles y gasta la mitad de datos; en el móvil y con
+auriculares la diferencia apenas se nota. Solo se tocan los que pasan del límite por más de un 15 %, así
+que se puede repetir sin volver a convertir nada. Cada archivo se comprueba antes de subirlo (misma
+duración, ±1 s) y después (R2 sirve el archivo nuevo entero). La URL no cambia. Las canciones que ya
+descargaste en el teléfono siguen sonando con su copia de antes.
 
 Usa las mismas claves que tools/sync_r2.py (R2_<NOMBRE>_ACCESS_KEY_ID / _SECRET_ACCESS_KEY y, donde haga
 falta, _ACCOUNT / _BUCKET). Para --apply la clave tiene que poder escribir («Object Read & Write»).
@@ -26,7 +35,10 @@ import hashlib
 import hmac
 import json
 import os
+import shutil
+import subprocess
 import sys
+import tempfile
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -35,6 +47,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from sync_r2 import BUCKETS, _sign, list_objects  # noqa: E402
+
+ROOT = Path(__file__).resolve().parent.parent
+# Con --kbps: solo se recodifica lo que pase de ese valor por más de un 15 % (lo ya convertido se salta)
+KBPS_MARGIN = 1.15
 
 CACHE_CONTROL = 'public, max-age=2592000'  # 30 días
 # Marcos de la etiqueta que se quitan: carátula, objetos y datos privados (pesan y nadie los usa)
@@ -132,6 +148,56 @@ def s3_put(cfg, access_key, secret_key, key, body):
     urllib.request.urlopen(req, timeout=300).read()
 
 
+def probe(path):
+    """Duración (s) y kbps del audio, leídos con ffprobe."""
+    out = subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'a:0', '-show_entries',
+                          'format=duration,bit_rate', '-of', 'json', str(path)],
+                         capture_output=True, text=True, check=True).stdout
+    fmt = json.loads(out).get('format', {})
+    return float(fmt.get('duration') or 0), float(fmt.get('bit_rate') or 0) / 1000
+
+
+def transcode(data, kbps):
+    """El MP3 recodificado a <kbps> CBR, sin etiquetas (ni portada). Devuelve (bytes, kbps de antes).
+
+    Comprueba que el resultado dure lo mismo (±1 s) y empiece por un fotograma MP3: si no, ValueError
+    y la canción no se toca."""
+    with tempfile.TemporaryDirectory() as tmp:
+        src, dst = Path(tmp) / 'in.mp3', Path(tmp) / 'out.mp3'
+        src.write_bytes(data)
+        before, before_kbps = probe(src)
+        if before <= 0:
+            raise ValueError('no se pudo leer la duración')
+        subprocess.run(['ffmpeg', '-nostdin', '-v', 'error', '-i', str(src), '-map', '0:a:0',
+                        '-c:a', 'libmp3lame', '-b:a', f'{kbps}k', '-map_metadata', '-1',
+                        '-id3v2_version', '0', '-write_id3v1', '0', '-write_xing', '1', str(dst)],
+                       capture_output=True, check=True)
+        out = dst.read_bytes()
+        after, _ = probe(dst)
+    if abs(after - before) > 1:
+        raise ValueError(f'la duración cambió ({before:.1f} s → {after:.1f} s)')
+    if len(out) < 2 or out[0] != 0xFF or (out[1] & 0xE0) != 0xE0:
+        raise ValueError('el resultado no empieza por audio MP3')
+    return out, before_kbps
+
+
+def list_durations(name):
+    """Duración de cada canción (por su ruta en el bucket), de musica/<name>.json."""
+    path = ROOT / 'musica' / f'{name}.json'
+    out = {}
+    if not path.exists():
+        return out
+    for row in json.loads(path.read_text(encoding='utf-8')):
+        parts = str(row.get('duration') or '').split(':')
+        if row.get('src') and all(p.isdigit() for p in parts) and len(parts) in (2, 3):
+            secs = 0
+            for p in parts:
+                secs = secs * 60 + int(p)
+            if secs:
+                out[row['src']] = secs
+    return out
+
+
 def fetch(url, byte_range=None):
     headers = {'User-Agent': 'liquid-tools'}
     if byte_range:
@@ -148,8 +214,9 @@ def public_size(url):
     return (int(total) if total.isdigit() else -1), head
 
 
-def process(name, apply, min_kb):
+def process(name, apply, min_kb, kbps=0):
     cfg = BUCKETS[name]
+    durations = list_durations(name) if kbps else {}
     prefix = f'R2_{name.upper()}_'
     access, secret = os.environ.get(prefix + 'ACCESS_KEY_ID'), os.environ.get(prefix + 'SECRET_ACCESS_KEY')
     if not (access and secret and cfg['account'] and cfg['bucket']):
@@ -159,10 +226,39 @@ def process(name, apply, min_kb):
     keys = list(sizes)
     print(f'· {name}: {len(keys)} MP3')
 
+    def reencode(key, url, head):
+        """--kbps: recodifica si pasa del límite. None si no hace falta (sigue el aligerado normal)."""
+        tag = 10 + synchsafe(head[6:10]) if head[:3] == b'ID3' else 0
+        secs = durations.get(key)
+        est = (sizes[key] - tag) * 8 / secs / 1000 if secs and sizes[key] else 0
+        if est and est <= kbps * KBPS_MARGIN:
+            return None
+        if not apply:
+            if not est:
+                return key, 0, 'pendiente (sin duración en la lista: se mira al aplicar)'
+            return key, max(0, sizes[key] - int(secs * kbps * 125)), f'pendiente {est:.0f}→{kbps} kbps'
+        data = fetch(url)
+        if sizes[key] and len(data) != sizes[key]:
+            return key, 0, f'error: descarga incompleta ({len(data)} de {sizes[key]} bytes), no se toca'
+        new, before_kbps = transcode(data, kbps)
+        if before_kbps and before_kbps <= kbps * KBPS_MARGIN:
+            return None
+        if len(new) >= len(data) * 0.9:
+            return key, 0, 'nada que ganar'
+        s3_put(cfg, access, secret, key, new)
+        total, new_head = public_size(url)
+        if total != len(new) or new_head != new[:10]:
+            return key, 0, f'error: tras subir, R2 da {total} bytes (esperados {len(new)}): revísalo'
+        return key, len(data) - len(new), f'{est or before_kbps:.0f}→{kbps} kbps'
+
     def one(key):
         url = cfg['public'] + '/' + urllib.parse.quote(key)
         try:
             head = fetch(url, (0, 9))
+            if kbps:
+                result = reencode(key, url, head)
+                if result:
+                    return result
             if head[:3] != b'ID3':
                 return key, 0, 'sin etiqueta'
             first = 10 + synchsafe(head[6:10])
@@ -186,7 +282,7 @@ def process(name, apply, min_kb):
             if total != len(slim) or new_head != slim[:10]:
                 return key, 0, f'error: tras subir, R2 da {total} bytes (esperados {len(slim)}): revísalo'
             return key, len(data) - len(slim), 'aligerado'
-        except (urllib.error.URLError, OSError, ValueError) as error:
+        except (urllib.error.URLError, OSError, ValueError, subprocess.CalledProcessError) as error:
             return key, 0, f'error: {error}'
 
     saved = done = 0
@@ -198,8 +294,12 @@ def process(name, apply, min_kb):
                 print(f'   {status:10} {size // 1024:6} KB  {key}')
             elif status.startswith('error'):
                 print(f'   {status}  {key}')
-    verb = 'aligerados' if apply else 'con portada que se puede quitar'
-    print(f'  {name}: {done} MP3 {verb}, {saved / 1_048_576:.1f} MB menos antes del primer segundo')
+    if kbps:
+        verb = 'convertidos o aligerados' if apply else 'que se pueden convertir o aligerar'
+        print(f'  {name}: {done} MP3 {verb}, {saved / 1_048_576:.1f} MB menos en total')
+    else:
+        verb = 'aligerados' if apply else 'con portada que se puede quitar'
+        print(f'  {name}: {done} MP3 {verb}, {saved / 1_048_576:.1f} MB menos antes del primer segundo')
     return done, saved
 
 
@@ -210,17 +310,25 @@ def main():
     if '--min' in sys.argv:
         min_kb = int(sys.argv[sys.argv.index('--min') + 1])
         args = [a for a in args if a != str(min_kb)]
+    kbps = 0
+    if '--kbps' in sys.argv:
+        kbps = int(sys.argv[sys.argv.index('--kbps') + 1])
+        args = [a for a in args if a != str(kbps)]
+        if not 64 <= kbps <= 320:
+            sys.exit('--kbps tiene que estar entre 64 y 320 (recomendado: 160)')
+        if not (shutil.which('ffmpeg') and shutil.which('ffprobe')):
+            sys.exit('--kbps necesita ffmpeg y ffprobe instalados (p. ej. «brew install ffmpeg» o «sudo apt install ffmpeg»)')
     names = args or list(BUCKETS)
     total_files = total_bytes = 0
     for name in names:
         if name not in BUCKETS:
             sys.exit(f'Bucket desconocido: {name}. Opciones: {", ".join(BUCKETS)}')
-        files, size = process(name, apply, min_kb)
+        files, size = process(name, apply, min_kb, kbps)
         total_files += files
         total_bytes += size
-    print(json.dumps({'mp3': total_files, 'mb': round(total_bytes / 1_048_576, 1), 'aplicado': apply}, ensure_ascii=False))
+    print(json.dumps({'mp3': total_files, 'mb': round(total_bytes / 1_048_576, 1), 'kbps': kbps or None, 'aplicado': apply}, ensure_ascii=False))
     if not apply and total_files:
-        print('Para aplicarlo:  python3 tools/r2_slim.py --apply')
+        print(f'Para aplicarlo:  python3 tools/r2_slim.py{f" --kbps {kbps}" if kbps else ""} --apply')
 
 
 if __name__ == '__main__':

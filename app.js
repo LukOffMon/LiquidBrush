@@ -1451,7 +1451,7 @@
     await cache.put(cacheKey(track.src), response);
     offline.downloaded.add(cacheKey(track.src));
     notifyAudioChanged(cacheKey(track.src));
-    if (state.queue.slice(state.queueIndex, state.queueIndex + 3).includes(track.id)) warmLocalAudio();
+    if (state.queue.slice(state.queueIndex, state.queueIndex + 2).includes(track.id)) warmLocalAudio();
   }
 
   // Descarga una sola canción (menú + de la canción, o el corazón con «Descargar favoritas» activado)
@@ -1547,8 +1547,10 @@
      sin conexión. Antes, con conexión, se pedía a la red y solo sin conexión se usaba la copia; pero con
      poca cobertura (hay señal y no datos), con iOS apagando el service worker o con el service worker sin
      enterarse de una descarga nueva, la canción descargada se quedaba cargando o en silencio.
-     Se preparan pocas a la vez (la que suena y las dos siguientes) para no gastar memoria. */
-  const LOCAL_AUDIO_MAX = 4;
+     Se preparan pocas a la vez (la que suena y la siguiente) para no gastar memoria.
+     v90: antes eran hasta 4 copias (8–10 MB cada una) en la memoria de la página: en iPhone, junto con
+     lo demás, el navegador acababa cerrando la página. */
+  const LOCAL_AUDIO_MAX = 3;
   const audioSrc = (track) => offline.urls.get(cacheKey(track.src)) || track.src;
   async function localAudioUrl(track) {
     if (!offline.supported || !track || !isDownloaded(track)) return null;
@@ -1581,12 +1583,40 @@
     URL.revokeObjectURL(url);
     offline.urls.delete(key);
   }
-  // Prepara la que suena y las dos siguientes: al tocarlas, ya están listas
+  // Prepara la que suena y la siguiente: al tocarlas, ya están listas
   function warmLocalAudio() {
     if (!offline.downloaded.size) return;
-    [0, 1, 2].forEach((step) => {
+    [0, 1].forEach((step) => {
       const track = getTrack(state.queue[state.queueIndex + step]);
       if (track && isDownloaded(track)) localAudioUrl(track);
+    });
+  }
+
+  // v90: canción descargada sin su copia preparada: el reproductor se queda sin dirección mientras se lee del
+  // teléfono (unas décimas) y suena en cuanto está. Solo si el teléfono tarda mucho y hay conexión, se pide a
+  // la red; si la copia no se puede leer aquí (copia «opaca» de Android) la entrega el modo offline
+  const LOCAL_FIRST_WAIT_MS = 2500;
+  function loadLocalFirst(track) {
+    const deck = els.audio;
+    deck.removeAttribute('src');
+    deck.load();
+    state.localLoading = track;
+    let settled = false;
+    const useUrl = (url) => {
+      settled = true;
+      if (state.localLoading === track) state.localLoading = null;
+      if (state.currentTrack !== track || els.audio !== deck) return;
+      state.localTried = true;
+      deck.src = url;
+      applySpeed();
+      if (state.wantsPlay && !state.userPaused) play({ quiet: true });
+    };
+    const slow = setTimeout(() => {
+      if (!settled && navigator.onLine) useUrl(track.src);
+    }, LOCAL_FIRST_WAIT_MS);
+    localAudioUrl(track).then((url) => {
+      clearTimeout(slow);
+      if (!settled) useUrl(url || track.src);
     });
   }
 
@@ -7560,10 +7590,12 @@
     state.silentFail = false;
     state.localTried = false;
     state.localLoading = null;
-    // Descargada: suena desde el propio teléfono (si su copia aún no está preparada, se cambia al estarlo)
-    els.audio.src = audioSrc(track);
+    // Descargada: suena desde el propio teléfono. v90: si su copia aún no está preparada, se lee primero del
+    // teléfono SIN pedir nada a la red (antes se pedía a la red y se cambiaba después: gastaba datos y, con
+    // poca cobertura, la canción descargada se quedaba cargando)
+    if (offline.supported && isDownloaded(track) && !offline.urls.has(cacheKey(track.src))) loadLocalFirst(track);
+    else els.audio.src = audioSrc(track);
     applySpeed();
-    if (isDownloaded(track) && !/^blob:/.test(els.audio.getAttribute('src') || '')) useLocalCopy(track);
     setTimeout(warmLocalAudio, 0);
 
     if (settings.motion && els.cover.src !== track.cover) {
@@ -7659,6 +7691,13 @@
     const deck = els.audio;
     // Descargada y con su copia local lista: suena desde el teléfono
     const current = state.currentTrack;
+    // v90: se está leyendo su copia del teléfono: sonará sola en cuanto esté (en unas décimas).
+    // play() sin dirección deja el reproductor «desbloqueado» por el toque (iPhone) y no hace ruido
+    if (current && state.localLoading === current && !deck.getAttribute('src')) {
+      els.playBtn.classList.add('is-loading');
+      deck.play().catch(() => {});
+      return;
+    }
     if (current && isDownloaded(current) && !/^blob:/.test(deck.getAttribute('src') || '')) {
       const local = offline.urls.get(cacheKey(current.src));
       if (local) {
@@ -14610,6 +14649,26 @@
       return null;
     },
 
+    // v90: las tendencias (unos 100 KB por estilo, 5 estilos al abrir Inicio) se guardan unas horas en el
+    // teléfono. Antes se volvían a bajar cada vez que se abría la app: ~0,5 MB de datos móviles por apertura
+    async cachedJson(url, maxAge) {
+      let cache = null;
+      let hit = null;
+      try {
+        cache = await caches.open('liquidbrush-data');
+        hit = await cache.match(url);
+        if (hit && Date.now() - Number(hit.headers.get('x-saved-at') || 0) < maxAge) return await hit.json();
+      } catch { /* sin caché (navegación privada): se pide a la red */ }
+      try {
+        const data = await this.json(url, null, 7000);
+        cache?.put(url, new Response(JSON.stringify(data), { headers: { 'Content-Type': 'application/json', 'x-saved-at': String(Date.now()) } })).catch(() => {});
+        return data;
+      } catch (error) {
+        // Sin red o Audius caído: mejor lo guardado aunque sea de ayer
+        if (hit) return hit.json();
+        throw error;
+      }
+    },
     async json(url, signal, ms = 6000) {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), ms);
@@ -15218,7 +15277,7 @@
       const entry = { tracks: [], loading: true };
       this.pools.set(genre, entry);
       const url = `https://api.audius.co/v1/tracks/trending?app_name=${ATK_APP}&time=week${genre ? `&genre=${encodeURIComponent(genre)}` : ''}`;
-      entry.promise = this.json(url, null, 7000).then((data) => {
+      entry.promise = this.cachedJson(url, 6 * 3600000).then((data) => {
         const seen = new Set();
         entry.tracks = (data?.data || []).map((t) => this.fromAudius(t)).filter((t) => {
           if (!t || t.seconds < 60 || t.seconds > 720) return false;

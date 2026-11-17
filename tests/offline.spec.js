@@ -75,3 +75,27 @@ test('una canción descargada suena desde el teléfono aunque el servidor no res
   await expect.poll(deckSrc, { timeout: 8000 }).toMatch(/^blob:/);
   await expect.poll(() => page.evaluate(() => Math.max(...[...document.querySelectorAll('audio[id^="audio"]')].map((a) => a.currentTime))), { timeout: 8000 }).toBeGreaterThan(0.3);
 });
+
+test('v90: con conexión, una canción descargada no pide nada a la red', async ({ page }) => {
+  let r2Requests = 0;
+  await page.route(/r2\.dev/, () => { r2Requests++; /* sin respuesta */ });
+  await page.goto('./?view=library');
+  await expect(page.locator('#libCount')).not.toHaveText('0');
+  const deckSrc = () => page.evaluate(() => [...document.querySelectorAll('audio[id^="audio"]')].map((a) => a.getAttribute('src')).find(Boolean) || '');
+  await page.locator('.track').nth(5).locator('.track-main').click();
+  await expect.poll(deckSrc).toMatch(/r2\.dev/);
+  const src = await deckSrc();
+  await page.evaluate(() => document.querySelectorAll('audio').forEach((a) => a.pause()));
+  await page.evaluate(async ({ src, wav }) => {
+    const bytes = Uint8Array.from(atob(wav), (c) => c.charCodeAt(0));
+    const cache = await caches.open('liquidbrush-audio');
+    await cache.put(src, new Response(new Blob([bytes], { type: 'audio/wav' }), { headers: { 'Content-Type': 'audio/wav' } }));
+  }, { src, wav: silentWav(90) });
+  await page.goto('./?view=library');
+  await expect(page.locator('.track.is-downloaded').first()).toBeVisible();
+  r2Requests = 0;
+  await page.locator('.track.is-downloaded').first().locator('.track-main').click();
+  await expect.poll(() => page.evaluate(() => Math.max(...[...document.querySelectorAll('audio[id^="audio"]')].map((a) => a.currentTime))), { timeout: 8000 }).toBeGreaterThan(0.3);
+  expect(await deckSrc()).toMatch(/^blob:/);
+  expect(r2Requests).toBe(0);
+});

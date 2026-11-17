@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "version": "v90",
+      "date": "noviembre 2026",
+      "title": "Se acabaron los «la página se volvió a cargar»: las canciones cargan rápido y la app no se reinicia",
+      "items": [
+        "Encontrada la causa de que Liquid se reiniciara sola al cargar canciones (en iPhone y en Android, instalada o no): al cambiar de canción, el color de la portada se fundía sobre toda la página y el teléfono tenía que recalcular miles de elementos en cada fotograma. Cada canción dejaba unos 90 MB más ocupados hasta que el navegador cerraba la página. Ahora el fundido se hace solo en el fondo: el gasto por canción baja a una cuarta parte y deja de acumularse.",
+        "Las canciones empiezan a sonar bastante antes en teléfonos modestos: en las pruebas, de casi 2 s a menos de 1 s desde que la tocas.",
+        "Sin conexión, una canción descargada se lee del teléfono una sola vez. Antes el modo offline volvía a leer el MP3 entero por cada trozo que pedía el reproductor (el iPhone pide muchos): tardaba una eternidad y gastaba muchísima memoria.",
+        "Se preparan menos canciones descargadas a la vez (la que suena y la siguiente), para no llenar la memoria del teléfono.",
+        "Las canciones descargadas suenan al instante y sin gastar datos, también con conexión: se leen directamente del teléfono, sin preguntar antes a internet.",
+        "Liquid abre mucho más rápido con datos móviles: la app y tus listas salen al momento de lo guardado y se ponen al día por detrás (en las pruebas, de 3,2 s a 1,4 s con una conexión lenta).",
+        "Menos datos al abrir: las portadas, fondos y tipografías ya no se vuelven a pedir cada vez (de unas 130 peticiones por apertura a unas 15), y las tendencias de Liquid ATK se guardan 6 horas en vez de bajar ~0,5 MB en cada apertura."
+      ]
+    },
+    {
       "version": "v89",
       "date": "noviembre 2026",
       "title": "Descargas que suenan siempre y Liquid sin conexión que abre al momento",
