@@ -590,6 +590,8 @@
 
   // Mini icono (recorte de un fondo) para títulos y adornos; el mismo texto da siempre el mismo
   function sticker(seedText) {
+    // Ultraligero: sin el dibujito junto a los títulos de sección
+    if (settings.ultra) return '';
     const img = document.createElement('img');
     img.className = 'sticker';
     img.src = wallIcon(WALLPAPERS[hashString(seedText) % WALLPAPERS.length].id);
@@ -4379,6 +4381,14 @@
   }
 
   function playlistCover(pl, size) {
+    // Ultraligero: la inicial de la playlist sobre su color, sin imágenes (las portadas son de 320–600 px)
+    if (settings.ultra) {
+      const name = String(pl.name || '').trim();
+      const tile = makeEl('span', 'pl-cover pl-cover-ultra', (name.match(/[\p{L}\p{N}]/u) || ['♪'])[0].toUpperCase());
+      tile.style.setProperty('--pl-color', pl.color || `hsl(${hashString(pl.key || name) % 360} 42% 38%)`);
+      tile.setAttribute('aria-hidden', 'true');
+      return tile;
+    }
     const tracks = playlistTracksOf(pl);
     // Tarjetas: miniatura de 320 px; la cabecera de la playlist usa la imagen grande
     const src = pl.cover?.type === 'image' ? (size <= 160 ? pl.cover.src.replace(/\.jpg$/, '-sm.jpg') : pl.cover.src)
@@ -5184,6 +5194,12 @@
   }
 
   function photoImg(src, size, className = '') {
+    // Ultraligero: ninguna foto (ni se descarga ni se decodifica); un hueco vacío que el CSS oculta
+    if (settings.ultra) {
+      const none = makeEl('span', `${className} ultra-ph`.trim());
+      none.setAttribute('aria-hidden', 'true');
+      return none;
+    }
     const img = document.createElement('img');
     img.className = className;
     img.src = src || PLACEHOLDER_COVER;
@@ -5200,6 +5216,21 @@
 
   function collectionCard(key, title, sub, image, tracks) {
     home.collections.set(key, { title, tracks });
+    // Ultraligero: una fila de texto (▶ · nombre · de qué va), sin portada
+    if (settings.ultra) {
+      const row = makeEl('button', 'home-card ultra-row');
+      row.type = 'button';
+      row.dataset.action = 'home-play';
+      row.dataset.value = key;
+      markPlayable(row, `home:${key}`, title);
+      row.setAttribute('aria-label', `Reproducir ${title}`);
+      const play = makeEl('span', 'home-card-play');
+      play.replaceChildren(svgIcon('play'));
+      const text = makeEl('span', 'ultra-row-text');
+      text.append(makeEl('span', 'ultra-row-title', title), makeEl('span', 'ultra-row-sub', `${sub} · ${songsLabel(tracks.length)}`));
+      row.append(play, text);
+      return row;
+    }
     const card = makeEl('button', 'home-card');
     card.type = 'button';
     card.dataset.action = 'home-play';
@@ -5478,7 +5509,8 @@
     home.collections.clear();
     const p = tasteProfile();
     const lite = settings.ultra;
-    const parts = [homeHeader(p), plus.homeStreak(), plus.homeTaste(p)];
+    // Ultraligero: Inicio es una lista corta de texto (accesos, tu daylist, mixes, Hecho para ti y estilos)
+    const parts = lite ? [homeHeader(p)] : [homeHeader(p), plus.homeStreak(), plus.homeTaste(p)];
     // Del 25 de diciembre al 15 de enero: Tu Año Líquido, lo primero
     const invite = resumenInvite('home');
     if (invite) parts.push(invite);
@@ -5502,15 +5534,21 @@
 
     // Tu daylist (lo que te va a esta hora)
     const day = daylist(p);
-    if (day && day.tracks.length >= 8) parts.push(heroCard(day));
+    if (day && day.tracks.length >= 8) {
+      parts.push(lite
+        ? cardRow('Tu daylist', '', [collectionCard(day.key, day.name, day.genres.join(' · ') || 'Cambia con el día', null, day.tracks)])
+        : heroCard(day));
+    }
 
-    // Selección rápida
-    const picks = quickPicks(p);
-    if (picks.length >= 4) parts.push(quickPicksSection(picks));
+    if (!lite) {
+      // Selección rápida
+      const picks = quickPicks(p);
+      if (picks.length >= 4) parts.push(quickPicksSection(picks));
 
-    // Canción del día
-    const sotd = songOfTheDay();
-    if (sotd) parts.push(songOfTheDaySection(sotd));
+      // Canción del día
+      const sotd = songOfTheDay();
+      if (sotd) parts.push(songOfTheDaySection(sotd));
+    }
 
     // Mixes del día
     const mixes = dailyMixes(p);
@@ -7045,15 +7083,17 @@
     if (li.classList.contains('is-current')) fillEq(eq);
     num.append(indexEl, eq);
 
-    const img = document.createElement('img');
-    img.className = 'track-cover';
-    img.src = track.thumb;
-    img.alt = '';
-    img.loading = 'lazy';
-    img.decoding = 'async';
-    img.width = 46;
-    img.height = 46;
-    img.addEventListener('error', () => { img.src = PLACEHOLDER_COVER; }, { once: true });
+    const img = settings.ultra ? null : document.createElement('img');
+    if (img) {
+      img.className = 'track-cover';
+      img.src = track.thumb;
+      img.alt = '';
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      img.width = 46;
+      img.height = 46;
+      img.addEventListener('error', () => { img.src = PLACEHOLDER_COVER; }, { once: true });
+    }
 
     const text = document.createElement('span');
     text.className = 'track-text';
@@ -7103,7 +7143,8 @@
       ? `${plays ? `Escuchada ${plays} ${plays === 1 ? 'vez' : 'veces'}` : 'Escuchada'}${heard ? ` · la última, ${haceTiempo(heard)}` : ''}`
       : 'Aún no la has escuchado';
 
-    main.append(num, img, text);
+    // Ultraligero: sin la carátula (un elemento menos por fila en listas de ~4800 canciones)
+    main.append(...[num, img, text].filter(Boolean));
 
     const actions = document.createElement('span');
     actions.className = 'track-actions';
@@ -7720,8 +7761,13 @@
     // Al saltar canciones seguidas solo se pide la letra de la que se queda (evita el 429 de LRCLIB)
     clearTimeout(lyricsDelay);
     lyricsPendingFor = null;
+    // Ultraligero: la letra solo se pide al abrir su panel (ni datos ni trabajo en cada canción)
+    const lyricsOnDemand = settings.ultra && !els.lyricsPanel.open;
     if (track.radio) {
       renderLyrics('', 'La radio va en directo: aquí no hay letra.');
+    } else if (lyricsOnDemand && !track.lyrics && !lyricsCache.has(track.id)) {
+      renderLyrics('', 'Abre este panel y la letra aparecerá aquí.');
+      lyricsPendingFor = track;
     } else if (autoplay) {
       if (track.lyrics || lyricsCache.has(track.id)) showLyricsFor(track);
       else {
@@ -7754,7 +7800,7 @@
   }
 
   async function play({ quiet = false } = {}) {
-    flushPendingLyrics();
+    if (!settings.ultra || els.lyricsPanel.open) flushPendingLyrics();
     state.userPaused = false;
     state.wantsPlay = true;
     // Ya suena otra cosa: desde ahora se guarda esta
@@ -9757,6 +9803,7 @@
   }
 
   /* ---------- Eventos ---------- */
+  let shownSecond = -1;
   function bindEvents() {
     // Audio: los dos reproductores (DJ) comparten eventos, pero solo cuenta el activo
     const on = (type, handler) => decks.forEach((deck) => deck.addEventListener(type, (event) => {
@@ -9810,8 +9857,13 @@
       // v80: con la app escondida (pantalla bloqueada, otra app) no se repinta nada: menos batería y
       // menos trabajo para el teléfono mientras suena en segundo plano. Al volver se pone al día.
       if (state.isSeeking || document.hidden) return;
-      updateProgressUI(time, getDuration());
-      syncLyrics(time);
+      // Ultraligero: la barra y el reloj se repintan una vez por segundo (el navegador avisa ~4 veces)
+      const second = Math.floor(time);
+      if (!settings.ultra || second !== shownSecond) {
+        shownSecond = second;
+        updateProgressUI(time, getDuration());
+      }
+      if (!settings.ultra || els.lyricsPanel.open) syncLyrics(time);
     });
     document.addEventListener('visibilitychange', () => {
       if (document.hidden || state.isSeeking || !state.currentTrack) return;
@@ -10471,8 +10523,10 @@
         els.cover.src = settings.ultra ? state.currentTrack.thumb || state.currentTrack.cover : state.currentTrack.cover;
       }
       renderList();
+      plus.renderNext();
+      if (state.currentTrack) updateProgressUI(els.audio.currentTime, getDuration());
       showToast(settings.ultra
-        ? 'Modo ultraligero activado: sin efectos, fondo, animaciones ni miniaturas en las listas.'
+        ? 'Modo ultraligero activado: interfaz sencilla, sin imágenes en las listas, sin efectos y la letra solo si la abres.'
         : 'Modo ultraligero desactivado: vuelven los efectos.');
     });
     els.hiddenList.addEventListener('click', (event) => {
@@ -16765,7 +16819,12 @@
       el.hidden = !track;
       if (!track) return;
       el.querySelector('.np-next-name').textContent = `${splitTitle(track.title).main} · ${track.knownArtist || track.artist}`;
-      el.querySelector('img').src = track.thumb;
+      // Ultraligero: «Luego» solo con texto (la miniatura sería otra descarga por canción)
+      const img = el.querySelector('img');
+      if (img) {
+        img.hidden = settings.ultra;
+        if (!settings.ultra) img.src = track.thumb;
+      }
     },
 
     /* --- La pestaña del navegador lleva la carátula de lo que suena --- */

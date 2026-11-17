@@ -11167,3 +11167,157 @@ body.is-radio #lyricsBtn {
 #eqPreset {
   max-width: 64%;
 }
+
+/* =========================================================
+   v91: interfaz ultraligera (Ajustes → Rendimiento → Modo ultraligero)
+   Plana y de texto: sin cromo ni degradados, sin portadas en las listas (las
+   genera app.js sin imagen), filas compactas y Sonando con lo justo.
+   ========================================================= */
+
+/* Surrealista sin cromo: los degradados metálicos pasan a color liso */
+:root.ultra[data-theme="chrome"] {
+  --chrome: linear-gradient(var(--accent), var(--accent));
+  --iridescent: linear-gradient(var(--text), var(--text));
+  --glow: none;
+}
+.ultra .topbar::after,
+.ultra .player::before,
+.ultra .now-playing::before,
+.ultra .library::before,
+.ultra .lyrics::before { content: none !important; display: none !important; }
+.ultra .brand-name,
+.ultra .brand-name span,
+.ultra .np-title,
+.ultra .np-eyebrow,
+.ultra .view-title,
+.ultra .pl-hero-name {
+  background: none !important;
+  color: var(--text) !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+.ultra .np-eyebrow { color: var(--text-muted) !important; }
+:root.ultra.atk .brand-name span { color: var(--atk, var(--accent)) !important; }
+.ultra .cover-wrap { padding: 0 !important; background: none !important; }
+.ultra .tab.is-active,
+.ultra .play-btn,
+.ultra .btn-primary,
+.ultra .chip.is-active { background-image: none !important; filter: none !important; }
+.ultra .now-playing,
+.ultra .library,
+.ultra .lyrics { border: 1px solid var(--border) !important; }
+.ultra .range::-webkit-slider-runnable-track { background-image: none; }
+
+/* Listas de canciones: sin carátula, el título ocupa su sitio */
+.ultra .track-main { grid-template-columns: 22px minmax(0, 1fr); padding-top: 7px; padding-bottom: 7px; }
+.ultra .track { contain-intrinsic-size: auto 52px; }
+@media (max-width: 520px) {
+  .ultra .track-main { grid-template-columns: minmax(0, 1fr); padding-left: 10px; }
+  .ultra .track.is-current .track-main .track-num { display: none; }
+  .ultra .track.is-current .track-main .track-text { grid-area: 1 / 1; }
+  .ultra .track.is-current .track-main { box-shadow: inset 3px 0 0 var(--accent); }
+}
+
+/* Huecos de las fotos que no se cargan */
+.ultra .ultra-ph { display: none !important; }
+
+/* Portada de playlist: su inicial sobre su color */
+.pl-cover-ultra {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  background: var(--pl-color, var(--surface-2));
+  box-shadow: none;
+  color: #fff;
+  font-weight: 800;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+.ultra .pl-hero .pl-cover-ultra { width: 64px; height: 64px; font-size: 1.6rem; border-radius: 12px; }
+
+/* Playlists: lista de una columna en vez de cuadrícula de portadas */
+.ultra .pl-grid { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+@media (min-width: 900px) { .ultra .pl-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.ultra .pl-card { flex-direction: row; align-items: center; gap: 12px; padding: 8px; border-radius: 10px; }
+.ultra .pl-card .pl-cover { width: 44px; height: 44px; }
+.ultra .pl-card-desc { display: none; }
+.ultra .pl-card-name { -webkit-line-clamp: 1; }
+.ultra .pl-badge { position: static; order: 3; margin-left: auto; }
+
+/* Inicio: filas de texto en vez de carruseles de portadas */
+.ultra .home-row {
+  flex-direction: column;
+  gap: 4px;
+  overflow: visible;
+  padding: 0;
+  margin: 0;
+  scroll-snap-type: none;
+}
+.ultra .home-card.ultra-row {
+  flex: none;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+.ultra .ultra-row .home-card-play {
+  position: static;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  opacity: 1;
+  transform: none;
+  background: var(--accent);
+}
+.ultra .ultra-row .home-card-play .icon { width: 18px; height: 18px; }
+.ultra-row-text { display: flex; flex-direction: column; min-width: 0; }
+.ultra-row-title { font-weight: 700; font-size: 0.92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ultra-row-sub { color: var(--text-muted); font-size: 0.78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ultra .home-section-hint { display: none; }
+.ultra .home-section-title { font-size: 1.05rem; }
+.ultra .home-tile { min-height: 44px; padding: 0 10px 0 0; }
+.ultra .home-tile .pl-cover { width: 44px; height: 44px; border-radius: 0; }
+.ultra .home-tile.is-artist,
+.ultra .home-tile.is-radio { padding-left: 12px; }
+
+/* Artistas: filas de nombre y escuchas */
+.ultra .home-row.is-artists,
+.ultra .artist-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 4px; }
+.ultra .artist-card {
+  flex: none;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  text-align: left;
+}
+.ultra .artist-photo-wrap { display: none; }
+.ultra .artist-meta { -webkit-line-clamp: 1; }
+.ultra .artist-hero .artist-photo-lg { display: none; }
+
+/* Explora tus estilos: píldoras de texto */
+.ultra .explore-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+.ultra .explore-tile {
+  aspect-ratio: auto;
+  padding: 8px 14px;
+  border-radius: 999px;
+  color: var(--text);
+  font-weight: 600;
+  font-size: 0.86rem;
+}
+.ultra .explore-tile::before,
+.ultra .explore-tile::after { content: none !important; }
+
+/* Sonando: portada pequeña y solo lo esencial (sin DJ, extras, «Contacto» ni miniatura de «Luego») */
+.ultra .cover-wrap { width: min(220px, 60vw); margin-inline: auto; }
+.ultra .like-burst,
+.ultra .np-tools,
+.ultra .np-plus,
+.ultra .now-playing > .contact-link { display: none !important; }

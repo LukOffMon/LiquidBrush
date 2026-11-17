@@ -2183,6 +2183,32 @@ test.describe('v91: «Continúa donde lo dejaste», compartir y playlists', () =
     await context.close();
   });
 
+  test('ultraligero: interfaz de texto, sin imágenes en listas ni letra que no pediste', async ({ page }) => {
+    const lyrics = [];
+    page.on('request', (request) => { if (/lrclib/.test(request.url())) lyrics.push(request.url()); });
+    await page.addInitScript(() => localStorage.setItem('liquidbrush:settings', JSON.stringify({ ultra: true })));
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    // Inicio: filas de texto y accesos con la inicial de la playlist, ninguna foto
+    await expect(page.locator('.home-card.ultra-row').first()).toBeVisible();
+    await expect(page.locator('.home-tile .pl-cover-ultra').first()).toBeVisible();
+    expect(await page.locator('#homePanel img').count()).toBe(0);
+    // Biblioteca: sin carátulas y el título con todo su ancho (antes quedaba en un hueco de 46 px)
+    await page.evaluate(() => document.querySelector('.tab[data-view="library"]').click());
+    await expect(page.locator('.track').nth(1)).toBeVisible();
+    expect(await page.locator('.track img').count()).toBe(0);
+    const width = await page.locator('.track .track-title').nth(1).evaluate((el) => el.getBoundingClientRect().width);
+    expect(width).toBeGreaterThan(120);
+    // Playlists: lista sin portadas
+    await page.evaluate(() => document.querySelector('.tab[data-view="playlists"]').click());
+    await expect(page.locator('.pl-card .pl-cover-ultra').first()).toBeVisible();
+    expect(await page.locator('.pl-grid img').count()).toBe(0);
+    // Sonar no pide la letra mientras su panel siga cerrado
+    await page.evaluate(() => { document.querySelector('#lyricsPanel').open = false; document.querySelector('#playBtn').click(); });
+    await page.waitForTimeout(1500);
+    expect(lyrics).toEqual([]);
+  });
+
   test('Claro y Oscuro de serie no dan el hito «Diseñador»', async ({ page }) => {
     await page.goto('./');
     await expect(page.locator('#libCount')).not.toHaveText('0');

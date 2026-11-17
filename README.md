@@ -192,7 +192,15 @@ Liquid Bullet es una PWA: se instala desde el navegador, sin tienda de apps. Ins
 
 ## Modo ultraligero
 
-**Ajustes → Rendimiento → Modo ultraligero**: la versión más rápida de la app, para teléfonos lentos o con poca batería. Quita el vidrio (desenfoques), sombras, animaciones, transiciones, el fondo y la escena surrealista, el visualizador y el color tomado de la portada, y usa las letras del sistema (no descarga ninguna tipografía). Además no pinta (ni descarga) las miniaturas de las listas, usa la portada pequeña en Sonando, no vibra, acorta Inicio y no calcula las filas fuera de pantalla (`content-visibility`). Se aplica antes de pintar la página y se recuerda; al desactivarlo vuelven tus ajustes de apariencia tal como estaban. En un móvil emulado: la carga pasa de ~9,8 s a ~2 s de trabajo y en reposo la app deja de trabajar por completo.
+**Ajustes → Rendimiento → Modo ultraligero**: la versión más rápida de la app, para teléfonos lentos, con pocos datos o poca batería. Cambia la interfaz entera a una versión plana y de texto:
+
+- **Sin imágenes en las listas**: Biblioteca, Inicio, Playlists, Artistas y Buscar no crean ninguna foto ni portada (las playlists llevan su inicial sobre su color). Solo se ve la portada pequeña (320 px) de lo que suena.
+- **Inicio corto**: accesos rápidos, tu daylist, mixes del día, Hecho para ti y estilos como píldoras, todo en filas de texto (sin selector de gustos, Selección rápida, Canción del día, Porque escuchaste… ni Liquid ATK).
+- **Sonando con lo justo**: portada pequeña, controles, «Luego» (sin miniatura) y la letra. Sin Transiciones DJ, extras ni contacto en el panel.
+- **Sin cromo ni efectos**: el tema Surrealista pasa a colores lisos (sin degradados metálicos, gotas, bordes ni marco giratorio); sin vidrio, sombras, animaciones, fondo, escena, visualizador ni color de portada; letras del sistema (no se descarga ninguna tipografía); no vibra.
+- **Menos trabajo y datos**: la letra solo se pide al abrir su panel; la barra de progreso se repinta una vez por segundo; las filas fuera de pantalla no se calculan.
+
+Se aplica antes de pintar la página y se recuerda; al desactivarlo vuelve todo tal como estaba. En un móvil emulado lento (CPU ×6): al abrir, 7 imágenes en vez de 124 (≈3,5 MB menos), ~2,9 s hasta ver la biblioteca (5,1 s en modo normal), en reposo la app no trabaja y sonando gasta una vigésima parte de CPU que el modo normal.
 
 ## Ocultar playlists
 
