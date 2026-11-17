@@ -693,6 +693,10 @@
   }
 
   const getTrack = (id) => state.trackMap.get(id);
+  // Ids antiguos (canciones repetidas que se fusionaron, ver catalog.json → aliases) → id actual.
+  // Lo usan lo que se guardó o compartió con el id viejo: «Continúa donde lo dejaste», la cola y los enlaces
+  const currentId = (id) => library.catalog?.aliases?.[id] || id;
+  const findTrack = (id) => getTrack(id) || getTrack(currentId(id));
 
   function setIcon(button, name) {
     const use = button.querySelector('use');
@@ -909,7 +913,10 @@
     setView(state.view, { keepScroll: true });
     if (Math.abs(window.scrollY - scroll) > 1) window.scrollTo({ top: scroll, behavior: 'instant' });
 
-    if (previousId && getTrack(previousId)) {
+    if (resume.held && !LAB_MODE && !state.wantsPlay && resume.restore()) {
+      // La canción guardada llegó con la lista completa (antes solo estaba la copia de la biblioteca):
+      // se pone la que sonaba en vez de la primera de la Biblioteca
+    } else if (previousId && getTrack(previousId)) {
       // Llegaron datos nuevos con algo sonando: se conserva la canción y la cola
       state.currentTrack = getTrack(previousId);
     } else if (LAB_MODE) {
@@ -4758,6 +4765,45 @@
   const shareSlug = (id) => String(id).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
   const appBase = () => new URL('./', location.href.split(/[?#]/)[0]).href;
 
+  // Ids cortos para los enlaces de playlists propias: fuente (1 letra) + las 6 cifras del final del id
+  const shareCode = (() => {
+    const SOURCES = { pepper: 'p', salt: 's', brush3: 'b', db4: '4', db5: '5', db6: '6' };
+    const codeOf = (id) => {
+      const m = /^([a-z0-9]+):.*-([0-9a-f]{6})$/.exec(String(id));
+      return m && SOURCES[m[1]] ? SOURCES[m[1]] + m[2] : null;
+    };
+    let maps = null;
+    function build() {
+      if (maps && maps.n === state.tracks.length) return maps;
+      const toId = new Map();
+      const clash = new Set();
+      const add = (code, id) => {
+        if (!code) return;
+        if (toId.has(code) && toId.get(code) !== id) clash.add(code);
+        else toId.set(code, id);
+      };
+      state.tracks.forEach((t) => add(codeOf(t.id), t.id));
+      clash.forEach((c) => toId.delete(c));
+      // Canciones fusionadas: su código viejo lleva a la copia que quedó
+      Object.entries(library.catalog?.aliases || {}).forEach(([old, id]) => {
+        const c = codeOf(old);
+        if (c && !toId.has(c) && !clash.has(c) && state.trackMap.has(id)) toId.set(c, id);
+      });
+      maps = { n: state.tracks.length, toId, clash };
+      return maps;
+    }
+    return {
+      encode(id) {
+        const c = codeOf(id);
+        return c && !build().clash.has(c) && build().toId.get(c) === id ? c : `~${id}`;
+      },
+      decode(c) {
+        const code = String(c);
+        return code.startsWith('~') ? currentId(code.slice(1)) : build().toId.get(code) || null;
+      }
+    };
+  })();
+
   async function shareLink({ title, text, url }) {
     haptic(10);
     if (navigator.share) {
@@ -4817,7 +4863,9 @@
       return;
     }
     if (ids.length > SHARE_MIX_LIMIT) showToast(`Se comparten las primeras ${SHARE_MIX_LIMIT} canciones.`);
-    const hash = new URLSearchParams({ n: pl.name, t: ids.slice(0, SHARE_MIX_LIMIT).join(',') });
+    // Códigos cortos («p445d14», 7 letras) en vez del id entero (~60): el enlace de 150 canciones pasa de
+    // ~9.000 caracteres a ~1.200 y WhatsApp, Instagram o un SMS ya no lo cortan
+    const hash = new URLSearchParams({ n: pl.name, k: ids.slice(0, SHARE_MIX_LIMIT).map(shareCode.encode).join(',') });
     const first = playlistTracksOf(pl)[0];
     openShareSheet({
       kind: 'Playlist', title: pl.name, subtitle: songsLabel(ids.length), image: coverSrcOf(pl.cover, false) || first?.cover,
@@ -4831,6 +4879,8 @@
       const query = new URLSearchParams(location.search);
       const hash = new URLSearchParams(location.hash.slice(1));
       if (query.get('t')) return { track: query.get('t'), at: Math.max(0, Number(hash.get('at')) || 0) };
+      // Enlace viejo (s/t-….html de una canción que cambió de id): llega por 404.html con su «slug»
+      if (query.get('ts')) return { track: '', slug: query.get('ts'), at: Math.max(0, Number(hash.get('at')) || 0) };
       if (query.get('p')) return { playlist: query.get('p') };
       // Accesos directos de la app instalada (manifest): ?view=search, favorites, library, lab…
       if (query.get('view')) return { view: query.get('view') };
@@ -4841,12 +4891,24 @@
         if (inner) return inner[1] === 't' ? { track: decodeURIComponent(inner[2]) } : { playlist: decodeURIComponent(inner[2]) };
         return { search: shared.replace(/https?:\/\/\S+/g, '').trim().slice(0, 120) };
       }
-      if (query.has('mix') && hash.get('t')) {
-        return { mix: (hash.get('n') || 'Playlist compartida').slice(0, 60), ids: hash.get('t').split(',').filter(Boolean) };
+      if (query.has('mix') && (hash.get('k') || hash.get('t'))) {
+        const name = (hash.get('n') || 'Playlist compartida').slice(0, 60);
+        // k: códigos cortos (desde v91); t: ids enteros (enlaces de antes, siguen valiendo)
+        if (hash.get('k')) return { mix: name, codes: hash.get('k').split(',').filter(Boolean) };
+        return { mix: name, ids: hash.get('t').split(',').filter(Boolean) };
       }
     } catch { /* enlace mal formado */ }
     return null;
   })();
+
+  // s/t-<slug>.html → canción (la de ese id o, si se fusionó con otra, la que quedó)
+  function trackBySlug(slug) {
+    const wanted = shareSlug(slug);
+    const direct = state.tracks.find((t) => shareSlug(t.id) === wanted);
+    if (direct) return direct;
+    const old = Object.keys(library.catalog?.aliases || {}).find((id) => shareSlug(id) === wanted);
+    return old ? findTrack(old) : null;
+  }
 
   function clearIncomingLink() {
     incomingLink = null;
@@ -4875,8 +4937,8 @@
       }
       return;
     }
-    if (link.track) {
-      const track = getTrack(link.track);
+    if (link.track || link.slug) {
+      const track = findTrack(link.track) || (link.slug && trackBySlug(link.slug));
       if (!track) {
         if (final) { clearIncomingLink(); showToast('Esa canción ya no está en Liquid Bullet.'); }
         return;
@@ -4887,8 +4949,15 @@
       state.queueContext = home ? home.name : 'Canción compartida';
       state.queue = state.baseQueue.slice();
       state.queueIndex = Math.max(0, state.queue.indexOf(track.id));
+      // La canción compartida manda sobre «Continúa donde lo dejaste»
+      resume.held = false;
       loadTrack(track, false);
-      if (link.at) state.pendingSeek = link.at;
+      if (link.at) {
+        state.pendingSeek = link.at;
+        resume.target = { id: track.id, time: link.at };
+        updateProgressUI(link.at, parseDuration(track.duration));
+        resume.save(true);
+      }
       clearIncomingLink();
       showToast(`Te compartieron «${track.title}»${link.at ? ` desde el ${formatTime(link.at)}` : ''}. Toca reproducir para escucharla.`);
       return;
@@ -4904,7 +4973,7 @@
       showToast(`Te compartieron «${pl.name}».`);
       return;
     }
-    const ids = link.ids.filter((id) => getTrack(id));
+    const ids = [...new Set(link.codes ? link.codes.map(shareCode.decode) : link.ids.map(currentId))].filter((id) => id && getTrack(id));
     if (!ids.length && !final) return;
     clearIncomingLink();
     if (!ids.length) {
@@ -7473,10 +7542,16 @@
 
   const resume = {
     lastSaved: 0,
+    held: false,
+    target: null,
     // Se guarda a menudo pero sin escribir en cada timeupdate (cada 4 s, o al instante si force)
     save(force = false) {
       const track = state.currentTrack;
       if (!track || LAB_MODE || track.radio) return;
+      // Al abrir no se encontró la canción guardada (su lista aún no había llegado): mientras no suene otra
+      // cosa, lo guardado no se toca. Antes se pisaba con la primera canción de la Biblioteca en el segundo 0
+      if (this.held && !state.wantsPlay) return;
+      this.held = false;
       const now = Date.now();
       if (!force && now - this.lastSaved < 4000) return;
       this.lastSaved = now;
@@ -7511,9 +7586,14 @@
     // Al abrir la app vuelve a poner la última canción en su segundo y con su cola; false si no hay nada
     restore() {
       const saved = storage.get(KEYS.resume, null);
-      const track = saved && getTrack(saved.id);
-      if (!track) return false;
-      const valid = (ids) => (Array.isArray(ids) ? ids.filter((id) => state.trackMap.has(id)) : []);
+      const track = saved && findTrack(saved.id);
+      if (!track) {
+        // Hay algo guardado pero su canción aún no está (o no está ya): no se pisa hasta que suene algo
+        this.held = Boolean(saved?.id);
+        return false;
+      }
+      this.held = false;
+      const valid = (ids) => (Array.isArray(ids) ? ids.map(currentId).filter((id) => state.trackMap.has(id)) : []);
       const stored = storage.get(KEYS.resumeQueue, null);
       let rawQueue = stored?.queue;
       let rawBase = stored?.base;
@@ -7539,6 +7619,8 @@
       if (duration && time > duration - 5) time = 0;
       if (time >= 1) {
         state.pendingSeek = time;
+        // Si el navegador ignora el salto (iPhone con el audio aún sin cargar), se repite al empezar a sonar
+        this.target = { id: track.id, time };
         updateProgressUI(time, duration);
         this.save(true);
         els.npContext.textContent = 'Continúa donde lo dejaste';
@@ -7584,6 +7666,7 @@
     state.currentTrack = track;
     state.pendingSeek = null;
     state.countedId = null;
+    resume.target = null;
 
     prepareDeck(track, autoplay, fade);
     state.retried = false;
@@ -7669,6 +7752,8 @@
     flushPendingLyrics();
     state.userPaused = false;
     state.wantsPlay = true;
+    // Ya suena otra cosa: desde ahora se guarda esta
+    if (resume.held) resume.save(true);
     if (!state.currentTrack) {
       if (!state.tracks.length) return;
       buildQueue(state.tracks[0].id);
@@ -7850,6 +7935,7 @@
 
   function seekTo(seconds) {
     if (state.currentTrack?.radio) return;
+    resume.target = null;
     if (Number.isFinite(els.audio.duration)) {
       els.audio.currentTime = seconds;
     } else {
@@ -9678,6 +9764,14 @@
     // Cuenta para "Escuchadas hace poco" y "Tus más escuchadas" (una vez por canción cargada)
     on('playing', () => {
       const id = state.currentTrack?.id;
+      // «Continúa donde lo dejaste»: si el salto al segundo guardado no se aplicó, se aplica ahora
+      const target = resume.target;
+      if (target) {
+        resume.target = null;
+        if (target.id === id && els.audio.currentTime < target.time - 3) {
+          try { els.audio.currentTime = target.time; } catch { /* sin datos aún */ }
+        }
+      }
       if (id && state.countedId !== id) {
         state.countedId = id;
         recordPlay(id);
@@ -9815,6 +9909,11 @@
     });
     window.addEventListener('pagehide', () => {
       flushListening();
+      resume.save(true);
+      resume.flushQueue();
+    });
+    // Android congela (y luego puede descartar) la app en segundo plano sin «pagehide»: se guarda antes
+    document.addEventListener('freeze', () => {
       resume.save(true);
       resume.flushQueue();
     });
@@ -12090,6 +12189,12 @@
         corto.set(t.id, c);
         largo.set(c, t.id);
       });
+      // Lo que otro dispositivo guardó con un id antiguo (canción fusionada) llega a la copia que quedó:
+      // antes esa canción desaparecía de favoritas y playlists al sincronizar
+      Object.entries(library.catalog?.aliases || {}).forEach(([viejo, actual]) => {
+        const c = idCorto(viejo);
+        if (!largo.has(c) && state.trackMap.has(actual)) largo.set(c, actual);
+      });
       cortosPorId = { n: state.tracks.length, corto, largo };
       return cortosPorId;
     }
@@ -12196,7 +12301,7 @@
         const previa = locales.get(p.i) || {};
         const pl = { ...previa, id: p.i, name: p.n, emoji: iconoGuardable(p.e || previa.emoji), color: p.c || previa.color || '#8a93a6',
           portada: typeof p.f === 'string' ? portadaValida(p.f) : portadaValida(previa.portada),
-          trackIds: (p.k || []).map(aLargo).filter(Boolean), createdAt: p.cr || previa.createdAt || Date.now() };
+          trackIds: [...new Set((p.k || []).map(aLargo).filter(Boolean))], createdAt: p.cr || previa.createdAt || Date.now() };
         metaPl[p.i] = { h: String(hashString(huellaPl(pl))), t: p.t || 0 };
         return pl;
       });
@@ -16841,7 +16946,11 @@
         radioFavs: radio.saved.favs.length,
         age: first ? Math.floor((Date.now() - new Date(fy, fm - 1, fd).getTime()) / DAY_MS) : 0,
         months: [...months.values()].filter((v) => v >= 3600).length,
-        themes: temas.lista.length,
+        // Claro y Oscuro vienen de serie: solo cuentan los temas creados o retocados
+        themes: temas.lista.filter((t) => {
+          const base = TEMAS_DE_BASE.find((b) => b.id === t.id);
+          return !base || JSON.stringify(limpiarTema(base)) !== JSON.stringify(t);
+        }).length,
         account: signedIn() ? 1 : 0
       };
     },
