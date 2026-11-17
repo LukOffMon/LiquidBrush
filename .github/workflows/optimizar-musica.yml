@@ -1,0 +1,84 @@
+# Optimiza los MP3 de los buckets R2 (quita la portada incrustada y, si se pide, los pasa a menos kbps).
+# Se lanza a mano: Actions → «Optimizar música» → Run workflow (también desde el móvil).
+#
+# Lo más fácil: UN secreto por bucket (Settings → Secrets and variables → Actions → New repository secret)
+# llamado R2_PEPPER, R2_SALT, R2_BRUSH3, R2_DB4, R2_DB5 o R2_DB6, con lo que enseña Cloudflare al crear la
+# clave de R2 pegado tal cual (Access Key ID, Secret Access Key y la dirección https://….r2.cloudflarestorage.com).
+# También valen los secretos por separado (R2_<BUCKET>_ACCESS_KEY_ID, _SECRET_ACCESS_KEY, _ACCOUNT, _BUCKET).
+# Un bucket sin secreto se salta solo (el resto sigue).
+name: Optimizar música
+
+on:
+  workflow_dispatch:
+    inputs:
+      buckets:
+        description: 'Buckets separados por espacios (vacío = los 6): pepper salt brush3 db4 db5 db6'
+        required: false
+        default: ''
+      kbps:
+        description: 'kbps de destino (160 recomendado; 0 = solo quitar portadas, sin recodificar)'
+        required: false
+        default: '160'
+      aplicar:
+        description: 'Aplicar de verdad (sin marcar: solo mira cuánto se ahorra)'
+        type: boolean
+        default: false
+
+concurrency:
+  group: optimizar-musica
+  cancel-in-progress: false
+
+jobs:
+  optimizar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - name: Optimizar
+        env:
+          R2_PEPPER: ${{ secrets.R2_PEPPER }}
+          R2_SALT: ${{ secrets.R2_SALT }}
+          R2_BRUSH3: ${{ secrets.R2_BRUSH3 }}
+          R2_DB4: ${{ secrets.R2_DB4 }}
+          R2_DB5: ${{ secrets.R2_DB5 }}
+          R2_DB6: ${{ secrets.R2_DB6 }}
+          R2_PEPPER_ACCESS_KEY_ID: ${{ secrets.R2_PEPPER_ACCESS_KEY_ID }}
+          R2_PEPPER_SECRET_ACCESS_KEY: ${{ secrets.R2_PEPPER_SECRET_ACCESS_KEY }}
+          R2_SALT_ACCESS_KEY_ID: ${{ secrets.R2_SALT_ACCESS_KEY_ID }}
+          R2_SALT_SECRET_ACCESS_KEY: ${{ secrets.R2_SALT_SECRET_ACCESS_KEY }}
+          R2_BRUSH3_ACCESS_KEY_ID: ${{ secrets.R2_BRUSH3_ACCESS_KEY_ID }}
+          R2_BRUSH3_SECRET_ACCESS_KEY: ${{ secrets.R2_BRUSH3_SECRET_ACCESS_KEY }}
+          R2_DB4_ACCESS_KEY_ID: ${{ secrets.R2_DB4_ACCESS_KEY_ID }}
+          R2_DB4_SECRET_ACCESS_KEY: ${{ secrets.R2_DB4_SECRET_ACCESS_KEY }}
+          R2_DB4_ACCOUNT: ${{ secrets.R2_DB4_ACCOUNT }}
+          R2_DB5_ACCESS_KEY_ID: ${{ secrets.R2_DB5_ACCESS_KEY_ID }}
+          R2_DB5_SECRET_ACCESS_KEY: ${{ secrets.R2_DB5_SECRET_ACCESS_KEY }}
+          R2_DB5_ACCOUNT: ${{ secrets.R2_DB5_ACCOUNT }}
+          R2_DB5_BUCKET: ${{ secrets.R2_DB5_BUCKET }}
+          R2_DB6_ACCESS_KEY_ID: ${{ secrets.R2_DB6_ACCESS_KEY_ID }}
+          R2_DB6_SECRET_ACCESS_KEY: ${{ secrets.R2_DB6_SECRET_ACCESS_KEY }}
+          R2_DB6_ACCOUNT: ${{ secrets.R2_DB6_ACCOUNT }}
+          R2_DB6_BUCKET: ${{ secrets.R2_DB6_BUCKET }}
+          BUCKETS: ${{ inputs.buckets }}
+          KBPS: ${{ inputs.kbps }}
+          APLICAR: ${{ inputs.aplicar }}
+        run: |
+          args=()
+          for b in $BUCKETS; do
+            case "$b" in pepper|salt|brush3|db4|db5|db6) args+=("$b") ;; *) echo "Bucket desconocido: $b"; exit 1 ;; esac
+          done
+          case "$KBPS" in ''|0) ;; *[!0-9]*) echo "kbps no válido: $KBPS"; exit 1 ;; *) args+=(--kbps "$KBPS") ;; esac
+          if [ "$APLICAR" = "true" ]; then args+=(--apply); fi
+          python3 -u tools/r2_slim.py "${args[@]}" | tee resultado.txt
+      - name: Guardar el resultado
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: resultado-optimizar-musica
+          path: resultado.txt
+          if-no-files-found: ignore
