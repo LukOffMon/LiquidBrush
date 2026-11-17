@@ -2190,3 +2190,31 @@ test.describe('v91: «Continúa donde lo dejaste», compartir y playlists', () =
     expect((await page.locator('.toast').allTextContents()).join(' ')).not.toContain('Diseñador');
   });
 });
+
+// Windows con «Efectos de transparencia» apagados (o macOS/iOS «Reducir transparencia»): sin desenfoque,
+// el vidrio al 34–62 % dejaba leer el texto de detrás a través de la guía y los diálogos
+test('con «Reducir transparencia» del sistema los paneles y diálogos son opacos', async ({ page, browserName }) => {
+  test.skip(browserName !== 'chromium', 'la emulación de prefers-reduced-transparency va por CDP');
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-transparency', value: 'reduce' }] });
+  await page.goto('./');
+  await expect(page.locator('#libCount')).not.toHaveText('0');
+  await page.evaluate(() => document.querySelector('#settingsBtn').click());
+  await expect(page.locator('#settingsDialog')).toBeVisible();
+  const alphas = await page.evaluate(() => {
+    const alpha = (el) => {
+      const bg = getComputedStyle(el).backgroundColor;
+      if (bg === 'transparent') return 0;
+      const parts = bg.replace(/[^\d.,/ ]/g, '').split(/[,/ ]+/).filter(Boolean).map(Number);
+      return parts.length > 3 ? parts[parts.length - 1] : 1;
+    };
+    return {
+      glass: getComputedStyle(document.documentElement).getPropertyValue('--glass-alpha').trim(),
+      sheet: alpha(document.querySelector('#settingsDialog')),
+      tour: alpha(document.querySelector('#tourDialog'))
+    };
+  });
+  expect(alphas.glass).toBe('96%');
+  expect(alphas.sheet).toBe(1);
+  expect(alphas.tour).toBe(1);
+});
