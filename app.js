@@ -1451,7 +1451,7 @@
     await cache.put(cacheKey(track.src), response);
     offline.downloaded.add(cacheKey(track.src));
     notifyAudioChanged(cacheKey(track.src));
-    if (state.queue.slice(state.queueIndex, state.queueIndex + 3).includes(track.id)) warmLocalAudio();
+    if (state.queue.slice(state.queueIndex, state.queueIndex + 2).includes(track.id)) warmLocalAudio();
   }
 
   // Descarga una sola canción (menú + de la canción, o el corazón con «Descargar favoritas» activado)
@@ -1547,8 +1547,10 @@
      sin conexión. Antes, con conexión, se pedía a la red y solo sin conexión se usaba la copia; pero con
      poca cobertura (hay señal y no datos), con iOS apagando el service worker o con el service worker sin
      enterarse de una descarga nueva, la canción descargada se quedaba cargando o en silencio.
-     Se preparan pocas a la vez (la que suena y las dos siguientes) para no gastar memoria. */
-  const LOCAL_AUDIO_MAX = 4;
+     Se preparan pocas a la vez (la que suena y la siguiente) para no gastar memoria.
+     v90: antes eran hasta 4 copias (8–10 MB cada una) en la memoria de la página: en iPhone, junto con
+     lo demás, el navegador acababa cerrando la página. */
+  const LOCAL_AUDIO_MAX = 3;
   const audioSrc = (track) => offline.urls.get(cacheKey(track.src)) || track.src;
   async function localAudioUrl(track) {
     if (!offline.supported || !track || !isDownloaded(track)) return null;
@@ -1581,10 +1583,10 @@
     URL.revokeObjectURL(url);
     offline.urls.delete(key);
   }
-  // Prepara la que suena y las dos siguientes: al tocarlas, ya están listas
+  // Prepara la que suena y la siguiente: al tocarlas, ya están listas
   function warmLocalAudio() {
     if (!offline.downloaded.size) return;
-    [0, 1, 2].forEach((step) => {
+    [0, 1].forEach((step) => {
       const track = getTrack(state.queue[state.queueIndex + step]);
       if (track && isDownloaded(track)) localAudioUrl(track);
     });

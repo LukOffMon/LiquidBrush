@@ -6,7 +6,7 @@
    - Los MP3 descargados desde la app viven en AUDIO_CACHE y se
      reproducen desde ahí (con soporte de rangos para poder adelantar).
    ========================================================= */
-const VERSION = 'v89';
+const VERSION = 'v90';
 const SHELL_CACHE = `liquidbrush-shell-${VERSION}`;
 const DATA_CACHE = 'liquidbrush-data';
 const AUDIO_CACHE = 'liquidbrush-audio';
@@ -15,8 +15,8 @@ const SHELL = [
   './',
   'index.html',
   'lab.html',
-  'styles.css?v=75',
-  'app.js?v=78',
+  'styles.css?v=76',
+  'app.js?v=79',
   'favicon.png',
   'logo.svg',
   'manifest.webmanifest',
@@ -87,6 +87,7 @@ self.addEventListener('message', (event) => {
       if (removed) audioKeys.delete(url);
       else audioKeys.add(url);
     }
+    if (removed && audioBlob.url === url) audioBlob = { url: null, blob: null };
     event.waitUntil(loadAudioKeys());
   }
   if (event.data?.type === 'GET_VERSION') event.source?.postMessage({ type: 'VERSION', version: VERSION });
@@ -201,12 +202,25 @@ async function staleWhileRevalidate(request, cacheName) {
   return cached || refresh;
 }
 
+// v90: el archivo de la canción que suena se lee del almacenamiento UNA vez y se reutiliza. Antes cada
+// trozo que pedía el reproductor (iPhone pide muchos) volvía a leer el MP3 entero (8–10 MB) a memoria:
+// sin conexión la canción tardaba muchísimo en cargar y el navegador acababa cerrando la página
+let audioBlob = { url: null, blob: null };
+function blobFor(url, cached) {
+  if (audioBlob.url !== url) {
+    const blob = cached.blob();
+    audioBlob = { url, blob };
+    blob.catch(() => { if (audioBlob.blob === blob) audioBlob = { url: null, blob: null }; });
+  }
+  return audioBlob.blob;
+}
+
 // El reproductor pide el audio por trozos (Range); se recortan del archivo guardado
 async function serveAudio(request, cached) {
   const range = request.headers.get('range');
   // Copia opaca (servidor sin CORS): no se puede recortar, se entrega entera
   if (!range || cached.type === 'opaque') return cached;
-  const blob = await cached.blob();
+  const blob = await blobFor(request.url, cached);
   const size = blob.size;
   const match = /bytes=(\d*)-(\d*)/.exec(range);
   let start = 0;

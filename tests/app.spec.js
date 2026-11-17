@@ -2104,3 +2104,17 @@ test.describe('v87-88: cierres de golpe en el informe de errores', () => {
     await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('liquidbrush:alive') || '0')?.steps || '')).toContain('play');
   });
 });
+
+test.describe('v90: la app no se reinicia al cambiar de canción', () => {
+  test('el color de la portada se funde solo en el fondo, no en toda la página', async ({ page }) => {
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    // Animar --dyn (heredada) en body recalculaba miles de elementos por fotograma y llenaba la memoria
+    const props = await page.evaluate(() => ({
+      body: getComputedStyle(document.body).transitionProperty,
+      glow: getComputedStyle(document.querySelector('.bg-glow')).transitionProperty
+    }));
+    expect(props.body).not.toContain('--dyn');
+    expect(props.glow).toContain('--dyn');
+  });
+});

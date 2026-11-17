@@ -159,7 +159,11 @@ body {
   background: transparent;
   line-height: 1.4;
   -webkit-font-smoothing: antialiased;
-  transition: --dyn 1.4s ease, background-color 0.4s ease, color 0.4s ease;
+  /* v90: --dyn ya NO se anima aquí. Al ser heredada, animarla en body obligaba a recalcular el estilo de
+     toda la página (miles de elementos) en cada fotograma durante 1,4 s al cambiar de canción: el móvil se
+     trababa al cargar la canción y la memoria crecía ~90 MB por canción hasta que el navegador cerraba la
+     pestaña («la página se volvió a cargar»). El fundido se hace solo en .bg-glow, que no tiene hijos. */
+  transition: background-color 0.4s ease, color 0.4s ease;
 }
 
 p,
@@ -229,6 +233,7 @@ label {
   z-index: -1;
   overflow: hidden;
   pointer-events: none;
+  transition: --dyn 1.4s ease;
   background:
     radial-gradient(120% 80% at 10% -10%, color-mix(in srgb, var(--dyn) var(--dyn-strength), transparent) 0%, transparent 60%),
     radial-gradient(90% 70% at 100% 110%, color-mix(in srgb, var(--dyn) calc(var(--dyn-strength) * 0.6), transparent) 0%, transparent 65%),
