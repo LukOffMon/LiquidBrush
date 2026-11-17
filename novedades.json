@@ -1,6 +1,22 @@
 {
   "releases": [
     {
+      "version": "v91",
+      "date": "noviembre 2026",
+      "title": "«Continúa donde lo dejaste» vuelve a recordar tu canción, y compartir funciona con todas",
+      "items": [
+        "Liquid vuelve a abrir en la canción y el segundo exactos en los que la dejaste. Si esa canción era una de las más de mil que se juntaron con su copia repetida (cambiaron de id), la app no la encontraba, ponía la primera de la Biblioteca en el segundo 0 y además borraba lo guardado. Ahora encuentra la copia que quedó.",
+        "Si al abrir la canción guardada aún no ha llegado (con mala conexión las listas tardan), lo guardado ya no se pisa: en cuanto llega la lista, vuelve a tu canción.",
+        "En iPhone, si el salto al segundo guardado no se aplicaba al darle a reproducir, empezaba desde el principio. Ahora se comprueba y se repite al empezar a sonar.",
+        "Android: también se guarda dónde ibas cuando el sistema congela la app en segundo plano.",
+        "Los enlaces de canciones compartidos antes de que esas canciones cambiaran de id daban «Esta página se derritió». Ahora abren la canción (y en su segundo, si el enlace lo llevaba).",
+        "Las playlists propias se comparten con un enlace mucho más corto (una de 150 canciones pasa de ~9.000 letras a ~1.200): WhatsApp, Instagram o un SMS ya no lo cortan y llegan todas las canciones. Los enlaces de antes siguen funcionando, también con canciones que cambiaron de id.",
+        "Con cuenta: las favoritas y canciones de playlists guardadas desde otro dispositivo con un id antiguo ya no desaparecen al sincronizar.",
+        "El hito «Diseñador» ya no sale sin haber creado ningún tema (contaba Claro y Oscuro, que vienen de serie).",
+        "iPhone/iPad con Firefox (y Chrome, Edge…): «Añadir a pantalla de inicio» vuelve a crear el acceso con el logo y el nombre «Liquid Bullet». Antes salía con el nombre y la portada de la canción que estaba puesta, porque la app cambiaba el título y el icono de la página con cada canción."
+      ]
+    },
+    {
       "version": "v90",
       "date": "noviembre 2026",
       "title": "Se acabaron los «la página se volvió a cargar»: las canciones cargan rápido y la app no se reinicia",

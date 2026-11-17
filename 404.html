@@ -7,6 +7,15 @@
 <meta name="theme-color" content="#100d1c">
 <title>Aquí no hay nada — Liquid Bullet</title>
 <link rel="icon" href="/LiquidBrush/logo.svg" type="image/svg+xml">
+<script>
+  // Enlaces compartidos viejos (la canción o la playlist cambió de id): se abren en la app igualmente
+  (function () {
+    var m = /\/s\/([tp])-([^/]+)\.html$/.exec(location.pathname);
+    if (!m) return;
+    var base = location.pathname.slice(0, location.pathname.indexOf('/s/') + 1);
+    location.replace(base + (m[1] === 't' ? '?ts=' : '?p=') + encodeURIComponent(m[2]) + location.hash);
+  })();
+</script>
 <style>
   :root { color-scheme: dark; }
   body {

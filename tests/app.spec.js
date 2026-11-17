@@ -2118,3 +2118,75 @@ test.describe('v90: la app no se reinicia al cambiar de canción', () => {
     expect(props.glow).toContain('--dyn');
   });
 });
+
+test.describe('v91: «Continúa donde lo dejaste», compartir y playlists', () => {
+  // Canción fusionada con otra (catalog.json → aliases): su id viejo ya no está en la Biblioteca
+  const OLD = 'pepper:201-300-202-twenty-one-pilots-chlorine-mp3-d861dc';
+  const NEW = 'brush3:201-300-202-twenty-one-pilots-chlorine-mp3-d861dc';
+  const saveOnce = (page, saved) => page.addInitScript((s) => {
+    if (sessionStorage.getItem('prueba-resume')) return;
+    sessionStorage.setItem('prueba-resume', '1');
+    localStorage.setItem('liquidbrush:resume', JSON.stringify(s));
+  }, saved);
+
+  test('una canción guardada con su id antiguo vuelve en su segundo', async ({ page }) => {
+    await saveOnce(page, { id: OLD, time: 80, at: Date.now() });
+    await page.goto('./');
+    await expect(page.locator('#miniTitle')).toHaveText('Chlorine');
+    await expect(page.locator('#currentTime')).toHaveText('1:20');
+    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('liquidbrush:resume')));
+    expect(saved).toMatchObject({ id: NEW, time: 80 });
+  });
+
+  test('si la canción guardada no aparece, lo guardado no se pisa con otra en el segundo 0', async ({ page }) => {
+    await saveOnce(page, { id: 'pepper:no-existe-aun', time: 80, at: 1 });
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.waitForTimeout(1500);
+    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('liquidbrush:resume')));
+    expect(saved).toMatchObject({ id: 'pepper:no-existe-aun', time: 80 });
+  });
+
+  test('un enlace viejo de canción (llega por 404.html) abre la canción que quedó', async ({ page }) => {
+    await page.goto('./?ts=pepper-201-300-202-twenty-one-pilots-chlorine-mp3-d861dc#at=30');
+    await expect(page.locator('#miniTitle')).toHaveText('Chlorine');
+    await expect(page.locator('#currentTime')).toHaveText('0:30');
+    const html = readFileSync(new URL('../404.html', import.meta.url), 'utf8');
+    expect(html).toContain("'?ts='");
+  });
+
+  test('las playlists propias se comparten con un enlace corto y llegan enteras', async ({ page }) => {
+    await page.goto('./?mix=1#n=Corta&k=p445d14,pf0ffe3');
+    await expect(page.locator('.toast')).toContainText('«Corta» se guardó');
+    // Enlace de antes (t=ids enteros) con un id de una canción fusionada
+    await page.goto(`./?mix=1#n=Vieja&t=${encodeURIComponent(OLD)}`);
+    await expect(page.locator('.toast')).toContainText('«Vieja» se guardó');
+    const pls = await page.evaluate(() => JSON.parse(localStorage.getItem('liquidbrush:playlists')));
+    expect(pls.find((p) => p.name === 'Corta').trackIds).toHaveLength(2);
+    expect(pls.find((p) => p.name === 'Vieja').trackIds).toEqual([NEW]);
+  });
+
+  test('en iPhone (Firefox) el título y el icono siguen siendo los de Liquid Bullet al cargar una canción', async ({ browser }) => {
+    const context = await browser.newContext({
+      viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true,
+      userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/133.0 Mobile/15E148 Safari/605.1.15'
+    });
+    const page = await context.newPage();
+    await page.route(/r2\.dev|lrclib\.net|api\.audius\.co|archive\.org|api\.jamendo\.com|hearthis\.at|api\.openverse\.org/, (route) => route.abort());
+    await page.addInitScript(() => { localStorage.setItem('liquidbrush:tour', 'true'); localStorage.setItem('liquidbrush:cuenta-ofrecida', 'true'); });
+    await page.goto('./');
+    await expect(page.locator('#miniTitle')).not.toHaveText('Sin reproducción');
+    await page.evaluate(() => document.querySelector('#playBtn').click());
+    await expect(page).toHaveTitle('Liquid Bullet');
+    await expect(page.locator('link[rel="icon"]').first()).toHaveAttribute('href', 'logo.svg');
+    await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute('sizes', '180x180');
+    await context.close();
+  });
+
+  test('Claro y Oscuro de serie no dan el hito «Diseñador»', async ({ page }) => {
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.waitForTimeout(2000);
+    expect((await page.locator('.toast').allTextContents()).join(' ')).not.toContain('Diseñador');
+  });
+});
