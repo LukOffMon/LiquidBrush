@@ -35,6 +35,7 @@ import hashlib
 import hmac
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -42,11 +43,12 @@ import tempfile
 import urllib.error
 import urllib.parse
 import urllib.request
+import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from sync_r2 import BUCKETS, _sign, list_objects  # noqa: E402
+from sync_r2 import BUCKETS, _sign, list_objects, s3_get  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 # Con --kbps: solo se recodifica lo que pase de ese valor por más de un 15 % (lo ya convertido se salta)
@@ -214,14 +216,62 @@ def public_size(url):
     return (int(total) if total.isdigit() else -1), head
 
 
-def process(name, apply, min_kb, kbps=0):
-    cfg = BUCKETS[name]
-    durations = list_durations(name) if kbps else {}
+def parse_pasted(text):
+    """Lo que se copia de Cloudflare al crear la clave de R2, pegado tal cual en un solo secreto (R2_<NOMBRE>):
+    la Access Key ID (32 caracteres), la Secret Access Key (64) y la dirección del punto de acceso
+    (https://<cuenta>.r2.cloudflarestorage.com, a veces con /<bucket>). El orden y el resto del texto dan igual."""
+    out = {}
+    url = re.search(r'https://([0-9a-f]{32})\.(?:[a-z]+\.)?r2\.cloudflarestorage\.com(?:/([A-Za-z0-9._-]+))?', text)
+    if url:
+        out['account'] = url.group(1)
+        if url.group(2):
+            out['bucket'] = url.group(2)
+        text = text.replace(url.group(0), ' ')
+    for token in re.findall(r'[0-9a-f]+', text):
+        if len(token) == 64:
+            out.setdefault('secret', token)
+        elif len(token) == 32:
+            out.setdefault('access', token)
+    return out
+
+
+def list_buckets(account, access, secret):
+    root = ET.fromstring(s3_get(account, access, secret, '', {}))
+    return [el.text for el in root.iter() if el.tag.endswith('Name') and el.text]
+
+
+def credentials(name, cfg):
+    """(cfg completo, access, secret) o un motivo para saltarse el bucket."""
     prefix = f'R2_{name.upper()}_'
     access, secret = os.environ.get(prefix + 'ACCESS_KEY_ID'), os.environ.get(prefix + 'SECRET_ACCESS_KEY')
-    if not (access and secret and cfg['account'] and cfg['bucket']):
-        print(f'· {name}: sin clave/cuenta en el entorno, se salta')
+    cfg = dict(cfg)
+    pasted = parse_pasted(os.environ.get(f'R2_{name.upper()}', ''))
+    access, secret = access or pasted.get('access'), secret or pasted.get('secret')
+    cfg['account'] = pasted.get('account') or cfg['account']
+    cfg['bucket'] = pasted.get('bucket') or cfg['bucket']
+    if not (access and secret):
+        return None, 'sin clave en el entorno'
+    if not cfg['account']:
+        return None, 'falta la dirección https://….r2.cloudflarestorage.com (pégala junto a la clave)'
+    if not cfg['bucket']:
+        # La clave «para todos los buckets» deja ver cuáles hay: si solo hay uno, es ese
+        try:
+            names = list_buckets(cfg['account'], access, secret)
+        except (urllib.error.URLError, OSError, ET.ParseError) as error:
+            return None, f'no se pudo ver qué bucket es ({error}); pega también la dirección con /<bucket>'
+        if len(names) != 1:
+            return None, f'hay {len(names)} buckets en esa cuenta ({", ".join(names)}): pega la dirección con /<bucket>'
+        cfg['bucket'] = names[0]
+    return (cfg, access, secret), ''
+
+
+def process(name, apply, min_kb, kbps=0):
+    found, why = credentials(name, BUCKETS[name])
+    if not found:
+        print(f'· {name}: {why}, se salta')
         return 0, 0
+    cfg, access, secret = found
+    durations = list_durations(name) if kbps else {}
     sizes = {k: s for k, s in list_objects(cfg, access, secret) if k.lower().endswith('.mp3')}
     keys = list(sizes)
     print(f'· {name}: {len(keys)} MP3')

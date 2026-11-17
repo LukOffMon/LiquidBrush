@@ -1,9 +1,11 @@
 # Optimiza los MP3 de los buckets R2 (quita la portada incrustada y, si se pide, los pasa a menos kbps).
 # Se lanza a mano: Actions → «Optimizar música» → Run workflow (también desde el móvil).
-# Las claves de R2 se guardan como secretos del repositorio (Settings → Secrets and variables → Actions):
-#   R2_<BUCKET>_ACCESS_KEY_ID y R2_<BUCKET>_SECRET_ACCESS_KEY para PEPPER, SALT, BRUSH3, DB4, DB5 y DB6,
-#   y además R2_DB4_ACCOUNT, R2_DB5_ACCOUNT, R2_DB5_BUCKET, R2_DB6_ACCOUNT y R2_DB6_BUCKET.
-# Un bucket sin sus claves se salta solo (el resto sigue).
+#
+# Lo más fácil: UN secreto por bucket (Settings → Secrets and variables → Actions → New repository secret)
+# llamado R2_PEPPER, R2_SALT, R2_BRUSH3, R2_DB4, R2_DB5 o R2_DB6, con lo que enseña Cloudflare al crear la
+# clave de R2 pegado tal cual (Access Key ID, Secret Access Key y la dirección https://….r2.cloudflarestorage.com).
+# También valen los secretos por separado (R2_<BUCKET>_ACCESS_KEY_ID, _SECRET_ACCESS_KEY, _ACCOUNT, _BUCKET).
+# Un bucket sin secreto se salta solo (el resto sigue).
 name: Optimizar música
 
 on:
@@ -39,6 +41,12 @@ jobs:
         run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
       - name: Optimizar
         env:
+          R2_PEPPER: ${{ secrets.R2_PEPPER }}
+          R2_SALT: ${{ secrets.R2_SALT }}
+          R2_BRUSH3: ${{ secrets.R2_BRUSH3 }}
+          R2_DB4: ${{ secrets.R2_DB4 }}
+          R2_DB5: ${{ secrets.R2_DB5 }}
+          R2_DB6: ${{ secrets.R2_DB6 }}
           R2_PEPPER_ACCESS_KEY_ID: ${{ secrets.R2_PEPPER_ACCESS_KEY_ID }}
           R2_PEPPER_SECRET_ACCESS_KEY: ${{ secrets.R2_PEPPER_SECRET_ACCESS_KEY }}
           R2_SALT_ACCESS_KEY_ID: ${{ secrets.R2_SALT_ACCESS_KEY_ID }}
