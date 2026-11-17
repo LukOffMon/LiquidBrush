@@ -35,10 +35,15 @@ services:
       - MUSICA_DIR=/musica
       - DATOS_DIR=/datos
       - PUERTO=8787
+      # Descargas a medias de slskd: la canción suena mientras baja
+      - INCOMPLETO_DIR=/incompleto
+      # Lo bajado de Soulseek se borra tras estas horas sin sonar (0 = nunca) y vuelve a bajar al tocarlo
+      - CACHE_HORAS=${CACHE_HORAS:-0}
     volumes:
       - ./puente:/puente:ro
       - ./musica:/musica
       - ./datos:/datos
+      - ./slskd/incomplete:/incompleto:ro
 
   caddy:
     image: caddy:2
