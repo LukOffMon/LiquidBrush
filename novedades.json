@@ -12,7 +12,8 @@
         "Los enlaces de canciones compartidos antes de que esas canciones cambiaran de id daban «Esta página se derritió». Ahora abren la canción (y en su segundo, si el enlace lo llevaba).",
         "Las playlists propias se comparten con un enlace mucho más corto (una de 150 canciones pasa de ~9.000 letras a ~1.200): WhatsApp, Instagram o un SMS ya no lo cortan y llegan todas las canciones. Los enlaces de antes siguen funcionando, también con canciones que cambiaron de id.",
         "Con cuenta: las favoritas y canciones de playlists guardadas desde otro dispositivo con un id antiguo ya no desaparecen al sincronizar.",
-        "El hito «Diseñador» ya no sale sin haber creado ningún tema (contaba Claro y Oscuro, que vienen de serie)."
+        "El hito «Diseñador» ya no sale sin haber creado ningún tema (contaba Claro y Oscuro, que vienen de serie).",
+        "iPhone/iPad con Firefox (y Chrome, Edge…): «Añadir a pantalla de inicio» vuelve a crear el acceso con el logo y el nombre «Liquid Bullet». Antes salía con el nombre y la portada de la canción que estaba puesta, porque la app cambiaba el título y el icono de la página con cada canción."
       ]
     },
     {

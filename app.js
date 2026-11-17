@@ -138,6 +138,11 @@
     location.assign(LIQUID_URL);
   }
 
+  // v91: en iPhone/iPad el título y el icono de la página no cambian con la canción. Firefox (y Chrome, Edge…)
+  // en iOS crean el acceso de «Añadir a pantalla de inicio» con el título y el icono que la página tiene en ese
+  // momento: salía «▶ Canción · Artista — Liquid Bullet» con la portada de la canción en vez de Liquid Bullet
+  const KEEP_APP_IDENTITY = DEVICE.apple;
+
   const OS_NAMES = { ios: 'iPhone (iOS)', ipados: 'iPad (iPadOS)', android: 'Android', windows: 'Windows', macos: 'Mac', chromeos: 'ChromeOS', linux: 'Linux', otro: 'otro sistema' };
   const BROWSER_NAMES = { safari: 'Safari', chrome: 'Chrome', firefox: 'Firefox', edge: 'Edge', samsung: 'Samsung Internet', opera: 'Opera', inapp: 'navegador interno', otro: 'otro navegador' };
   const INAPP_NAMES = { instagram: 'Instagram', facebook: 'Facebook', tiktok: 'TikTok', snapchat: 'Snapchat', x: 'X', line: 'LINE', google: 'la app de Google', webview: 'otra app' };
@@ -7958,7 +7963,7 @@
 
   // La pestaña dice si suena (▶) sin tener que abrirla
   function updateDocTitle() {
-    if (!state.docTitle || LAB_MODE) return;
+    if (!state.docTitle || LAB_MODE || KEEP_APP_IDENTITY) return;
     document.title = `${document.body.classList.contains('is-playing') ? '▶ ' : ''}${state.docTitle}`;
   }
 
@@ -16766,7 +16771,7 @@
     /* --- La pestaña del navegador lleva la carátula de lo que suena --- */
     setFavicon(track) {
       const link = document.querySelector('link[rel="icon"]');
-      if (!link || !track?.thumb || /^data:/.test(track.thumb)) return;
+      if (KEEP_APP_IDENTITY || !link || !track?.thumb || /^data:/.test(track.thumb)) return;
       link.type = 'image/jpeg';
       link.href = track.thumb;
     },

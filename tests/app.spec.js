@@ -2166,6 +2166,23 @@ test.describe('v91: «Continúa donde lo dejaste», compartir y playlists', () =
     expect(pls.find((p) => p.name === 'Vieja').trackIds).toEqual([NEW]);
   });
 
+  test('en iPhone (Firefox) el título y el icono siguen siendo los de Liquid Bullet al cargar una canción', async ({ browser }) => {
+    const context = await browser.newContext({
+      viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true,
+      userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/133.0 Mobile/15E148 Safari/605.1.15'
+    });
+    const page = await context.newPage();
+    await page.route(/r2\.dev|lrclib\.net|api\.audius\.co|archive\.org|api\.jamendo\.com|hearthis\.at|api\.openverse\.org/, (route) => route.abort());
+    await page.addInitScript(() => { localStorage.setItem('liquidbrush:tour', 'true'); localStorage.setItem('liquidbrush:cuenta-ofrecida', 'true'); });
+    await page.goto('./');
+    await expect(page.locator('#miniTitle')).not.toHaveText('Sin reproducción');
+    await page.evaluate(() => document.querySelector('#playBtn').click());
+    await expect(page).toHaveTitle('Liquid Bullet');
+    await expect(page.locator('link[rel="icon"]').first()).toHaveAttribute('href', 'logo.svg');
+    await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute('sizes', '180x180');
+    await context.close();
+  });
+
   test('Claro y Oscuro de serie no dan el hito «Diseñador»', async ({ page }) => {
     await page.goto('./');
     await expect(page.locator('#libCount')).not.toHaveText('0');
