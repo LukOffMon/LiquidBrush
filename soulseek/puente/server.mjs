@@ -33,7 +33,19 @@ export function crearPuente(opciones = {}) {
     // Cuánto espera /cancion a que una canción borrada vuelva antes de responder «sigue bajando»
     esperaReproducir: Number(env.ESPERA_REPRODUCIR_MS || 25000),
     // Si ninguna copia empieza en este tiempo, se prueba también la siguiente
-    esperaCopia: Number(env.ESPERA_COPIA_MS || 15000)
+    esperaCopia: Number(env.ESPERA_COPIA_MS || 15000),
+    // Tope de disco para lo bajado de Soulseek (0 = sin tope): se borra lo menos escuchado (nunca lo fijado)
+    discoMaxBytes: Number(env.DISCO_MAX_GB || 0) * 1073741824,
+    // Portadas que no trae el archivo: se buscan en iTunes por artista y título (PORTADAS_ITUNES=0 lo apaga)
+    portadasItunes: env.PORTADAS_ITUNES !== '0',
+    itunes: String(env.ITUNES_URL || 'https://itunes.apple.com').replace(/\/+$/, ''),
+    // Modo abierto (PUBLICO_ABIERTO=1): quien tenga CUENTA de Liquid busca, pide y escucha sin tu clave.
+    // Sin cuenta, nada. Descargas nuevas por cuenta y día, y un tope total al día para proteger tu PC.
+    abierto: env.PUBLICO_ABIERTO === '1',
+    cuentas: String(env.CUENTAS_URL || 'https://liquid-cuentas.liquidbulletofficial.workers.dev').replace(/\/+$/, ''),
+    cupoDia: Number(env.CUPO_DIA || 5),
+    cupoTotalDia: Number(env.CUPO_TOTAL_DIA || 100),
+    busquedasDia: Number(env.BUSQUEDAS_DIA || 80)
   };
   if (!CFG.clave || CFG.clave.length < 16) throw new Error('Falta LIQUID_CLAVE (16 caracteres o más).');
 
@@ -302,6 +314,9 @@ export function crearPuente(opciones = {}) {
           if (meta.segundos) rec.seg = Math.round(meta.segundos);
         }
         Object.assign(rec, { rel: hit, ok: true, uso: Date.now(), ganadora: lista.c });
+        // A su sitio (Artista/Álbum/Título) y con portada
+        await ordenar(rec);
+        ponerPortada(recId).catch(() => {});
         guardar();
         return { estado: 'lista', porcentaje: 100 };
       }
@@ -350,17 +365,17 @@ export function crearPuente(opciones = {}) {
     return { id, estado: 'en-cola', porcentaje: 0 };
   }
 
-  async function estadoPedidos(ids) {
+  async function estadoPedidos(ids, conClave = false) {
     const cache = new Map();
     const salida = [];
     for (const id of ids) {
       const recId = pedidos[id];
       const rec = memoria[recId];
       if (!rec) { salida.push({ id, estado: 'desconocido' }); continue; }
-      if (!activas.has(recId) && await enDisco(rec)) { salida.push({ id, estado: 'lista', porcentaje: 100, cancion: filaRec(recId) }); continue; }
+      if (!activas.has(recId) && await enDisco(rec)) { salida.push({ id, estado: 'lista', porcentaje: 100, cancion: filaRec(recId, conClave) }); continue; }
       const r = await revisar(recId, cache);
       const fila = { id, estado: r.estado, porcentaje: r.porcentaje ?? 0 };
-      if (r.estado === 'lista') fila.cancion = filaRec(recId);
+      if (r.estado === 'lista') fila.cancion = filaRec(recId, conClave);
       if (r.motivo) fila.motivo = r.motivo;
       salida.push(fila);
     }
@@ -417,21 +432,26 @@ export function crearPuente(opciones = {}) {
   function fila(rel, d) {
     return { id: idDe(rel), title: d.t || 'Sin título', artist: d.a || '', album: '', duration: duracion(d.s), src: urlDe(rel), size: d.b };
   }
-  // Las canciones de Soulseek van por /cancion/<recId>: si su archivo se borró, esa dirección la vuelve a bajar
-  function filaRec(recId) {
+  // Las canciones de Soulseek van por /cancion/<recId>: si su archivo se borró, esa dirección la vuelve a bajar.
+  // Sin clave en la URL: así la lista se puede dar a todos (la clave es solo para gestionar y tu música propia).
+  // conClave: solo en modo privado (sin modo público, el reproductor no puede mandar la clave en una cabecera)
+  function filaRec(recId, conClave = false) {
     // Título, artista y duración salen de la memoria: no cambian aunque el archivo se borre y vuelva
     const r = memoria[recId];
-    return {
-      id: recId, title: r.t || 'Sin título', artist: r.a || '', album: '', duration: duracion(r.seg),
-      src: `${CFG.publico}/cancion/${recId}?k=${encodeURIComponent(CFG.clave)}`, size: r.ganadora?.s || r.c[0].s
+    const f = {
+      id: recId, title: r.t || 'Sin título', artist: r.a || '', album: r.al && !/^[@\\/]|\\/.test(r.al) && !GENERICAS.test(normal(r.al).trim()) ? r.al : '', duration: duracion(r.seg),
+      src: `${CFG.publico}/cancion/${recId}${conClave ? `?k=${encodeURIComponent(CFG.clave)}` : ''}`, size: r.ganadora?.s || r.c[0].s,
+      skd: { fijada: Boolean(r.fijada), enDisco: Boolean(r.rel), alta: r.alta, uso: r.uso }
     };
+    if (r.portada) f.cover = `${CFG.publico}/portada/${recId}?v=${r.portada}`;
+    return f;
   }
-  async function lista() {
+  // dueno = con tu clave: también lo que pusiste tú a mano en musica/ (eso nunca se da a otros ni se borra)
+  async function lista(dueno = true) {
     const idx = await escanear();
     const deMemoria = new Set(Object.values(memoria).map((r) => r.rel).filter(Boolean));
-    // Lo que pusiste tú a mano en musica/ (no vino de un pedido): se sirve tal cual y nunca se borra
-    const propias = Object.entries(idx).filter(([rel]) => !deMemoria.has(rel)).map(([rel, d]) => ({ at: d.m, fila: fila(rel, d) }));
-    const recordadas = Object.entries(memoria).filter(([, r]) => r.ok).map(([recId, r]) => ({ at: r.alta, fila: filaRec(recId) }));
+    const propias = dueno ? Object.entries(idx).filter(([rel]) => !deMemoria.has(rel)).map(([rel, d]) => ({ at: d.m, fila: fila(rel, d) })) : [];
+    const recordadas = Object.entries(memoria).filter(([, r]) => r.ok).map(([recId, r]) => ({ at: r.alta, fila: filaRec(recId, dueno && !CFG.abierto) }));
     return [...propias, ...recordadas].sort((a, b) => b.at - a.at).map((x) => x.fila);
   }
   // ¿Sigue su archivo en disco?
@@ -464,32 +484,142 @@ export function crearPuente(opciones = {}) {
       dir = path.dirname(dir);
     }
   }
-  // Borra los archivos de Soulseek que llevan más de CACHE_HORAS sin sonar. Nunca toca lo que pusiste a mano.
-  async function limpiar(ahora = Date.now()) {
-    if (!(CFG.cacheHoras > 0)) return { borradas: 0, libres: 0 };
-    let borradas = 0;
+  // Borra el archivo de una canción de Soulseek (la canción sigue en la memoria: vuelve a bajar si se toca)
+  async function borrarArchivo(r) {
+    if (!r.rel) return 0;
+    const ruta = path.resolve(CFG.musica, r.rel);
     let libres = 0;
-    for (const [recId, r] of Object.entries(memoria)) {
-      if (!r.rel || activas.has(recId) || ahora - (r.uso || r.alta) < CFG.cacheHoras * 3600000) continue;
-      const ruta = path.resolve(CFG.musica, r.rel);
-      if (!ruta.startsWith(CFG.musica + path.sep)) continue;
-      try {
-        const st = await fsp.stat(ruta);
-        await fsp.unlink(ruta);
-        borradas++;
-        libres += st.size;
-      } catch { /* ya no estaba */ }
-      delete indice[r.rel];
-      r.rel = null;
+    if (ruta.startsWith(CFG.musica + path.sep)) {
+      try { libres = (await fsp.stat(ruta)).size; await fsp.unlink(ruta); } catch { /* ya no estaba */ }
       await quitarVacias(path.dirname(ruta));
     }
-    if (borradas) {
+    delete indice[r.rel];
+    r.rel = null;
+    return libres;
+  }
+
+  // Limpieza: (1) lo que lleva CACHE_HORAS sin sonar; (2) si aun así se pasa de DISCO_MAX_GB, lo menos
+  // escuchado primero. Nunca toca lo fijado ni lo que pusiste tú a mano. De paso, ordena las carpetas.
+  async function limpiar(ahora = Date.now()) {
+    let borradas = 0;
+    let libres = 0;
+    const candidatas = () => Object.entries(memoria).filter(([recId, r]) => r.rel && !r.fijada && !activas.has(recId));
+    if (CFG.cacheHoras > 0) {
+      for (const [, r] of candidatas()) {
+        if (ahora - (r.uso || r.alta) < CFG.cacheHoras * 3600000) continue;
+        libres += await borrarArchivo(r);
+        borradas++;
+      }
+    }
+    if (CFG.discoMaxBytes > 0) {
+      let usado = 0;
+      for (const r of Object.values(memoria)) if (r.rel) usado += indice[r.rel]?.b || r.ganadora?.s || 0;
+      const porUso = candidatas().sort((a, b) => (a[1].uso || a[1].alta) - (b[1].uso || b[1].alta));
+      for (const [, r] of porUso) {
+        if (usado <= CFG.discoMaxBytes) break;
+        const l = await borrarArchivo(r);
+        usado -= l;
+        libres += l;
+        borradas++;
+      }
+    }
+    const movidas = await ordenarTodo();
+    if (borradas || movidas) {
       await guardar();
       await fsp.writeFile(INDICE, JSON.stringify(indice)).catch(() => {});
-      // slskd también recuerda las descargas terminadas: se limpia su lista
-      slskd('/transfers/downloads/all/completed', { method: 'DELETE' }).catch(() => {});
     }
-    return { borradas, libres };
+    // slskd también recuerda las descargas terminadas: se limpia su lista
+    if (borradas) slskd('/transfers/downloads/all/completed', { method: 'DELETE' }).catch(() => {});
+    buscarPortadasQueFaltan().catch(() => {});
+    return { borradas, libres, movidas };
+  }
+
+  /* ---------- Portadas: datos/portadas/<recId>.jpg ---------- */
+  const PORTADAS = path.join(CFG.datos, 'portadas');
+  const rutaPortada = (recId) => path.join(PORTADAS, `${recId}.img`);
+  const intentosPortada = new Map();
+  async function guardarPortada(recId, datos) {
+    if (!datos || datos.length < 512 || datos.length > 8 * 1048576) return false;
+    await fsp.mkdir(PORTADAS, { recursive: true });
+    await fsp.writeFile(rutaPortada(recId), datos);
+    memoria[recId].portada = crypto.createHash('sha1').update(datos).digest('hex').slice(0, 8);
+    guardar();
+    return true;
+  }
+  // 1) la que trae el archivo (ID3 APIC o FLAC PICTURE); 2) iTunes por artista + título
+  async function ponerPortada(recId) {
+    const r = memoria[recId];
+    if (!r || r.portada) return;
+    if (r.rel) {
+      const ruta = path.resolve(CFG.musica, r.rel);
+      const st = await fsp.stat(ruta).catch(() => null);
+      if (st && await guardarPortada(recId, await leerPortada(ruta, st.size).catch(() => null))) return;
+    }
+    if (!CFG.portadasItunes) return;
+    // No se insiste: como mucho un intento al día por canción
+    if (Date.now() - (intentosPortada.get(recId) || 0) < 86400000) return;
+    intentosPortada.set(recId, Date.now());
+    const term = `${r.a || ''} ${r.t || ''}`.replace(/\([^)]*\)|\[[^\]]*\]/g, ' ').trim();
+    if (term.length < 3) return;
+    try {
+      const res = await fetch(`${CFG.itunes}/search?entity=song&limit=5&term=${encodeURIComponent(term)}`, { signal: AbortSignal.timeout(10000) });
+      const { results = [] } = await res.json();
+      // Mejor la que coincide con el artista
+      const hit = results.find((x) => normal(x.artistName).includes(normal(r.a).slice(0, 12)) && x.artworkUrl100) || (r.a ? null : results[0]);
+      if (!hit?.artworkUrl100) return;
+      const img = await fetch(hit.artworkUrl100.replace(/\/\d+x\d+bb\./, '/600x600bb.'), { signal: AbortSignal.timeout(15000) });
+      if (img.ok) await guardarPortada(recId, Buffer.from(await img.arrayBuffer()));
+    } catch { /* sin red o sin resultado: otro día */ }
+  }
+  let buscandoPortadas = false;
+  async function buscarPortadasQueFaltan() {
+    if (buscandoPortadas) return;
+    buscandoPortadas = true;
+    try { for (const recId of Object.keys(memoria)) if (memoria[recId].ok && !memoria[recId].portada) await ponerPortada(recId); } finally { buscandoPortadas = false; }
+  }
+
+  /* ---------- Orden en disco: musica/Artista/Álbum/NN Título.ext ---------- */
+  // Nombres válidos en Windows, macOS y Linux
+  // eslint-disable-next-line no-control-regex -- los caracteres de control no valen en nombres de archivo
+  const limpioNombre = (t, max = 80) => String(t || '').normalize('NFC').replace(/[<>:"/\\|?*\u0000-\u001f]/g, ' ')
+    .replace(/\s+/g, ' ').trim().replace(/[. ]+$/, '').slice(0, max).trim();
+  const RESERVADOS = /^(con|prn|aux|nul|com\d|lpt\d)$/i;
+  // Carpetas de quien comparte que no son un álbum («musica», «mp3», «Downloads»…)
+  const GENERICAS = /^(m[uú]sica|music|musik|mp3s?|flacs?|audio|songs?|canciones|temas|descargas?|downloads?|complete|shared?|compartid[oa]s?|varios|various|misc|new folder|nueva carpeta|\d+)$/i;
+  function relOrdenado(r, relActual) {
+    const ext = path.extname(relActual).toLowerCase();
+    const artista = limpioNombre(r.a) || 'Varios';
+    const album = r.al && !/^[@\\/]/.test(r.al) && !GENERICAS.test(normal(r.al).trim()) ? limpioNombre(r.al) : '';
+    const titulo = limpioNombre(r.t, 120) || 'Sin título';
+    const partes = [RESERVADOS.test(artista) ? `_${artista}` : artista];
+    if (album && normal(album) !== normal(artista)) partes.push(RESERVADOS.test(album) ? `_${album}` : album);
+    partes.push(`${titulo}${ext}`);
+    return partes.join('/');
+  }
+  // Mueve un archivo de Soulseek a su sitio ordenado (si no lo está ya)
+  async function ordenar(r) {
+    if (!r.rel) return false;
+    const destino = relOrdenado(r, r.rel);
+    if (destino === r.rel) return false;
+    const desde = path.resolve(CFG.musica, r.rel);
+    let hasta = path.resolve(CFG.musica, destino);
+    if (!hasta.startsWith(CFG.musica + path.sep)) return false;
+    // Dos canciones distintas con el mismo nombre: la segunda lleva « (2)»
+    for (let n = 2; fs.existsSync(hasta) && n < 50; n++) hasta = hasta.replace(/( \(\d+\))?(\.[^.]+)$/, ` (${n})$2`);
+    try {
+      await fsp.mkdir(path.dirname(hasta), { recursive: true });
+      await fsp.rename(desde, hasta);
+    } catch { return false; }
+    const nuevoRel = path.relative(CFG.musica, hasta).split(path.sep).join('/');
+    if (indice[r.rel]) { indice[nuevoRel] = indice[r.rel]; delete indice[r.rel]; }
+    r.rel = nuevoRel;
+    await quitarVacias(path.dirname(desde));
+    return true;
+  }
+  async function ordenarTodo() {
+    let n = 0;
+    for (const [recId, r] of Object.entries(memoria)) if (r.rel && !activas.has(recId) && await ordenar(r)) n++;
+    return n;
   }
 
   /* ---------- HTTP ---------- */
@@ -499,7 +629,7 @@ export function crearPuente(opciones = {}) {
     return {
       'Access-Control-Allow-Origin': CFG.origenes.includes('*') ? '*' : permitido,
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Authorization, Content-Type, Range',
+      'Access-Control-Allow-Headers': 'Authorization, Content-Type, Range, X-Liquid-Pase',
       'Access-Control-Expose-Headers': 'Content-Length, Content-Range, Accept-Ranges, Content-Type',
       'Access-Control-Max-Age': '86400',
       // Chrome pide permiso explícito cuando una web pública (GitHub Pages) llama a esta PC por localhost
@@ -617,20 +747,103 @@ export function crearPuente(opciones = {}) {
     for (const r of Object.values(memoria)) if (r.rel === rel) { r.uso = Date.now(); guardar(); return; }
   }
 
+  /* ---------- Modo público: cupos por persona (dispositivo + IP) y por día ---------- */
+  const CUPOS = path.join(CFG.datos, 'cupos.json');
+  const hoy = () => new Date().toISOString().slice(0, 10);
+  let cupos = leerJson(CUPOS);
+  function cuposDeHoy() {
+    if (cupos.dia !== hoy()) cupos = { dia: hoy(), descargas: {}, busquedas: {}, total: 0 };
+    return cupos;
+  }
+  const guardarCupos = () => fsp.mkdir(CFG.datos, { recursive: true }).then(() => fsp.writeFile(CUPOS, JSON.stringify(cupos))).catch(() => {});
+  // Quién pide: su cuenta de Liquid. Liquid manda el pase de la cuenta (dura 15 min) y aquí se comprueba con
+  // el servicio de cuentas (/yo). El puente nunca ve contraseñas ni guarda correos: solo una huella del correo.
+  const pasesVistos = new Map();
+  const verificarPase = opciones.verificarPase || (async (pase) => {
+    const res = await fetch(`${CFG.cuentas}/yo`, { headers: { Authorization: `Bearer ${pase}` }, signal: AbortSignal.timeout(8000) });
+    if (!res.ok) return null;
+    const d = await res.json().catch(() => ({}));
+    return d?.perfil?.correo || null;
+  });
+  async function cuentaDe(req) {
+    const pase = String(req.headers['x-liquid-pase'] || '');
+    if (!pase || pase.length > 2048) return null;
+    const visto = pasesVistos.get(pase);
+    if (visto && visto.hasta > Date.now()) return visto.u;
+    const correo = await verificarPase(pase).catch(() => null);
+    if (!correo) return null;
+    const u = `c:${crypto.createHash('sha256').update(String(correo).trim().toLowerCase()).digest('hex').slice(0, 24)}`;
+    pasesVistos.set(pase, { u, hasta: Date.now() + 5 * 60000 });
+    if (pasesVistos.size > 1000) pasesVistos.delete(pasesVistos.keys().next().value);
+    return u;
+  }
+  const quien = (req) => (req.cuenta ? [req.cuenta] : []);
+  function restantes(claves) {
+    const c = cuposDeHoy();
+    const usadas = Math.max(0, ...claves.map((k) => c.descargas[k] || 0));
+    return Math.max(0, Math.min(CFG.cupoDia - usadas, CFG.cupoTotalDia - c.total));
+  }
+  function contar(tipo, claves) {
+    const c = cuposDeHoy();
+    claves.forEach((k) => { c[tipo][k] = (c[tipo][k] || 0) + 1; });
+    if (tipo === 'descargas') c.total++;
+    guardarCupos();
+  }
+
+  /* ---------- Gestión (solo con tu clave): fijar, quitar, disco ---------- */
+  async function quitar(recId) {
+    const r = memoria[recId];
+    if (!r) return false;
+    if (activas.has(recId)) activas.delete(recId);
+    await borrarArchivo(r);
+    await fsp.rm(rutaPortada(recId), { force: true }).catch(() => {});
+    delete memoria[recId];
+    for (const [id, v] of Object.entries(pedidos)) if (v === recId) delete pedidos[id];
+    await guardar();
+    await fsp.writeFile(INDICE, JSON.stringify(indice)).catch(() => {});
+    return true;
+  }
+  function disco() {
+    let usado = 0;
+    let enDiscoN = 0;
+    for (const r of Object.values(memoria)) if (r.rel) { usado += indice[r.rel]?.b || r.ganadora?.s || 0; enDiscoN++; }
+    return { usado, max: CFG.discoMaxBytes, enDisco: enDiscoN, fijadas: Object.values(memoria).filter((r) => r.fijada).length, horas: CFG.cacheHoras };
+  }
+
+  async function servirPortada(req, res, cors, recId) {
+    let datos;
+    try { datos = await fsp.readFile(rutaPortada(recId)); } catch { return json(res, cors, 404, { error: 'Sin portada' }); }
+    const tipo = datos[0] === 0x89 ? 'image/png' : datos[0] === 0x47 ? 'image/gif' : datos.toString('latin1', 8, 12) === 'WEBP' ? 'image/webp' : 'image/jpeg';
+    res.writeHead(200, { ...cors, 'Content-Type': tipo, 'Content-Length': String(datos.length), 'Cache-Control': 'public, max-age=2592000, immutable' });
+    res.end(req.method === 'HEAD' ? undefined : datos);
+  }
+
   const servidor = http.createServer(async (req, res) => {
     const cors = cabecerasCors(req);
     try {
       const url = new URL(req.url, 'http://puente');
       if (req.method === 'OPTIONS') { res.writeHead(204, cors); return res.end(); }
-      if (url.pathname === '/salud') return json(res, cors, 200, { ok: true, nombre: 'Liquid SKd' });
-      if (!autorizado(req, url)) return json(res, cors, 401, { error: 'Clave incorrecta' });
-      if (url.pathname.startsWith('/musica/') && ['GET', 'HEAD'].includes(req.method)) {
+      if (url.pathname === '/salud') return json(res, cors, 200, { ok: true, nombre: 'Liquid SKd', publico: CFG.abierto });
+      const dueno = autorizado(req, url);
+      // Sin la clave solo se entra si el modo público está abierto, y nunca a tu música propia ni a la gestión
+      if (!dueno && !CFG.abierto) return json(res, cors, 401, { error: 'Clave incorrecta' });
+      const lectura = ['GET', 'HEAD'].includes(req.method);
+      // Sin tu clave: hace falta una cuenta de Liquid para todo menos el audio y las portadas, que van por
+      // direcciones que solo se conocen desde la lista (y el reproductor no puede mandar cabeceras)
+      if (!dueno && !/^\/(cancion|portada)\/[0-9a-f]{16}$/.test(url.pathname)) {
+        req.cuenta = await cuentaDe(req);
+        if (!req.cuenta) return json(res, cors, 401, { error: 'Inicia sesión en tu cuenta de Liquid para usar SKd' });
+      }
+      if (url.pathname.startsWith('/musica/') && lectura) {
+        if (!dueno) return json(res, cors, 401, { error: 'Clave incorrecta' });
         const rel = decodeURIComponent(url.pathname.slice('/musica/'.length));
         marcarUso(rel);
         return servirAudio(req, res, cors, rel);
       }
       const cancion = /^\/cancion\/([0-9a-f]{16})$/.exec(url.pathname);
-      if (cancion && ['GET', 'HEAD'].includes(req.method)) return servirCancion(req, res, cors, cancion[1]);
+      if (cancion && lectura) return servirCancion(req, res, cors, cancion[1]);
+      const portada = /^\/portada\/([0-9a-f]{16})$/.exec(url.pathname);
+      if (portada && lectura) return servirPortada(req, res, cors, portada[1]);
       if (url.pathname === '/api/estado') {
         const conectado = await slskdJson('/application').then((d) => {
           const server = campo(d, 'server');
@@ -638,31 +851,67 @@ export function crearPuente(opciones = {}) {
           return campo(server, 'isConnected') ?? (st ? /Connected/.test(st) && !/Disconnected/.test(st) : true);
         }).catch(() => false);
         await escanear();
-        const lst = await lista();
+        const lst = await lista(dueno);
         const enCache = Object.values(memoria).filter((r) => r.rel).length;
-        return json(res, cors, 200, { ok: true, soulseek: Boolean(conectado), canciones: lst.length, cache: { horas: CFG.cacheHoras, enDisco: enCache } });
+        const base = { ok: true, soulseek: Boolean(conectado), canciones: lst.length, dueno, publico: CFG.abierto };
+        if (dueno) return json(res, cors, 200, { ...base, cache: { horas: CFG.cacheHoras, enDisco: enCache } });
+        return json(res, cors, 200, { ...base, cupo: { dia: CFG.cupoDia, restantes: restantes(quien(req)) } });
       }
       if (url.pathname === '/api/buscar') {
         const q = String(url.searchParams.get('q') || '').trim().slice(0, 120);
         if (q.length < 2) return json(res, cors, 400, { error: 'Escribe al menos 2 letras' });
+        if (!dueno) {
+          const claves = quien(req);
+          const c = cuposDeHoy();
+          if (claves.some((k) => (c.busquedas[k] || 0) >= CFG.busquedasDia)) return json(res, cors, 429, { error: 'Muchas búsquedas en Soulseek por hoy: mañana más' });
+          contar('busquedas', claves);
+        }
         return json(res, cors, 200, { resultados: await buscar(q) });
       }
       if (url.pathname === '/api/pedir' && req.method === 'POST') {
         const { id } = await leerCuerpo(req);
-        return json(res, cors, 200, await pedir(id));
+        if (dueno) return json(res, cors, 200, await pedir(id));
+        const claves = quien(req);
+        const quedan = restantes(claves);
+        // Si ya está en el servidor (otra persona la pidió) no gasta cupo: se avisa igual por si hay que bajarla
+        const d = leerPedido(id);
+        const yaEsta = d && (memoria[recIdDe(d.t, d.a)]?.rel || activas.has(recIdDe(d.t, d.a)));
+        if (!yaEsta && quedan <= 0) {
+          return json(res, cors, 429, { error: `Ya pediste ${CFG.cupoDia} canciones de Soulseek hoy: mañana tienes ${CFG.cupoDia} más`, cupo: { dia: CFG.cupoDia, restantes: 0 } });
+        }
+        const r = await pedir(id);
+        if (!yaEsta) contar('descargas', claves);
+        return json(res, cors, 200, { ...r, cupo: { dia: CFG.cupoDia, restantes: restantes(claves) } });
       }
       if (url.pathname === '/api/pedidos') {
         const ids = String(url.searchParams.get('ids') || '').split(',').filter(Boolean).slice(0, 50);
-        return json(res, cors, 200, { pedidos: await estadoPedidos(ids) });
+        return json(res, cors, 200, { pedidos: await estadoPedidos(ids, dueno && !CFG.abierto) });
       }
-      if (url.pathname === '/api/lista.json') return json(res, cors, 200, await lista());
+      if (url.pathname === '/api/lista.json') return json(res, cors, 200, await lista(dueno));
+      // Gestión: solo tú
+      if (url.pathname.startsWith('/api/admin/')) {
+        if (!dueno) return json(res, cors, 401, { error: 'Solo con la clave de tu servidor' });
+        if (url.pathname === '/api/admin/disco') return json(res, cors, 200, disco());
+        if (req.method !== 'POST') return json(res, cors, 405, { error: 'Usa POST' });
+        const { id, fijar } = await leerCuerpo(req);
+        const r = memoria[id];
+        if (!r) return json(res, cors, 404, { error: 'No existe' });
+        if (url.pathname === '/api/admin/fijar') {
+          r.fijada = Boolean(fijar);
+          // Si se fija una que la caché ya borró, vuelve a bajar para quedarse
+          if (r.fijada && !(await enDisco(r))) lanzar(id).catch(() => {});
+          await guardar();
+          return json(res, cors, 200, { ok: true, fijada: r.fijada });
+        }
+        if (url.pathname === '/api/admin/quitar') return json(res, cors, 200, { ok: await quitar(id) });
+      }
       return json(res, cors, 404, { error: 'No existe' });
     } catch (error) {
       if (!res.headersSent) json(res, cors, error.status || 500, { error: error.message || 'Error' });
       else res.destroy();
     }
   });
-  return { servidor, escanear, buscar, limpiar, CFG };
+  return { servidor, escanear, buscar, limpiar, ponerPortada, CFG };
 }
 
 /* ---------- Etiquetas y duración (MP3 con ID3 y FLAC), leyendo solo el principio ---------- */
@@ -686,6 +935,77 @@ async function leerEtiquetas(ruta, tamano) {
   } finally {
     await fh.close();
   }
+}
+
+/* ---------- Portada incrustada: ID3v2 (APIC) o FLAC (bloque PICTURE). Devuelve los bytes de la imagen o null ---------- */
+async function leerPortada(ruta, tamano) {
+  const fh = await fsp.open(ruta, 'r');
+  try {
+    const cabeza = Buffer.alloc(10);
+    await fh.read(cabeza, 0, 10, 0);
+    if (cabeza.toString('latin1', 0, 4) === 'fLaC') {
+      const buf = Buffer.alloc(Math.min(tamano, 16 << 20));
+      await fh.read(buf, 0, buf.length, 0);
+      return portadaFlac(buf);
+    }
+    if (cabeza.toString('latin1', 0, 3) !== 'ID3') return null;
+    const tagLen = 10 + ((cabeza[6] & 127) << 21 | (cabeza[7] & 127) << 14 | (cabeza[8] & 127) << 7 | (cabeza[9] & 127));
+    const buf = Buffer.alloc(Math.min(tamano, tagLen, 16 << 20));
+    await fh.read(buf, 0, buf.length, 0);
+    return portadaId3(buf, cabeza[3]);
+  } finally {
+    await fh.close();
+  }
+}
+
+function portadaId3(buf, version) {
+  let pos = 10;
+  if (buf[5] & 0x40) pos += version === 4 ? ((buf[10] & 127) << 21 | (buf[11] & 127) << 14 | (buf[12] & 127) << 7 | (buf[13] & 127)) : 4 + buf.readUInt32BE(10);
+  let mejor = null;
+  while (pos + 10 <= buf.length) {
+    const id = buf.toString('latin1', pos, pos + 4);
+    if (!/^[A-Z0-9]{4}$/.test(id)) break;
+    const tam = version === 4 ? ((buf[pos + 4] & 127) << 21 | (buf[pos + 5] & 127) << 14 | (buf[pos + 6] & 127) << 7 | (buf[pos + 7] & 127)) : buf.readUInt32BE(pos + 4);
+    if (id === 'APIC' && tam > 4) {
+      const c = buf.subarray(pos + 10, pos + 10 + tam);
+      const enc = c[0];
+      let p = c.indexOf(0, 1) + 1; // mime\0
+      const tipo = c[p++];
+      // descripción terminada en \0 (o \0\0 en UTF-16)
+      if (enc === 1 || enc === 2) { while (p + 1 < c.length && !(c[p] === 0 && c[p + 1] === 0)) p += 2; p += 2; } else { p = c.indexOf(0, p) + 1; }
+      const img = c.subarray(p);
+      // La portada delantera (tipo 3) gana; si no hay, la primera imagen
+      if (img.length && (tipo === 3 || !mejor)) mejor = Buffer.from(img);
+      if (tipo === 3) break;
+    }
+    pos += 10 + tam;
+  }
+  return mejor;
+}
+
+function portadaFlac(buf) {
+  let pos = 4;
+  let mejor = null;
+  while (pos + 4 <= buf.length) {
+    const ultimo = buf[pos] & 0x80;
+    const tipo = buf[pos] & 0x7f;
+    const tam = buf.readUIntBE(pos + 1, 3);
+    if (tipo === 6 && pos + 4 + tam <= buf.length) {
+      const b = buf.subarray(pos + 4, pos + 4 + tam);
+      const clase = b.readUInt32BE(0);
+      let p = 4;
+      p += 4 + b.readUInt32BE(p); // mime
+      p += 4 + b.readUInt32BE(p); // descripción
+      p += 16; // ancho, alto, profundidad, colores
+      const largo = b.readUInt32BE(p);
+      const img = b.subarray(p + 4, p + 4 + largo);
+      if (img.length && (clase === 3 || !mejor)) mejor = Buffer.from(img);
+      if (clase === 3) break;
+    }
+    pos += 4 + tam;
+    if (ultimo) break;
+  }
+  return mejor;
 }
 
 function texto(buf) {

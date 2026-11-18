@@ -89,8 +89,9 @@ function Leer-Config {
 
 # YAML: comillas simples (la única que se escapa es la propia comilla)
 function Yaml([string]$v) { return "'" + $v.Replace("'", "''") + "'" }
-# Rutas para slskd con barras normales (valen en Windows y no hay que escaparlas)
-function RutaYaml([string]$p) { return Yaml ($p.Replace('\', '/')) }
+# Rutas para slskd tal cual, con «\»: con «C:/…» slskd rechaza cada descarga en Windows («Only absolute
+# paths may be specified»). En YAML entre comillas simples la «\» no se escapa.
+function RutaYaml([string]$p) { return Yaml ([IO.Path]::GetFullPath($p).TrimEnd('\')) }
 
 function Recargar-Path {
   $maquina = [Environment]::GetEnvironmentVariable('Path', 'Machine')
@@ -243,6 +244,10 @@ function Instalar {
   }
   if (-not $cfg.slskdUsuario) { $cfg | Add-Member -Force slskdUsuario 'liquid' }
   if (-not $cfg.cacheHoras) { $cfg | Add-Member -Force cacheHoras 24 }
+  # Tope de disco para lo de Soulseek (lo menos escuchado se va primero; lo fijado nunca)
+  if (-not $cfg.discoMaxGB) { $cfg | Add-Member -Force discoMaxGB 20 }
+  # Quien tenga cuenta de Liquid puede usar tu SKd (5 canciones nuevas al día por cuenta). Sin cuenta, nada.
+  if ($null -eq $cfg.abierto) { $cfg | Add-Member -Force abierto $true }
   if (-not $cfg.origenes) { $cfg | Add-Member -Force origenes $ORIGENES }
   if (-not $cfg.compartir) {
     # Compartir algo evita que mucha gente de Soulseek te deje a la cola: por defecto, la propia caché
@@ -406,6 +411,8 @@ function Servicio {
   $env:INCOMPLETO_DIR = $Rutas.Incompleto
   $env:DATOS_DIR = $Rutas.Datos
   $env:CACHE_HORAS = [string]$cfg.cacheHoras
+  $env:DISCO_MAX_GB = [string]$(if ($cfg.discoMaxGB) { $cfg.discoMaxGB } else { 20 })
+  $env:PUBLICO_ABIERTO = $(if ($cfg.abierto -ne $false) { '1' } else { '0' })
   $env:PUERTO = [string]$PUERTO
   $env:HOST = '127.0.0.1'
 

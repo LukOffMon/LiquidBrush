@@ -63,6 +63,31 @@ Todo queda en `%LOCALAPPDATA%\LiquidSKd`. Solo tu usuario de Windows puede leer 
 
 Para cambiar las horas, edita `cacheHoras` en `%LOCALAPPDATA%\LiquidSKd\config.json` (0 = no borrar nunca) y elige **4 · Reiniciar**.
 
+## SKd para todos los que tengan cuenta
+
+Tu SKd lo puede usar **cualquiera con cuenta de Liquid**, sin tu clave y sin configurar nada:
+
+- **Sin cuenta, nada.** Liquid manda el pase de la cuenta (dura 15 min) y el puente lo comprueba con el servicio de cuentas. El puente nunca ve contraseñas ni guarda correos: solo una huella del correo para contar el cupo.
+- **5 canciones nuevas al día por cuenta**, y como mucho 100 al día entre todos, para proteger tu PC. Pedir una canción que ya está en tu PC (porque alguien la pidió antes) no gasta cupo.
+- **Lo que pongas tú a mano** en `musica\` y **la gestión** solo son para ti, con tu clave.
+- El audio sale por **tu subida de internet**: si muchas personas escuchan a la vez, lo notarás.
+- **Tu PC reparte esa música** a quien use Liquid. Ten en cuenta que mucha tiene derechos de autor.
+
+Para cerrarlo a los demás, pon `"abierto": false` en `%LOCALAPPDATA%\LiquidSKd\config.json` y elige **4 · Reiniciar**.
+
+## La sección SKd de la Biblioteca
+
+En **Biblioteca** aparece el filtro **SKd**, con todo lo que hay en tu servidor. Todos lo ven, y tú, con tu dirección y tu clave puestas en Ajustes, ves además dos botones en cada canción:
+
+- **Fijar → «Se queda»**: no se borra de tu PC nunca, ni a las 24 h ni por el tope de disco.
+- **Quitar**: se borra de tu PC y desaparece de SKd para todos.
+
+## Orden, portadas y espacio en tu PC
+
+- Cada canción se guarda como `musica\Artista\Álbum\Título.ext`. Las carpetas genéricas de quien la compartía («musica», «mp3»…) no cuentan como álbum.
+- **Portadas automáticas:** primero la que trae el propio archivo y, si no trae, se busca en iTunes por artista y título. Se guardan en `datos\portadas`.
+- **Tope de 20 GB.** Si se pasa, se borra primero lo menos escuchado (nunca lo fijado). Se cambia con `discoMaxGB` en `config.json`.
+
 ## El menú (doble clic en `Liquid SKd.cmd`)
 
 | Opción | Para qué |

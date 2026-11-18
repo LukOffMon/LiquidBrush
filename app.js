@@ -6258,14 +6258,18 @@
   /* ---------- Filtros rápidos (píldoras) ---------- */
   const FILTERS = {
     all: 'Todo',
+    // v93: lo que hay en el servidor SKd (sale solo si hay canciones de SKd)
+    skd: 'SKd',
     downloaded: 'Descargadas',
     favorites: 'Favoritas',
     unplayed: 'Sin escuchar'
   };
+  const haySkd = () => state.libraryTracks.some((t) => t.id.startsWith('skd:'));
 
   function applyFilters(list) {
     let result = list;
-    if (state.filter === 'downloaded') result = result.filter(isDownloaded);
+    if (state.filter === 'skd' && state.view === 'library') result = result.filter((t) => t.id.startsWith('skd:'));
+    else if (state.filter === 'downloaded') result = result.filter(isDownloaded);
     else if (state.filter === 'favorites') result = result.filter((t) => state.favorites.has(t.id));
     else if (state.filter === 'unplayed') result = result.filter((t) => !library.plays[t.id]);
     if (state.genre) result = result.filter((t) => t.generos.includes(state.genre));
@@ -6294,7 +6298,8 @@
       return;
     }
     const chips = Object.entries(FILTERS)
-      .filter(([key]) => !(key === 'favorites' && state.view === 'favorites') && !(key === 'downloaded' && !offline.supported))
+      .filter(([key]) => !(key === 'favorites' && state.view === 'favorites') && !(key === 'downloaded' && !offline.supported)
+        && !(key === 'skd' && (state.view !== 'library' || !haySkd())))
       .map(([key, label]) => makeChip('filter', key, label, state.filter === key && !(key === 'all' && state.genre)));
     // Géneros de verdad de la lista que se ve (una canción cuenta en cada uno de sus géneros), de más a menos
     const counts = new Map();
@@ -7090,6 +7095,10 @@
       atkTags = [makeEl('span', track.skd ? 'atk-mark skd-mark' : 'atk-mark', track.skd ? 'SKd' : 'ATK'), ...(twin ? [makeEl('span', 'atk-owned', 'En Liquid')] : []),
         ...(track.skd ? [skd.progressTag(track)] : []),
         ...(track.unverified ? [makeEl('span', 'atk-unverified', 'No verificado')] : [])];
+    } else if (track.id.startsWith('skd:')) {
+      // v93: ya en el servidor SKd. «Se queda» = fijada (no se borra de la PC)
+      const m = skd.meta.get(track.id);
+      atkTags = [makeEl('span', 'atk-mark skd-mark', 'SKd'), ...(m?.fijada ? [makeEl('span', 'atk-owned skd-fijada', 'Se queda')] : [])];
     }
     // Buscando: la canción salió por su letra
     if (state.query.trim() && searchMeta.lyricIds.has(track.id)) artist.prepend(makeEl('span', 'track-lyric', 'En la letra'));
@@ -7118,6 +7127,20 @@
     fav.replaceChildren(svgIcon('heart'));
     updateFavButton(fav, state.favorites.has(track.id));
     actions.append(fav);
+    // v93: en la sección SKd, el dueño del servidor decide qué se queda en su PC y qué se va
+    if (state.filter === 'skd' && state.view === 'library' && track.id.startsWith('skd:') && skd.esDueno()) {
+      const fijada = Boolean(skd.meta.get(track.id)?.fijada);
+      const pin = makeEl('button', `btn skd-admin${fijada ? ' is-active' : ''}`, fijada ? 'Se queda' : 'Fijar');
+      pin.type = 'button';
+      pin.dataset.action = 'skd-fijar';
+      pin.setAttribute('aria-pressed', String(fijada));
+      pin.title = fijada ? 'Fijada: no se borra de tu PC. Toca para soltarla.' : 'Que se quede en tu PC (no se borra a las 24 h)';
+      const fuera = makeEl('button', 'btn skd-admin skd-quitar', 'Quitar');
+      fuera.type = 'button';
+      fuera.dataset.action = 'skd-quitar';
+      fuera.title = 'Borrarla de tu PC y de SKd para todos';
+      actions.prepend(pin, fuera);
+    }
 
     const duration = document.createElement('span');
     duration.className = 'track-duration';
@@ -9991,6 +10014,8 @@
         else if (action === 'play') playFromList(id);
         else if (action === 'add') openAddDialog(id);
         else if (action === 'remove') removeFromLocal(getPlaylist(state.openPlaylist)?.id, id);
+        else if (action === 'skd-fijar') skd.fijar(id, !skd.meta.get(id)?.fijada);
+        else if (action === 'skd-quitar') skd.quitar(id);
         return;
       }
       const pl = getPlaylist(state.openPlaylist);
@@ -11316,6 +11341,8 @@
       if (sesion) storage.set(K.sesion, sesion);
       else { try { localStorage.removeItem(K.sesion); } catch { /* sin acceso */ } }
       actualizarBotones();
+      // Otros módulos (SKd) cambian según haya cuenta o no
+      try { window.dispatchEvent(new Event('liquid:cuenta')); } catch { /* sin eventos */ }
     }
 
     let renovando = null;
@@ -12665,7 +12692,13 @@
       correo: () => sesion?.perfil?.correo || storage.get(K.ultimoCorreo, '') || '',
       prepararRobot: (caja) => (sesion ? Promise.resolve() : montarRobot(caja)),
       pedirCancion,
-      mensajeError: mensaje
+      mensajeError: mensaje,
+      // Pase vigente (15 min) para demostrar a otros servicios (SKd) que hay una cuenta, sin dar la contraseña
+      async pase() {
+        if (!sesion) return null;
+        if ((sesion.caducaPase || 0) - 60 < Date.now() / 1000) await renovar();
+        return sesion?.pase || null;
+      }
     };
   })();
 
@@ -15877,14 +15910,27 @@
      - Tu biblioteca de SKd es una fuente más de Liquid (como los buckets): la lista la da el puente. */
   const SKD_KEY = 'liquidbrush:skd';
   const SKD_PEDIDOS = 'liquidbrush:skd-pedidos';
+  // v93: el SKd de Liquid (la PC de Lukamon), abierto a quien tenga cuenta: 5 canciones nuevas al día por cuenta.
+  // Con tu propia dirección y clave en Ajustes, se usa la tuya (sin cupo y con la gestión: qué se queda y qué se va).
+  const SKD_PUBLICO = 'https://1987desktopbylk.taild18acc.ts.net';
   const skd = {
     cfg: (() => { const c = storage.get(SKD_KEY, null); return c && typeof c.url === 'string' && typeof c.clave === 'string' ? c : null; })(),
     pedidos: new Map(),
+    // Lo que el servidor cuenta de cada canción de SKd (fijada, en disco…), por id de Liquid («skd:…»)
+    meta: new Map(),
     timer: 0,
     estado: null,
     ui: {},
 
-    configurado() { return Boolean(this.cfg?.url && this.cfg?.clave); },
+    // 'dueno' = tu servidor con su clave; 'cuenta' = el SKd de Liquid con tu cuenta; null = sin SKd
+    modo() {
+      if (this.cfg?.url && this.cfg?.clave) return 'dueno';
+      try { if (cuenta.haySesion()) return 'cuenta'; } catch { /* cuentas aún sin cargar */ }
+      return null;
+    },
+    esDueno() { return this.modo() === 'dueno'; },
+    url() { return this.cfg?.url || SKD_PUBLICO; },
+    configurado() { return this.modo() !== null; },
     on() { return this.configurado() && atk.on(); },
     limpiar(url) {
       let u = String(url || '').trim().replace(/\/+$/, '');
@@ -15897,26 +15943,75 @@
       const stop = () => controller.abort();
       signal?.addEventListener('abort', stop, { once: true });
       try {
-        const res = await fetch(`${cfg.url}${ruta}`, {
-          method, signal: controller.signal, cache: 'no-store',
-          headers: { Authorization: `Bearer ${cfg.clave}`, ...(body ? { 'Content-Type': 'application/json' } : {}) },
+        const headers = body ? { 'Content-Type': 'application/json' } : {};
+        let base = cfg?.url;
+        if (cfg?.clave) headers.Authorization = `Bearer ${cfg.clave}`;
+        else {
+          // Con tu cuenta: el puente comprueba el pase con el servicio de cuentas (nunca ve tu contraseña)
+          base = SKD_PUBLICO;
+          const pase = await cuenta.pase().catch(() => null);
+          if (!pase) throw Object.assign(new Error('Inicia sesión en Liquid para usar SKd'), { status: 401 });
+          headers['X-Liquid-Pase'] = pase;
+        }
+        const res = await fetch(`${base}${ruta}`, {
+          method, signal: controller.signal, cache: 'no-store', headers,
           body: body ? JSON.stringify(body) : undefined
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw Object.assign(new Error(data.error || `HTTP ${res.status}`), { status: res.status });
+        if (!res.ok) throw Object.assign(new Error(data.error || `HTTP ${res.status}`), { status: res.status, data });
         return data;
       } finally {
         clearTimeout(timer);
         signal?.removeEventListener('abort', stop);
       }
     },
-    // La biblioteca de tu servidor, como una fuente más de Liquid
+    // La biblioteca de tu servidor, como una fuente más de Liquid (solo con tu clave; con cuenta la trae cargar())
     source() { return { name: 'skd', list: `${this.cfg.url}/api/lista.json?k=${encodeURIComponent(this.cfg.clave)}`, base: '' }; },
     registerSource() {
       const i = CONFIG.sources.findIndex((x) => x.name === 'skd');
       if (i >= 0) CONFIG.sources.splice(i, 1);
-      if (this.configurado()) CONFIG.sources.push(this.source());
+      if (this.esDueno()) CONFIG.sources.push(this.source());
     },
+
+    /* --- La sección SKd de la Biblioteca: lo que hay en el servidor (todos lo ven; solo tú lo gestionas) --- */
+    async cargar() {
+      if (!this.configurado() || LAB_MODE) return;
+      let filas;
+      try { filas = await this.api('/api/lista.json', { ms: 15000 }); } catch { return; }
+      if (!Array.isArray(filas)) return;
+      this.meta.clear();
+      filas.forEach((row) => {
+        if (row.skd) this.meta.set(`skd:${row.id}`, row.skd);
+        // Con tu clave ya llegan como fuente; con cuenta se añaden aquí
+        if (!this.esDueno()) this.agregar(row);
+      });
+      if (state.filter === 'skd' || state.view === 'library') renderList();
+    },
+    async fijar(id, fijar) {
+      const recId = id.replace(/^skd:/, '');
+      try {
+        await this.api('/api/admin/fijar', { method: 'POST', body: { id: recId, fijar } });
+        this.meta.set(id, { ...(this.meta.get(id) || {}), fijada: fijar });
+        showToast(fijar ? 'Se queda: no se borrará de tu PC.' : 'Ya no está fijada: se borra si pasa 24 h sin sonar.');
+        renderList();
+      } catch (error) { showToast(`No se pudo cambiar: ${error.message}`); }
+    },
+    async quitar(id) {
+      const track = getTrack(id);
+      if (!window.confirm(`¿Quitar «${track?.title || 'esta canción'}» de SKd? Se borra de tu PC y desaparece para todos.`)) return;
+      try {
+        await this.api('/api/admin/quitar', { method: 'POST', body: { id: id.replace(/^skd:/, '') } });
+        this.meta.delete(id);
+        state.tracks = state.tracks.filter((t) => t.id !== id);
+        state.libraryTracks = state.libraryTracks.filter((t) => t.id !== id);
+        state.trackMap.delete(id);
+        labIndex = null;
+        updateCounts();
+        showToast('Quitada de SKd.');
+        renderList();
+      } catch (error) { showToast(`No se pudo quitar: ${error.message}`); }
+    },
+    esDeSkd(track) { return Boolean(track?.id?.startsWith('skd:')); },
 
     /* --- Buscar: resultados de Soulseek como canciones de ATK --- */
     async buscar(q, signal) {
@@ -15959,7 +16054,8 @@
       storage.set(SKD_PEDIDOS, out);
     },
     async pedir(track) {
-      if (!this.on()) { showToast('Conecta tu servidor SKd en Ajustes → Liquid ATK para pedir canciones de Soulseek.'); return; }
+      if (!this.configurado()) { showToast('Inicia sesión en Liquid para pedir canciones de Soulseek (SKd).', { label: 'Entrar', run: () => cuenta.abrir() }); return; }
+      if (!this.on()) { showToast('Enciende Liquid ATK en Ajustes para pedir canciones de Soulseek.'); return; }
       if (!navigator.onLine) { showToast('Sin conexión: conéctate para pedir canciones.'); return; }
       const id = track.skd.id;
       const actual = this.pedidos.get(id);
@@ -15974,13 +16070,17 @@
       haptic(10);
       showToast(`Pidiendo «${track.title}» a Soulseek: sonará en cuanto llegue a tu servidor.`);
       try {
-        await this.api('/api/pedir', { method: 'POST', body: { id } });
+        const r = await this.api('/api/pedir', { method: 'POST', body: { id } });
+        if (r.cupo && r.cupo.restantes <= 2) showToast(`Te quedan ${r.cupo.restantes} de ${r.cupo.dia} canciones de Soulseek por hoy.`, null, { background: true });
         this.save();
         this.vigilar();
       } catch (error) {
-        this.pedidos.set(id, { estado: 'fallo', porcentaje: 0, title: track.title, at: Date.now() });
+        this.pedidos.delete(id);
+        if (error.status !== 429) this.pedidos.set(id, { estado: 'fallo', porcentaje: 0, title: track.title, at: Date.now() });
         this.paint(id);
-        showToast(error.status === 401 ? 'Tu servidor SKd rechazó la clave: revísala en Ajustes.' : `No se pudo pedir «${track.title}»: ${error.message}. Prueba otra copia.`);
+        showToast(error.status === 429 ? error.message
+          : error.status === 401 ? (this.esDueno() ? 'Tu servidor SKd rechazó la clave: revísala en Ajustes.' : 'Tu sesión caducó: vuelve a entrar en tu cuenta para usar SKd.')
+            : `No se pudo pedir «${track.title}»: ${error.message}. Prueba otra copia.`);
       }
     },
     vigilar() {
@@ -16017,7 +16117,8 @@
     },
     // La canción nueva entra en la biblioteca al momento (sin recargar)
     agregar(row) {
-      const track = buildTrack({ ...row, sourceName: 'skd' }, 0);
+      // Con cuenta no hay fuente «skd» registrada: se pasa la fuente aquí para que su id sea «skd:…»
+      const track = buildTrack({ ...row, source: { name: 'skd', base: '' } }, 0);
       if (!state.trackMap.has(track.id)) {
         state.tracks.push(track);
         state.trackMap.set(track.id, track);
@@ -16064,6 +16165,9 @@
       loadTracks();
     },
     textoEstado(d) {
+      if (!d.dueno && d.cupo) {
+        return `Con tu cuenta, en el SKd de Liquid · Soulseek ${d.soulseek ? 'en línea' : 'sin conexión ahora'} · ${songsLabel(d.canciones || 0)} · hoy te quedan ${d.cupo.restantes} de ${d.cupo.dia} pedidos`;
+      }
       return `Conectado · Soulseek ${d.soulseek ? 'en línea' : 'sin conexión (revisa tu usuario en el servidor)'} · ${songsLabel(d.canciones || 0)} en tu servidor`;
     },
     mostrarEstado(text, kind = '') {
@@ -16075,18 +16179,38 @@
       if (!this.ui.url) return;
       this.ui.url.value = this.cfg?.url || '';
       this.ui.clave.value = this.cfg?.clave || '';
-      this.ui.quitar.hidden = !this.configurado();
-      if (!this.configurado()) { this.mostrarEstado('Sin servidor SKd. Cómo montarlo: soulseek/GUIA.md en el repositorio de Liquid.'); return; }
+      this.ui.quitar.hidden = !this.esDueno();
+      if (!this.configurado()) { this.mostrarEstado('Inicia sesión en tu cuenta de Liquid para usar SKd (5 canciones de Soulseek al día). ¿Tienes tu propio servidor? Pon aquí su dirección y su clave.'); return; }
       try {
         this.estado = await this.api('/api/estado', { ms: 10000 });
         this.mostrarEstado(this.textoEstado(this.estado), 'ok');
       } catch (error) {
-        this.mostrarEstado(error.status === 401 ? 'Tu servidor rechazó la clave.' : 'Tu servidor SKd no responde ahora (¿apagado?). Lo que tengas descargado en el teléfono sigue sonando.', 'warn');
+        this.mostrarEstado(error.status === 401 ? (this.esDueno() ? 'Tu servidor rechazó la clave.' : 'Tu sesión caducó: vuelve a entrar en tu cuenta.')
+          : 'El servidor SKd no responde ahora (¿apagado?). Lo que tengas descargado en el teléfono sigue sonando.', 'warn');
       }
     },
     apply() {
       document.documentElement.classList.toggle('skd', this.on());
-      if (this.ui.quitar) this.ui.quitar.hidden = !this.configurado();
+      if (this.ui.quitar) this.ui.quitar.hidden = !this.esDueno();
+    },
+    // Entrar o salir de la cuenta cambia el modo (con cuenta: el SKd de Liquid)
+    alCambiarCuenta() {
+      const antes = this.modoActual;
+      this.modoActual = this.modo();
+      if (antes === this.modoActual) return;
+      this.apply();
+      atk.results.clear();
+      if (this.modoActual) this.cargar();
+      else if (antes === 'cuenta') {
+        // Sin cuenta: fuera las canciones de SKd que se añadieron con ella
+        state.tracks = state.tracks.filter((t) => !this.esDeSkd(t));
+        state.libraryTracks = state.libraryTracks.filter((t) => !this.esDeSkd(t));
+        [...state.trackMap.keys()].filter((k) => k.startsWith('skd:')).forEach((k) => state.trackMap.delete(k));
+        this.meta.clear();
+        if (state.filter === 'skd') state.filter = 'all';
+        updateCounts();
+        renderList();
+      }
     },
     init() {
       if (LAB_MODE) return;
@@ -16099,6 +16223,8 @@
       }));
       els.settingsBtn?.addEventListener('click', () => this.refrescarEstado());
       els.atkToggle?.addEventListener('change', () => this.apply());
+      window.addEventListener('liquid:cuenta', () => this.alCambiarCuenta());
+      this.modoActual = this.modo();
       this.apply();
       // Pedidos que seguían en marcha al cerrar la app
       (storage.get(SKD_PEDIDOS, []) || []).forEach((p) => {
@@ -17300,7 +17426,8 @@
     updateNav();
     updateOnlineStatus();
     registerServiceWorker();
-    loadTracks();
+    // La sección SKd (lo que hay en el servidor, sus marcas y, con cuenta, sus canciones) cuando ya está la biblioteca
+    loadTracks().then(() => skd.cargar()).catch(() => {});
     // Descargas que se quedaron a medias (app cerrada, teléfono bloqueado): siguen solas
     if (!LAB_MODE) setTimeout(resumeDownloads, 3000);
     // Y las copias opacas de antes, a copia completa (cuando no hay nada más que hacer)
