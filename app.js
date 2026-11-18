@@ -16576,10 +16576,6 @@
      cada playlist, «Lo que te falta», hitos, pestañas siempre a mano y deslizar una canción a la cola. */
   // v82: «Tu historia con esta canción» y sus notas se quitaron; lo guardado en liquidbrush:notes no se toca
   const PLUS_KEYS = { hitos: 'liquidbrush:hitos', gustos: 'liquidbrush:gustos-hecho' };
-  const fechaLarga = (key) => {
-    const [y, m, d] = key.split('-').map(Number);
-    return new Date(y, m - 1, d).toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' });
-  };
 
   const plus = {
     loop: { a: null, b: null },

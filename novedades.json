@@ -1,6 +1,14 @@
 {
   "releases": [
     {
+      "version": "v92",
+      "date": "noviembre 2026",
+      "title": "Con la transparencia del sistema apagada, la guía y las ventanas vuelven a leerse",
+      "items": [
+        "Si tienes apagados los efectos de transparencia (Windows) o activado «Reducir transparencia» (iPhone, Mac), la guía de bienvenida y algunas ventanas dejaban ver el texto de detrás a través del suyo y no se podían leer. Ahora en ese modo son opacas."
+      ]
+    },
+    {
       "version": "v91",
       "date": "noviembre 2026",
       "title": "«Continúa donde lo dejaste» vuelve a recordar tu canción, y compartir funciona con todas",

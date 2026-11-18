@@ -10636,14 +10636,22 @@ body.is-radio #lyricsBtn {
     backdrop-filter: none !important;
   }
 
+  /* Sin desenfoque, el vidrio al 34–62 % deja leer lo de detrás a través del texto (la guía de
+     bienvenida y los diálogos quedaban ilegibles): el mismo vidrio denso que sin backdrop-filter */
+  :root,
+  :root[data-theme] {
+    --glass-alpha: 96% !important;
+    --glass-alpha-soft: 90% !important;
+  }
+
   .topbar,
   .player,
   .bottom-nav,
   .library,
   .now-playing,
   .sheet,
-  .toast {
-    background-color: var(--bg);
+  .tour {
+    background-color: var(--bg) !important;
   }
 }
 
