@@ -33,7 +33,11 @@ async function montar(extra = {}, previo = {}) {
     let body = '';
     req.on('data', (c) => { body += c; });
     req.on('end', () => {
-      if (req.url === '/api/v0/searches' && req.method === 'POST') return send(200, { id: JSON.parse(body).id, state: 'InProgress' });
+      if (req.url === '/api/v0/searches' && req.method === 'POST') {
+        // slskd cuenta searchTimeout en milisegundos: un número pequeño cierra la búsqueda sin resultados
+        if (!(JSON.parse(body).searchTimeout >= 1000)) return send(400, { error: 'searchTimeout en ms' });
+        return send(200, { id: JSON.parse(body).id, state: 'InProgress' });
+      }
       if (/^\/api\/v0\/searches\/[^/]+$/.test(req.url) && req.method === 'GET') return send(200, { isComplete: true, state: 'Completed, TimedOut' });
       if (/\/responses$/.test(req.url)) return send(200, [
         { username: 'ana', hasFreeUploadSlot: true, queueLength: 0, uploadSpeed: 900000, files: [

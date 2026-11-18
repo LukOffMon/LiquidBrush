@@ -21,6 +21,8 @@ export function crearPuente(opciones = {}) {
     datos: path.resolve(env.DATOS_DIR || '/datos'),
     publico: String(env.PUBLICO || '').replace(/\/+$/, ''),
     origenes: String(env.ORIGENES || 'https://lukoffmon.github.io').split(',').map((o) => o.trim()).filter(Boolean),
+    // Cuánto escucha slskd respuestas de otras personas, y cuánto espera el puente como máximo
+    tiempoBusqueda: Number(env.TIEMPO_BUSQUEDA_MS || 8000),
     esperaBusqueda: Number(env.ESPERA_BUSQUEDA_MS || 12000),
     pausa: Number(env.PAUSA_MS || 700),
     // Caché: lo bajado de Soulseek se borra tras estas horas sin sonar (0 = nunca). La canción no se
@@ -119,7 +121,8 @@ export function crearPuente(opciones = {}) {
     // slskd solo deja empezar una búsqueda a la vez: se ponen en fila
     const hecho = turno.then(async () => {
       const id = crypto.randomUUID();
-      await slskdJson('/searches', { method: 'POST', body: { id, searchText: q, searchTimeout: 8, responseLimit: 120, fileLimit: 5000, filterResponses: true } });
+      // searchTimeout va en MILISEGUNDOS (con 8 la búsqueda se cerraba al instante y nunca había resultados)
+      await slskdJson('/searches', { method: 'POST', body: { id, searchText: q, searchTimeout: CFG.tiempoBusqueda, responseLimit: 120, fileLimit: 5000, filterResponses: true } });
       const hasta = Date.now() + CFG.esperaBusqueda;
       while (Date.now() < hasta) {
         await dormir(CFG.pausa);
@@ -173,7 +176,8 @@ export function crearPuente(opciones = {}) {
           copias: c.length
         };
       });
-    busquedas.set(clave, { at: Date.now(), resultados });
+    // Una búsqueda vacía no se recuerda: repetirla puede dar resultados (gente que se conecta, red lenta)
+    if (resultados.length) busquedas.set(clave, { at: Date.now(), resultados });
     if (busquedas.size > 200) busquedas.delete(busquedas.keys().next().value);
     return resultados;
   }

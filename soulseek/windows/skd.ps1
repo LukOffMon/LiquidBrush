@@ -177,9 +177,9 @@ function Instalar {
   $cfg = Leer-Config
   $nueva = -not $cfg
   if ($nueva) { $cfg = [pscustomobject]@{} }
-
-  # Se para lo que ya esté corriendo (reinstalar / actualizar)
-  Parar-Todo -Silencio
+  # Lo que ya esté corriendo NO se para aquí: primero se pregunta y se baja todo, y solo al copiar
+  # los archivos (paso 6) se para un momento. Así, si cierras el instalador a medias, SKd sigue en marcha.
+  $nuevoSlskd = $null
 
   # 1. Node.js (para el puente)
   Paso 'Node.js'
@@ -218,10 +218,10 @@ function Instalar {
     Expand-Archive -Path $zip -DestinationPath $tmp -Force
     $exe = Get-ChildItem -Path $tmp -Recurse -Filter 'slskd.exe' | Select-Object -First 1
     if (-not $exe) { throw 'El paquete de slskd no trae slskd.exe.' }
-    # Se copian los programas; slskd.yml y sus datos (app-dir) no se tocan
-    Copy-Item -Path (Join-Path $exe.DirectoryName '*') -Destination $Rutas.Slskd -Recurse -Force
-    Remove-Item $zip, $tmp -Recurse -Force -ErrorAction SilentlyContinue
-    Bien "slskd $($rel.tag_name) instalado"
+    Remove-Item $zip -Force -ErrorAction SilentlyContinue
+    # Se copia en el paso 6 (con slskd parado: un .exe en uso no se puede reemplazar)
+    $nuevoSlskd = @{ dir = $exe.DirectoryName; tmp = $tmp; version = $rel.tag_name }
+    Bien "slskd $($rel.tag_name) bajado"
   }
 
   # 4. Cuenta de Soulseek y claves
@@ -272,6 +272,14 @@ function Instalar {
   $repo = Split-Path $PSScriptRoot -Parent
   $server = Join-Path $repo 'puente\server.mjs'
   if (-not (Test-Path $server)) { throw "No encuentro $server. Ejecuta skd.ps1 desde la carpeta soulseek\windows del repositorio." }
+  # Ahora sí: se para un momento lo que esté corriendo para reemplazar sus archivos
+  Parar-Todo -Silencio
+  if ($nuevoSlskd) {
+    # Los programas de slskd; su slskd.yml y sus datos (app-dir) no se tocan
+    Copy-Item -Path (Join-Path $nuevoSlskd.dir '*') -Destination $Rutas.Slskd -Recurse -Force
+    Remove-Item $nuevoSlskd.tmp -Recurse -Force -ErrorAction SilentlyContinue
+    Bien "slskd $($nuevoSlskd.version) instalado"
+  }
   Copy-Item $server $Rutas.Server -Force
   if ($PSCommandPath -ne $Rutas.Script) { Copy-Item $PSCommandPath $Rutas.Script -Force }
   Guardar-Texto $Rutas.Config ($cfg | ConvertTo-Json -Depth 4)
