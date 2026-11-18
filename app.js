@@ -393,6 +393,8 @@
     addDialog: $('addDialog'),
     addTrackName: $('addTrackName'),
     addList: $('addList'),
+    addIn: $('addIn'),
+    npIn: $('npIn'),
     addNew: $('addNew'),
     importInput: $('importInput'),
     miniCover: $('miniCover'),
@@ -924,6 +926,7 @@
     } else if (previousId && getTrack(previousId)) {
       // Llegaron datos nuevos con algo sonando: se conserva la canción y la cola
       state.currentTrack = getTrack(previousId);
+      renderPlaylistsWith(els.npIn, state.currentTrack);
     } else if (LAB_MODE) {
       // Liquid Lab no tiene reproductor: no carga canción ni toca «Continúa donde lo dejaste»
     } else if (state.tracks.length) {
@@ -1115,6 +1118,12 @@
       shown = true;
     }
     if (!shown) els.listInfo.textContent = 'Cargando canciones…';
+    // v94: con la biblioteca de la última visita ya en pantalla, la comprobación de novedades (leer y comparar
+    // ~1,5 MB de listas) espera a un momento libre: antes competía con los primeros toques y el primer scroll
+    else await new Promise((resolve) => {
+      if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(() => resolve(), { timeout: 2500 });
+      else setTimeout(resolve, 900);
+    });
 
     try {
       const [data] = await Promise.all([fetchTrackData(), loadCatalog()]);
@@ -2085,6 +2094,8 @@
     if (!storage.set(KEYS.playlists, library.local)) {
       showToast('No se pudo guardar en este navegador (¿modo privado o sin espacio?).');
     }
+    // v94: Sonando dice en qué playlists está la canción: al añadirla o quitarla se ve al momento
+    if (state.currentTrack) renderPlaylistsWith(els.npIn, state.currentTrack);
   }
 
   function systemPlaylists() {
@@ -2134,6 +2145,40 @@
 
   const playlistTracksOf = (pl) => (pl ? pl.trackIds.map(getTrack).filter(Boolean) : []);
   const findLocal = (id) => library.local.find((p) => p.id === id);
+
+  /* v94: «¿En qué playlists está?». Las tuyas primero y luego las de Liquid que llevan esta canción o una
+     copia suya (la misma canción puede estar en varias fuentes con otro id). Las ocultas no salen. */
+  const hasPlaylists = (track) => Boolean(track) && !track.radio && !track.atk && !track.skd;
+  function playlistsWith(track) {
+    if (!hasPlaylists(track)) return [];
+    const ids = new Set([track.id]);
+    if (track.songKey) state.tracks.forEach((t) => { if (t.songKey === track.songKey) ids.add(t.id); });
+    return [...localPlaylists(), ...systemPlaylists()]
+      .filter((pl) => !isHiddenPl(pl.key) && pl.trackIds.some((id) => ids.has(id)));
+  }
+
+  function renderPlaylistsWith(el, track) {
+    if (!el) return;
+    el.hidden = !hasPlaylists(track);
+    if (el.hidden) { el.replaceChildren(); return; }
+    const found = playlistsWith(track);
+    const head = makeEl('p', 'pl-in-head', found.length
+      ? `Está en ${found.length === 1 ? '1 playlist' : `${found.length} playlists`}`
+      : 'Todavía no está en ninguna playlist');
+    if (!found.length) { el.replaceChildren(head); return; }
+    const row = makeEl('div', 'pl-in-list');
+    found.forEach((pl) => {
+      const chip = makeEl('button', `pl-in-chip${pl.kind === 'local' ? ' is-local' : ''}`);
+      chip.type = 'button';
+      chip.dataset.plKey = pl.key;
+      chip.title = pl.kind === 'local' ? `${pl.name} (tuya)` : pl.name;
+      chip.setAttribute('aria-label', `Abrir la playlist ${pl.name}${pl.kind === 'local' ? ', tuya' : ''}`);
+      chip.append(playlistCover(pl, 28), makeEl('span', 'pl-in-name', pl.name));
+      if (pl.kind === 'local') chip.append(makeEl('span', 'pl-in-tag', 'Tuya'));
+      row.append(chip);
+    });
+    el.replaceChildren(head, row);
+  }
 
   function recordPlay(id) {
     if (plus.private || String(id).startsWith('radio:')) return;
@@ -2408,6 +2453,7 @@
     els.addTitle.textContent = 'Añadir todas a una playlist';
     els.addTrackName.textContent = `${songsLabel(unique.length)} de la lista que estás viendo`;
     els.addPlayNext.parentElement.hidden = true;
+    if (els.addIn) els.addIn.hidden = true;
     els.addList.querySelectorAll('.add-item').forEach((button) => {
       const pl = findLocal(button.dataset.id);
       const missing = unique.filter((id) => !pl.trackIds.includes(id)).length;
@@ -2434,6 +2480,7 @@
       setIcon(els.addDownload, isDownloaded(track) ? 'download-done' : 'download');
     }
     els.addTrackName.textContent = `${track.title} · ${track.artist}`;
+    renderPlaylistsWith(els.addIn, track);
     atk.decorateAdd(track);
     if (!library.local.length) {
       const li = document.createElement('li');
@@ -4262,12 +4309,6 @@
     return track.words;
   };
 
-  function fuzzyToken(token, track) {
-    const max = token.length >= 7 ? 2 : token.length >= 4 ? 1 : 0;
-    if (!max) return false;
-    return wordsOf(track).some((word) => editDistance(token, word.slice(0, token.length + max), max) <= max);
-  }
-
   // Letras ya guardadas en este navegador (no se piden letras nuevas para buscar)
   function lyricsMatch(track, q) {
     const text = lyricsCache.get(track.id);
@@ -4297,7 +4338,27 @@
     if (exact.length || byLyrics.length) return [...exact, ...byLyrics];
     // Sin resultados: se prueba con erratas («beyonse» → Beyoncé)
     searchMeta.fuzzy = true;
-    return list.filter((track) => tokens.every((token) => haystackOf(track).includes(token) || fuzzyToken(token, track)));
+    // v94: la distancia de edición se calcula una vez por palabra distinta (unas miles), no por cada palabra
+    // de cada canción (decenas de miles): en un móvil medio la búsqueda sin resultados congelaba ~350 ms
+    const near = tokens.map((token) => fuzzyWordsFor(token, list));
+    return list.filter((track) => tokens.every((token, i) => haystackOf(track).includes(token)
+      || (near[i].size > 0 && wordsOf(track).some((word) => near[i].has(word)))));
+  }
+
+  // Palabras de la lista que se parecen a lo escrito (con la misma tolerancia que fuzzyToken)
+  function fuzzyWordsFor(token, list) {
+    const max = token.length >= 7 ? 2 : token.length >= 4 ? 1 : 0;
+    const near = new Set();
+    if (!max) return near;
+    const seen = new Set();
+    for (const track of list) {
+      for (const word of wordsOf(track)) {
+        if (seen.has(word)) continue;
+        seen.add(word);
+        if (editDistance(token, word.slice(0, token.length + max), max) <= max) near.add(word);
+      }
+    }
+    return near;
   }
 
   function getVisibleTracks() {
@@ -4432,6 +4493,7 @@
     auto: 'Automática'
   };
 
+  const viewHeadDate = new Intl.DateTimeFormat('es', { weekday: 'long', day: 'numeric', month: 'long' });
   function renderViewHead() {
     const head = els.viewHead;
     const searching = Boolean(normalize(state.query));
@@ -4447,18 +4509,19 @@
       return;
     }
 
-    const today = new Date().toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' });
+    // v94: solo se calcula el título de la vista que se ve (antes la fecha, el índice de artistas y el
+    // periodo de Stats se calculaban en cada pintada de cualquier vista) y la fecha usa un formateador fijo
     const titles = {
-      home: [today, greeting()],
-      artists: [searching ? 'Buscando artistas' : `${labArtists().size} en tu colección`, 'Artistas'],
-      library: ['Toda tu música', 'Biblioteca'],
-      playlists: searching ? ['Buscando en la biblioteca', 'Resultados'] : ['Oficiales, compartidas y tuyas', 'Playlists'],
-      favorites: ['Tus corazones', 'Favoritas'],
-      stats: [periodInfo().label, 'Tus estadísticas'],
-      lab: ['Mezclas a tu medida', 'Lab'],
-      radio: [radio.total ? `${radio.total.toLocaleString('es')} emisoras en directo` : 'En directo, de todo el mundo', 'Radio']
+      home: () => [viewHeadDate.format(new Date()), greeting()],
+      artists: () => [searching ? 'Buscando artistas' : `${labArtists().size} en tu colección`, 'Artistas'],
+      library: () => ['Toda tu música', 'Biblioteca'],
+      playlists: () => (searching ? ['Buscando en la biblioteca', 'Resultados'] : ['Oficiales, compartidas y tuyas', 'Playlists']),
+      favorites: () => ['Tus corazones', 'Favoritas'],
+      stats: () => [periodInfo().label, 'Tus estadísticas'],
+      lab: () => ['Mezclas a tu medida', 'Lab'],
+      radio: () => [radio.total ? `${radio.total.toLocaleString('es')} emisoras en directo` : 'En directo, de todo el mundo', 'Radio']
     };
-    const [eyebrow, title] = titles[state.view];
+    const [eyebrow, title] = (titles[state.view] || titles.library)();
     const text = makeEl('div', 'view-text');
     text.append(makeEl('p', 'view-eyebrow', eyebrow), makeEl('h2', 'view-title', title));
     // Favoritas: se descargan todas de una vez (y se ve cuántas están ya en el teléfono)
@@ -5474,6 +5537,34 @@
     return section;
   }
 
+  /* v94: volver a Inicio desde otra pestaña ya no lo recalcula todo (≈30 filas de recomendaciones: en un
+     móvil medio, una décima de segundo larga de tirón). Si desde la última vez no cambió nada de lo que usa
+     (día y hora, biblioteca, favoritas, escuchas, playlists, ATK, descargas…) se vuelven a poner las mismas
+     tarjetas. Estando ya en Inicio, cualquier repintada lo recalcula como siempre. */
+  const homeCache = { sig: '', at: 0, nodes: null, lastView: '' };
+  function homeSignature() {
+    let plays = 0;
+    for (const id in library.plays) plays += library.plays[id];
+    let atkReady = 0;
+    atk.pools.forEach((pool) => { if (pool && !pool.loading) atkReady++; });
+    const now = new Date();
+    return [todayKey(), now.getHours(), state.tracks.length, state.libraryTracks.length, library.catalog ? 1 : 0,
+      state.favorites.size, library.recent.length, library.recent[0] || '', plays, library.follows.length,
+      library.local.length, library.local.reduce((n, p) => n + p.trackIds.length, 0), library.hidden.length,
+      disliked.size, settings.ultra, settings.motion, atk.on(), atkReady, offline.downloaded.size, navigator.onLine].join('|');
+  }
+  function renderHomeCached(switching) {
+    const sig = homeSignature();
+    if (switching && homeCache.nodes && sig === homeCache.sig && Date.now() - homeCache.at < 300000) {
+      els.homePanel.replaceChildren(...homeCache.nodes);
+      return;
+    }
+    renderHome();
+    homeCache.sig = sig;
+    homeCache.at = Date.now();
+    homeCache.nodes = [...els.homePanel.childNodes];
+  }
+
   function renderHome() {
     home.collections.clear();
     const p = tasteProfile();
@@ -6424,8 +6515,10 @@
     els.searchPlaylists.classList.toggle('is-list', settings.plView === 'list');
     updateCounts();
 
+    const cameFrom = homeCache.lastView;
+    homeCache.lastView = state.view;
     if (showHome) {
-      if (state.view === 'home') renderHome();
+      if (state.view === 'home') renderHomeCached(cameFrom !== 'home');
       else renderArtists();
       els.trackList.replaceChildren();
       els.listInfo.textContent = '';
@@ -7733,6 +7826,7 @@
     updateFavButton(els.npFavBtn, track.radio ? radio.isFav(track.id) : state.favorites.has(track.id));
     document.body.classList.toggle('is-radio', Boolean(track.radio));
     updateAbout(track);
+    renderPlaylistsWith(els.npIn, track);
     state.docTitle = `${track.title} · ${track.artist} — Liquid Bullet`;
     updateDocTitle();
     // Lectores de pantalla: se anuncia la canción nueva (solo si empieza a sonar)
@@ -7791,6 +7885,21 @@
       if (!quiet) showToast(unplayableMessage(state.currentTrack));
       return;
     }
+    // v94: sin conexión y con una canción que no está descargada (la que quedó de la última visita, o tras
+    // «Anterior»): antes se intentaba igual y salía «No se pudo reproducir… Revisa la URL del audio».
+    // Ahora salta a la siguiente descargada de la cola o lo explica.
+    if (!navigator.onLine && state.currentTrack && !isPlayable(state.currentTrack)) {
+      const index = state.queue.length ? findPlayable(state.queueIndex, 1) : -1;
+      const nextId = index >= 0 ? state.queue[index] : null;
+      if (nextId && nextId !== state.currentTrack.id) {
+        state.queueIndex = index;
+        loadTrack(getTrack(nextId), true);
+        return;
+      }
+      state.wantsPlay = false;
+      if (!quiet) showToast('Sin conexión: esta canción no está descargada. Las descargadas suenan sin internet.');
+      return;
+    }
     // v82: pausar y darle a ▶ enseguida: el fundido de la pausa (180 ms) seguía y al terminar paraba la
     // canción otra vez. Ahora se cancela y el volumen vuelve a su sitio.
     if (softFade.timer) {
@@ -7841,8 +7950,10 @@
       console.error('[LiquidBullet] No se pudo reproducir:', error);
       if (error.name === 'NotAllowedError') {
         showToast('El navegador bloqueó la reproducción automática. Toca reproducir para escuchar.');
+      } else if (!navigator.onLine && !isDownloaded(current)) {
+        showToast('Sin conexión: esta canción no está descargada.');
       } else {
-        showToast('No se pudo reproducir la canción. Revisa la URL del audio.');
+        showToast('No se pudo cargar esta canción. Vuelve a intentarlo en un momento o prueba con otra.');
       }
     }
   }
@@ -7924,7 +8035,14 @@
     }
     let index = state.queueIndex - 1;
     if (index < 0) index = state.repeat === 'all' ? state.queue.length - 1 : 0;
-    if (!navigator.onLine) index = Math.max(0, findPlayable(index, -1));
+    if (!navigator.onLine) {
+      // v94: sin ninguna descargada en la cola ya no se carga la primera (que tampoco podía sonar)
+      index = findPlayable(index, -1);
+      if (index < 0) {
+        showToast('Sin conexión: no hay canciones descargadas en esta lista.');
+        return;
+      }
+    }
     if (index === state.queueIndex) {
       els.audio.currentTime = 0;
       play();
@@ -8250,6 +8368,8 @@
       lyricsIndex.touch(track.id);
       return stored;
     }
+    // v94: sin conexión no se intenta (antes fallaba y llenaba el informe de errores); se busca al volver
+    if (!navigator.onLine) return null;
 
     const duration = Math.round(parseDuration(track.duration));
     // Artista principal, sin "ft." ni colaboradores
@@ -8284,6 +8404,13 @@
 
   // Letra que quedó por buscar al abrir la app sin reproducir
   let lyricsPendingFor = null;
+  // v94: letra que no se pudo pedir (sin conexión o sin respuesta): se reintenta al volver la conexión
+  let lyricsRetryOnline = null;
+  window.addEventListener('online', () => {
+    const track = lyricsRetryOnline;
+    lyricsRetryOnline = null;
+    if (track && state.currentTrack === track) setTimeout(() => { if (state.currentTrack === track) showLyricsFor(track); }, 1200);
+  });
   function flushPendingLyrics() {
     const track = lyricsPendingFor;
     lyricsPendingFor = null;
@@ -8298,8 +8425,12 @@
     renderLyrics('', 'Buscando la letra…');
     fetchLyrics(track).then((text) => {
       if (state.currentTrack?.id !== track.id) return;
+      // Sin conexión: se vuelve a buscar sola al recuperarla (ver el aviso «online» de abajo)
+      lyricsRetryOnline = text === null ? track : null;
       renderLyrics(text, text === null
-        ? 'No se pudo conectar con el servicio de letras. Vuelve a intentarlo en un momento.'
+        ? (navigator.onLine
+          ? 'No se pudo conectar con el servicio de letras. Vuelve a intentarlo en un momento.'
+          : 'Sin conexión: la letra aparecerá sola al volver internet.')
         : 'Letra no disponible para esta canción.');
       syncLyrics(els.audio.currentTime, true);
     });
@@ -10210,6 +10341,16 @@
       els.addDialog.close();
       openArtist(artistKeyOf(getTrack(addTarget)));
     });
+    // v94: «Está en N playlists» (menú de la canción y Sonando): tocar una la abre
+    const openPlaylistChip = (event) => {
+      const chip = event.target.closest('[data-pl-key]');
+      if (!chip || !getPlaylist(chip.dataset.plKey)) return;
+      if (els.addDialog.open) els.addDialog.close();
+      npSheet.close();
+      openPlaylist(chip.dataset.plKey);
+    };
+    els.addIn?.addEventListener('click', openPlaylistChip);
+    els.npIn?.addEventListener('click', openPlaylistChip);
     els.trashDialog.addEventListener('click', (event) => {
       const restore = event.target.closest('[data-action="restore"]');
       if (restore) {

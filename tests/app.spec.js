@@ -59,7 +59,7 @@ test('crear una playlist, borrarla y recuperarla de la papelera', async ({ page 
   await expect(page.locator('.toast')).toContainText('Prueba E2E');
 
   await page.evaluate(() => document.querySelector('.tab[data-view="playlists"]').click());
-  await page.getByText('Prueba E2E').first().click();
+  await page.locator('#playlistGrid').getByText('Prueba E2E').first().click();
   await page.locator('[data-action="delete-playlist"]').click();
   await expect(page.locator('[data-action="open-trash"]')).toContainText('Papelera (1)');
   await page.locator('[data-action="open-trash"]').click();
@@ -2290,5 +2290,43 @@ test.describe('v93: el SKd de Liquid para quien tenga cuenta y la sección SKd d
     expect(fijadas[0]).toEqual({ id: '0123456789abcdef', fijar: true });
     await expect(fila.locator('.skd-admin.is-active')).toHaveText('Se queda');
     await expect(fila.locator('.skd-fijada')).toHaveText('Se queda');
+  });
+});
+
+test.describe('v94: ¿en qué playlists está?', () => {
+  // Una canción de la primera playlist de Liquid que tenga canciones, con su título y artista
+  function cancionDePlaylist() {
+    const catalog = JSON.parse(readFileSync('catalog.json', 'utf8'));
+    const pl = catalog.playlists.find((p) => (p.trackIds || []).length > 3);
+    const id = pl.trackIds[0];
+    const [source, raw] = [id.slice(0, id.indexOf(':')), id.slice(id.indexOf(':') + 1)];
+    const row = JSON.parse(readFileSync(`musica/${source}.json`, 'utf8')).find((r) => String(r.id) === raw);
+    return { id, playlist: pl.name, title: row.title, artist: row.artist || '' };
+  }
+
+  test('el menú de la canción y Sonando lo dicen (también las tuyas) y tocar una la abre', async ({ page }) => {
+    const song = cancionDePlaylist();
+    await page.addInitScript((id) => {
+      localStorage.setItem('liquidbrush:playlists', JSON.stringify([{ id: 'p94', name: 'Mi lista 94', emoji: '🔥', color: '#ff7ab6', trackIds: [id] }]));
+    }, song.id);
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.fill('#searchInput', `${song.title} ${song.artist}`.trim());
+    const row = page.locator('.track', { hasText: song.title }).first();
+    await expect(row).toBeVisible();
+    await row.locator('[data-action="add"]').click();
+    const block = page.locator('#addIn');
+    await expect(block).toBeVisible();
+    await expect(block).toContainText('Está en');
+    await expect(block).toContainText(song.playlist);
+    await expect(block.locator('.pl-in-chip.is-local')).toContainText('Mi lista 94');
+    // Tocar la de Liquid abre esa playlist
+    await block.locator('.pl-in-chip:not(.is-local)', { hasText: song.playlist }).first().click();
+    await expect(page.locator('#addDialog')).not.toBeVisible();
+    await expect(page.locator('.view-head')).toContainText(song.playlist);
+    // Sonando también lo dice
+    await page.locator('.track', { hasText: song.title }).first().locator('.track-main').click();
+    await expect(page.locator('#npIn')).toContainText(song.playlist);
+    await expect(page.locator('#npIn')).toContainText('Mi lista 94');
   });
 });
