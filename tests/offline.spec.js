@@ -99,3 +99,28 @@ test('v90: con conexión, una canción descargada no pide nada a la red', async 
   expect(await deckSrc()).toMatch(/^blob:/);
   expect(r2Requests).toBe(0);
 });
+
+test('v94: sin conexión, ▶ y «Anterior» con canciones sin descargar lo explican (sin pedir letras a la red)', async ({ page, context }) => {
+  await page.route(/r2\.dev/, (route) => route.abort());
+  let lyricsCalls = 0;
+  await page.route(/lrclib\.net/, (route) => { lyricsCalls++; return route.abort(); });
+  await page.goto('./');
+  await expect(page.locator('#libCount')).not.toHaveText('0');
+  await waitForServiceWorker(page);
+  await context.setOffline(true);
+  await page.reload();
+  await expect(page.locator('#libCount')).not.toHaveText('0', { timeout: 10000 });
+  lyricsCalls = 0;
+  const toasts = [];
+  await page.exposeFunction('anotarAviso', (text) => toasts.push(text));
+  await page.evaluate(() => {
+    new MutationObserver(() => document.querySelectorAll('.toast').forEach((t) => window.anotarAviso(t.textContent.trim())))
+      .observe(document.body, { subtree: true, childList: true, characterData: true });
+  });
+  await page.locator('#playBtn').click();
+  await page.evaluate(() => document.getElementById('prevBtn').click());
+  await expect.poll(() => toasts.some((t) => t.includes('Sin conexión'))).toBe(true);
+  expect(toasts.some((t) => t.includes('Revisa la URL'))).toBe(false);
+  expect(lyricsCalls).toBe(0);
+  await context.setOffline(false);
+});

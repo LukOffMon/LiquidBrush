@@ -1,6 +1,19 @@
 {
   "releases": [
     {
+      "version": "v94",
+      "date": "noviembre 2026",
+      "title": "Liquid va fluido en el celular, sin conexión sin sustos y ves en qué playlists está cada canción",
+      "items": [
+        "En el celular el scroll y las animaciones van más finos: Sonando y todo lo que va dentro de la Biblioteca (tarjetas, botones, filtros) ya no desenfocan el fondo animado en cada fotograma, que era lo que trababa la pantalla y gastaba batería. A la vista queda igual.",
+        "Buscar va más rápido: con erratas («beyonse») la búsqueda tarda la mitad, y escribir no frena la lista.",
+        "Al abrir la app, la comprobación de canciones nuevas espera a que el teléfono esté libre: los primeros toques responden antes.",
+        "Volver a Inicio desde otra pestaña es al instante si nada cambió (antes recalculaba todas las recomendaciones).",
+        "Sin conexión: tocar ▶ o «Anterior» con una canción no descargada salta a la siguiente descargada o lo explica (antes salía «No se pudo reproducir… Revisa la URL del audio»). Tampoco se intenta buscar la letra sin internet: aparece sola al volver la conexión.",
+        "Nuevo: en el menú de cada canción y en Sonando verás «Está en N playlists» con las de Liquid y las tuyas (marcadas «Tuya»). Toca una para abrirla."
+      ]
+    },
+    {
       "version": "v93",
       "date": "noviembre 2026",
       "title": "SKd para todos los que tengan cuenta, con su propia sección en la Biblioteca",
