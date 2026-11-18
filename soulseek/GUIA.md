@@ -1,5 +1,7 @@
 # Liquid ATK + SKd: Soulseek en tu propio servidor (Oracle Cloud)
 
+> **¿Sin servidor ni tarjeta?** Usa tu PC con Windows: [GUIA-WINDOWS.md](windows/GUIA-WINDOWS.md) (doble clic y listo; funciona mientras la PC esté encendida).
+
 Con esto, **Liquid Bullet** busca en **Liquid** (tu biblioteca), en **ATK** (Audius, Internet Archive, Jamendo, Hearthis, Wikimedia) y en **Soulseek**, a la vez y desde el mismo buscador. Lo que pidas de Soulseek se descarga en **tu servidor** y pasa a tu biblioteca: suena desde ahí, se puede descargar al teléfono y cuenta en Stats.
 
 Tu PC **no** tiene que estar encendida: todo vive en un servidor gratis de Oracle Cloud que está encendido 24 horas.
@@ -38,7 +40,7 @@ Tu servidor de Oracle (gratis, siempre encendido)
 5. **Boot volume**: marca *Specify a custom boot volume size* y pon **150 GB** o más (hasta 200 GB entran en lo gratis). Ahí vivirá tu música.
 6. **Create**. Cuando diga *Running*, apunta la **Public IP address** (por ejemplo `158.101.22.33`).
 
-> Para que Oracle no reclame el servidor por «poco uso», en **Billing → Upgrade and Manage Payment** puedes pasar la cuenta a *Pay As You Go*: sigue siendo gratis dentro de los límites de Always Free.
+> Oracle puede reclamar los servidores Always Free con «poco uso». Pasar la cuenta a *Pay As You Go* lo evita, pero **abre la puerta a cargos** si algo se sale de los límites gratis: si no puedes pagar nada, quédate en Always Free (ahí Oracle no puede cobrarte).
 
 ## Paso 3 · Abrir los puertos en Oracle (5 min)
 

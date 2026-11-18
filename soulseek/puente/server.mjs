@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { pathToFileURL } from 'node:url';
 
 export function crearPuente(opciones = {}) {
   const env = { ...process.env, ...opciones };
@@ -20,8 +21,19 @@ export function crearPuente(opciones = {}) {
     datos: path.resolve(env.DATOS_DIR || '/datos'),
     publico: String(env.PUBLICO || '').replace(/\/+$/, ''),
     origenes: String(env.ORIGENES || 'https://lukoffmon.github.io').split(',').map((o) => o.trim()).filter(Boolean),
+    // Cuánto escucha slskd respuestas de otras personas, y cuánto espera el puente como máximo
+    tiempoBusqueda: Number(env.TIEMPO_BUSQUEDA_MS || 8000),
     esperaBusqueda: Number(env.ESPERA_BUSQUEDA_MS || 12000),
-    pausa: Number(env.PAUSA_MS || 700)
+    pausa: Number(env.PAUSA_MS || 700),
+    // Caché: lo bajado de Soulseek se borra tras estas horas sin sonar (0 = nunca). La canción no se
+    // olvida: sigue en tu biblioteca y, al tocarla otra vez, se vuelve a pedir a Soulseek.
+    cacheHoras: Number(env.CACHE_HORAS ?? 24),
+    // Carpeta de descargas a medias de slskd: si se conoce, la canción empieza a sonar mientras baja
+    incompleto: env.INCOMPLETO_DIR ? path.resolve(env.INCOMPLETO_DIR) : '',
+    // Cuánto espera /cancion a que una canción borrada vuelva antes de responder «sigue bajando»
+    esperaReproducir: Number(env.ESPERA_REPRODUCIR_MS || 25000),
+    // Si ninguna copia empieza en este tiempo, se prueba también la siguiente
+    esperaCopia: Number(env.ESPERA_COPIA_MS || 15000)
   };
   if (!CFG.clave || CFG.clave.length < 16) throw new Error('Falta LIQUID_CLAVE (16 caracteres o más).');
 
@@ -109,7 +121,8 @@ export function crearPuente(opciones = {}) {
     // slskd solo deja empezar una búsqueda a la vez: se ponen en fila
     const hecho = turno.then(async () => {
       const id = crypto.randomUUID();
-      await slskdJson('/searches', { method: 'POST', body: { id, searchText: q, searchTimeout: 8, responseLimit: 120, fileLimit: 5000, filterResponses: true } });
+      // searchTimeout va en MILISEGUNDOS (con 8 la búsqueda se cerraba al instante y nunca había resultados)
+      await slskdJson('/searches', { method: 'POST', body: { id, searchText: q, searchTimeout: CFG.tiempoBusqueda, responseLimit: 120, fileLimit: 5000, filterResponses: true } });
       const hasta = Date.now() + CFG.esperaBusqueda;
       while (Date.now() < hasta) {
         await dormir(CFG.pausa);
@@ -142,38 +155,105 @@ export function crearPuente(opciones = {}) {
         r.puntos = puntuar(r, palabras);
         if (!r.puntos) return;
         const { artista, titulo } = adivinar(archivo);
-        // La misma canción de varias personas: se queda la mejor copia
+        // La misma canción de varias personas: se muestra la mejor copia y se guardan las siguientes
+        // para pedirlas a la vez (gana la que empiece antes) o si la primera falla
         const huella = `${normal(artista)}|${normal(titulo)}`;
-        const antes = vistos.get(huella);
-        if (!antes || r.puntos > antes.puntos) vistos.set(huella, { ...r, artista, titulo });
+        if (!vistos.has(huella)) vistos.set(huella, []);
+        vistos.get(huella).push({ ...r, artista, titulo });
       });
     });
-    const resultados = [...vistos.values()].sort((a, b) => b.puntos - a.puntos).slice(0, 40).map((r) => ({
-      id: codificar({ u: r.usuario, f: r.archivo, s: r.tamano }),
-      titulo: r.titulo, artista: r.artista, album: carpeta(r.archivo), ext: r.ext.slice(1), kbps: r.kbps,
-      segundos: r.segundos, tamano: r.tamano, usuario: r.usuario, libre: r.libre, cola: r.cola, velocidad: r.velocidad
-    }));
-    busquedas.set(clave, { at: Date.now(), resultados });
+    const resultados = [...vistos.values()].map((copias) => copias.sort((a, b) => b.puntos - a.puntos))
+      .sort((a, b) => b[0].puntos - a[0].puntos).slice(0, 40).map((copias) => {
+        const r = copias[0];
+        // Las copias de otras personas (la misma persona no cuenta dos veces)
+        const usuarios = new Set();
+        const c = copias.filter((x) => !usuarios.has(x.usuario) && usuarios.add(x.usuario)).slice(0, 3)
+          .map((x) => ({ u: x.usuario, f: x.archivo, s: x.tamano }));
+        return {
+          id: codificar({ c, t: r.titulo, a: r.artista, al: carpeta(r.archivo), seg: r.segundos }),
+          titulo: r.titulo, artista: r.artista, album: carpeta(r.archivo), ext: r.ext.slice(1), kbps: r.kbps,
+          segundos: r.segundos, tamano: r.tamano, usuario: r.usuario, libre: r.libre, cola: r.cola, velocidad: r.velocidad,
+          copias: c.length
+        };
+      });
+    // Una búsqueda vacía no se recuerda: repetirla puede dar resultados (gente que se conecta, red lenta)
+    if (resultados.length) busquedas.set(clave, { at: Date.now(), resultados });
     if (busquedas.size > 200) busquedas.delete(busquedas.keys().next().value);
     return resultados;
   }
 
-  /* ---------- Pedidos (descargas) ---------- */
+  /* ---------- Memoria: cada canción pedida se recuerda siempre; su archivo es solo caché ----------
+     memoria[recId] = { t, a, al, seg, c: [copias {u,f,s}], rel (ruta en musica/ o null), ok (llegó alguna
+     vez), alta, uso (última vez que sonó) }. Si el archivo se borra por no sonar, la canción sigue en la
+     biblioteca de Liquid y, al tocarla, /cancion/<recId> la vuelve a pedir a Soulseek. */
+  const MEMORIA = path.join(CFG.datos, 'memoria.json');
   const PEDIDOS = path.join(CFG.datos, 'pedidos.json');
-  let pedidos = {};
-  try { pedidos = JSON.parse(fs.readFileSync(PEDIDOS, 'utf8')); } catch { pedidos = {}; }
-  const guardarPedidos = () => fsp.mkdir(CFG.datos, { recursive: true }).then(() => fsp.writeFile(PEDIDOS, JSON.stringify(pedidos))).catch(() => {});
+  const leerJson = (ruta) => { try { return JSON.parse(fs.readFileSync(ruta, 'utf8')); } catch { return {}; } };
+  const memoria = leerJson(MEMORIA);
+  // id de búsqueda (lo que guarda Liquid) → recId
+  const pedidos = leerJson(PEDIDOS);
+  let guardando = null;
+  function guardar() {
+    // Varias escrituras seguidas se juntan en una
+    if (guardando) return guardando;
+    guardando = new Promise((ok) => setTimeout(ok, 50)).then(async () => {
+      guardando = null;
+      await fsp.mkdir(CFG.datos, { recursive: true });
+      await fsp.writeFile(MEMORIA, JSON.stringify(memoria));
+      await fsp.writeFile(PEDIDOS, JSON.stringify(pedidos));
+    }).catch(() => {});
+    return guardando;
+  }
 
-  async function pedir(id) {
+  const recIdDe = (t, a) => crypto.createHash('sha1').update(`skd:${normal(a)}|${normal(t)}`).digest('hex').slice(0, 16);
+  // Ids de antes (una sola copia: {u,f,s}) y de ahora ({c:[…], t, a, al, seg})
+  function leerPedido(id) {
     const d = decodificar(id);
-    if (!d?.u || !d?.f || !(d.s > 0)) throw Object.assign(new Error('Pedido no válido'), { status: 400 });
-    let res = await slskd(`/transfers/downloads/${encodeURIComponent(d.u)}`, { method: 'POST', body: [{ filename: d.f, size: d.s }] });
+    const c = (Array.isArray(d?.c) ? d.c : [d]).filter((x) => x?.u && x?.f && x.s > 0).slice(0, 5);
+    if (!c.length) return null;
+    const adiv = adivinar(c[0].f);
+    return { c, t: d.t || adiv.titulo, a: d.a ?? adiv.artista, al: d.al || carpeta(c[0].f), seg: Number(d.seg) || 0 };
+  }
+  // pedidos.json de la versión anterior guardaba {u,f,s,at}: se pasa a la memoria
+  for (const [id, v] of Object.entries(pedidos)) {
+    if (typeof v === 'string') continue;
+    const d = v && leerPedido(codificar({ c: [{ u: v.u, f: v.f, s: v.s }] }));
+    if (!d) { delete pedidos[id]; continue; }
+    const recId = recIdDe(d.t, d.a);
+    memoria[recId] ||= { ...d, rel: null, ok: false, alta: v.at || Date.now(), uso: v.at || Date.now() };
+    pedidos[id] = recId;
+  }
+
+  /* ---------- Descargas: varias copias a la vez, gana la primera que empieza ---------- */
+  // recId → { copias: [{u,f,s,desde}], siguiente: índice de la próxima copia sin probar, cancelado: bool }
+  const activas = new Map();
+
+  async function pedirCopia(c) {
+    let res = await slskd(`/transfers/downloads/${encodeURIComponent(c.u)}`, { method: 'POST', body: [{ filename: c.f, size: c.s }] });
     // Versiones nuevas: por lotes
-    if (res.status === 404 || res.status === 405) res = await slskd('/transfers/downloads/batches', { method: 'POST', body: { username: d.u, files: [{ filename: d.f, size: d.s }] } });
+    if (res.status === 404 || res.status === 405) res = await slskd('/transfers/downloads/batches', { method: 'POST', body: { username: c.u, files: [{ filename: c.f, size: c.s }] } });
     if (!res.ok && res.status !== 207) throw Object.assign(new Error(res.status === 404 ? 'Esa persona ya no está conectada a Soulseek' : `slskd no aceptó la descarga (HTTP ${res.status})`), { status: 502 });
-    pedidos[id] = { u: d.u, f: d.f, s: d.s, at: Date.now() };
-    await guardarPedidos();
-    return { id, estado: 'en-cola', porcentaje: 0 };
+  }
+
+  // Pide las siguientes `cuantas` copias sin probar. Devuelve cuántas aceptó slskd.
+  async function sumarCopias(recId, cuantas) {
+    const rec = memoria[recId];
+    const a = activas.get(recId);
+    let aceptadas = 0;
+    let ultimoError = null;
+    while (aceptadas < cuantas && a.siguiente < rec.c.length) {
+      const c = rec.c[a.siguiente++];
+      try { await pedirCopia(c); a.copias.push({ ...c, desde: Date.now() }); aceptadas++; } catch (e) { ultimoError = e; }
+    }
+    if (!a.copias.length && ultimoError) throw ultimoError;
+    return aceptadas;
+  }
+
+  // Empieza a bajar una canción (si no está bajando ya): las dos mejores copias a la vez
+  async function lanzar(recId) {
+    if (activas.has(recId)) return;
+    activas.set(recId, { copias: [], siguiente: 0, cancelado: false });
+    try { await sumarCopias(recId, 2); } catch (e) { activas.delete(recId); throw e; }
   }
 
   // Estados de slskd (banderas): «Queued», «InProgress», «Completed, Succeeded», «Completed, Errored»…
@@ -187,27 +267,101 @@ export function crearPuente(opciones = {}) {
     return 'en-cola';
   }
 
+  async function transferencia(c, cache) {
+    if (!cache.has(c.u)) cache.set(c.u, await slskdJson(`/transfers/downloads/${encodeURIComponent(c.u)}`).catch(() => null));
+    const archivos = (campo(cache.get(c.u), 'directories') || []).flatMap((d) => campo(d, 'files') || []);
+    return archivos.filter((x) => campo(x, 'filename') === c.f).pop() || null;
+  }
+
+  function cancelarCopia(c, t) {
+    const tid = campo(t, 'id');
+    if (tid) slskd(`/transfers/downloads/${encodeURIComponent(c.u)}/${encodeURIComponent(tid)}?remove=true`, { method: 'DELETE' }).catch(() => {});
+  }
+
+  // Mira cómo va la descarga de una canción y decide: cancelar las copias que perdieron la carrera,
+  // probar la siguiente copia si todas fallan o ninguna arranca, o dar la canción por lista.
+  async function revisar(recId, cache = new Map()) {
+    const rec = memoria[recId];
+    const a = activas.get(recId);
+    if (!a) return rec.rel ? { estado: 'lista', porcentaje: 100 } : { estado: 'fallo', motivo: 'No se está bajando' };
+    const filas = [];
+    for (const c of a.copias) filas.push({ c, t: await transferencia(c, cache) });
+    filas.forEach((x) => { x.estado = x.t ? estadoDe(x.t) : 'en-cola'; x.pct = Number(campo(x.t, 'percentComplete')) || 0; });
+
+    const lista = filas.find((x) => x.estado === 'lista');
+    if (lista) {
+      const hit = await archivoDe(lista.c);
+      if (hit) {
+        filas.filter((x) => x !== lista && x.t).forEach((x) => cancelarCopia(x.c, x.t));
+        activas.delete(recId);
+        // La primera vez que llega, sus etiquetas (si las tiene) mandan sobre lo adivinado por el nombre
+        if (!rec.ok) {
+          const meta = await leerEtiquetas(path.resolve(CFG.musica, hit), lista.c.s).catch(() => ({}));
+          if (meta.titulo) rec.t = meta.titulo;
+          if (meta.artista) rec.a = meta.artista;
+          if (meta.segundos) rec.seg = Math.round(meta.segundos);
+        }
+        Object.assign(rec, { rel: hit, ok: true, uso: Date.now(), ganadora: lista.c });
+        guardar();
+        return { estado: 'lista', porcentaje: 100 };
+      }
+      // slskd ya terminó pero aún lo está moviendo a la carpeta de descargas
+      return { estado: 'bajando', porcentaje: 99, copia: lista.c };
+    }
+    const bajando = filas.filter((x) => x.estado === 'bajando').sort((x, y) => y.pct - x.pct)[0];
+    if (bajando) {
+      // Ganó la carrera: las demás copias sobran
+      if (!a.cancelado) {
+        a.cancelado = true;
+        filas.filter((x) => x !== bajando && x.t).forEach((x) => cancelarCopia(x.c, x.t));
+        a.copias = [bajando.c];
+      }
+      return { estado: 'bajando', porcentaje: Math.round(bajando.pct), copia: bajando.c };
+    }
+    const vivas = filas.filter((x) => x.estado !== 'fallo');
+    const quedan = a.siguiente < rec.c.length;
+    // Todas fallaron, o ninguna arrancó a tiempo: se suma la siguiente copia
+    const lentas = vivas.length && vivas.every((x) => Date.now() - x.c.desde > CFG.esperaCopia);
+    if (quedan && (!vivas.length || (lentas && a.copias.length < 3))) {
+      a.copias = vivas.map((x) => x.c);
+      await sumarCopias(recId, 1).catch(() => {});
+      return { estado: 'en-cola', porcentaje: 0 };
+    }
+    if (!vivas.length) {
+      activas.delete(recId);
+      const motivo = filas.map((x) => String(campo(x.t, 'exception') || '')).find(Boolean) || 'Ninguna copia se pudo bajar';
+      return { estado: 'fallo', motivo };
+    }
+    return { estado: 'en-cola', porcentaje: 0 };
+  }
+
+  async function pedir(id) {
+    const d = leerPedido(id);
+    if (!d) throw Object.assign(new Error('Pedido no válido'), { status: 400 });
+    const recId = recIdDe(d.t, d.a);
+    const rec = memoria[recId];
+    if (rec) {
+      // Ya la conocemos: se suman las copias nuevas y se reutiliza su archivo si sigue en disco
+      for (const c of d.c) if (!rec.c.some((x) => x.u === c.u && x.f === c.f)) rec.c.push(c);
+    } else memoria[recId] = { ...d, rel: null, ok: false, alta: Date.now(), uso: Date.now() };
+    pedidos[id] = recId;
+    if (!(await enDisco(memoria[recId]))) await lanzar(recId);
+    await guardar();
+    return { id, estado: 'en-cola', porcentaje: 0 };
+  }
+
   async function estadoPedidos(ids) {
-    const porUsuario = new Map();
+    const cache = new Map();
     const salida = [];
     for (const id of ids) {
-      const p = pedidos[id];
-      if (!p) { salida.push({ id, estado: 'desconocido' }); continue; }
-      if (!porUsuario.has(p.u)) {
-        porUsuario.set(p.u, await slskdJson(`/transfers/downloads/${encodeURIComponent(p.u)}`).catch(() => null));
-      }
-      const datos = porUsuario.get(p.u);
-      const archivos = (campo(datos, 'directories') || []).flatMap((d) => campo(d, 'files') || []);
-      const t = archivos.filter((x) => campo(x, 'filename') === p.f).pop();
-      if (!t) { salida.push({ id, estado: 'en-cola', porcentaje: 0 }); continue; }
-      const estado = estadoDe(t);
-      const fila = { id, estado, porcentaje: Math.round(Number(campo(t, 'percentComplete')) || (estado === 'lista' ? 100 : 0)) };
-      if (estado === 'lista') {
-        const cancion = await buscarLocal(p);
-        if (cancion) fila.cancion = cancion;
-        else fila.estado = 'bajando';
-      }
-      if (estado === 'fallo') fila.motivo = String(campo(t, 'exception') || campo(t, 'state') || '');
+      const recId = pedidos[id];
+      const rec = memoria[recId];
+      if (!rec) { salida.push({ id, estado: 'desconocido' }); continue; }
+      if (!activas.has(recId) && await enDisco(rec)) { salida.push({ id, estado: 'lista', porcentaje: 100, cancion: filaRec(recId) }); continue; }
+      const r = await revisar(recId, cache);
+      const fila = { id, estado: r.estado, porcentaje: r.porcentaje ?? 0 };
+      if (r.estado === 'lista') fila.cancion = filaRec(recId);
+      if (r.motivo) fila.motivo = r.motivo;
       salida.push(fila);
     }
     return salida;
@@ -263,17 +417,79 @@ export function crearPuente(opciones = {}) {
   function fila(rel, d) {
     return { id: idDe(rel), title: d.t || 'Sin título', artist: d.a || '', album: '', duration: duracion(d.s), src: urlDe(rel), size: d.b };
   }
+  // Las canciones de Soulseek van por /cancion/<recId>: si su archivo se borró, esa dirección la vuelve a bajar
+  function filaRec(recId) {
+    // Título, artista y duración salen de la memoria: no cambian aunque el archivo se borre y vuelva
+    const r = memoria[recId];
+    return {
+      id: recId, title: r.t || 'Sin título', artist: r.a || '', album: '', duration: duracion(r.seg),
+      src: `${CFG.publico}/cancion/${recId}?k=${encodeURIComponent(CFG.clave)}`, size: r.ganadora?.s || r.c[0].s
+    };
+  }
   async function lista() {
     const idx = await escanear();
-    return Object.entries(idx).sort((a, b) => b[1].m - a[1].m).map(([rel, d]) => fila(rel, d));
+    const deMemoria = new Set(Object.values(memoria).map((r) => r.rel).filter(Boolean));
+    // Lo que pusiste tú a mano en musica/ (no vino de un pedido): se sirve tal cual y nunca se borra
+    const propias = Object.entries(idx).filter(([rel]) => !deMemoria.has(rel)).map(([rel, d]) => ({ at: d.m, fila: fila(rel, d) }));
+    const recordadas = Object.entries(memoria).filter(([, r]) => r.ok).map(([recId, r]) => ({ at: r.alta, fila: filaRec(recId) }));
+    return [...propias, ...recordadas].sort((a, b) => b.at - a.at).map((x) => x.fila);
   }
-  async function buscarLocal(p) {
-    const nombre = baseName(p.f);
-    const encontrar = (idx) => Object.entries(idx).find(([rel, d]) => baseName(rel) === nombre && d.b === p.s)
-      || Object.entries(idx).find(([rel]) => baseName(rel) === nombre);
-    let hit = encontrar(indice);
-    if (!hit) hit = encontrar(await escanear(true));
-    return hit ? fila(hit[0], hit[1]) : null;
+  // ¿Sigue su archivo en disco?
+  async function enDisco(rec) {
+    if (!rec.rel) return false;
+    try { await fsp.access(path.resolve(CFG.musica, rec.rel)); return true; } catch { rec.rel = null; return false; }
+  }
+  // Dónde dejó slskd una copia ya terminada (ruta relativa a musica/)
+  async function archivoDe(c) {
+    const nombre = baseName(c.f);
+    const encontrar = (idx) => (Object.entries(idx).find(([rel, d]) => baseName(rel) === nombre && d.b === c.s)
+      || Object.entries(idx).find(([rel]) => baseName(rel) === nombre))?.[0];
+    return encontrar(indice) || encontrar(await escanear(true)) || null;
+  }
+  // La copia a medias en la carpeta de slskd (para sonar mientras baja)
+  async function aMedias(c) {
+    if (!CFG.incompleto) return null;
+    const nombre = baseName(c.f);
+    const hallados = (await recorrer(CFG.incompleto)).filter((r) => path.basename(r) === nombre);
+    for (const ruta of hallados) {
+      try { const st = await fsp.stat(ruta); if (st.size <= c.s) return ruta; } catch { /* se movió */ }
+    }
+    return null;
+  }
+
+  /* ---------- Limpieza de la caché ---------- */
+  async function quitarVacias(dir) {
+    while (dir.startsWith(CFG.musica + path.sep)) {
+      try { if ((await fsp.readdir(dir)).length) return; await fsp.rmdir(dir); } catch { return; }
+      dir = path.dirname(dir);
+    }
+  }
+  // Borra los archivos de Soulseek que llevan más de CACHE_HORAS sin sonar. Nunca toca lo que pusiste a mano.
+  async function limpiar(ahora = Date.now()) {
+    if (!(CFG.cacheHoras > 0)) return { borradas: 0, libres: 0 };
+    let borradas = 0;
+    let libres = 0;
+    for (const [recId, r] of Object.entries(memoria)) {
+      if (!r.rel || activas.has(recId) || ahora - (r.uso || r.alta) < CFG.cacheHoras * 3600000) continue;
+      const ruta = path.resolve(CFG.musica, r.rel);
+      if (!ruta.startsWith(CFG.musica + path.sep)) continue;
+      try {
+        const st = await fsp.stat(ruta);
+        await fsp.unlink(ruta);
+        borradas++;
+        libres += st.size;
+      } catch { /* ya no estaba */ }
+      delete indice[r.rel];
+      r.rel = null;
+      await quitarVacias(path.dirname(ruta));
+    }
+    if (borradas) {
+      await guardar();
+      await fsp.writeFile(INDICE, JSON.stringify(indice)).catch(() => {});
+      // slskd también recuerda las descargas terminadas: se limpia su lista
+      slskd('/transfers/downloads/all/completed', { method: 'DELETE' }).catch(() => {});
+    }
+    return { borradas, libres };
   }
 
   /* ---------- HTTP ---------- */
@@ -286,6 +502,8 @@ export function crearPuente(opciones = {}) {
       'Access-Control-Allow-Headers': 'Authorization, Content-Type, Range',
       'Access-Control-Expose-Headers': 'Content-Length, Content-Range, Accept-Ranges, Content-Type',
       'Access-Control-Max-Age': '86400',
+      // Chrome pide permiso explícito cuando una web pública (GitHub Pages) llama a esta PC por localhost
+      ...(req.headers['access-control-request-private-network'] ? { 'Access-Control-Allow-Private-Network': 'true' } : {}),
       Vary: 'Origin'
     };
   }
@@ -330,6 +548,75 @@ export function crearPuente(opciones = {}) {
     fs.createReadStream(ruta, { start: inicio, end: fin }).pipe(res);
   }
 
+  // Suena mientras baja: se envía lo que ya hay de la copia a medias y se espera a que crezca.
+  // Como se sabe el tamaño final, el navegador recibe la duración y la barra de progreso desde el principio.
+  async function servirCreciendo(req, res, cors, recId, c) {
+    const total = c.s;
+    const rango = /bytes=(\d*)-(\d*)/.exec(req.headers.range || '');
+    const inicio = rango && rango[1] ? Number(rango[1]) : 0;
+    if (inicio >= total) { res.writeHead(416, { ...cors, 'Content-Range': `bytes */${total}` }); return res.end(); }
+    const tipo = AUDIO[path.extname(baseName(c.f)).toLowerCase()] || 'application/octet-stream';
+    res.writeHead(206, { ...cors, 'Content-Type': tipo, 'Accept-Ranges': 'bytes', 'Content-Length': String(total - inicio),
+      'Content-Range': `bytes ${inicio}-${total - 1}/${total}`, 'Cache-Control': 'no-store' });
+    if (req.method === 'HEAD') return res.end();
+    let cerrado = false;
+    res.on('close', () => { cerrado = true; });
+    let pos = inicio;
+    let quieto = Date.now();
+    const trozo = Buffer.alloc(256 * 1024);
+    while (!cerrado && pos < total) {
+      // A medias en la carpeta de slskd o, al terminar, ya movida a musica/ (revisar() apunta su ruta)
+      const rel = memoria[recId].rel;
+      const ruta = (await aMedias(c)) || (rel ? path.resolve(CFG.musica, rel) : null);
+      let leidos = 0;
+      if (ruta) {
+        try {
+          const fh = await fsp.open(ruta, 'r');
+          try { ({ bytesRead: leidos } = await fh.read(trozo, 0, Math.min(trozo.length, total - pos), pos)); } finally { await fh.close(); }
+        } catch { leidos = 0; }
+      }
+      if (leidos > 0) {
+        pos += leidos;
+        quieto = Date.now();
+        if (!res.write(Buffer.from(trozo.subarray(0, leidos)))) await new Promise((ok) => res.once('drain', ok));
+        continue;
+      }
+      if (Date.now() - quieto > 60000) break;
+      if (activas.has(recId)) await revisar(recId).catch(() => {});
+      await dormir(400);
+    }
+    if (pos >= total) res.end(); else res.destroy();
+  }
+
+  // /cancion/<recId>: la canción desde disco o, si la caché la borró, de vuelta desde Soulseek
+  async function servirCancion(req, res, cors, recId) {
+    const rec = memoria[recId];
+    if (!rec) return json(res, cors, 404, { error: 'No existe' });
+    rec.uso = Date.now();
+    guardar();
+    if (!activas.has(recId) && await enDisco(rec)) return servirAudio(req, res, cors, rec.rel);
+    try { await lanzar(recId); } catch (e) { return json(res, cors, 502, { error: e.message }); }
+    const hasta = Date.now() + CFG.esperaReproducir;
+    while (Date.now() < hasta) {
+      const r = await revisar(recId).catch(() => ({ estado: 'en-cola' }));
+      if (r.estado === 'lista' && rec.rel) return servirAudio(req, res, cors, rec.rel);
+      if (r.estado === 'fallo') return json(res, cors, 502, { error: r.motivo || 'No se pudo bajar' });
+      // Con 256 KB (o el 10 % si es más pequeña) ya hay para empezar a sonar
+      if (r.estado === 'bajando' && r.copia) {
+        const medio = await aMedias(r.copia);
+        const st = medio && await fsp.stat(medio).catch(() => null);
+        if (st && st.size >= Math.min(262144, Math.ceil(r.copia.s * 0.1))) return servirCreciendo(req, res, cors, recId, r.copia);
+      }
+      await dormir(CFG.pausa);
+    }
+    // Sigue bajando por detrás: la próxima vez que la toques ya estará
+    return json(res, cors, 504, { error: 'Soulseek está tardando: sigue bajando y estará lista en un momento' });
+  }
+  // Lo que suena por /musica/ también cuenta como uso (canciones bajadas antes de esta versión)
+  function marcarUso(rel) {
+    for (const r of Object.values(memoria)) if (r.rel === rel) { r.uso = Date.now(); guardar(); return; }
+  }
+
   const servidor = http.createServer(async (req, res) => {
     const cors = cabecerasCors(req);
     try {
@@ -338,16 +625,22 @@ export function crearPuente(opciones = {}) {
       if (url.pathname === '/salud') return json(res, cors, 200, { ok: true, nombre: 'Liquid SKd' });
       if (!autorizado(req, url)) return json(res, cors, 401, { error: 'Clave incorrecta' });
       if (url.pathname.startsWith('/musica/') && ['GET', 'HEAD'].includes(req.method)) {
-        return servirAudio(req, res, cors, decodeURIComponent(url.pathname.slice('/musica/'.length)));
+        const rel = decodeURIComponent(url.pathname.slice('/musica/'.length));
+        marcarUso(rel);
+        return servirAudio(req, res, cors, rel);
       }
+      const cancion = /^\/cancion\/([0-9a-f]{16})$/.exec(url.pathname);
+      if (cancion && ['GET', 'HEAD'].includes(req.method)) return servirCancion(req, res, cors, cancion[1]);
       if (url.pathname === '/api/estado') {
         const conectado = await slskdJson('/application').then((d) => {
           const server = campo(d, 'server');
           const st = String(campo(server, 'state') ?? '');
           return campo(server, 'isConnected') ?? (st ? /Connected/.test(st) && !/Disconnected/.test(st) : true);
         }).catch(() => false);
-        const idx = await escanear();
-        return json(res, cors, 200, { ok: true, soulseek: Boolean(conectado), canciones: Object.keys(idx).length });
+        await escanear();
+        const lst = await lista();
+        const enCache = Object.values(memoria).filter((r) => r.rel).length;
+        return json(res, cors, 200, { ok: true, soulseek: Boolean(conectado), canciones: lst.length, cache: { horas: CFG.cacheHoras, enDisco: enCache } });
       }
       if (url.pathname === '/api/buscar') {
         const q = String(url.searchParams.get('q') || '').trim().slice(0, 120);
@@ -369,7 +662,7 @@ export function crearPuente(opciones = {}) {
       else res.destroy();
     }
   });
-  return { servidor, escanear, buscar, CFG };
+  return { servidor, escanear, buscar, limpiar, CFG };
 }
 
 /* ---------- Etiquetas y duración (MP3 con ID3 y FLAC), leyendo solo el principio ---------- */
@@ -485,12 +778,21 @@ function leerFlac(buf) {
   return meta;
 }
 
-// Arranque normal (node server.mjs)
-if (import.meta.url === `file://${process.argv[1]}`) {
-  const { servidor, escanear, CFG } = crearPuente();
+// Arranque normal (node server.mjs). pathToFileURL: en Windows la ruta es file:///C:/… y no file://C:\…
+if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+  const { servidor, escanear, limpiar, CFG } = crearPuente();
   const puerto = Number(process.env.PUERTO || 8787);
-  servidor.listen(puerto, () => {
+  // HOST=127.0.0.1 en tu PC: solo entra el túnel (Tailscale Funnel), no la red de casa
+  servidor.listen(puerto, process.env.HOST || undefined, () => {
     console.log(`[Liquid SKd] Puente en el puerto ${puerto}. Música en ${CFG.musica}. Público: ${CFG.publico || '(sin PUBLICO)'}`);
-    escanear(true).then((idx) => console.log(`[Liquid SKd] ${Object.keys(idx).length} canciones en la biblioteca.`));
+    escanear(true).then((idx) => console.log(`[Liquid SKd] ${Object.keys(idx).length} archivos en musica/.`));
+    if (CFG.cacheHoras > 0) {
+      console.log(`[Liquid SKd] Caché: lo que lleve ${CFG.cacheHoras} h sin sonar se borra (y vuelve a bajar si lo tocas).`);
+      const ronda = () => limpiar().then(({ borradas, libres }) => {
+        if (borradas) console.log(`[Liquid SKd] Limpieza: ${borradas} canciones borradas, ${(libres / 1048576).toFixed(1)} MB libres.`);
+      }).catch((e) => console.error('[Liquid SKd] Limpieza:', e.message));
+      setTimeout(ronda, 60000);
+      setInterval(ronda, 30 * 60000);
+    }
   });
 }
