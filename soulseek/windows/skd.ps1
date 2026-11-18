@@ -276,10 +276,9 @@ function Instalar {
   if ($PSCommandPath -ne $Rutas.Script) { Copy-Item $PSCommandPath $Rutas.Script -Force }
   Guardar-Texto $Rutas.Config ($cfg | ConvertTo-Json -Depth 4)
   Escribir-SlskdYml $cfg
-  # Solo tu usuario de Windows puede leer la carpeta (tiene tus contraseñas)
-  try {
-    icacls $Rutas.Raiz /inheritance:r /grant:r "$($env:USERNAME):(OI)(CI)F" /T /Q | Out-Null
-  } catch { Aviso 'No se pudieron ajustar los permisos de la carpeta.' }
+  # Solo tu usuario de Windows puede leer la carpeta (tiene tus contraseñas). La regla va SOLO en la carpeta
+  # y lo de dentro la hereda: aplicar (OI)(CI) a cada archivo con /T los dejaba sin ningún permiso, ni para ti.
+  Proteger-Carpeta
   Bien "Todo en $($Rutas.Raiz)"
 
   # 7. Arranque automático al iniciar sesión (sin ventana) y arranque ahora
@@ -339,6 +338,18 @@ function Conectar-Tailscale {
   $dns = ($st.Self.DNSName).TrimEnd('.')
   if (-not $dns) { return $null }
   return "https://$dns"
+}
+
+function Proteger-Carpeta {
+  $yo = "$env:USERDOMAIN\$env:USERNAME"
+  & icacls $Rutas.Raiz /inheritance:r /grant:r "${yo}:(OI)(CI)F" /Q 2>&1 | Out-Null
+  & icacls (Join-Path $Rutas.Raiz '*') /reset /T /C /Q 2>&1 | Out-Null
+  # Comprobación: si no se puede leer la configuración, se deshace (mejor sin restringir que roto)
+  try { [void](Get-Content $Rutas.Config -Raw -ErrorAction Stop) }
+  catch {
+    & icacls $Rutas.Raiz /reset /T /C /Q 2>&1 | Out-Null
+    Aviso 'No se pudieron restringir los permisos de la carpeta; se deja como estaba.'
+  }
 }
 
 function Registrar-Tarea {
