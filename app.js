@@ -3380,7 +3380,7 @@
     button.dataset.action = 'stats-play';
     button.dataset.value = id;
     const img = document.createElement('img');
-    img.src = track.thumb;
+    img.src = fitSrc(track.thumb, 40);
     img.alt = '';
     img.width = 40;
     img.height = 40;
@@ -4449,7 +4449,7 @@
   function playlistCover(pl, size) {
     const tracks = playlistTracksOf(pl);
     // Tarjetas: miniatura de 320 px; la cabecera de la playlist usa la imagen grande
-    const src = pl.cover?.type === 'image' ? (size <= 160 ? pl.cover.src.replace(/\.jpg$/, '-sm.jpg') : pl.cover.src)
+    const src = pl.cover?.type === 'image' ? fitSrc(pl.cover.src, size)
       : pl.cover?.type === 'art' ? coverArt(pl) : '';
     if (src) {
       const img = document.createElement('img');
@@ -4470,7 +4470,7 @@
       const cell = covers.length === 4 ? Math.ceil(size / 2) : size;
       covers.forEach((cover) => {
         const img = document.createElement('img');
-        img.src = cover;
+        img.src = fitSrc(cover, cell);
         img.alt = '';
         img.width = cell;
         img.height = cell;
@@ -4795,7 +4795,7 @@
       card.setAttribute('aria-label', `Reproducir ${track.title} de ${track.artist}`);
       if (state.currentTrack?.id === track.id) card.classList.add('is-current');
       const img = document.createElement('img');
-      img.src = track.thumb;
+      img.src = fitSrc(track.thumb, 112);
       img.alt = '';
       img.width = 112;
       img.height = 112;
@@ -5253,10 +5253,21 @@
     return section;
   }
 
+  // v96: memoria. Cada portada ocupa en RAM su tamaño real ya decodificado (320 px ≈ 400 KB) aunque se vea
+  // a 40 px: en Inicio eran ~68 MB solo en imágenes. Ahora se pide la más pequeña que se ve nítida:
+  // -xs (160 px), -sm (320 px) o la grande. Densidad de pantalla tope 2 (a 3× no se nota y cuesta más del doble).
+  const COVER_VARIANT = /^((?:\.\/)?covers\/.+?)(?:-sm|-xs)?\.jpg$/;
+  function fitSrc(src, cssPx) {
+    const match = typeof src === 'string' && COVER_VARIANT.exec(src);
+    if (!match || !cssPx) return src;
+    const need = cssPx * Math.min(window.devicePixelRatio || 1, 2);
+    return `${match[1]}${need <= 176 ? '-xs' : need <= 352 ? '-sm' : ''}.jpg`;
+  }
+
   function photoImg(src, size, className = '') {
     const img = document.createElement('img');
     img.className = className;
-    img.src = src || PLACEHOLDER_COVER;
+    img.src = fitSrc(src, size) || PLACEHOLDER_COVER;
     img.alt = '';
     img.width = size;
     img.height = size;
@@ -5277,7 +5288,8 @@
     markPlayable(card, `home:${key}`, title);
     card.setAttribute('aria-label', `Reproducir ${title}`);
     const art = makeEl('span', 'home-card-art');
-    art.append(photoImg(image, 160), makeEl('span', 'home-card-label', title));
+    // Se ven a ~175 px en el móvil y ~210 px en el escritorio (fitSrc elige la portada según eso)
+    art.append(photoImg(image, matchMedia('(max-width: 860px)').matches ? 176 : 216), makeEl('span', 'home-card-label', title));
     const play = makeEl('span', 'home-card-play');
     play.replaceChildren(svgIcon('play'));
     art.append(play);
@@ -5729,7 +5741,8 @@
       tile.type = 'button';
       tile.dataset.action = 'open-playlist';
       tile.dataset.key = pl.key;
-      tile.append(photoImg(coverSrcOf(pl.cover), 80), makeEl('span', 'explore-name', pl.name));
+      // Se ven a ~175 px en el móvil: con 80 elegía la miniatura de 160 px y se veía borrosa
+      tile.append(photoImg(coverSrcOf(pl.cover), 176), makeEl('span', 'explore-name', pl.name));
       grid.append(tile);
     });
     return grid;
@@ -7152,7 +7165,7 @@
 
     const img = document.createElement('img');
     img.className = 'track-cover';
-    img.src = track.thumb;
+    img.src = fitSrc(track.thumb, 46);
     img.alt = '';
     img.loading = 'lazy';
     img.decoding = 'async';
@@ -7442,7 +7455,7 @@
     button.className = 'queue-play';
     button.dataset.index = String(index);
     const img = document.createElement('img');
-    img.src = track.thumb;
+    img.src = fitSrc(track.thumb, 40);
     img.alt = '';
     img.width = 40;
     img.height = 40;
@@ -7817,7 +7830,7 @@
     // Ultraligero: la portada pequeña (320 px) también en Sonando
     els.cover.src = settings.ultra ? track.thumb || track.cover : track.cover;
     els.cover.alt = `Carátula de ${track.album || track.title}`;
-    els.miniCover.src = track.thumb;
+    els.miniCover.src = fitSrc(track.thumb, 52);
     els.npContext.textContent = state.queueContext;
     setTitle(els.npTitle, track.title);
     // Debajo del artista, sus géneros de verdad («Indie · Rock»; antes, el nombre de su playlist)
@@ -17050,7 +17063,7 @@
       el.hidden = !track;
       if (!track) return;
       el.querySelector('.np-next-name').textContent = `${splitTitle(track.title).main} · ${track.knownArtist || track.artist}`;
-      el.querySelector('img').src = track.thumb;
+      el.querySelector('img').src = fitSrc(track.thumb, 32);
     },
 
     /* --- La pestaña del navegador lleva la carátula de lo que suena --- */

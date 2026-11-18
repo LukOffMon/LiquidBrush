@@ -633,7 +633,7 @@ test.describe('pantalla de bloqueo', () => {
     expect(info.mini).toContain(info.title.split(' (')[0].slice(0, 8));
     expect(info.art.length).toBe(1);
     const cover = await page.evaluate((id) => document.querySelector(`.track[data-id="${CSS.escape(id)}"] .track-cover`)?.getAttribute('src') || '', info.current);
-    const base = (src) => src.split('/').pop().replace(/-sm(?=\.)/, '');
+    const base = (src) => src.split('/').pop().replace(/-(sm|xs)(?=\.)/, '');
     expect(base(info.art[0])).toBe(base(cover));
     expect(info.state).toBe('playing');
   });
@@ -2403,5 +2403,27 @@ test.describe('v95: Firefox y la pantalla de bloqueo', () => {
     await page.locator('.player-track').click();
     await expect(page.locator('body')).toHaveClass(/np-open/);
     expect(await ring()).toEqual({ name: 'spin', state: 'running' });
+  });
+});
+
+test.describe('v96: menos memoria en imágenes', () => {
+  test('las portadas se piden al tamaño en pantalla (-xs/-sm) y ninguna se ve borrosa', async ({ page }) => {
+    await page.goto('./?view=library');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.mouse.wheel(0, 1500);
+    await page.waitForTimeout(800);
+    const info = await page.evaluate(() => {
+      const imgs = [...document.images].filter((i) => i.complete && i.naturalWidth && /\/covers\//.test(i.src));
+      const dpr = Math.min(devicePixelRatio, 2);
+      return {
+        total: imgs.length,
+        small: imgs.filter((i) => /-(xs|sm)\.jpg$/.test(i.src)).length,
+        blurry: imgs.filter((i) => { const w = i.offsetWidth; return w > 0 && i.naturalWidth < w * dpr * 0.85; }).map((i) => i.src),
+        oversized: imgs.filter((i) => { const w = i.offsetWidth; return w > 0 && i.naturalWidth > Math.max(160, w * dpr * 2.2); }).map((i) => `${i.naturalWidth}px a ${i.offsetWidth}px`)
+      };
+    });
+    expect(info.total).toBeGreaterThan(10);
+    expect(info.blurry).toEqual([]);
+    expect(info.oversized).toEqual([]);
   });
 });

@@ -1,6 +1,16 @@
 {
   "releases": [
     {
+      "version": "v96",
+      "date": "noviembre 2026",
+      "title": "Liquid gasta hasta un 65 % menos de memoria en imágenes",
+      "items": [
+        "Las portadas se piden al tamaño en que se ven: miniaturas nuevas de 160 px para las filas, la cola y el mini reproductor, y la de 320 px para las tarjetas. Antes, una portada de 320 o 600 px ocupaba en memoria lo mismo aunque se viera a 40 px.",
+        "En el celular: Buscar pasa de ~188 MB a ~67 MB de imágenes en memoria, la Biblioteca de ~125 a ~51 MB, una playlist de ~98 a ~44 MB e Inicio de ~51 a ~32 MB. Con menos memoria, el sistema cierra menos la app en segundo plano y todo responde antes.",
+        "Las tarjetas de Explorar se ven más nítidas (pedían una imagen más pequeña de lo que ocupaban)."
+      ]
+    },
+    {
       "version": "v95",
       "date": "noviembre 2026",
       "title": "Firefox: los controles de la pantalla bloqueada responden y la portada ya no traba la app",
