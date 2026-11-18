@@ -2462,12 +2462,6 @@ body.is-playing .eq span {
 /* =========================================================
    Tema "Cromo Surreal"
    ========================================================= */
-@property --spin {
-  syntax: '<angle>';
-  inherits: false;
-  initial-value: 0deg;
-}
-
 .svg-defs {
   position: absolute;
   width: 0;
@@ -2773,16 +2767,39 @@ body.is-playing .clock-hand {
   border-color: transparent;
 }
 
-/* Marco de cromo giratorio en la carátula */
+/* Marco de cromo giratorio en la carátula.
+   v95: gira un cuadrado más grande que el marco (transform, lo mueve la tarjeta gráfica) en vez de animar el
+   ángulo del degradado: eso repintaba la portada 60 veces por segundo mientras sonaba y en Firefox atascaba
+   la app. Con Sonando cerrada en el móvil, la portada no se ve y el giro se para. */
 [data-theme="chrome"] .cover-wrap {
   padding: 5px;
-  background: conic-gradient(from var(--spin), #ffffff, #8b94a7, #2d3240, #e8edf5, #b9c3d4, #6e7789, #fdfdff, #4b5263, #dfe7f3, #ffffff);
-  animation: spin-angle 9s linear infinite;
-  animation-play-state: paused;
+  isolation: isolate;
+  background: #8b94a7;
 }
 
-body.is-playing .cover-wrap {
+[data-theme="chrome"] .cover-wrap::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: -50%;
+  background: conic-gradient(#ffffff, #8b94a7, #2d3240, #e8edf5, #b9c3d4, #6e7789, #fdfdff, #4b5263, #dfe7f3, #ffffff);
+  animation: spin 9s linear infinite;
+  animation-play-state: paused;
+  pointer-events: none;
+}
+
+[data-theme="chrome"] body.is-playing .cover-wrap::before {
   animation-play-state: running;
+}
+
+@media (max-width: 860px) {
+  [data-theme="chrome"] body.is-playing:not(.np-open) .cover-wrap::before {
+    animation-play-state: paused;
+  }
+}
+
+.no-motion .cover-wrap::before {
+  animation: none;
 }
 
 [data-theme="chrome"] .cover {
@@ -2858,10 +2875,6 @@ body.is-playing .cover-wrap {
 @keyframes glow-pulse {
   0%, 100% { opacity: 0.35; }
   50% { opacity: 1; }
-}
-
-@keyframes spin-angle {
-  to { --spin: 360deg; }
 }
 
 /* =========================================================

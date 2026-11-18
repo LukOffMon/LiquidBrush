@@ -1286,6 +1286,7 @@
   // iPhone/iPad (incluido el iPad que se presenta como Mac)
   // Todos los navegadores de iPhone/iPad usan WebKit: mismas limitaciones de audio que Safari
   const IS_IOS = DEVICE.apple;
+  const IS_GECKO = DEVICE.engine === 'gecko';
 
   /* --- v74: descargas que funcionan también en iPhone/iPad ---
      Por qué fallaban en iOS: para guardar un MP3, la app tiene que poder leerlo, y un navegador solo deja
@@ -2672,7 +2673,9 @@
       }
     }, 16);
   }
-  const canSoftFade = () => settings.softPause && !IS_IOS && !dj.timer;
+  // v95: con la app escondida (pantalla bloqueada) no hay fundido: Firefox frena los temporizadores de
+  // fondo y la pausa tardaba (o la canción volvía en silencio, con el volumen en 0) desde la pantalla de bloqueo
+  const canSoftFade = () => settings.softPause && !IS_IOS && !dj.timer && !document.hidden;
 
   // Precarga la siguiente canción ~25 s antes para que empiece sin espera
   const preloader = { audio: null, id: null };
@@ -2739,7 +2742,11 @@
   // iPhone/iPad: iOS solo deja arrancar OTRO reproductor de audio dentro de un toque. Al pasar de canción
   // sola (fin de canción, transición DJ, pantalla bloqueada) el reproductor nuevo se quedaba en 0:00 sin
   // sonar y la pantalla de bloqueo seguía con la canción anterior terminada. Ahí se reutiliza el mismo.
-  const canSwitchDeck = () => !IS_IOS || (!document.hidden && navigator.userActivation?.isActive === true);
+  // v95: Firefox (Android) tampoco cambia de reproductor con la app escondida: al pasar la canción a otro
+  // reproductor en segundo plano, el sistema podía perder los controles de la pantalla de bloqueo
+  const canSwitchDeck = () => (IS_IOS
+    ? !document.hidden && navigator.userActivation?.isActive === true
+    : !(IS_GECKO && document.hidden));
 
   // Elige el reproductor para la siguiente canción (con o sin ecualizador) y, si toca, empieza la mezcla
   function prepareDeck(track, autoplay, fade) {
@@ -7943,6 +7950,14 @@
     } catch (error) {
       // AbortError: se cambió de canción antes de empezar a sonar; no es un fallo real.
       if (error.name === 'AbortError') return;
+      // v95: el navegador no dejó sonar. Antes la app seguía «queriendo sonar» y le decía a la pantalla de
+      // bloqueo que sonaba: el botón ▶/❚❚ quedaba al revés y parecía que los controles no funcionaban
+      if (error.name === 'NotAllowedError' && deck === els.audio && deck.paused) {
+        state.wantsPlay = false;
+        setPlayingUI(false);
+        syncPlaybackState(true);
+        if (document.hidden) errorLog.add('El sistema no dejó reproducir con la app en segundo plano', state.currentTrack?.id || '');
+      }
       // Con el ecualizador, un servidor sin CORS se resuelve solo (vuelve a sonar sin ecualizar)
       if (eqDecks.includes(deck) && error.name !== 'NotAllowedError') return;
       // Reanudación automática fallida (iOS no deja quitarle el audio a otra app): se reintenta al volver
@@ -9680,6 +9695,7 @@
         this.clear();
         return;
       }
+      errorLog.step('auto-reanudar');
       play({ quiet: true });
     },
     clear() {
@@ -9891,6 +9907,12 @@
         if (Number.isFinite(details.seekTime)) seekTo(details.seekTime);
       }
     };
+    // v95: cada toque de la pantalla de bloqueo queda en los pasos del informe de errores («🔒pause»…):
+    // si los controles «no hacen nada», el informe dice si el toque llegó a la app
+    Object.keys(handlers).forEach((action) => {
+      const run = handlers[action];
+      if (run) handlers[action] = (details) => { errorLog.step(`🔒${action}`); run(details); };
+    });
     mediaHandlers = handlers;
     applyMediaHandlers();
   }

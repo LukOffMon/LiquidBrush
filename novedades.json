@@ -1,6 +1,18 @@
 {
   "releases": [
     {
+      "version": "v95",
+      "date": "noviembre 2026",
+      "title": "Firefox: los controles de la pantalla bloqueada responden y la portada ya no traba la app",
+      "items": [
+        "Pantalla bloqueada: si el navegador no deja sonar una canción (pasa en Firefox con la app en segundo plano), el botón ya no queda al revés mostrando ❚❚ mientras está en pausa. Un toque en ▶ vuelve a funcionar.",
+        "Pausar desde la pantalla bloqueada o los auriculares para al instante (antes, con la app escondida, el fundido podía tardar o la canción volvía sin volumen).",
+        "En Firefox la canción ya no cambia de reproductor con la app en segundo plano: así el sistema no pierde los controles de la pantalla bloqueada.",
+        "El marco cromado que gira alrededor de la portada ahora lo mueve la tarjeta gráfica y se para cuando la portada no se ve: antes repintaba la pantalla en cada fotograma mientras sonaba y en Firefox trababa la app.",
+        "El informe de errores apunta los toques de la pantalla bloqueada y las reanudaciones automáticas: si algo falla, el informe dice exactamente qué pasó."
+      ]
+    },
+    {
       "version": "v94",
       "date": "noviembre 2026",
       "title": "Liquid va fluido en el celular, sin conexión sin sustos y ves en qué playlists está cada canción",
