@@ -633,7 +633,7 @@ test.describe('pantalla de bloqueo', () => {
     expect(info.mini).toContain(info.title.split(' (')[0].slice(0, 8));
     expect(info.art.length).toBe(1);
     const cover = await page.evaluate((id) => document.querySelector(`.track[data-id="${CSS.escape(id)}"] .track-cover`)?.getAttribute('src') || '', info.current);
-    const base = (src) => src.split('/').pop().replace(/-sm(?=\.)/, '');
+    const base = (src) => src.split('/').pop().replace(/-(sm|xs)(?=\.)/, '');
     expect(base(info.art[0])).toBe(base(cover));
     expect(info.state).toBe('playing');
   });
@@ -2328,5 +2328,102 @@ test.describe('v94: ¿en qué playlists está?', () => {
     await page.locator('.track', { hasText: song.title }).first().locator('.track-main').click();
     await expect(page.locator('#npIn')).toContainText(song.playlist);
     await expect(page.locator('#npIn')).toContainText('Mi lista 94');
+  });
+});
+
+test.describe('v95: Firefox y la pantalla de bloqueo', () => {
+  test.use({ serviceWorkers: 'block' });
+
+  const grabHandlers = () => {
+    window.__handlers = {};
+    const original = navigator.mediaSession.setActionHandler.bind(navigator.mediaSession);
+    navigator.mediaSession.setActionHandler = (action, handler) => {
+      window.__handlers[action] = handler;
+      return original(action, handler);
+    };
+  };
+
+  test('si el navegador no deja sonar, la pantalla de bloqueo no dice «sonando»', async ({ page }) => {
+    await page.addInitScript(grabHandlers);
+    const wav = silentWav();
+    await page.route(/r2\.dev/, (route) => route.fulfill({ status: 200, contentType: 'audio/wav', body: wav }));
+    await page.goto('./?view=library');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.locator('.track').nth(3).locator('.track-main').click();
+    await expect(page.locator('body')).toHaveClass(/is-playing/);
+    await page.evaluate(() => window.__handlers.pause());
+    await expect(page.locator('body')).not.toHaveClass(/is-playing/);
+    await expect.poll(() => page.evaluate(() => [...document.querySelectorAll('audio')].every((a) => a.paused))).toBe(true);
+    // A partir de aquí el navegador rechaza reproducir (como Firefox en segundo plano sin permiso)
+    await page.evaluate(() => {
+      HTMLMediaElement.prototype.play = function () { return Promise.reject(new DOMException('bloqueado', 'NotAllowedError')); };
+    });
+    // y la siguiente canción aún no ha llegado (red lenta): antes contaba como «cargando = sonando»
+    await page.unroute(/r2\.dev/);
+    await page.route(/r2\.dev/, () => { /* sin respuesta */ });
+    await page.evaluate(() => window.__handlers.nexttrack());
+    await page.waitForTimeout(600);
+    await page.evaluate(() => window.__handlers.play());
+    await page.waitForTimeout(600);
+    await expect.poll(() => page.evaluate(() => navigator.mediaSession.playbackState)).toBe('paused');
+    await expect(page.locator('body')).not.toHaveClass(/is-playing/);
+  });
+
+  test('pausar desde la pantalla de bloqueo con la app escondida pausa al momento (sin fundido)', async ({ page }) => {
+    await page.addInitScript(grabHandlers);
+    const wav = silentWav();
+    await page.route(/r2\.dev/, (route) => route.fulfill({ status: 200, contentType: 'audio/wav', body: wav }));
+    await page.goto('./?view=library');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.locator('.track').nth(3).locator('.track-main').click();
+    await expect(page.locator('body')).toHaveClass(/is-playing/);
+    const result = await page.evaluate(() => {
+      Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+      window.__handlers.pause();
+      const audio = [...document.querySelectorAll('audio')].find((a) => a.getAttribute('src'));
+      return { paused: audio.paused };
+    });
+    expect(result.paused).toBe(true);
+  });
+
+  test('el marco de la portada gira con transform (no repinta el degradado) y se para con Sonando cerrada', async ({ page }) => {
+    test.skip(page.viewportSize().width > 860, 'solo en el teléfono');
+    const wav = silentWav();
+    await page.route(/r2\.dev/, (route) => route.fulfill({ status: 200, contentType: 'audio/wav', body: wav }));
+    await page.goto('./?view=library');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.evaluate(() => { document.documentElement.dataset.theme = 'chrome'; });
+    await page.locator('.track').nth(3).locator('.track-main').click();
+    await expect(page.locator('body')).toHaveClass(/is-playing/);
+    const ring = () => page.evaluate(() => {
+      const s = getComputedStyle(document.querySelector('.now-playing .cover-wrap'), '::before');
+      return { name: s.animationName, state: s.animationPlayState };
+    });
+    expect(await ring()).toEqual({ name: 'spin', state: 'paused' });
+    await page.locator('.player-track').click();
+    await expect(page.locator('body')).toHaveClass(/np-open/);
+    expect(await ring()).toEqual({ name: 'spin', state: 'running' });
+  });
+});
+
+test.describe('v96: menos memoria en imágenes', () => {
+  test('las portadas se piden al tamaño en pantalla (-xs/-sm) y ninguna se ve borrosa', async ({ page }) => {
+    await page.goto('./?view=library');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.mouse.wheel(0, 1500);
+    await page.waitForTimeout(800);
+    const info = await page.evaluate(() => {
+      const imgs = [...document.images].filter((i) => i.complete && i.naturalWidth && /\/covers\//.test(i.src));
+      const dpr = Math.min(devicePixelRatio, 2);
+      return {
+        total: imgs.length,
+        small: imgs.filter((i) => /-(xs|sm)\.jpg$/.test(i.src)).length,
+        blurry: imgs.filter((i) => { const w = i.offsetWidth; return w > 0 && i.naturalWidth < w * dpr * 0.85; }).map((i) => i.src),
+        oversized: imgs.filter((i) => { const w = i.offsetWidth; return w > 0 && i.naturalWidth > Math.max(160, w * dpr * 2.2); }).map((i) => `${i.naturalWidth}px a ${i.offsetWidth}px`)
+      };
+    });
+    expect(info.total).toBeGreaterThan(10);
+    expect(info.blurry).toEqual([]);
+    expect(info.oversized).toEqual([]);
   });
 });
