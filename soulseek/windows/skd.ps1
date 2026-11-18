@@ -89,8 +89,9 @@ function Leer-Config {
 
 # YAML: comillas simples (la única que se escapa es la propia comilla)
 function Yaml([string]$v) { return "'" + $v.Replace("'", "''") + "'" }
-# Rutas para slskd con barras normales (valen en Windows y no hay que escaparlas)
-function RutaYaml([string]$p) { return Yaml ($p.Replace('\', '/')) }
+# Rutas para slskd tal cual, con «\»: con «C:/…» slskd rechaza cada descarga en Windows («Only absolute
+# paths may be specified»). En YAML entre comillas simples la «\» no se escapa.
+function RutaYaml([string]$p) { return Yaml ([IO.Path]::GetFullPath($p).TrimEnd('\')) }
 
 function Recargar-Path {
   $maquina = [Environment]::GetEnvironmentVariable('Path', 'Machine')
