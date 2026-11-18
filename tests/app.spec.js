@@ -2190,3 +2190,77 @@ test.describe('v91: «Continúa donde lo dejaste», compartir y playlists', () =
     expect((await page.locator('.toast').allTextContents()).join(' ')).not.toContain('Diseñador');
   });
 });
+
+test.describe('v92: el SKd de Liquid para quien tenga cuenta y la sección SKd de la Biblioteca', () => {
+  test.use({ serviceWorkers: 'block' });
+  const frame = Buffer.concat([Buffer.from([0xff, 0xfb, 0x90, 0x64]), Buffer.alloc(413)]);
+  const mp3 = Buffer.concat(Array.from({ length: 300 }, () => frame));
+  const filaSkd = (base, id, title, fijada = false) => ({
+    id, title, artist: 'Neón Sur', album: '', duration: '3:30', src: `${base}/cancion/${id}`, size: mp3.length,
+    skd: { fijada, enDisco: true, alta: 1, uso: 1 }
+  });
+
+  test('con cuenta (sin servidor propio) se ve la sección SKd, sin botones de gestión', async ({ page }) => {
+    const pases = [];
+    // El servicio de cuentas no se toca en el test
+    await page.route(/workers\.dev/, (route) => route.abort());
+    await page.route(/\.ts\.net/, async (route) => {
+      const url = new URL(route.request().url());
+      const cors = { 'Access-Control-Allow-Origin': '*' };
+      const pase = route.request().headers()['x-liquid-pase'];
+      if (url.pathname.startsWith('/cancion/')) return route.fulfill({ headers: { ...cors, 'Content-Type': 'audio/mpeg' }, body: mp3 });
+      pases.push(pase || '');
+      if (pase !== 'pase-de-prueba') return route.fulfill({ status: 401, headers: cors, json: { error: 'Inicia sesión' } });
+      if (url.pathname === '/api/lista.json') return route.fulfill({ headers: cors, json: [filaSkd(url.origin, 'a1b2c3d4e5f60718', 'Medianoche SKd')] });
+      return route.fulfill({ headers: cors, json: { ok: true, soulseek: true, canciones: 1, dueno: false, cupo: { dia: 5, restantes: 4 } } });
+    });
+    await page.addInitScript(() => {
+      localStorage.setItem('liquidbrush:cuenta', JSON.stringify({
+        pase: 'pase-de-prueba', renovacion: 'r', caducaPase: Math.floor(Date.now() / 1000) + 3600, caducaSesion: Math.floor(Date.now() / 1000) + 86400,
+        perfil: { correo: 'ana@ejemplo.org', nombre: 'Ana' }, ultimaSync: Date.now()
+      }));
+    });
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.evaluate(() => document.querySelector('.tab[data-view="library"]').click());
+    const chip = page.locator('#filterChips .chip[data-value="skd"]');
+    await expect(chip).toBeVisible({ timeout: 10000 });
+    await chip.click();
+    const fila = page.locator('#trackList .track', { hasText: 'Medianoche SKd' });
+    await expect(fila).toBeVisible();
+    await expect(page.locator('#trackList .track')).toHaveCount(1);
+    await expect(fila.locator('.skd-mark')).toHaveText('SKd');
+    // Gestionar (fijar / quitar) es solo para el dueño del servidor
+    await expect(fila.locator('.skd-admin')).toHaveCount(0);
+    expect(pases.every((p) => p === 'pase-de-prueba')).toBe(true);
+  });
+
+  test('el dueño (con su clave) decide en la sección SKd qué se queda en su PC', async ({ page }) => {
+    const CLAVE = 'clave-de-prueba-1234567890';
+    const fijadas = [];
+    await page.route(/skd\.example/, async (route) => {
+      const req = route.request();
+      const url = new URL(req.url());
+      const cors = { 'Access-Control-Allow-Origin': '*' };
+      const ok = req.headers().authorization === `Bearer ${CLAVE}` || url.searchParams.get('k') === CLAVE;
+      if (url.pathname.startsWith('/cancion/')) return route.fulfill({ headers: { ...cors, 'Content-Type': 'audio/mpeg' }, body: mp3 });
+      if (!ok) return route.fulfill({ status: 401, headers: cors, json: { error: 'Clave incorrecta' } });
+      if (url.pathname === '/api/lista.json') return route.fulfill({ headers: cors, json: [filaSkd('https://skd.example', '0123456789abcdef', 'Se Queda o Se Va', fijadas.length > 0)] });
+      if (url.pathname === '/api/admin/fijar') { fijadas.push(req.postDataJSON()); return route.fulfill({ headers: cors, json: { ok: true, fijada: true } }); }
+      return route.fulfill({ headers: cors, json: { ok: true, soulseek: true, canciones: 1, dueno: true } });
+    });
+    await page.addInitScript((clave) => { localStorage.setItem('liquidbrush:skd', JSON.stringify({ url: 'https://skd.example', clave })); }, CLAVE);
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.evaluate(() => document.querySelector('.tab[data-view="library"]').click());
+    await page.locator('#filterChips .chip[data-value="skd"]').click();
+    const fila = page.locator('#trackList .track', { hasText: 'Se Queda o Se Va' });
+    await expect(fila.locator('.skd-admin', { hasText: 'Fijar' })).toBeVisible();
+    await expect(fila.locator('.skd-quitar')).toBeVisible();
+    await fila.locator('.skd-admin', { hasText: 'Fijar' }).click();
+    await expect.poll(() => fijadas.length).toBe(1);
+    expect(fijadas[0]).toEqual({ id: '0123456789abcdef', fijar: true });
+    await expect(fila.locator('.skd-admin.is-active')).toHaveText('Se queda');
+    await expect(fila.locator('.skd-fijada')).toHaveText('Se queda');
+  });
+});

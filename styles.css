@@ -11167,3 +11167,26 @@ body.is-radio #lyricsBtn {
 #eqPreset {
   max-width: 64%;
 }
+
+/* =========================================================
+   v92: sección SKd de la Biblioteca. El dueño del servidor decide qué se queda en su PC y qué se va
+   ========================================================= */
+.track-actions .skd-admin {
+  min-height: 30px;
+  padding: 4px 10px;
+  font-size: 0.74rem;
+  white-space: nowrap;
+}
+.track-actions .skd-admin.is-active {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+.track-actions .skd-quitar {
+  color: #e07a7a;
+}
+.skd-fijada {
+  color: var(--accent);
+}
+@media (max-width: 520px) {
+  .track-actions .skd-admin { padding: 3px 7px; font-size: 0.68rem; }
+}
