@@ -5,6 +5,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { crearPuente } from './server.mjs';
 
 const CLAVE = 'clave-de-prueba-1234567890';
@@ -67,7 +68,7 @@ async function montar(extra = {}, previo = {}) {
   });
   await new Promise((ok) => fake.listen(0, ok));
   const { servidor, limpiar } = crearPuente({ SLSKD_URL: `http://127.0.0.1:${fake.address().port}`, SLSKD_API_KEY: 'api-key-falsa', LIQUID_CLAVE: CLAVE,
-    MUSICA_DIR: musica, DATOS_DIR: datos, PUBLICO: 'https://skd.example', PAUSA_MS: 10, ESPERA_BUSQUEDA_MS: 500, ...extra });
+    MUSICA_DIR: musica, DATOS_DIR: datos, PUBLICO: 'https://skd.example', PAUSA_MS: 10, ESPERA_BUSQUEDA_MS: 500, PORTADAS_ITUNES: '0', ...extra });
   await new Promise((ok) => servidor.listen(0, ok));
   const base = `http://127.0.0.1:${servidor.address().port}`;
   const api = (ruta, init = {}) => fetch(`${base}${ruta}`, { ...init, headers: { Authorization: `Bearer ${CLAVE}`, Origin: 'https://lukoffmon.github.io', ...(init.headers || {}) } });
@@ -83,7 +84,7 @@ test('sin clave no se entra; /salud sí', async () => {
     const ok = await m.api('/api/estado');
     assert.equal(ok.status, 200);
     assert.equal(ok.headers.get('access-control-allow-origin'), 'https://lukoffmon.github.io');
-    assert.deepEqual(await ok.json(), { ok: true, soulseek: true, canciones: 1, cache: { horas: 24, enDisco: 0 } });
+    assert.deepEqual(await ok.json(), { ok: true, soulseek: true, canciones: 1, dueno: true, publico: false, cache: { horas: 24, enDisco: 0 } });
   } finally { m.cerrar(); }
 });
 
@@ -291,5 +292,125 @@ test('si Soulseek tarda, /cancion avisa que sigue bajando y la descarga no se co
     await new Promise((ok) => setTimeout(ok, 50));
     const otra = await fetch(`${m.base}${ruta}`);
     assert.equal(otra.status, 200);
+  } finally { m.cerrar(); }
+});
+
+/* ---------- v3: SKd para quien tenga cuenta, cupos, gestión, orden en disco y portadas ---------- */
+const CUENTAS = { 'pase-ana': 'ana@ejemplo.org', 'pase-beto': 'Beto@Ejemplo.org' };
+const abierto = (extra = {}) => montar({ PUBLICO_ABIERTO: '1', verificarPase: async (p) => CUENTAS[p] || null, ...extra });
+const conPase = (m, pase) => (ruta, init = {}) => fetch(`${m.base}${ruta}`, { ...init, headers: { 'X-Liquid-Pase': pase, ...(init.headers || {}) } });
+// Un pedido inventado (otra canción de ana) en el formato de los resultados de búsqueda
+const pedidoFalso = (n) => Buffer.from(JSON.stringify({ c: [{ u: 'ana', f: `@@ana\\Otras\\Tema ${n}.mp3`, s: 5000000 }], t: `Tema ${n}`, a: 'Grupo' })).toString('base64url');
+
+test('sin cuenta no se usa SKd; con cuenta sí, y nunca se ve tu música propia', async () => {
+  const m = await abierto();
+  try {
+    assert.equal((await fetch(`${m.base}/salud`)).status, 200);
+    for (const ruta of ['/api/lista.json', '/api/buscar?q=neon', '/api/estado']) assert.equal((await fetch(`${m.base}${ruta}`)).status, 401, ruta);
+    assert.equal((await conPase(m, 'pase-falso')('/api/lista.json')).status, 401);
+    const ana = conPase(m, 'pase-ana');
+    assert.deepEqual(await (await ana('/api/lista.json')).json(), [], 'lo que pusiste a mano no sale');
+    const estado = await (await ana('/api/estado')).json();
+    assert.deepEqual(estado.cupo, { dia: 5, restantes: 5 });
+    assert.equal(estado.dueno, false);
+    // La gestión es solo con tu clave
+    assert.equal((await ana('/api/admin/disco')).status, 401);
+    assert.equal((await fetch(`${m.base}/musica/Discos/01%20-%20Banda%20-%20Ya%20Estaba.mp3`)).status, 401);
+  } finally { m.cerrar(); }
+});
+
+test('5 canciones nuevas al día por cuenta (la misma cuenta en otro dispositivo cuenta igual)', async () => {
+  const m = await abierto();
+  try {
+    const ana = conPase(m, 'pase-ana');
+    for (let n = 1; n <= 5; n++) {
+      const r = await ana('/api/pedir', { method: 'POST', headers: json, body: JSON.stringify({ id: pedidoFalso(n) }) });
+      assert.equal(r.status, 200, `pedido ${n}`);
+      assert.equal((await r.json()).cupo.restantes, 5 - n);
+    }
+    const sexta = await ana('/api/pedir', { method: 'POST', headers: json, body: JSON.stringify({ id: pedidoFalso(6) }) });
+    assert.equal(sexta.status, 429);
+    assert.match((await sexta.json()).error, /mañana/);
+    // Pedir otra vez una que ya se está bajando no gasta cupo
+    assert.equal((await ana('/api/pedir', { method: 'POST', headers: json, body: JSON.stringify({ id: pedidoFalso(1) }) })).status, 200);
+    // Otra cuenta tiene su propio cupo
+    const beto = conPase(m, 'pase-beto');
+    assert.equal((await beto('/api/pedir', { method: 'POST', headers: json, body: JSON.stringify({ id: pedidoFalso(7) }) })).status, 200);
+  } finally { m.cerrar(); }
+});
+
+test('al llegar se ordena en Artista/Álbum/Título y se le pone la portada que trae el archivo', async () => {
+  const m = await montar({ PORTADAS_ITUNES: '0' });
+  try {
+    const id = await pedirMedianoche(m);
+    // Una imagen JPEG falsa dentro de la etiqueta ID3 (APIC, portada delantera)
+    const img = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), crypto.randomBytes(2000)]);
+    const apic = Buffer.concat([Buffer.from([0]), Buffer.from('image/jpeg\0', 'latin1'), Buffer.from([3]), Buffer.from('\0', 'latin1'), img]);
+    const h = Buffer.alloc(10); h.write('APIC', 0, 'latin1'); h.writeUInt32BE(apic.length, 4);
+    const frames = Buffer.concat([h, apic]);
+    const cab = Buffer.from([0x49, 0x44, 0x33, 3, 0, 0, 0, 0, 0, 0]);
+    const n = frames.length; cab[6] = (n >> 21) & 127; cab[7] = (n >> 14) & 127; cab[8] = (n >> 7) & 127; cab[9] = n & 127;
+    terminarAna(m, Buffer.concat([cab, frames, mp3(300)]));
+    const { pedidos } = await (await m.api(`/api/pedidos?ids=${id}`)).json();
+    assert.equal(pedidos[0].estado, 'lista');
+    assert.ok(fs.existsSync(path.join(m.musica, 'Neón Sur', 'Neón Sur - Noche', 'Medianoche.mp3')), 'ordenada');
+    assert.ok(!fs.existsSync(path.join(m.musica, 'Neón Sur - Noche')), 'sin la carpeta vieja');
+    await new Promise((ok) => setTimeout(ok, 100));
+    const lista = await (await m.api('/api/lista.json')).json();
+    const cancion = lista.find((c) => c.title === 'Medianoche');
+    assert.match(cancion.cover, /\/portada\/[0-9a-f]{16}\?v=/);
+    const p = await fetch(`${m.base}${new URL(cancion.cover).pathname}`, { headers: { Authorization: `Bearer ${CLAVE}` } });
+    assert.equal(p.status, 200);
+    assert.equal(p.headers.get('content-type'), 'image/jpeg');
+    assert.ok(Buffer.from(await p.arrayBuffer()).equals(img));
+    // Y sigue sonando desde su sitio nuevo
+    assert.equal((await fetch(`${m.base}${new URL(cancion.src).pathname}${new URL(cancion.src).search}`)).status, 200);
+  } finally { m.cerrar(); }
+});
+
+test('sin portada en el archivo, se busca en iTunes', async () => {
+  const img = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff]), crypto.randomBytes(3000)]);
+  const itunes = http.createServer((req, res) => {
+    if (req.url.startsWith('/search')) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ results: [{ artistName: 'Neón Sur', artworkUrl100: `http://127.0.0.1:${itunes.address().port}/img/100x100bb.jpg` }] }));
+    }
+    if (req.url === '/img/600x600bb.jpg') { res.writeHead(200, { 'Content-Type': 'image/jpeg' }); return res.end(img); }
+    res.writeHead(404); res.end();
+  });
+  await new Promise((ok) => itunes.listen(0, ok));
+  const m = await montar({ PORTADAS_ITUNES: '1', ITUNES_URL: `http://127.0.0.1:${itunes.address().port}` });
+  try {
+    const id = await pedirMedianoche(m);
+    terminarAna(m);
+    await m.api(`/api/pedidos?ids=${id}`);
+    await new Promise((ok) => setTimeout(ok, 300));
+    const cancion = (await (await m.api('/api/lista.json')).json()).find((c) => c.title === 'Medianoche');
+    assert.ok(cancion.cover, 'tiene portada');
+    const p = await fetch(`${m.base}${new URL(cancion.cover).pathname}`, { headers: { Authorization: `Bearer ${CLAVE}` } });
+    assert.ok(Buffer.from(await p.arrayBuffer()).equals(img));
+  } finally { m.cerrar(); itunes.close(); }
+});
+
+test('tú decides: lo fijado se queda; quitar la borra para todos; y el tope de disco respeta lo fijado', async () => {
+  const m = await montar({ DISCO_MAX_GB: String(1 / 1024 / 1024 / 1024), PORTADAS_ITUNES: '0' }); // tope de 1 byte
+  try {
+    const id = await pedirMedianoche(m);
+    terminarAna(m);
+    await m.api(`/api/pedidos?ids=${id}`);
+    const recId = Object.keys(JSON.parse(fs.readFileSync(path.join(m.datos, 'memoria.json'), 'utf8')))[0];
+    const admin = (ruta, cuerpo) => m.api(`/api/admin/${ruta}`, { method: 'POST', headers: json, body: JSON.stringify(cuerpo) });
+    assert.equal((await admin('fijar', { id: recId, fijar: true })).status, 200);
+    let r = await m.limpiar(Date.now() + 48 * 3600000);
+    assert.equal(r.borradas, 0, 'fijada: ni las 24 h ni el tope la borran');
+    assert.ok((await (await m.api('/api/lista.json')).json()).find((c) => c.id === recId).skd.fijada);
+    await admin('fijar', { id: recId, fijar: false });
+    r = await m.limpiar(Date.now());
+    assert.equal(r.borradas, 1, 'sin fijar y sobre el tope: se borra aunque no hayan pasado 24 h');
+    assert.ok(fs.existsSync(path.join(m.musica, 'Discos', '01 - Banda - Ya Estaba.mp3')), 'lo propio nunca');
+    assert.equal((await admin('quitar', { id: recId })).status, 200);
+    const lista = await (await m.api('/api/lista.json')).json();
+    assert.ok(!lista.some((c) => c.id === recId), 'quitada: ya no está para nadie');
+    assert.equal((await (await m.api('/api/admin/disco')).json()).enDisco, 0);
   } finally { m.cerrar(); }
 });
