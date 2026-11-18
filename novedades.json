@@ -1,6 +1,16 @@
 {
   "releases": [
     {
+      "version": "v93",
+      "date": "noviembre 2026",
+      "title": "SKd para todos los que tengan cuenta, con su propia sección en la Biblioteca",
+      "items": [
+        "Con tu cuenta de Liquid ya puedes buscar y pedir canciones de Soulseek (SKd) sin configurar nada: 5 canciones nuevas al día. Sin cuenta, SKd no está disponible.",
+        "En la Biblioteca hay un filtro nuevo, «SKd», con todo lo que hay en el servidor de SKd.",
+        "Las canciones de SKd llegan con su portada y ordenadas por artista y álbum."
+      ]
+    },
+    {
       "version": "v92",
       "date": "noviembre 2026",
       "title": "Con la transparencia del sistema apagada, la guía y las ventanas vuelven a leerse",
