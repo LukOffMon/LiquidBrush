@@ -10,6 +10,8 @@ import {
 } from './correo.js';
 // v98: Liquid Connect y Jam
 export { Sala } from './sala.js';
+// v98: passkeys
+import { nuevoReto, verificarAlta, verificarEntrada } from './passkeys.js';
 
 const VERSION = '1.3.0';
 const MIN = 60;
@@ -798,6 +800,96 @@ async function entrarSala(env, request, tipo, codigo, url) {
   return stub.fetch(new Request('https://sala/entrar', { headers: cabeceras }));
 }
 
+/* ---------- v98: passkeys (entrar con huella, cara o PIN; src/passkeys.js) ---------- */
+const PASSKEYS_POR_PERSONA = 10;
+const origenPasskey = (env) => (origen) => Boolean(origenPermitido(env, origen));
+const rpDe = (env, request) => {
+  const origen = origenPermitido(env, request.headers.get('Origin'));
+  if (!origen) throw new ErrorApi('origen', 403);
+  return new URL(origen).hostname;
+};
+
+async function passkeyOpcionesAlta(env, request) {
+  const { usuario } = await autenticar(env, request);
+  const u = await env.DB.prepare('SELECT correo, nombre FROM usuarios WHERE id = ?1').bind(usuario).first();
+  const { results } = await env.DB.prepare('SELECT id FROM passkeys WHERE usuario = ?1').bind(usuario).all();
+  if (results.length >= PASSKEYS_POR_PERSONA) throw new ErrorApi('demasiadas', 429);
+  const { reto, token } = await nuevoReto(env, 'alta', { u: aB64url(usuario) });
+  return json(env, request, {
+    ok: true, token,
+    opciones: {
+      challenge: reto,
+      rp: { id: rpDe(env, request), name: 'Liquid Bullet' },
+      user: { id: aB64url(usuario), name: u.correo, displayName: u.nombre || u.correo },
+      pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
+      authenticatorSelection: { residentKey: 'required', requireResidentKey: true, userVerification: 'preferred' },
+      excludeCredentials: results.map((r) => ({ type: 'public-key', id: aB64url(new Uint8Array(r.id)) })),
+      attestation: 'none',
+      timeout: 120000
+    }
+  });
+}
+
+async function passkeyAlta(env, request) {
+  const { usuario } = await autenticar(env, request);
+  const b = await cuerpo(request);
+  let r;
+  try { r = await verificarAlta(env, b, origenPasskey(env)); } catch { throw new ErrorApi('passkey_no_valida'); }
+  if (r.usuario !== aB64url(usuario)) throw new ErrorApi('passkey_no_valida');
+  const t = ahora();
+  const nombre = nombreDispositivo(request, b.nombre);
+  await env.DB.batch([
+    env.DB.prepare('INSERT INTO passkeys (id, usuario, clave_publica, contador, nombre, creada) VALUES (?1, ?2, ?3, ?4, ?5, ?6)')
+      .bind(r.credId, usuario, r.cose, r.contador, nombre, t),
+    actividad(env, usuario, 'passkey', nombre)
+  ]);
+  return json(env, request, { ok: true, passkey: { id: aB64url(r.credId), nombre, creada: t } }, 201);
+}
+
+async function passkeyOpcionesEntrar(env, request) {
+  await frenoIp(env, request, 'passkey');
+  const { reto, token } = await nuevoReto(env, 'entrar');
+  return json(env, request, { ok: true, token, opciones: { challenge: reto, rpId: rpDe(env, request), userVerification: 'preferred', timeout: 120000 } });
+}
+
+async function passkeyEntrar(env, request) {
+  await frenoIp(env, request, 'passkey');
+  const b = await cuerpo(request);
+  let id;
+  try { id = deB64url(b.id); } catch { throw new ErrorApi('passkey_no_valida', 401); }
+  const guardada = await env.DB.prepare('SELECT id, usuario, clave_publica, contador FROM passkeys WHERE id = ?1').bind(id).first();
+  if (!guardada) throw new ErrorApi('passkey_desconocida', 401);
+  // La passkey guarda el id del usuario: si viene, tiene que ser el suyo
+  if (b.userHandle && b.userHandle !== aB64url(new Uint8Array(guardada.usuario))) throw new ErrorApi('passkey_no_valida', 401);
+  let r;
+  try { r = await verificarEntrada(env, b, guardada, origenPasskey(env)); } catch { throw new ErrorApi('passkey_no_valida', 401); }
+  const usuarioId = new Uint8Array(guardada.usuario);
+  const u = await env.DB.prepare('SELECT id, correo, nombre, avatar, creado, borrar_el FROM usuarios WHERE id = ?1').bind(usuarioId).first();
+  if (!u) throw new ErrorApi('passkey_desconocida', 401);
+  const dispositivo = nombreDispositivo(request, b.dispositivo);
+  const { sentencia, sesion } = await crearSesion(env, request, usuarioId, b.dispositivo);
+  const lote = [
+    sentencia,
+    env.DB.prepare('UPDATE passkeys SET contador = ?1, usada = ?2 WHERE id = ?3').bind(r.contador, ahora(), id),
+    actividad(env, usuarioId, 'entrada', dispositivo)
+  ];
+  if (u.borrar_el) lote.push(env.DB.prepare('UPDATE usuarios SET borrar_el = NULL WHERE id = ?1').bind(usuarioId));
+  await env.DB.batch(lote);
+  return json(env, request, { ok: true, sesion, perfil: perfil({ ...u, borrar_el: null }), borradoCancelado: Boolean(u.borrar_el) });
+}
+
+async function passkeysLista(env, request, idTexto) {
+  const { usuario } = await autenticar(env, request);
+  if (request.method === 'DELETE') {
+    let id;
+    try { id = deB64url(idTexto); } catch { throw new ErrorApi('no_encontrado', 404); }
+    await env.DB.prepare('DELETE FROM passkeys WHERE id = ?1 AND usuario = ?2').bind(id, usuario).run();
+    return json(env, request, { ok: true });
+  }
+  const { results } = await env.DB.prepare('SELECT id, nombre, creada, usada FROM passkeys WHERE usuario = ?1 ORDER BY creada DESC').bind(usuario).all();
+  return json(env, request, { ok: true, passkeys: results.map((p) => ({ id: aB64url(new Uint8Array(p.id)), nombre: p.nombre, creada: p.creada, usada: p.usada })) });
+}
+
 /* ---------- Limpieza diaria (Cron) ---------- */
 async function borrarArchivos(env, id) {
   const prefijo = `cuentas/${aB64url(new Uint8Array(id))}/`;
@@ -876,6 +968,14 @@ export default {
       if (ruta === '/blends' && (m === 'GET' || m === 'POST')) return await blends(env, request);
       const bl = ruta.match(/^\/blends\/([\w-]+)(?:\/(unirse|gusto))?$/);
       if (bl) return await blend(env, request, bl[1], bl[2] || '');
+      // v98: passkeys
+      if (ruta === '/passkeys/alta/opciones' && m === 'POST') return await passkeyOpcionesAlta(env, request);
+      if (ruta === '/passkeys/alta' && m === 'POST') return await passkeyAlta(env, request);
+      if (ruta === '/passkeys/entrar/opciones' && m === 'POST') return await passkeyOpcionesEntrar(env, request);
+      if (ruta === '/passkeys/entrar' && m === 'POST') return await passkeyEntrar(env, request);
+      if (ruta === '/passkeys' && m === 'GET') return await passkeysLista(env, request);
+      const pk = ruta.match(/^\/passkeys\/([\w-]+)$/);
+      if (pk && m === 'DELETE') return await passkeysLista(env, request, pk[1]);
       // v98: Liquid Connect y Jam
       if (ruta === '/jam' && m === 'POST') return await crearJam(env, request);
       const sala = ruta.match(/^\/salas\/(cuenta|jam)(?:\/(\w+))?$/);

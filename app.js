@@ -11599,6 +11599,69 @@
     /* ---------- Contraseña: se estira en el dispositivo ---------- */
     const te = new TextEncoder();
     const b64url = (bytes) => btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    const deB64url = (texto) => {
+      const s = String(texto).replace(/-/g, '+').replace(/_/g, '/');
+      return Uint8Array.from(atob(s + '='.repeat((4 - (s.length % 4)) % 4)), (c) => c.charCodeAt(0));
+    };
+
+    /* ---------- v98: passkeys (huella, cara o PIN del dispositivo; sin contraseña) ---------- */
+    // Con navegador que las admita, en un dominio (no una IP) y con el servidor de cuentas 1.3.0 o más
+    const passkeysPosibles = () => {
+      if (typeof window.PublicKeyCredential !== 'function' || !navigator.credentials?.create || /^\d+\.\d+\.\d+\.\d+$/.test(location.hostname)) return false;
+      const [a = 0, b = 0] = String(storage.get('liquidbrush:cuentas-version', null)?.v || '').split('.').map(Number);
+      return a > 1 || (a === 1 && b >= 3);
+    };
+
+    async function entrarConPasskey() {
+      const o = await api('/passkeys/entrar/opciones', { cuerpo: {} });
+      let cred;
+      try {
+        cred = await navigator.credentials.get({ publicKey: { ...o.opciones, challenge: deB64url(o.opciones.challenge) } });
+      } catch (e) {
+        throw new ErrorCuenta(e?.name === 'NotAllowedError' ? 'passkey_cancelada' : 'passkey_no_valida');
+      }
+      if (!cred) throw new ErrorCuenta('passkey_cancelada');
+      const r = cred.response;
+      return api('/passkeys/entrar', {
+        cuerpo: {
+          token: o.token, id: cred.id, clientDataJSON: b64url(r.clientDataJSON), authenticatorData: b64url(r.authenticatorData),
+          signature: b64url(r.signature), userHandle: r.userHandle ? b64url(r.userHandle) : null, dispositivo: storage.get(K.dispositivo, null)
+        }
+      });
+    }
+
+    async function crearPasskey() {
+      const o = await api('/passkeys/alta/opciones', { cuerpo: {}, auth: true });
+      const pk = o.opciones;
+      let cred;
+      try {
+        cred = await navigator.credentials.create({
+          publicKey: {
+            ...pk, challenge: deB64url(pk.challenge), user: { ...pk.user, id: deB64url(pk.user.id) },
+            excludeCredentials: (pk.excludeCredentials || []).map((c) => ({ ...c, id: deB64url(c.id) }))
+          }
+        });
+      } catch (e) {
+        throw new ErrorCuenta(e?.name === 'InvalidStateError' ? 'passkey_ya_existe' : e?.name === 'NotAllowedError' ? 'passkey_cancelada' : 'passkey_no_valida');
+      }
+      return api('/passkeys/alta', {
+        auth: true,
+        cuerpo: { token: o.token, clientDataJSON: b64url(cred.response.clientDataJSON), attestationObject: b64url(cred.response.attestationObject) }
+      });
+    }
+
+    async function cargarPasskeys() {
+      const lista = ui.body?.querySelector('.cuenta-passkeys');
+      if (!lista) return;
+      try {
+        const d = await api('/passkeys', { metodo: 'GET', auth: true });
+        lista.innerHTML = d.passkeys.length
+          ? d.passkeys.map((p) => `<li class="cuenta-disp"><span>${ico('lock')} <b>${esc(p.nombre || 'Passkey')}</b> · ${p.usada ? `usada hace ${tiempoDesde(p.usada)}` : `creada hace ${tiempoDesde(p.creada)}`}</span><button type="button" class="btn btn-ghost" data-cuenta="passkey-borrar" data-id="${esc(p.id)}">Borrar</button></li>`).join('')
+          : '<li class="cuenta-texto">Aún no tienes ninguna. Crea una en este dispositivo y la próxima vez entras con la huella, la cara o el PIN.</li>';
+      } catch (e) {
+        lista.innerHTML = `<li class="cuenta-texto">${esc(mensaje(e))}</li>`;
+      }
+    }
 
     async function claveCliente(correo, contrasena) {
       const sal = await crypto.subtle.digest('SHA-256', te.encode(`liquidbullet:v1:${correo.trim().toLowerCase()}`));
@@ -11681,6 +11744,13 @@
 
     /* ---------- Textos ---------- */
     const ERRORES = {
+      // v98: passkeys
+      passkey_no_valida: 'Esa passkey no sirvió. Prueba otra vez o entra con tu correo y contraseña.',
+      passkey_desconocida: 'Esa passkey ya no está en tu cuenta (¿la borraste?). Entra con tu correo y contraseña.',
+      passkey_cancelada: 'Se canceló la passkey. Puedes intentarlo otra vez o entrar con tu correo y contraseña.',
+      passkey_ya_existe: 'Este dispositivo ya tiene una passkey de tu cuenta.',
+      demasiadas: 'Ya tienes el máximo de passkeys (10): borra alguna que no uses.',
+      origen: 'Las passkeys solo funcionan desde la web de Liquid.',
       credenciales: 'Correo o contraseña incorrectos.',
       demasiados_intentos: 'Demasiados intentos. Prueba en unos minutos o recupera tu contraseña.',
       demasiados_envios: 'Ya pediste varios códigos. Espera un rato y vuelve a intentarlo.',
@@ -11899,6 +11969,7 @@
           <div class="cuenta-robot"></div>
           ${errorBox}
           ${botonPrincipal('Entrar', 'enviar')}
+          ${passkeysPosibles() ? `<button type="button" class="btn cuenta-passkey" data-cuenta="passkey-entrar">${ico('lock')} Entrar con passkey (huella, cara o PIN)</button>` : ''}
           <p class="cuenta-aviso">${ico('mail')} ¿Creaste la cuenta y nunca te llegó el código, o vas a recuperar la contraseña? Los correos salen de <b>${CORREO_REMITENTE}</b> y <b>pueden llegar a Spam o Promociones</b>: revisa ahí antes de pedir otro.</p>
           <div class="cuenta-fila">
             <button type="button" class="btn btn-ghost cuenta-link" data-cuenta="ir" data-ir="recuperar">¿Olvidaste tu contraseña?</button>
@@ -11996,6 +12067,12 @@
             <button type="submit" class="btn" data-cuenta="enviar">Guardar perfil</button>
           </form>
         </section>
+        ${passkeysPosibles() ? `<section class="cuenta-bloque">
+          <h4>Passkeys</h4>
+          <p class="cuenta-texto">Entra sin contraseña con la huella, la cara o el PIN de tu dispositivo. Nadie más puede usarla: la llave nunca sale de tu teléfono.</p>
+          <ul class="cuenta-dispositivos cuenta-passkeys"><li class="cuenta-texto">Cargando…</li></ul>
+          <button type="button" class="btn" data-cuenta="passkey-crear">${ico('lock')} Crear una passkey en este dispositivo</button>
+        </section>` : ''}
         <section class="cuenta-bloque">
           <h4>Dispositivos conectados</h4>
           <ul class="cuenta-dispositivos"><li class="cuenta-texto">Cargando…</li></ul>
@@ -12005,7 +12082,7 @@
           <label class="cuenta-check"><input type="checkbox" class="cuenta-borrar-local"> <span>Borrar también lo guardado en este dispositivo (útil en un teléfono prestado)</span></label>
           <button type="button" class="btn cuenta-salir" data-cuenta="salir">Cerrar sesión</button>
         </section>
-        <p class="cuenta-pie">Cambiar correo, huella / Face ID y borrar la cuenta llegan en las próximas versiones.</p>`;
+        <p class="cuenta-pie">Cambiar correo y borrar la cuenta llegan en las próximas versiones.</p>`;
       }
     };
 
@@ -12149,6 +12226,7 @@
       unir: () => {},
       cuenta: () => {
         cargarDispositivos();
+        cargarPasskeys();
         ui.datos.avatarNuevo = null;
       }
     };
@@ -12367,6 +12445,32 @@
             await api(`/yo/dispositivos/${target.dataset.id}`, { metodo: 'DELETE', auth: true });
             target.closest('li')?.remove();
             showToast('Sesión cerrada en ese dispositivo.');
+          } catch (e) { showToast(mensaje(e)); }
+          break;
+        case 'passkey-entrar':
+          target.disabled = true;
+          try {
+            const d = await entrarConPasskey();
+            await iniciado(d);
+          } catch (e) {
+            const form = ui.body.querySelector('form');
+            if (form) errorEn(form, e); else showToast(mensaje(e));
+          } finally { target.disabled = false; }
+          break;
+        case 'passkey-crear':
+          target.disabled = true;
+          try {
+            await crearPasskey();
+            showToast('Passkey creada: la próxima vez entra con «Entrar con passkey».');
+            cargarPasskeys();
+          } catch (e) { showToast(mensaje(e)); } finally { target.disabled = false; }
+          break;
+        case 'passkey-borrar':
+          if (!confirm('¿Borrar esta passkey? Ese dispositivo ya no podrá entrar sin contraseña.')) break;
+          try {
+            await api(`/passkeys/${target.dataset.id}`, { metodo: 'DELETE', auth: true });
+            cargarPasskeys();
+            showToast('Passkey borrada.');
           } catch (e) { showToast(mensaje(e)); }
           break;
         case 'salir-todo':

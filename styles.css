@@ -11141,3 +11141,11 @@ body.is-radio #lyricsBtn {
 .jam-box { display: grid; gap: 10px; }
 .jam-code { margin: 0; font: 800 1.4rem/1 var(--song-font); letter-spacing: 0.12em; color: var(--accent); font-variant-numeric: tabular-nums; }
 .jam-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* v98: entrar con passkey */
+.cuenta-passkey {
+  width: 100%;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 10px;
+}
