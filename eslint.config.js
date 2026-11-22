@@ -3,6 +3,13 @@ import js from '@eslint/js';
 import globals from 'globals';
 
 export default [
+  // Lo que genera wrangler dev en local y los .min (tools/minify.mjs) no son código que se edite
+  { ignores: ['cuentas/.wrangler/**', 'cuentas/node_modules/**', '*.min.js'] },
+  {
+    // Herramientas en Node (tools/*.mjs)
+    files: ['tools/**/*.mjs'],
+    languageOptions: { ecmaVersion: 2023, sourceType: 'module', globals: { ...globals.node } }
+  },
   js.configs.recommended,
   {
     files: ['app.js'],
@@ -20,6 +27,11 @@ export default [
     // Worker de cuentas (Cloudflare Workers: módulos ES con APIs web)
     files: ['cuentas/src/**/*.js'],
     languageOptions: { ecmaVersion: 2023, sourceType: 'module', globals: { ...globals.serviceworker } }
+  },
+  {
+    // Pruebas del Worker contra wrangler dev (Node)
+    files: ['cuentas/test/**/*.mjs'],
+    languageOptions: { ecmaVersion: 2023, sourceType: 'module', globals: { ...globals.node } }
   },
   {
     files: ['tests/**/*.js', 'playwright.config.js'],

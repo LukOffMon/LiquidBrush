@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "v98",
+      "date": "noviembre 2026",
+      "title": "Liquid Connect, Jam, passkeys, playlists colaborativas, Blend, DJ con voz y una app más ligera",
+      "items": [
+        "Nuevo: Liquid Connect. Con tu cuenta abierta en varios dispositivos, el botón «Dispositivos y Jam» del reproductor te los enseña con lo que suena en cada uno: pausa o salta en otro, «Escuchar aquí» trae su canción al segundo exacto y «Pasar allí» manda la tuya.",
+        "Nuevo: Jam. «Empezar un Jam» te da un código y un enlace; quien entra con su cuenta escucha lo mismo que tú, a la vez y en su propio teléfono, y lo que pone «a continuación» o «al final de la cola» llega a tu cola.",
+        "Nuevo: passkeys. En Tu cuenta → Passkeys crea una en tu teléfono o tu ordenador y entra con la huella, la cara o el PIN, sin escribir correo ni contraseña.",
+        "Liquid pesa casi la mitad: la app se descarga ya comprimida (839 → 445 KB de código), así abre antes con datos móviles.",
+        "Nuevo: aleatorio con sorpresas. Toca aleatorio otra vez y, cada 3 canciones, entra una que no está en la lista, de artistas parecidos. En «A continuación» llevan la marca «Sorpresa».",
+        "Nuevo: busca con la voz. Toca el micrófono del buscador y di una canción o un artista (en Chrome, Edge, Samsung Internet y Safari).",
+        "Nuevo: playlists colaborativas. En una playlist tuya toca «Colaborar» y manda el enlace: quien lo abra (con su cuenta) la tendrá en «Mis playlists» y lo que añada cualquiera lo veréis todos.",
+        "Nuevo: Blend. En Playlists toca «Blend» y manda el enlace: Liquid mezcla tus gustos con los de la otra persona (lo que os gusta a los dos primero) y la mezcla cambia cada día.",
+        "Fuera el fondo de pantalla: las imágenes a pantalla completa, sus partículas y su botón. La app abre antes, gasta menos batería y el desplazamiento va más fino.",
+        "Nuevo: DJ con voz (Ajustes → Sonido). Cada pocas canciones una voz te presenta la que empieza: tus favoritas, lo nuevo para ti, las sorpresas. La música baja mientras habla.",
+        "Nuevo: compartir verso. Debajo de la letra, «Compartir verso» crea una tarjeta con la línea que suena, lista para tus Historias o Estados."
+      ]
+    },
+    {
       "version": "v97",
       "date": "noviembre 2026",
       "title": "Todas las canciones al mismo volumen, letra más legible y adiós a SKd",

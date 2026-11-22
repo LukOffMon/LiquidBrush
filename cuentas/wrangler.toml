@@ -16,6 +16,15 @@ migrations_dir = "migrations"
 binding = "DATOS"
 bucket_name = "liquid-cuentas"
 
+# v98: Liquid Connect y Jam (src/sala.js). Durable Objects con SQLite: entran en el plan gratuito
+[[durable_objects.bindings]]
+name = "SALAS"
+class_name = "Sala"
+
+[[migrations]]
+tag = "v1-salas"
+new_sqlite_classes = ["Sala"]
+
 # Freno por IP y ruta (20 peticiones por minuto)
 [[ratelimits]]
 name = "LIMITE"

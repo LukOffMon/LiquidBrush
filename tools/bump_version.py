@@ -11,6 +11,7 @@ import base64
 import hashlib
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -58,10 +59,13 @@ def bump(text, name):
 
 
 def main():
+    # v98: la página carga las versiones minificadas; se regeneran desde app.js y styles.css
+    if '--csp' not in sys.argv:
+        subprocess.run(['node', str(ROOT / 'tools' / 'minify.mjs')], check=True)
     html = INDEX.read_text(encoding='utf-8')
     if '--csp' not in sys.argv:
         sw = SW.read_text(encoding='utf-8')
-        for name in ('styles.css', 'app.js'):
+        for name in ('styles.min.css', 'app.min.js'):
             html = bump(html, name)
             sw = bump(sw, name)
         sw = re.sub(r"const VERSION = 'v(\d+)'", lambda m: f"const VERSION = 'v{int(m.group(1)) + 1}'", sw)

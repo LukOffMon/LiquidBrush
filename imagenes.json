@@ -18,17 +18,11 @@
    "size": "600 × 600 px + versión -sm de 320 px",
    "use": "Solo como icono de su canción: cada canción usa el suyo y se reparten por igual entre todas las canciones. Nunca para otra cosa."
   },
-  "fondo": {
-   "name": "Fondos de pantalla",
-   "folder": "wallpapers/",
-   "size": "vertical, ~1600 px de alto",
-   "use": "Fondo de la app (Ajustes → Fondo). Se puede reutilizar: collage de bienvenida de la cuenta, decoración."
-  },
-  "icono-fondo": {
-   "name": "Iconos de fondo",
+  "mini-icono": {
+   "name": "Mini iconos",
    "folder": "wallpapers/icons/",
-   "size": "cuadrado + -thumb",
-   "use": "Botón para cambiar de fondo y selector. Se puede reutilizar: icono de playlists propias, collage de bienvenida. No como avatar: eso es solo de las fotos de perfil."
+   "size": "cuadrado",
+   "use": "Pegatinas junto a los títulos, iconos de playlists propias («art:NN») y collage de bienvenida de la cuenta. No como avatar: eso es solo de las fotos de perfil."
   },
   "avatar": {
    "name": "Fotos de perfil",
@@ -1001,259 +995,131 @@
    "notes": ""
   },
   {
-   "file": "wallpapers/01.jpg",
-   "small": null,
-   "type": "fondo",
-   "label": "Girasoles que miran",
-   "usage": "Fondo de pantalla",
-   "notes": ""
-  },
-  {
-   "file": "wallpapers/02.jpg",
-   "small": null,
-   "type": "fondo",
-   "label": "El reloj que sueña",
-   "usage": "Fondo de pantalla",
-   "notes": ""
-  },
-  {
-   "file": "wallpapers/03.jpg",
-   "small": null,
-   "type": "fondo",
-   "label": "Atrapamoscas",
-   "usage": "Fondo de pantalla",
-   "notes": ""
-  },
-  {
-   "file": "wallpapers/04.jpg",
-   "small": null,
-   "type": "fondo",
-   "label": "Sol de un ojo",
-   "usage": "Fondo de pantalla",
-   "notes": ""
-  },
-  {
-   "file": "wallpapers/05.jpg",
-   "small": null,
-   "type": "fondo",
-   "label": "Rostro derretido",
-   "usage": "Fondo de pantalla",
-   "notes": ""
-  },
-  {
-   "file": "wallpapers/06.jpg",
-   "small": null,
-   "type": "fondo",
-   "label": "Lluvia de ojos",
-   "usage": "Fondo de pantalla",
-   "notes": ""
-  },
-  {
-   "file": "wallpapers/07.jpg",
-   "small": null,
-   "type": "fondo",
-   "label": "La corte lunar",
-   "usage": "Fondo de pantalla",
-   "notes": ""
-  },
-  {
-   "file": "wallpapers/08.jpg",
-   "small": null,
-   "type": "fondo",
-   "label": "El caballero azul",
-   "usage": "Fondo de pantalla",
-   "notes": ""
-  },
-  {
-   "file": "wallpapers/09.jpg",
-   "small": null,
-   "type": "fondo",
-   "label": "Desierto de manos",
-   "usage": "Fondo de pantalla",
-   "notes": ""
-  },
-  {
-   "file": "wallpapers/10.jpg",
-   "small": null,
-   "type": "fondo",
-   "label": "Cuerpo rojo",
-   "usage": "Fondo de pantalla",
-   "notes": ""
-  },
-  {
-   "file": "wallpapers/11.jpg",
-   "small": null,
-   "type": "fondo",
-   "label": "Sala de cirugía",
-   "usage": "Fondo de pantalla",
-   "notes": ""
-  },
-  {
-   "file": "wallpapers/12.jpg",
-   "small": null,
-   "type": "fondo",
-   "label": "Hombre luna",
-   "usage": "Fondo de pantalla",
-   "notes": ""
-  },
-  {
-   "file": "wallpapers/13.jpg",
-   "small": null,
-   "type": "fondo",
-   "label": "Cubos que observan",
-   "usage": "Fondo de pantalla",
-   "notes": ""
-  },
-  {
-   "file": "wallpapers/14.jpg",
-   "small": null,
-   "type": "fondo",
-   "label": "Lluvia de señores",
-   "usage": "Fondo de pantalla",
-   "notes": ""
-  },
-  {
-   "file": "wallpapers/15.jpg",
-   "small": null,
-   "type": "fondo",
-   "label": "El ojo entre manos",
-   "usage": "Fondo de pantalla",
-   "notes": ""
-  },
-  {
-   "file": "wallpapers/16.jpg",
-   "small": null,
-   "type": "fondo",
-   "label": "Ajedrez de gotas",
-   "usage": "Fondo de pantalla",
-   "notes": ""
-  },
-  {
    "file": "wallpapers/icons/01.jpg",
-   "small": "wallpapers/icons/01-thumb.jpg",
-   "type": "icono-fondo",
+   "small": null,
+   "type": "mini-icono",
    "label": "Girasoles que miran",
-   "usage": "Botón del fondo 01",
+   "usage": "Pegatinas, iconos de playlist y collage de la cuenta",
    "notes": ""
   },
   {
    "file": "wallpapers/icons/02.jpg",
-   "small": "wallpapers/icons/02-thumb.jpg",
-   "type": "icono-fondo",
+   "small": null,
+   "type": "mini-icono",
    "label": "El reloj que sueña",
-   "usage": "Botón del fondo 02",
+   "usage": "Pegatinas, iconos de playlist y collage de la cuenta",
    "notes": ""
   },
   {
    "file": "wallpapers/icons/03.jpg",
-   "small": "wallpapers/icons/03-thumb.jpg",
-   "type": "icono-fondo",
+   "small": null,
+   "type": "mini-icono",
    "label": "Atrapamoscas",
-   "usage": "Botón del fondo 03",
+   "usage": "Pegatinas, iconos de playlist y collage de la cuenta",
    "notes": ""
   },
   {
    "file": "wallpapers/icons/04.jpg",
-   "small": "wallpapers/icons/04-thumb.jpg",
-   "type": "icono-fondo",
+   "small": null,
+   "type": "mini-icono",
    "label": "Sol de un ojo",
-   "usage": "Botón del fondo 04",
+   "usage": "Pegatinas, iconos de playlist y collage de la cuenta",
    "notes": ""
   },
   {
    "file": "wallpapers/icons/05.jpg",
-   "small": "wallpapers/icons/05-thumb.jpg",
-   "type": "icono-fondo",
+   "small": null,
+   "type": "mini-icono",
    "label": "Rostro derretido",
-   "usage": "Botón del fondo 05",
+   "usage": "Pegatinas, iconos de playlist y collage de la cuenta",
    "notes": ""
   },
   {
    "file": "wallpapers/icons/06.jpg",
-   "small": "wallpapers/icons/06-thumb.jpg",
-   "type": "icono-fondo",
+   "small": null,
+   "type": "mini-icono",
    "label": "Lluvia de ojos",
-   "usage": "Botón del fondo 06",
+   "usage": "Pegatinas, iconos de playlist y collage de la cuenta",
    "notes": ""
   },
   {
    "file": "wallpapers/icons/07.jpg",
-   "small": "wallpapers/icons/07-thumb.jpg",
-   "type": "icono-fondo",
+   "small": null,
+   "type": "mini-icono",
    "label": "La corte lunar",
-   "usage": "Botón del fondo 07",
+   "usage": "Pegatinas, iconos de playlist y collage de la cuenta",
    "notes": ""
   },
   {
    "file": "wallpapers/icons/08.jpg",
-   "small": "wallpapers/icons/08-thumb.jpg",
-   "type": "icono-fondo",
+   "small": null,
+   "type": "mini-icono",
    "label": "El caballero azul",
-   "usage": "Botón del fondo 08",
+   "usage": "Pegatinas, iconos de playlist y collage de la cuenta",
    "notes": ""
   },
   {
    "file": "wallpapers/icons/09.jpg",
-   "small": "wallpapers/icons/09-thumb.jpg",
-   "type": "icono-fondo",
+   "small": null,
+   "type": "mini-icono",
    "label": "Desierto de manos",
-   "usage": "Botón del fondo 09",
+   "usage": "Pegatinas, iconos de playlist y collage de la cuenta",
    "notes": ""
   },
   {
    "file": "wallpapers/icons/10.jpg",
-   "small": "wallpapers/icons/10-thumb.jpg",
-   "type": "icono-fondo",
+   "small": null,
+   "type": "mini-icono",
    "label": "Cuerpo rojo",
-   "usage": "Botón del fondo 10",
+   "usage": "Pegatinas, iconos de playlist y collage de la cuenta",
    "notes": ""
   },
   {
    "file": "wallpapers/icons/11.jpg",
-   "small": "wallpapers/icons/11-thumb.jpg",
-   "type": "icono-fondo",
+   "small": null,
+   "type": "mini-icono",
    "label": "Sala de cirugía",
-   "usage": "Botón del fondo 11",
+   "usage": "Pegatinas, iconos de playlist y collage de la cuenta",
    "notes": ""
   },
   {
    "file": "wallpapers/icons/12.jpg",
-   "small": "wallpapers/icons/12-thumb.jpg",
-   "type": "icono-fondo",
+   "small": null,
+   "type": "mini-icono",
    "label": "Hombre luna",
-   "usage": "Botón del fondo 12",
+   "usage": "Pegatinas, iconos de playlist y collage de la cuenta",
    "notes": ""
   },
   {
    "file": "wallpapers/icons/13.jpg",
-   "small": "wallpapers/icons/13-thumb.jpg",
-   "type": "icono-fondo",
+   "small": null,
+   "type": "mini-icono",
    "label": "Cubos que observan",
-   "usage": "Botón del fondo 13",
+   "usage": "Pegatinas, iconos de playlist y collage de la cuenta",
    "notes": ""
   },
   {
    "file": "wallpapers/icons/14.jpg",
-   "small": "wallpapers/icons/14-thumb.jpg",
-   "type": "icono-fondo",
+   "small": null,
+   "type": "mini-icono",
    "label": "Lluvia de señores",
-   "usage": "Botón del fondo 14",
+   "usage": "Pegatinas, iconos de playlist y collage de la cuenta",
    "notes": ""
   },
   {
    "file": "wallpapers/icons/15.jpg",
-   "small": "wallpapers/icons/15-thumb.jpg",
-   "type": "icono-fondo",
+   "small": null,
+   "type": "mini-icono",
    "label": "El ojo entre manos",
-   "usage": "Botón del fondo 15",
+   "usage": "Pegatinas, iconos de playlist y collage de la cuenta",
    "notes": ""
   },
   {
    "file": "wallpapers/icons/16.jpg",
-   "small": "wallpapers/icons/16-thumb.jpg",
-   "type": "icono-fondo",
+   "small": null,
+   "type": "mini-icono",
    "label": "Ajedrez de gotas",
-   "usage": "Botón del fondo 16",
+   "usage": "Pegatinas, iconos de playlist y collage de la cuenta",
    "notes": ""
   },
   {

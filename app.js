@@ -83,7 +83,6 @@
     listen: 'liquidbrush:listen',
     libraryCache: 'liquidbrush:library-cache',
     settings: 'liquidbrush:settings',
-    wallLast: 'liquidbrush:wall-last',
     pins: 'liquidbrush:pins',
     lab: 'liquidbrush:lab',
     tour: 'liquidbrush:tour',
@@ -269,14 +268,6 @@
     searchPlaylists: $('searchPlaylists'),
     bottomNav: $('bottomNav'),
     nowPlaying: document.querySelector('.now-playing'),
-    wallpaper: $('wallpaper'),
-    wallStage: $('wallStage'),
-    wallLife: $('wallLife'),
-    wallBtn: $('wallBtn'),
-    wallBtnImg: $('wallBtnImg'),
-    wallMode: $('wallMode'),
-    wallGrid: $('wallGrid'),
-    wallAlive: $('wallAlive'),
     djToggle: $('djToggle'),
     djFade: $('djFade'),
     djBtn: $('djBtn'),
@@ -565,30 +556,28 @@
     }
   }
 
-  /* ---------- Fondos de pantalla (carpeta wallpapers/) ---------- */
-  // pos: zona que se mantiene a la vista cuando la imagen se recorta (pantallas anchas)
+  /* ---------- Mini iconos (carpeta wallpapers/icons/) ----------
+     v97: el fondo de pantalla de la app se quitó (pesaba y daba fallos). Quedan sus recortes pequeños:
+     pegatinas de los títulos, iconos de playlist («art:07», ya guardados por la gente) y el collage de la cuenta. */
   const WALLPAPERS = [
-    { id: '01', name: 'Girasoles que miran', pos: '50% 30%' },
-    { id: '02', name: 'El reloj que sueña', pos: '50% 35%' },
-    { id: '03', name: 'Atrapamoscas', pos: '60% 30%' },
-    { id: '04', name: 'Sol de un ojo', pos: '55% 45%' },
-    { id: '05', name: 'Rostro derretido', pos: '50% 60%' },
-    { id: '06', name: 'Lluvia de ojos', pos: '50% 40%' },
-    { id: '07', name: 'La corte lunar', pos: '50% 35%' },
-    { id: '08', name: 'El caballero azul', pos: '50% 35%' },
-    { id: '09', name: 'Desierto de manos', pos: '50% 60%' },
-    { id: '10', name: 'Cuerpo rojo', pos: '50% 30%' },
-    { id: '11', name: 'Sala de cirugía', pos: '45% 40%' },
-    { id: '12', name: 'Hombre luna', pos: '50% 35%' },
-    { id: '13', name: 'Cubos que observan', pos: '55% 35%' },
-    { id: '14', name: 'Lluvia de señores', pos: '50% 40%' },
-    { id: '15', name: 'El ojo entre manos', pos: '50% 50%' },
-    { id: '16', name: 'Ajedrez de gotas', pos: '50% 60%' }
+    { id: '01', name: 'Girasoles que miran' },
+    { id: '02', name: 'El reloj que sueña' },
+    { id: '03', name: 'Atrapamoscas' },
+    { id: '04', name: 'Sol de un ojo' },
+    { id: '05', name: 'Rostro derretido' },
+    { id: '06', name: 'Lluvia de ojos' },
+    { id: '07', name: 'La corte lunar' },
+    { id: '08', name: 'El caballero azul' },
+    { id: '09', name: 'Desierto de manos' },
+    { id: '10', name: 'Cuerpo rojo' },
+    { id: '11', name: 'Sala de cirugía' },
+    { id: '12', name: 'Hombre luna' },
+    { id: '13', name: 'Cubos que observan' },
+    { id: '14', name: 'Lluvia de señores' },
+    { id: '15', name: 'El ojo entre manos' },
+    { id: '16', name: 'Ajedrez de gotas' }
   ];
-  const WALL_MODES = ['song', 'open', 'fixed', 'off'];
-  const wallSrc = (id) => `wallpapers/${id}.jpg`;
   const wallIcon = (id) => `wallpapers/icons/${id}.jpg`;
-  const wallThumb = (id) => `wallpapers/icons/${id}-thumb.jpg`;
   const isWallId = (id) => WALLPAPERS.some((w) => w.id === id);
 
   // Mini icono (recorte de un fondo) para títulos y adornos; el mismo texto da siempre el mismo
@@ -652,17 +641,14 @@
       plView: saved.plView === 'list' ? 'list' : 'grid',
       motion: saved.motion !== false,
       haptics: saved.haptics !== false,
-      wall: {
-        mode: WALL_MODES.includes(saved.wall?.mode) ? saved.wall.mode : 'song',
-        fixed: isWallId(saved.wall?.fixed) ? saved.wall.fixed : WALLPAPERS[0].id,
-        alive: saved.wall?.alive !== false
-      },
       eq: { preset: typeof saved.eq?.preset === 'string' ? saved.eq.preset : 'flat', gains },
       // Velocidad de reproducción (0.75×–1.5×) y fundido corto al pausar/reanudar
       speed: [0.75, 1, 1.1, 1.25, 1.5].includes(saved.speed) ? saved.speed : 1,
       softPause: saved.softPause !== false,
       // v97: volumen igualado entre canciones, encendido de serie
       normalize: saved.normalize !== false,
+      // v97: DJ con voz (apagado de serie: hablarle a alguien sin pedirlo sorprende)
+      djVoz: saved.djVoz === true,
       // El tiempo total del reproductor muestra lo que queda («−1:12»): se cambia tocándolo
       remaining: saved.remaining === true,
       // Tamaño de las letras de las canciones (A− / A+ debajo de la letra)
@@ -2093,10 +2079,13 @@
   const songsLabel = (n) => `${n} canci${n === 1 ? 'ón' : 'ones'}`;
   const collator = new Intl.Collator('es', { sensitivity: 'base', numeric: true });
 
+  // v97: el módulo social (colaborativas) se entera de cada cambio para subirlo
+  let onLocalPlaylistsChange = null;
   function saveLocalPlaylists() {
     if (!storage.set(KEYS.playlists, library.local)) {
       showToast('No se pudo guardar en este navegador (¿modo privado o sin espacio?).');
     }
+    onLocalPlaylistsChange?.();
     // v94: Sonando dice en qué playlists está la canción: al añadirla o quitarla se ve al momento
     if (state.currentTrack) renderPlaylistsWith(els.npIn, state.currentTrack);
   }
@@ -2122,6 +2111,11 @@
     return library.local.map((p) => ({
       key: `local:${p.id}`, kind: 'local', id: p.id, name: p.name,
       emoji: p.emoji, color: p.color, trackIds: p.trackIds,
+      // v97: colaborativa (quién está) o Blend (se renueva cada día)
+      colab: p.colab || null, blend: p.blend || null,
+      ...(p.colab?.miembros?.length > 1 ? { description: `Colaborativa con ${p.colab.miembros.filter((n) => n !== p.colab.yo).join(', ')}` }
+        : p.colab ? { description: 'Colaborativa: invita a alguien con el enlace' }
+          : p.blend ? { description: p.blend.miembros > 1 ? 'Blend: vuestras canciones, renovado cada día' : 'Blend: esperando a que alguien se una con tu enlace' } : {}),
       portada: portadaValida(p.portada),
       ...(portadaValida(p.portada) ? { cover: { type: 'image', src: portadaSrc(p.portada) } } : {})
     }));
@@ -2355,10 +2349,19 @@
 
   function deleteLocalPlaylist(id) {
     const playlist = findLocal(id);
-    if (!playlist || !confirm(`¿Eliminar «${playlist.name}»? Podrás recuperarla durante ${TRASH_DAYS} días desde la Papelera.`)) return;
+    // v97: una colaborativa o un Blend también se deja en el servidor (la copia de la Papelera queda como propia)
+    const pregunta = playlist?.colab?.owner ? `¿Eliminar «${playlist.name}»? Es colaborativa: se borrará también para las personas con las que la compartes. Te quedará una copia en la Papelera ${TRASH_DAYS} días.`
+      : playlist?.colab ? `¿Salir de «${playlist.name}»? Dejarás de verla y de poder añadir canciones. Te quedará una copia en la Papelera ${TRASH_DAYS} días.`
+        : playlist?.blend ? `¿Salir del Blend «${playlist.name}»?`
+          : `¿Eliminar «${playlist?.name}»? Podrás recuperarla durante ${TRASH_DAYS} días desde la Papelera.`;
+    if (!playlist || !confirm(pregunta)) return;
     library.local = library.local.filter((p) => p.id !== id);
     saveLocalPlaylists();
-    storage.set(KEYS.trash, [{ ...playlist, deletedAt: Date.now() }, ...trashList()].slice(0, 30));
+    if (playlist.colab || playlist.blend) social.salir(playlist);
+    const copia = { ...playlist, deletedAt: Date.now() };
+    delete copia.colab;
+    delete copia.blend;
+    storage.set(KEYS.trash, [copia, ...trashList()].slice(0, 30));
     setView('playlists');
     showToast(`«${playlist.name}» eliminada.`, { label: 'Deshacer', run: () => restoreFromTrash(playlist.id) });
   }
@@ -2719,6 +2722,8 @@
     deckLevel: new Map(),
     can(track) {
       if (!settings.normalize || IS_IOS || !track || track.atk || track.radio || !AudioContextClass) return false;
+      // Una descargada no pide nada a la red (v90): se queda sin medir hasta que suene una copia en línea
+      if (isDownloaded(track)) return false;
       if (/^(data|blob):/i.test(track.src)) return false;
       const origin = originOf(track.src);
       return origin === location.origin || eq.cors.get(origin) === true;
@@ -2800,8 +2805,98 @@
     // sleep.gain baja el volumen en el fundido final del temporizador
     // v97: × el volumen igualado de la canción de ese reproductor
     const level = deck === els.audio ? loud.gain(state.currentTrack) : (loud.deckLevel.get(deck) ?? 1);
-    deck.volume = clamp(state.volume * (deckGain.get(deck) ?? 1) * level * sleep.gain, 0, 1);
+    // v97: mientras habla el DJ, la música baja (djVoz.duck)
+    deck.volume = clamp(state.volume * (deckGain.get(deck) ?? 1) * level * sleep.gain * djVoz.duck, 0, 1);
   }
+
+  /* ---------- v97: DJ con voz (como el DJ de Spotify, sin servidor) ----------
+     Cada 4 canciones que empiezan solas o con un toque, la voz del navegador (speechSynthesis, en español)
+     presenta la que suena según por qué está ahí: favorita, nunca escuchada, sorpresa del aleatorio, la
+     primera de la sesión… Mientras habla, la música baja a un 30 % y vuelve después. */
+  const djVoz = {
+    duck: 1,
+    cuenta: 0,
+    saludo: false,
+    voz: null,
+    puede: () => typeof window.speechSynthesis !== 'undefined' && typeof window.SpeechSynthesisUtterance !== 'undefined',
+    elegirVoz() {
+      if (!this.puede()) return null;
+      const voces = speechSynthesis.getVoices();
+      this.voz = voces.find((v) => /^es[-_]ES/i.test(v.lang) && /natural|neural|google|mónica|monica|jorge|lucia|lucía/i.test(v.name))
+        || voces.find((v) => /^es[-_]/i.test(v.lang)) || null;
+      return this.voz;
+    },
+    frase(track) {
+      const titulo = splitTitle(track.title).main;
+      const quien = track.knownArtist || track.artist || '';
+      const de = quien ? `, de ${quien}` : '';
+      const h = new Date().getHours();
+      if (!this.saludo) {
+        this.saludo = true;
+        const hola = h < 6 ? 'Buenas noches, o buenas madrugadas' : h < 13 ? 'Buenos días' : h < 20 ? 'Buenas tardes' : 'Buenas noches';
+        return `${hola}. Esto es Liquid. Empezamos con «${titulo}»${de}.`;
+      }
+      if (state.surpriseIds?.has(track.id)) return `Una sorpresa: «${titulo}»${de}. Si te gusta, guárdala.`;
+      if (state.favorites.has(track.id)) return `Una de tus favoritas: «${titulo}»${de}.`;
+      if (!library.plays[track.id]) return `Algo nuevo para ti: «${titulo}»${de}.`;
+      const veces = library.plays[track.id] || 0;
+      if (veces >= 10) return `Esta ya la has puesto ${veces} veces: «${titulo}»${de}.`;
+      return `Sigue sonando Liquid: «${titulo}»${de}.`;
+    },
+    alEmpezar(track, autoplay) {
+      if (!settings.djVoz || !autoplay || !track || track.radio || !this.puede() || document.hidden) return;
+      if (this.cuenta++ % 4 !== 0) return;
+      const texto = this.frase(track);
+      // Habla cuando la canción ya suena (con poca cobertura tarda en arrancar); si no arranca en 8 s, nada
+      setTimeout(() => {
+        if (state.currentTrack !== track) return;
+        if (!els.audio.paused) { this.decir(texto); return; }
+        const audio = els.audio;
+        const alSonar = () => { if (state.currentTrack === track) setTimeout(() => this.decir(texto), 500); };
+        audio.addEventListener('playing', alSonar, { once: true });
+        setTimeout(() => audio.removeEventListener('playing', alSonar), 8000);
+      }, 900);
+    },
+    decir(texto) {
+      try {
+        speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(texto);
+        u.lang = 'es-ES';
+        if (this.voz || this.elegirVoz()) u.voice = this.voz;
+        u.rate = 1.02;
+        const volver = () => { this.duck = 1; decks.forEach(applyVolume); };
+        u.onstart = () => { this.duck = 0.3; decks.forEach(applyVolume); };
+        u.onend = volver;
+        u.onerror = volver;
+        speechSynthesis.speak(u);
+        // Por si el navegador no avisa del final
+        setTimeout(volver, 12000);
+      } catch { this.duck = 1; }
+    },
+    init() {
+      const fila = document.getElementById('djVozRow');
+      const toggle = document.getElementById('djVozToggle');
+      if (!this.puede() || !fila || !toggle) return;
+      fila.hidden = false;
+      toggle.checked = settings.djVoz;
+      speechSynthesis.addEventListener?.('voiceschanged', () => this.elegirVoz());
+      // Reanudar «Continúa donde lo dejaste» no pasa por loadTrack: el saludo va con lo primero que suene
+      document.addEventListener('playing', (event) => {
+        if (!this.saludo && settings.djVoz && decks.includes(event.target) && event.target === els.audio) {
+          this.cuenta = 0;
+          this.alEmpezar(state.currentTrack, true);
+        }
+      }, true);
+      toggle.addEventListener('change', () => {
+        settings.djVoz = toggle.checked;
+        saveSettings();
+        this.cuenta = 0;
+        this.saludo = false;
+        if (settings.djVoz) this.decir('Hola. Soy el DJ de Liquid: te iré contando qué suena.');
+        else speechSynthesis.cancel();
+      });
+    }
+  };
 
   // En iOS el volumen no se puede cambiar desde la web: en vez de mezcla larga, un empalme corto
   const smartFade = (duration) => (IS_IOS ? 1 : Math.max(1.5, Math.min(dj.fade, duration * 0.1)));
@@ -4658,6 +4753,7 @@
       const asList = settings.plView === 'list';
       actions.append(
         makeButton('btn btn-primary', 'new-playlist', 'Crear una playlist nueva', 'playlist-add', 'Nueva'),
+        ...(social.disponible() ? [makeButton('btn btn-small', 'blend-new', 'Crear un Blend: una playlist con tus gustos y los de otra persona', 'spark', 'Blend')] : []),
         makeButton('icon-btn', 'toggle-plview', asList ? 'Ver en cuadrícula' : 'Ver en lista', asList ? 'grid' : 'list'),
         makeButton('icon-btn', 'import', 'Importar una copia de seguridad', 'upload'),
         makeButton('icon-btn', 'export', 'Descargar una copia de seguridad de tus playlists', 'download')
@@ -4703,7 +4799,8 @@
     const meta = makeEl('span', 'playlist-meta');
     meta.dataset.base = `${songsLabel(tracks.length)} · ${formatTotal(total)}`;
     meta.textContent = meta.dataset.base;
-    text.append(makeEl('span', `pl-kind pl-kind-${pl.kind}`, pl.kind === 'local' && signedIn() ? 'Guardada en tu cuenta' : KIND_LABELS[pl.kind]), makeEl('h2', 'pl-hero-name', pl.name));
+    const kindLabel = pl.colab ? 'Colaborativa' : pl.blend ? 'Blend' : pl.kind === 'local' && signedIn() ? 'Guardada en tu cuenta' : KIND_LABELS[pl.kind];
+    text.append(makeEl('span', `pl-kind pl-kind-${pl.kind}${pl.colab ? ' pl-kind-colab' : pl.blend ? ' pl-kind-blend' : ''}`, kindLabel), makeEl('h2', 'pl-hero-name', pl.name));
     if (pl.description) text.append(makeEl('p', 'pl-hero-desc', pl.description));
     text.append(meta);
     const progress = plus.playlistProgress(pl, tracks);
@@ -4730,6 +4827,9 @@
     if (tracks.length) actions.append(makeButton('icon-btn', 'share-playlist', 'Compartir playlist', 'share'));
     if (tracks.length) actions.append(makeButton('btn btn-ghost btn-small', 'export-m3u', 'Descargar como .m3u (VLC y otros reproductores)', '', '.m3u'));
     if (pl.kind === 'local') {
+      // v97: invitar a otras personas a añadir canciones (o a un Blend)
+      if (pl.blend) actions.append(makeButton('btn btn-small pl-invite', 'blend-invite', 'Invitar a alguien a este Blend', 'share', 'Invitar'));
+      else if (social.disponible()) actions.append(makeButton('btn btn-small pl-invite', 'colab-invite', pl.colab ? 'Invitar a más personas a esta playlist' : 'Hacerla colaborativa: invita a alguien a añadir canciones', 'share', pl.colab ? 'Invitar' : 'Colaborar'));
       actions.append(
         makeButton('icon-btn', 'edit-playlist', 'Cambiar nombre, icono o color', 'edit'),
         makeButton('icon-btn', 'copy-playlist', 'Duplicar esta playlist', 'playlist-add'),
@@ -5024,6 +5124,30 @@
     });
   }
 
+  // v97: el verso que suena (y el siguiente si es corto), como tarjeta para Historias o Estados
+  function shareVerse() {
+    const track = state.currentTrack;
+    if (!track || track.radio || !state.lyrics) return;
+    if (track.atk) { showToast('Las canciones de Liquid ATK no tienen enlace para compartir.'); return; }
+    const lines =(state.lyrics.synced ? state.lyrics.lines.map((l) => l.text) : state.lyrics.text.split('\n'))
+      .map((text) => String(text || '').trim());
+    let i = state.lyrics.synced ? state.activeLyric : -1;
+    if (i < 0 || !lines[i]) i = lines.findIndex(Boolean);
+    if (i < 0) { showToast('Esta canción no tiene letra para compartir.'); return; }
+    let quote = lines[i];
+    if (quote.length < 40 && lines[i + 1]) quote = `${quote} / ${lines[i + 1]}`;
+    openShareSheet({
+      kind: 'Verso',
+      quote,
+      title: splitTitle(track.title).main,
+      subtitle: track.knownArtist || track.artist || 'Liquid Bullet',
+      image: track.cover,
+      linkTitle: `${track.title}${track.knownArtist ? ` · ${track.knownArtist}` : ''}`,
+      text: `«${quote}» — ${splitTitle(track.title).main}${track.knownArtist ? `, de ${track.knownArtist}` : ''}. Escúchala en Liquid Bullet`,
+      url: `${appBase()}s/t-${shareSlug(track.id)}.html`
+    });
+  }
+
   function sharePlaylist(pl) {
     if (!pl) return;
     if (pl.kind === 'system' && pl.id) {
@@ -5304,7 +5428,7 @@
       showToast(navigator.onLine ? 'No hay canciones para esta radio.' : 'Sin conexión: descarga canciones para escuchar la radio.');
       return;
     }
-    if (state.shuffle) toggleShuffle();
+    if (state.shuffle) setShuffle('off');
     playCollection(tracks, tracks[0].id, `Radio · ${entry.name}`, `radio:${seedKey}`);
     taste.rememberContext({ key: `radio:${seedKey}`, kind: 'radio', value: seedKey, title: `Radio de ${entry.name}`, image: entry.tracks[0]?.thumb || '' });
     state.radio = { seed: seedKey };
@@ -6273,8 +6397,44 @@
     window.scrollTo({ top: 0 });
   }
 
+  /* v97: buscar con la voz (como Spotify en el móvil). Solo donde el navegador reconoce la voz
+     (Chrome, Edge, Samsung Internet, Safari); en los demás el micrófono no aparece. */
+  function setupVoiceSearch() {
+    const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const button = document.getElementById('voiceSearch');
+    if (!Recognition || !button || LAB_MODE) return;
+    button.hidden = false;
+    button.closest('.search')?.classList.add('has-voice');
+    let rec = null;
+    const stop = () => { rec?.abort(); rec = null; button.classList.remove('is-listening'); button.setAttribute('aria-label', 'Buscar con la voz'); };
+    button.addEventListener('click', () => {
+      if (rec) { stop(); return; }
+      rec = new Recognition();
+      rec.lang = 'es-ES';
+      rec.interimResults = true;
+      rec.maxAlternatives = 1;
+      button.classList.add('is-listening');
+      button.setAttribute('aria-label', 'Dejar de escuchar');
+      enterSearch();
+      rec.onresult = (event) => {
+        const text = [...event.results].map((r) => r[0].transcript).join(' ').replace(/\.$/, '').trim();
+        els.searchInput.value = text;
+        els.searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+        if (event.results[event.results.length - 1].isFinal) rememberSearch(text);
+      };
+      rec.onerror = (event) => {
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') showToast('Liquid no tiene permiso para usar el micrófono: actívalo en los permisos del sitio.');
+        else if (event.error === 'no-speech') showToast('No se oyó nada. Toca el micrófono y di una canción o un artista.');
+        else if (event.error !== 'aborted') showToast('No se pudo usar la voz ahora. Prueba a escribir.');
+      };
+      rec.onend = () => { rec = null; button.classList.remove('is-listening'); button.setAttribute('aria-label', 'Buscar con la voz'); };
+      try { rec.start(); } catch { stop(); }
+    });
+  }
+
   function setupSearch() {
     if (LAB_MODE) return;
+    setupVoiceSearch();
     els.searchCancel.addEventListener('click', cancelSearch);
     // En el teléfono, tocar el buscador es entrar en Buscar (busca en todo, no dentro de la vista)
     els.searchInput.addEventListener('focus', () => {
@@ -6372,6 +6532,48 @@
     ctx.fillStyle = glow;
     ctx.fillRect(0, 0, w, h);
 
+    // v97: un verso de la letra: portada pequeña arriba, el verso grande y la canción debajo
+    if (shareCard.data.quote) {
+      const data = shareCard.data;
+      const small = 168;
+      const sx = 72;
+      const sy = 150;
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(sx, sy, small, small, 22);
+      ctx.clip();
+      if (shareCard.image) ctx.drawImage(shareCard.image, sx, sy, small, small);
+      ctx.restore();
+      ctx.textAlign = 'left';
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      ctx.font = '700 24px Inter, system-ui, sans-serif';
+      ctx.fillText('VERSO', sx + small + 28, sy + 52);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '800 36px Syne, Inter, system-ui, sans-serif';
+      ctx.fillText(wrapLines(ctx, data.title, w - sx - small - 100, 1)[0] || '', sx + small + 28, sy + 104);
+      ctx.fillStyle = 'rgba(255,255,255,0.78)';
+      ctx.font = '600 28px Inter, system-ui, sans-serif';
+      ctx.fillText(wrapLines(ctx, data.subtitle, w - sx - small - 100, 1)[0] || '', sx + small + 28, sy + small - 6);
+      // El verso: cuanto más corto, más grande
+      const quote = `«${data.quote}»`;
+      let fontSize = 76;
+      let lines = [];
+      for (; fontSize >= 40; fontSize -= 6) {
+        ctx.font = `800 ${fontSize}px Syne, Inter, system-ui, sans-serif`;
+        lines = wrapLines(ctx, quote, w - 144, 7);
+        if (lines.length <= 6) break;
+      }
+      const lineHeight = fontSize * 1.18;
+      const top = (h - lines.length * lineHeight) / 2 + fontSize * 0.6;
+      ctx.fillStyle = '#ffffff';
+      lines.forEach((line, i) => ctx.fillText(line, 72, top + i * lineHeight));
+      ctx.textAlign = 'center';
+      ctx.font = '800 34px Syne, Inter, system-ui, sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,0.92)';
+      ctx.fillText('Liquid Bullet', w / 2, h - 90);
+      return;
+    }
+
     const size = 500;
     const x = (w - size) / 2;
     const y = 250;
@@ -6427,7 +6629,7 @@
     const fileShare = Boolean(navigator.canShare && navigator.canShare({ files: [new File(['x'], 'x.png', { type: 'image/png' })] }));
     els.shareImage.textContent = fileShare ? 'Compartir imagen' : 'Guardar imagen';
     els.shareLinkBtn.hidden = !navigator.share;
-    els.shareTitleText.textContent = data.kind === 'Playlist' ? 'Compartir playlist' : 'Compartir canción';
+    els.shareTitleText.textContent = data.quote ? 'Compartir verso' : data.kind === 'Playlist' ? 'Compartir playlist' : 'Compartir canción';
     if (!els.shareDialog.open) els.shareDialog.showModal();
   }
 
@@ -7221,7 +7423,7 @@
       showToast(navigator.onLine ? 'No hay canciones para reproducir.' : 'Sin conexión: descarga la playlist para escucharla offline.');
       return;
     }
-    if (shuffle && !state.shuffle) toggleShuffle();
+    if (shuffle && !state.shuffle) setShuffle('on');
     const start = shuffle ? playable[Math.floor(Math.random() * playable.length)] : playable[0];
     buildQueue(start.id);
     loadTrack(getTrack(state.queue[state.queueIndex]), true, dj.enabled ? 1.5 : 0);
@@ -7444,8 +7646,49 @@
   function applyShuffle() {
     const current = state.queue[state.queueIndex];
     const rest = state.baseQueue.filter((id) => id !== current);
-    state.queue = current ? [current, ...smartShuffle(rest)] : smartShuffle(state.baseQueue);
+    const shuffled = current ? [current, ...smartShuffle(rest)] : smartShuffle(state.baseQueue);
+    state.queue = withSurprises(shuffled);
     state.queueIndex = 0;
+  }
+
+  /* v97: «Aleatorio con sorpresas» (como el Smart Shuffle de Spotify). Tras cada 3 canciones de la lista
+     entra una que no está en ella, de los artistas parecidos a los que más salen en la lista (los mismos
+     parecidos que usa Lab). Las sorpresas no tocan la lista: al quitar el aleatorio desaparecen solas. */
+  state.surpriseIds = new Set();
+  function surprisePicks(baseIds, count) {
+    if (count <= 0) return [];
+    const inList = new Set(baseIds);
+    const songs = new Set(baseIds.map((id) => getTrack(id)?.songKey).filter(Boolean));
+    const counts = new Map();
+    baseIds.forEach((id) => artistKeysOf(getTrack(id)).forEach((key) => counts.set(key, (counts.get(key) || 0) + 1)));
+    const top = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6).map(([key]) => key);
+    const weights = new Map();
+    top.forEach((key, i) => similarArtists(key, 6).forEach((artist, j) => artist.tracks.forEach((t) => {
+      if (inList.has(t.id) || (t.songKey && songs.has(t.songKey)) || t.atk || !isPlayable(t) || isDisliked(t.id)) return;
+      weights.set(t.id, Math.max(weights.get(t.id) || 0, (6 - i) * (6 - j)));
+    })));
+    const picks = [];
+    const used = new Set();
+    for (const t of weightedOrder([...weights.keys()].map(getTrack), (t) => weights.get(t.id) * recencyFactor(t.id))) {
+      if (t.songKey && used.has(t.songKey)) continue;
+      if (t.songKey) used.add(t.songKey);
+      picks.push(t.id);
+      if (picks.length >= count) break;
+    }
+    return picks;
+  }
+  function withSurprises(ids) {
+    state.surpriseIds = new Set();
+    if (!state.surprise || state.radio || ids.length < 4) return ids;
+    const picks = surprisePicks(state.baseQueue, Math.min(40, Math.floor(ids.length / 3)));
+    const out = [];
+    let p = 0;
+    ids.forEach((id, i) => {
+      out.push(id);
+      if ((i + 1) % 3 === 0 && p < picks.length) out.push(picks[p++]);
+    });
+    state.surpriseIds = new Set(picks.slice(0, p));
+    return out;
   }
 
   // Aleatorio de verdad variado (no un barajado plano):
@@ -7474,7 +7717,10 @@
   function unshuffle() {
     const current = state.queue[state.queueIndex];
     state.queue = state.baseQueue.slice();
+    // Sonando una sorpresa (no está en la lista): sigue sonando y después va la lista en orden
+    if (current && !state.queue.includes(current)) state.queue.unshift(current);
     state.queueIndex = Math.max(0, state.queue.indexOf(current));
+    state.surpriseIds = new Set();
   }
 
   function playFromList(id) {
@@ -7498,6 +7744,8 @@
   function queueTrack(id, atEnd = false, quiet = false) {
     const track = getTrack(id);
     if (!track) return;
+    // v98: en un Jam como invitado, la canción va a la cola del anfitrión
+    if (conexion.invitado() && conexion.anadirAJam(id, !atEnd)) return;
     if (!state.currentTrack) {
       buildQueue(id);
       loadTrack(track, true);
@@ -7541,6 +7789,7 @@
     const meta = document.createElement('span');
     meta.className = 'queue-meta';
     meta.textContent = label || [track.knownArtist || track.artist, track.duration].filter(Boolean).join(' · ');
+    if (!label && state.surpriseIds?.has(track.id)) meta.prepend(makeEl('span', 'queue-surprise', 'Sorpresa'), ' ');
     text.append(title, meta);
     button.append(img, text);
     li.append(button);
@@ -7895,9 +8144,11 @@
     else els.audio.src = audioSrc(track);
     applySpeed();
     applyVolume(els.audio);
+    djVoz.alEmpezar(track, autoplay);
     // v97: se mide la sonoridad de esta y de la siguiente (una vez por canción; luego se recuerda)
     loud.measure(track);
-    loud.measure(getTrack(state.queue[state.queueIndex + 1]));
+    // La siguiente, solo si ya se está escuchando por internet: con música descargada no se gastan datos
+    if (!isDownloaded(track)) loud.measure(getTrack(state.queue[state.queueIndex + 1]));
     setTimeout(warmLocalAudio, 0);
 
     if (settings.motion && els.cover.src !== track.cover) {
@@ -7954,7 +8205,6 @@
     highlightCurrent();
     syncPlayButtons();
     updateDynamicColor(track);
-    if (autoplay) wall.onTrack();
     updateMediaSession(track);
     stallGuard.reset();
     updatePositionStateNow();
@@ -8261,13 +8511,26 @@
   }
 
   /* ---------- Modos: aleatorio y bucle ---------- */
-  function toggleShuffle() {
-    state.shuffle = !state.shuffle;
+  // v97: tres estados, como en Spotify: apagado → aleatorio → aleatorio con sorpresas → apagado
+  const SHUFFLE_SURPRISE_KEY = 'liquidbrush:shuffle-surprise';
+  function setShuffle(mode, { quiet = false } = {}) {
+    const was = state.shuffle ? (state.surprise ? 'surprise' : 'on') : 'off';
+    state.shuffle = mode !== 'off';
+    state.surprise = mode === 'surprise';
     if (state.shuffle) applyShuffle();
-    else unshuffle();
+    else if (was !== 'off') unshuffle();
     storage.set(KEYS.shuffle, state.shuffle);
+    storage.set(SHUFFLE_SURPRISE_KEY, state.surprise);
     updateModeButtons();
-    showToast(state.shuffle ? 'Aleatorio activado' : 'Aleatorio desactivado');
+    if (quiet) return;
+    if (mode === 'surprise') {
+      showToast(state.surpriseIds.size
+        ? `Aleatorio con sorpresas: ${songsLabel(state.surpriseIds.size)} que no están en la lista, de artistas parecidos.`
+        : 'Aleatorio con sorpresas: aquí no hay parecidos que sumar todavía.');
+    } else showToast(mode === 'on' ? 'Aleatorio activado' : 'Aleatorio desactivado');
+  }
+  function toggleShuffle() {
+    setShuffle(!state.shuffle ? 'on' : state.surprise ? 'off' : 'surprise');
   }
 
   function cycleRepeat() {
@@ -8280,8 +8543,11 @@
 
   function updateModeButtons() {
     els.shuffleBtn.classList.toggle('is-active', state.shuffle);
+    els.shuffleBtn.classList.toggle('is-surprise', Boolean(state.shuffle && state.surprise));
     els.shuffleBtn.setAttribute('aria-pressed', String(state.shuffle));
-    els.shuffleBtn.setAttribute('aria-label', state.shuffle ? 'Desactivar aleatorio' : 'Activar aleatorio');
+    els.shuffleBtn.setAttribute('aria-label', !state.shuffle ? 'Activar aleatorio'
+      : state.surprise ? 'Desactivar aleatorio (ahora con sorpresas)' : 'Aleatorio con sorpresas');
+    els.shuffleBtn.title = !state.shuffle ? 'Aleatorio (S)' : state.surprise ? 'Aleatorio con sorpresas (S)' : 'Aleatorio activado · otra vez: con sorpresas (S)';
 
     els.repeatBtn.classList.toggle('is-active', state.repeat !== 'off');
     setIcon(els.repeatBtn, state.repeat === 'one' ? 'repeat-one' : 'repeat');
@@ -8424,6 +8690,8 @@
       bigger.dataset.delta = '1';
       bigger.disabled = settings.lyricsSize >= LYRICS_SIZES[LYRICS_SIZES.length - 1];
       parts.push(smaller, bigger, makeButton('btn btn-ghost', 'lyrics-copy', 'Copiar la letra', '', 'Copiar'));
+      // v97: compartir el verso que suena como tarjeta (como Spotify); sin sincronizar, la primera línea
+      if (!track.radio && !/Instrumental/.test(lyricText)) parts.push(makeButton('btn btn-ghost', 'lyrics-share', 'Compartir el verso que suena como imagen', '', 'Compartir verso'));
     }
     // Antes solo salía con la letra sin sincronizar (la sincronizada no tiene .text)
     if (lyricText && !/Instrumental/.test(lyricText)) {
@@ -10282,7 +10550,7 @@
           const collection = home.collections.get(target.dataset.value);
           const start = collection?.tracks.find(isPlayable);
           if (start) {
-            if (state.shuffle) toggleShuffle();
+            if (state.shuffle) setShuffle('off');
             playCollection(collection.tracks, start.id, collection.title, `home:${target.dataset.value}`);
           } else showToast('Sin conexión: descarga canciones para escuchar este mix.');
           break;
@@ -10375,6 +10643,9 @@
         case 'import': els.importInput.click(); break;
         case 'edit-playlist': if (pl) editLocalPlaylist(pl.id); break;
         case 'delete-playlist': if (pl) deleteLocalPlaylist(pl.id); break;
+        case 'colab-invite': if (pl) social.invitar(pl.id); break;
+        case 'blend-invite': if (pl) social.invitarBlend(pl.id); break;
+        case 'blend-new': social.crearBlend(); break;
         case 'copy-playlist': if (pl) copyToLocal(pl); break;
         case 'clear-recent':
           if (confirm('¿Borrar el historial de canciones escuchadas en este dispositivo?')) {
@@ -10741,7 +11012,6 @@
       settings.ultra = els.ultraToggle.checked;
       saveSettings();
       applyLook();
-      wall.applyMode();
       visualizer.start();
       if (state.currentTrack) {
         updateDynamicColor(state.currentTrack);
@@ -10749,7 +11019,7 @@
       }
       renderList();
       showToast(settings.ultra
-        ? 'Modo ultraligero activado: sin efectos, fondo, animaciones ni miniaturas en las listas.'
+        ? 'Modo ultraligero activado: sin efectos, animaciones ni miniaturas en las listas.'
         : 'Modo ultraligero desactivado: vuelven los efectos.');
     });
     els.hiddenList.addEventListener('click', (event) => {
@@ -10769,17 +11039,6 @@
       settings.motion = els.motionToggle.checked;
       saveSettings();
       applyLook();
-      wall.updateLoop();
-    });
-    els.wallMode.addEventListener('change', () => {
-      settings.wall.mode = els.wallMode.value;
-      saveSettings();
-      wall.applyMode();
-    });
-    els.wallAlive.addEventListener('change', () => {
-      settings.wall.alive = els.wallAlive.checked;
-      saveSettings();
-      wall.updateLoop();
     });
     els.hapticsToggle.addEventListener('change', () => {
       settings.haptics = els.hapticsToggle.checked;
@@ -11133,321 +11392,6 @@
     });
   }
 
-  /* ---------- Fondo de pantalla con vida ---------- */
-  // Dos capas que se funden al cambiar; encima, motas de luz y mini iconos que flotan y laten
-  // con la música. La animación se detiene con la app oculta o sin animaciones.
-  const wall = (() => {
-    const layers = [...els.wallStage.querySelectorAll('.wall-layer')];
-    const canvas = els.wallLife;
-    const ctx = canvas.getContext('2d');
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const FRAME_MS = 1000 / 30;
-    let current = null;
-    let front = 0;
-    let lastChange = 0;
-    let rafId = null;
-    let lastFrame = 0;
-    let width = 0;
-    let height = 0;
-    let motes = [];
-    let floaters = [];
-    let tilt = { x: 0, y: 0 };
-    let pulse = 0;
-    let dyn = '#ffffff';
-    let dynFrames = 0;
-    let stageVars = '';
-    // Mientras se desplaza una lista el fondo se queda quieto: redibujarlo bajo los paneles de cristal
-    // (backdrop-filter) obliga a repintarlos en cada fotograma y el scroll iba a tirones
-    let scrollingUntil = 0;
-    const icons = new Map();
-
-    const enabled = () => settings.wall.mode !== 'off' && !settings.ultra;
-    const alive = () => enabled() && settings.wall.alive && settings.motion && !reduced.matches
-      && !document.documentElement.classList.contains('lite');
-
-    function iconImage(id) {
-      if (!icons.has(id)) {
-        const img = new Image();
-        img.src = wallIcon(id);
-        icons.set(id, img);
-      }
-      return icons.get(id);
-    }
-
-    function randomId(except) {
-      const pool = WALLPAPERS.filter((w) => w.id !== except);
-      return pool[Math.floor(Math.random() * pool.length)].id;
-    }
-
-    function show(id, instant = false) {
-      if (!isWallId(id)) return;
-      current = id;
-      lastChange = Date.now();
-      storage.set(KEYS.wallLast, id);
-      els.wallBtnImg.src = wallIcon(id);
-      const info = WALLPAPERS.find((w) => w.id === id);
-      els.wallBtn.title = `Fondo: ${info.name} (toca para otro)`;
-      const img = new Image();
-      img.decoding = 'async';
-      img.onload = () => {
-        if (current !== id) return;
-        const next = layers[instant ? front : 1 - front];
-        next.style.backgroundImage = `url("${wallSrc(id)}")`;
-        next.style.setProperty('--pos', info.pos);
-        if (!instant) {
-          layers[front].classList.remove('is-on');
-          front = 1 - front;
-        }
-        next.classList.add('is-on');
-        // Los mini iconos que flotan pasan a ser del fondo nuevo (y algunos al azar)
-        floaters.forEach((f, i) => { if (i % 2 === 0) f.id = id; });
-        syncGrid();
-      };
-      img.src = wallSrc(id);
-    }
-
-    function applyMode() {
-      const on = enabled();
-      document.documentElement.classList.toggle('has-wall', on);
-      els.wallBtn.hidden = !on;
-      if (on) {
-        if (settings.wall.mode === 'fixed') show(settings.wall.fixed, !current);
-        else if (!current) show(randomId(storage.get(KEYS.wallLast, null)), true);
-      }
-      updateLoop();
-    }
-
-    // Al cambiar de canción (como mucho cada 20 s, para no parpadear al saltar rápido)
-    function onTrack() {
-      if (settings.wall.mode !== 'song' || Date.now() - lastChange < 20000) return;
-      show(randomId(current));
-    }
-
-    function shuffle() {
-      const id = randomId(current);
-      if (settings.wall.mode === 'fixed') {
-        settings.wall.fixed = id;
-        saveSettings();
-      }
-      show(id);
-      haptic(10);
-    }
-
-    function pick(id) {
-      settings.wall.mode = 'fixed';
-      settings.wall.fixed = id;
-      saveSettings();
-      els.wallMode.value = 'fixed';
-      applyMode();
-      show(id);
-    }
-
-    function syncGrid() {
-      els.wallGrid.querySelectorAll('.wall-option').forEach((button) => {
-        const on = button.dataset.id === current;
-        button.classList.toggle('is-active', on);
-        button.setAttribute('aria-checked', String(on));
-      });
-    }
-
-    function renderGrid() {
-      els.wallGrid.replaceChildren(...WALLPAPERS.map((w) => {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'wall-option';
-        button.dataset.id = w.id;
-        button.setAttribute('role', 'radio');
-        button.setAttribute('aria-label', w.name);
-        button.title = w.name;
-        const img = document.createElement('img');
-        img.src = wallThumb(w.id);
-        img.alt = '';
-        img.width = 90;
-        img.height = 120;
-        img.loading = 'lazy';
-        img.decoding = 'async';
-        button.append(img);
-        return button;
-      }));
-      syncGrid();
-    }
-
-    /* ---- Vida: motas, mini iconos y latido ---- */
-    function resize() {
-      width = window.innerWidth;
-      height = window.innerHeight;
-      canvas.width = width;
-      canvas.height = height;
-      const count = Math.round(clamp((width * height) / 26000, 14, 40));
-      motes = Array.from({ length: count }, () => newMote(true));
-      const stickers = width < 640 ? 4 : 7;
-      floaters = Array.from({ length: stickers }, (_, i) => newFloater(true, i));
-    }
-
-    function newMote(anywhere) {
-      return {
-        x: Math.random() * width,
-        y: anywhere ? Math.random() * height : height + 10,
-        r: 0.8 + Math.random() * 2.2,
-        speed: 6 + Math.random() * 16,
-        sway: Math.random() * Math.PI * 2,
-        twinkle: Math.random() * Math.PI * 2
-      };
-    }
-
-    function newFloater(anywhere, i = 0) {
-      return {
-        id: i % 2 === 0 && current ? current : WALLPAPERS[Math.floor(Math.random() * WALLPAPERS.length)].id,
-        x: 20 + Math.random() * (width - 40),
-        y: anywhere ? Math.random() * height : height + 40,
-        size: 18 + Math.random() * 18,
-        speed: 5 + Math.random() * 9,
-        sway: Math.random() * Math.PI * 2,
-        spin: (Math.random() - 0.5) * 0.4,
-        angle: (Math.random() - 0.5) * 0.6
-      };
-    }
-
-    // Nivel de la música: real con el ecualizador; si no, un latido a ~112 bpm mientras suena
-    function musicLevel(time) {
-      if (!document.body.classList.contains('is-playing')) return 0;
-      if (eq.analyser && eqDecks.includes(els.audio)) {
-        eq.analyser.getByteFrequencyData(eq.freqData);
-        let sum = 0;
-        for (let i = 0; i < 6; i++) sum += eq.freqData[i];
-        return clamp(sum / (6 * 255), 0, 1);
-      }
-      const beat = (time / (60000 / 112)) % 1;
-      return 0.25 + 0.6 * (1 - beat) ** 3;
-    }
-
-    function frame(time) {
-      rafId = requestAnimationFrame(frame);
-      if (time - lastFrame < FRAME_MS) return;
-      if (performance.now() < scrollingUntil) {
-        lastFrame = time;
-        return;
-      }
-      const dt = Math.min(0.1, (time - (lastFrame || time)) / 1000);
-      lastFrame = time;
-      const level = musicLevel(time);
-      pulse += (level - pulse) * 0.25;
-      if (pulse < 0.002) pulse = 0;
-      // Solo se tocan las variables CSS si cambian (cada cambio recalcula estilos)
-      const beat = pulse.toFixed(2);
-      const px = (tilt.x * 14).toFixed(0);
-      const py = (tilt.y * 14).toFixed(0);
-      const vars = `${beat}|${px}|${py}`;
-      if (vars !== stageVars) {
-        stageVars = vars;
-        els.wallStage.style.setProperty('--beat', beat);
-        els.wallStage.style.setProperty('--px', `${px}px`);
-        els.wallStage.style.setProperty('--py', `${py}px`);
-      }
-
-      ctx.clearRect(0, 0, width, height);
-      // El color de la carátula se lee de vez en cuando (leerlo en cada fotograma cuesta)
-      if (!dynFrames--) {
-        dyn = getComputedStyle(document.body).getPropertyValue('--dyn').trim() || '#ffffff';
-        dynFrames = 30;
-      }
-      const playing = level > 0;
-      ctx.fillStyle = dyn;
-      motes.forEach((m, i) => {
-        m.y -= m.speed * dt * (playing ? 1.6 : 1);
-        m.sway += dt * 0.8;
-        m.twinkle += dt * 2.4;
-        if (m.y < -10) motes[i] = newMote(false);
-        const alpha = clamp(0.18 + 0.32 * Math.sin(m.twinkle) ** 2 + pulse * 0.35, 0, 0.9);
-        ctx.globalAlpha = alpha;
-        ctx.beginPath();
-        ctx.arc(m.x + Math.sin(m.sway) * 12, m.y, m.r * (1 + pulse * 0.6), 0, Math.PI * 2);
-        ctx.fill();
-      });
-      floaters.forEach((f, i) => {
-        f.y -= f.speed * dt * (playing ? 1.4 : 1);
-        f.sway += dt * 0.6;
-        f.angle += f.spin * dt;
-        if (f.y < -60) floaters[i] = newFloater(false, i);
-        const img = iconImage(f.id);
-        if (!img.complete || !img.naturalWidth) return;
-        const size = f.size * (1 + pulse * 0.12);
-        const x = f.x + Math.sin(f.sway) * 18;
-        ctx.save();
-        ctx.globalAlpha = 0.72;
-        ctx.translate(x, f.y);
-        ctx.rotate(f.angle);
-        ctx.beginPath();
-        ctx.arc(0, 0, size / 2, 0, Math.PI * 2);
-        ctx.clip();
-        ctx.drawImage(img, -size / 2, -size / 2, size, size);
-        ctx.restore();
-        ctx.globalAlpha = 0.55;
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.arc(x, f.y, size / 2, 0, Math.PI * 2);
-        ctx.stroke();
-      });
-      ctx.globalAlpha = 1;
-    }
-
-    function updateLoop() {
-      const run = alive() && !document.hidden;
-      if (run && !rafId) {
-        if (!width) resize();
-        lastFrame = 0;
-        rafId = requestAnimationFrame(frame);
-      } else if (!run && rafId) {
-        cancelAnimationFrame(rafId);
-        rafId = null;
-        ctx.clearRect(0, 0, width, height);
-        els.wallStage.style.setProperty('--beat', '0');
-        stageVars = '';
-      }
-      els.wallpaper.classList.toggle('is-alive', alive());
-    }
-
-    function init() {
-      els.wallBtn.addEventListener('click', shuffle);
-      els.wallGrid.addEventListener('click', (event) => {
-        const option = event.target.closest('.wall-option');
-        if (option) pick(option.dataset.id);
-      });
-      let resizeTimer = null;
-      window.addEventListener('resize', () => {
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(() => { if (rafId) resize(); }, 200);
-      });
-      document.addEventListener('visibilitychange', updateLoop);
-      reduced.addEventListener?.('change', updateLoop);
-      // capture: también el scroll de listas y paneles internos (no burbujea)
-      let scrollTimer = null;
-      document.addEventListener('scroll', () => {
-        scrollingUntil = performance.now() + 300;
-        if (!scrollTimer) els.wallpaper.classList.add('is-scrolling');
-        clearTimeout(scrollTimer);
-        scrollTimer = setTimeout(() => {
-          scrollTimer = null;
-          els.wallpaper.classList.remove('is-scrolling');
-        }, 300);
-      }, { capture: true, passive: true });
-      // Paralaje: el cursor en el ordenador, la inclinación del móvil en Android
-      window.addEventListener('pointermove', (event) => {
-        if (event.pointerType !== 'mouse') return;
-        tilt = { x: event.clientX / window.innerWidth - 0.5, y: event.clientY / window.innerHeight - 0.5 };
-      }, { passive: true });
-      if ('DeviceOrientationEvent' in window && typeof DeviceOrientationEvent.requestPermission !== 'function') {
-        window.addEventListener('deviceorientation', (event) => {
-          if (event.gamma === null) return;
-          tilt = { x: clamp(event.gamma / 45, -1, 1) * 0.5, y: clamp((event.beta - 45) / 45, -1, 1) * 0.5 };
-        }, { passive: true });
-      }
-      applyMode();
-    }
-
-    return { init, applyMode, onTrack, renderGrid, updateLoop };
-  })();
 
   /* ---------- Instalar la app (PWA) ---------- */
   // Android/escritorio (Chrome, Edge, Samsung Internet): el navegador ofrece instalarla con su propio
@@ -11599,6 +11543,8 @@
       if (sesion) storage.set(K.sesion, sesion);
       else { try { localStorage.removeItem(K.sesion); } catch { /* sin acceso */ } }
       actualizarBotones();
+      // v97: las invitaciones que llegaron sin sesión (colaborativas, Blends) se atienden al entrar
+      try { window.dispatchEvent(new Event('liquid:cuenta')); } catch { /* sin eventos */ }
     }
 
     let renovando = null;
@@ -11653,6 +11599,69 @@
     /* ---------- Contraseña: se estira en el dispositivo ---------- */
     const te = new TextEncoder();
     const b64url = (bytes) => btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    const deB64url = (texto) => {
+      const s = String(texto).replace(/-/g, '+').replace(/_/g, '/');
+      return Uint8Array.from(atob(s + '='.repeat((4 - (s.length % 4)) % 4)), (c) => c.charCodeAt(0));
+    };
+
+    /* ---------- v98: passkeys (huella, cara o PIN del dispositivo; sin contraseña) ---------- */
+    // Con navegador que las admita, en un dominio (no una IP) y con el servidor de cuentas 1.3.0 o más
+    const passkeysPosibles = () => {
+      if (typeof window.PublicKeyCredential !== 'function' || !navigator.credentials?.create || /^\d+\.\d+\.\d+\.\d+$/.test(location.hostname)) return false;
+      const [a = 0, b = 0] = String(storage.get('liquidbrush:cuentas-version', null)?.v || '').split('.').map(Number);
+      return a > 1 || (a === 1 && b >= 3);
+    };
+
+    async function entrarConPasskey() {
+      const o = await api('/passkeys/entrar/opciones', { cuerpo: {} });
+      let cred;
+      try {
+        cred = await navigator.credentials.get({ publicKey: { ...o.opciones, challenge: deB64url(o.opciones.challenge) } });
+      } catch (e) {
+        throw new ErrorCuenta(e?.name === 'NotAllowedError' ? 'passkey_cancelada' : 'passkey_no_valida');
+      }
+      if (!cred) throw new ErrorCuenta('passkey_cancelada');
+      const r = cred.response;
+      return api('/passkeys/entrar', {
+        cuerpo: {
+          token: o.token, id: cred.id, clientDataJSON: b64url(r.clientDataJSON), authenticatorData: b64url(r.authenticatorData),
+          signature: b64url(r.signature), userHandle: r.userHandle ? b64url(r.userHandle) : null, dispositivo: storage.get(K.dispositivo, null)
+        }
+      });
+    }
+
+    async function crearPasskey() {
+      const o = await api('/passkeys/alta/opciones', { cuerpo: {}, auth: true });
+      const pk = o.opciones;
+      let cred;
+      try {
+        cred = await navigator.credentials.create({
+          publicKey: {
+            ...pk, challenge: deB64url(pk.challenge), user: { ...pk.user, id: deB64url(pk.user.id) },
+            excludeCredentials: (pk.excludeCredentials || []).map((c) => ({ ...c, id: deB64url(c.id) }))
+          }
+        });
+      } catch (e) {
+        throw new ErrorCuenta(e?.name === 'InvalidStateError' ? 'passkey_ya_existe' : e?.name === 'NotAllowedError' ? 'passkey_cancelada' : 'passkey_no_valida');
+      }
+      return api('/passkeys/alta', {
+        auth: true,
+        cuerpo: { token: o.token, clientDataJSON: b64url(cred.response.clientDataJSON), attestationObject: b64url(cred.response.attestationObject) }
+      });
+    }
+
+    async function cargarPasskeys() {
+      const lista = ui.body?.querySelector('.cuenta-passkeys');
+      if (!lista) return;
+      try {
+        const d = await api('/passkeys', { metodo: 'GET', auth: true });
+        lista.innerHTML = d.passkeys.length
+          ? d.passkeys.map((p) => `<li class="cuenta-disp"><span>${ico('lock')} <b>${esc(p.nombre || 'Passkey')}</b> · ${p.usada ? `usada hace ${tiempoDesde(p.usada)}` : `creada hace ${tiempoDesde(p.creada)}`}</span><button type="button" class="btn btn-ghost" data-cuenta="passkey-borrar" data-id="${esc(p.id)}">Borrar</button></li>`).join('')
+          : '<li class="cuenta-texto">Aún no tienes ninguna. Crea una en este dispositivo y la próxima vez entras con la huella, la cara o el PIN.</li>';
+      } catch (e) {
+        lista.innerHTML = `<li class="cuenta-texto">${esc(mensaje(e))}</li>`;
+      }
+    }
 
     async function claveCliente(correo, contrasena) {
       const sal = await crypto.subtle.digest('SHA-256', te.encode(`liquidbullet:v1:${correo.trim().toLowerCase()}`));
@@ -11735,6 +11744,13 @@
 
     /* ---------- Textos ---------- */
     const ERRORES = {
+      // v98: passkeys
+      passkey_no_valida: 'Esa passkey no sirvió. Prueba otra vez o entra con tu correo y contraseña.',
+      passkey_desconocida: 'Esa passkey ya no está en tu cuenta (¿la borraste?). Entra con tu correo y contraseña.',
+      passkey_cancelada: 'Se canceló la passkey. Puedes intentarlo otra vez o entrar con tu correo y contraseña.',
+      passkey_ya_existe: 'Este dispositivo ya tiene una passkey de tu cuenta.',
+      demasiadas: 'Ya tienes el máximo de passkeys (10): borra alguna que no uses.',
+      origen: 'Las passkeys solo funcionan desde la web de Liquid.',
       credenciales: 'Correo o contraseña incorrectos.',
       demasiados_intentos: 'Demasiados intentos. Prueba en unos minutos o recupera tu contraseña.',
       demasiados_envios: 'Ya pediste varios códigos. Espera un rato y vuelve a intentarlo.',
@@ -11953,6 +11969,7 @@
           <div class="cuenta-robot"></div>
           ${errorBox}
           ${botonPrincipal('Entrar', 'enviar')}
+          ${passkeysPosibles() ? `<button type="button" class="btn cuenta-passkey" data-cuenta="passkey-entrar">${ico('lock')} Entrar con passkey (huella, cara o PIN)</button>` : ''}
           <p class="cuenta-aviso">${ico('mail')} ¿Creaste la cuenta y nunca te llegó el código, o vas a recuperar la contraseña? Los correos salen de <b>${CORREO_REMITENTE}</b> y <b>pueden llegar a Spam o Promociones</b>: revisa ahí antes de pedir otro.</p>
           <div class="cuenta-fila">
             <button type="button" class="btn btn-ghost cuenta-link" data-cuenta="ir" data-ir="recuperar">¿Olvidaste tu contraseña?</button>
@@ -12050,6 +12067,12 @@
             <button type="submit" class="btn" data-cuenta="enviar">Guardar perfil</button>
           </form>
         </section>
+        ${passkeysPosibles() ? `<section class="cuenta-bloque">
+          <h4>Passkeys</h4>
+          <p class="cuenta-texto">Entra sin contraseña con la huella, la cara o el PIN de tu dispositivo. Nadie más puede usarla: la llave nunca sale de tu teléfono.</p>
+          <ul class="cuenta-dispositivos cuenta-passkeys"><li class="cuenta-texto">Cargando…</li></ul>
+          <button type="button" class="btn" data-cuenta="passkey-crear">${ico('lock')} Crear una passkey en este dispositivo</button>
+        </section>` : ''}
         <section class="cuenta-bloque">
           <h4>Dispositivos conectados</h4>
           <ul class="cuenta-dispositivos"><li class="cuenta-texto">Cargando…</li></ul>
@@ -12059,7 +12082,7 @@
           <label class="cuenta-check"><input type="checkbox" class="cuenta-borrar-local"> <span>Borrar también lo guardado en este dispositivo (útil en un teléfono prestado)</span></label>
           <button type="button" class="btn cuenta-salir" data-cuenta="salir">Cerrar sesión</button>
         </section>
-        <p class="cuenta-pie">Cambiar correo, huella / Face ID y borrar la cuenta llegan en las próximas versiones.</p>`;
+        <p class="cuenta-pie">Cambiar correo y borrar la cuenta llegan en las próximas versiones.</p>`;
       }
     };
 
@@ -12203,6 +12226,7 @@
       unir: () => {},
       cuenta: () => {
         cargarDispositivos();
+        cargarPasskeys();
         ui.datos.avatarNuevo = null;
       }
     };
@@ -12423,6 +12447,32 @@
             showToast('Sesión cerrada en ese dispositivo.');
           } catch (e) { showToast(mensaje(e)); }
           break;
+        case 'passkey-entrar':
+          target.disabled = true;
+          try {
+            const d = await entrarConPasskey();
+            await iniciado(d);
+          } catch (e) {
+            const form = ui.body.querySelector('form');
+            if (form) errorEn(form, e); else showToast(mensaje(e));
+          } finally { target.disabled = false; }
+          break;
+        case 'passkey-crear':
+          target.disabled = true;
+          try {
+            await crearPasskey();
+            showToast('Passkey creada: la próxima vez entra con «Entrar con passkey».');
+            cargarPasskeys();
+          } catch (e) { showToast(mensaje(e)); } finally { target.disabled = false; }
+          break;
+        case 'passkey-borrar':
+          if (!confirm('¿Borrar esta passkey? Ese dispositivo ya no podrá entrar sin contraseña.')) break;
+          try {
+            await api(`/passkeys/${target.dataset.id}`, { metodo: 'DELETE', auth: true });
+            cargarPasskeys();
+            showToast('Passkey borrada.');
+          } catch (e) { showToast(mensaje(e)); }
+          break;
         case 'salir-todo':
           try {
             await api('/salir/todo', { auth: true });
@@ -12566,7 +12616,9 @@
     }
 
     function plACompacta(p, meta) {
-      return { i: p.id, n: p.name, e: p.emoji || '', c: p.color || '', f: portadaValida(p.portada), k: p.trackIds.map(aCorto), t: meta[p.id]?.t || 0, cr: p.createdAt || 0 };
+      return { i: p.id, n: p.name, e: p.emoji || '', c: p.color || '', f: portadaValida(p.portada), k: p.trackIds.map(aCorto), t: meta[p.id]?.t || 0, cr: p.createdAt || 0,
+        // v97: colaborativa (co) o Blend (bl): el id de la invitación viaja a tus otros dispositivos
+        ...(p.colab?.id ? { co: p.colab.id } : {}), ...(p.blend?.id ? { bl: p.blend.id } : {}) };
     }
 
     function mezclarPlaylists(metaPl, remotas) {
@@ -12585,14 +12637,23 @@
 
     function aplicarPlaylists(lista, metaPl) {
       const locales = new Map(library.local.map((p) => [p.id, p]));
+      // v97: las playlists creadas mientras se sincronizaba (no estaban al empezar) no se pierden
+      const enLista = new Set(lista.map((p) => p.i));
+      const nuevas = library.local.filter((p) => !enLista.has(p.id));
       library.local = lista.filter((p) => !p.x).map((p) => {
         const previa = locales.get(p.i) || {};
         const pl = { ...previa, id: p.i, name: p.n, emoji: iconoGuardable(p.e || previa.emoji), color: p.c || previa.color || '#8a93a6',
           portada: typeof p.f === 'string' ? portadaValida(p.f) : portadaValida(previa.portada),
-          trackIds: [...new Set((p.k || []).map(aLargo).filter(Boolean))], createdAt: p.cr || previa.createdAt || Date.now() };
+          trackIds: [...new Set((p.k || []).map(aLargo).filter(Boolean))], createdAt: p.cr || previa.createdAt || Date.now(),
+          ...(p.co ? { colab: previa.colab?.id === p.co ? previa.colab : { id: p.co } } : {}),
+          ...(p.bl ? { blend: previa.blend?.id === p.bl ? previa.blend : { id: p.bl } } : {}) };
+        // En una colaborativa o un Blend manda el servidor de Liquid, no la copia de la cuenta (que puede ser más
+        // vieja): si no, lo que añadieron otras personas parecería «quitado» y se borraría para todos
+        if ((pl.colab?.base || pl.blend) && Array.isArray(previa.trackIds)) pl.trackIds = previa.trackIds;
         metaPl[p.i] = { h: String(hashString(huellaPl(pl))), t: p.t || 0 };
         return pl;
       });
+      library.local.push(...nuevas);
       lista.filter((p) => p.x).forEach((p) => { metaPl[p.i] = { x: p.x }; });
       saveLocalPlaylists();
     }
@@ -12948,8 +13009,695 @@
       correo: () => sesion?.perfil?.correo || storage.get(K.ultimoCorreo, '') || '',
       prepararRobot: (caja) => (sesion ? Promise.resolve() : montarRobot(caja)),
       pedirCancion,
-      mensajeError: mensaje
+      mensajeError: mensaje,
+      // v97: llamadas con sesión para las playlists colaborativas y los Blends
+      llamar: (ruta, opciones = {}) => api(ruta, { ...opciones, auth: true }),
+      // v98: el pase vigente (15 min) para entrar en las salas de Connect y Jam, sin dar la contraseña
+      async pase() {
+        if (!sesion) return null;
+        if ((sesion.caducaPase || 0) - 60 < Date.now() / 1000) await renovar();
+        return sesion?.pase || null;
+      }
     };
+  })();
+
+  /* =========================================================
+     v97: playlists colaborativas y Blends (como Spotify)
+     - Colaborativa: una playlist propia que se comparte con un enlace (?unirse=<id>). Cada miembro la ve en
+       «Mis playlists» y añade o quita canciones como en cualquier otra; Liquid sube solo la diferencia
+       (anadir / quitar) y el servidor la junta con lo que hicieron los demás a la vez.
+     - Blend: cada persona sube un resumen de su gusto (sus canciones y artistas más escuchados); Liquid mezcla
+       los de todos en el navegador: lo que os gusta a la vez primero, luego por turnos, y canciones puente de
+       los artistas que compartís. Cambia cada día. Enlace: ?blend=<id>.
+     Las dos viven en library.local con una marca (colab / blend): descargas, fijadas, sincronización y el
+     diálogo de añadir funcionan como siempre. Hace falta sesión: el servidor es el Worker de cuentas.
+     ========================================================= */
+  const social = (() => {
+    const PENDIENTE = 'liquidbrush:invitacion';
+    let subiendo = null;
+    let pushTimer = 0;
+    let ultimaBajada = 0;
+    const llamar = (ruta, opciones) => cuenta.llamar(ruta, opciones);
+    const colabs = () => library.local.filter((p) => p.colab?.id);
+    const blendsLocales = () => library.local.filter((p) => p.blend?.id);
+    const enlace = (tipo, id) => `${appBase()}?${tipo}=${encodeURIComponent(id)}`;
+    const errorTexto = (error) => (error?.codigo === 'sin_conexion' ? 'Sin conexión: inténtalo cuando vuelva.' : cuenta.mensajeError?.(error) || 'No se pudo ahora. Inténtalo de nuevo.');
+
+    function pedirSesion(texto, pendiente) {
+      if (pendiente) storage.set(PENDIENTE, pendiente);
+      showToast(texto, { label: 'Iniciar sesión', run: () => cuenta.abrir() });
+    }
+
+    async function compartirEnlace(titulo, texto, url) {
+      if (navigator.share) {
+        try { await navigator.share({ title: titulo, text: texto, url }); return; } catch (error) { if (error?.name === 'AbortError') return; }
+      }
+      copyText(url, 'Enlace copiado: mándaselo a quien quieras.');
+    }
+
+    /* --- Colaborativas --- */
+    function aplicarLista(p, l) {
+      p.trackIds = l.canciones.map((c) => c.i);
+      p.name = l.nombre;
+      p.colab = {
+        id: l.id, owner: Boolean(l.soyDueno), rev: l.rev, base: p.trackIds.slice(), nombre: l.nombre,
+        miembros: l.miembros, yo: cuenta.nombre() || '',
+        por: Object.fromEntries(l.canciones.map((c) => [c.i, c.p]))
+      };
+    }
+
+    const diferencia = (p) => {
+      const base = new Set(p.colab.base || []);
+      const ahora = new Set(p.trackIds);
+      return {
+        anadir: p.trackIds.filter((id) => !base.has(id)),
+        quitar: [...base].filter((id) => !ahora.has(id)),
+        nombre: p.colab.owner && p.colab.nombre && p.name !== p.colab.nombre ? p.name : null
+      };
+    };
+
+    // La lista ya no existe (la dueña la borró) o te sacaron: se queda como playlist propia
+    function soltar(p, motivo) {
+      delete p.colab;
+      showToast(`«${p.name}» ya no es colaborativa${motivo ? ` (${motivo})` : ''}: te queda como playlist tuya.`, null, { background: true });
+    }
+
+    async function subir() {
+      if (subiendo || !signedIn()) return subiendo;
+      subiendo = (async () => {
+        let cambio = false;
+        for (const p of colabs()) {
+          const d = diferencia(p);
+          if (!d.anadir.length && !d.quitar.length && !d.nombre) continue;
+          try {
+            const r = await llamar(`/compartidas/${p.colab.id}/canciones`, { cuerpo: { anadir: d.anadir, quitar: d.quitar, ...(d.nombre ? { nombre: d.nombre } : {}) } });
+            aplicarLista(p, r.lista);
+            cambio = true;
+          } catch (error) {
+            if (error?.codigo === 'no_encontrado') { soltar(p, 'la borraron'); cambio = true; }
+            // Sin conexión: se reintenta al volver (la diferencia sigue ahí)
+          }
+        }
+        if (cambio) guardarYRepintar();
+      })().finally(() => { subiendo = null; });
+      return subiendo;
+    }
+
+    function guardarYRepintar() {
+      const antes = onLocalPlaylistsChange;
+      onLocalPlaylistsChange = null;
+      saveLocalPlaylists();
+      onLocalPlaylistsChange = antes;
+      if (state.view === 'playlists' || state.view === 'playlist') renderList();
+    }
+
+    async function bajar({ forzar = false } = {}) {
+      if (!signedIn() || !navigator.onLine) return;
+      if (!forzar && Date.now() - ultimaBajada < 60000) return;
+      ultimaBajada = Date.now();
+      await subir();
+      let cambio = false;
+      try {
+        const { listas = [] } = await llamar('/compartidas', { metodo: 'GET' });
+        const enServidor = new Set(listas.map((l) => l.id));
+        for (const l of listas) {
+          let p = library.local.find((x) => x.colab?.id === l.id);
+          if (p && p.colab.rev === l.rev) continue;
+          const { lista } = await llamar(`/compartidas/${l.id}`, { metodo: 'GET' });
+          if (!p) {
+            p = { id: newId(), name: lista.nombre, emoji: 'ic:headphones', color: PLAYLIST_COLORS[Math.floor(Math.random() * PLAYLIST_COLORS.length)], trackIds: [], createdAt: Date.now() };
+            library.local.push(p);
+          }
+          aplicarLista(p, lista);
+          cambio = true;
+        }
+        colabs().forEach((p) => { if (!enServidor.has(p.colab.id)) { soltar(p, 'la borraron o saliste'); cambio = true; } });
+      } catch { /* sin conexión o sesión caducada: la próxima vez */ }
+      try { cambio = (await refrescarBlends()) || cambio; } catch { /* idem */ }
+      if (cambio) guardarYRepintar();
+    }
+
+    async function invitar(localId) {
+      const p = findLocal(localId);
+      if (!p) return;
+      if (!signedIn()) { pedirSesion('Para hacer colaborativa una playlist, inicia sesión (así sabemos quién añade cada canción).'); return; }
+      if (!p.colab) {
+        try {
+          const r = await llamar('/compartidas', { cuerpo: { nombre: p.name, canciones: p.trackIds } });
+          aplicarLista(p, r.lista);
+          guardarYRepintar();
+        } catch (error) { showToast(errorTexto(error)); return; }
+      }
+      await compartirEnlace(p.name, `Añade canciones a «${p.name}» conmigo en Liquid Bullet`, enlace('unirse', p.colab.id));
+    }
+
+    async function unirse(id) {
+      if (!signedIn()) { pedirSesion('Te invitaron a una playlist colaborativa: inicia sesión para unirte.', { tipo: 'unirse', id }); return; }
+      try {
+        const r = await llamar(`/compartidas/${encodeURIComponent(id)}/unirse`, {});
+        let p = library.local.find((x) => x.colab?.id === r.lista.id);
+        if (!p) {
+          p = { id: newId(), name: r.lista.nombre, emoji: 'ic:headphones', color: PLAYLIST_COLORS[Math.floor(Math.random() * PLAYLIST_COLORS.length)], trackIds: [], createdAt: Date.now() };
+          library.local.push(p);
+        }
+        aplicarLista(p, r.lista);
+        guardarYRepintar();
+        openPlaylist(`local:${p.id}`);
+        showToast(`Ya estás en «${p.name}»: lo que añadas lo verán ${r.lista.miembros.length > 2 ? 'los demás' : r.lista.miembros[0] || 'los demás'}.`);
+      } catch (error) {
+        showToast(error?.codigo === 'no_encontrado' ? 'Esa invitación ya no existe: la playlist se borró.' : error?.codigo === 'lista_llena' ? 'Esa playlist ya tiene el máximo de personas (50).' : errorTexto(error));
+      }
+    }
+
+    /* --- Blends --- */
+    // Tu gusto, en corto: tus más escuchadas, tus favoritas y tus artistas
+    function miGusto() {
+      const top = Object.entries(library.plays).filter(([id]) => state.trackMap.has(id)).sort((a, b) => b[1] - a[1]).slice(0, 150).map(([id]) => id);
+      const favs = [...state.favorites].filter((id) => state.trackMap.has(id)).slice(-100);
+      return { t: [...new Set([...top, ...favs])].slice(0, 200), a: (tasteProfile().topArtists || []).slice(0, 40) };
+    }
+
+    function mezclar(miembros, semilla) {
+      const pools = miembros.map((m) => ({
+        nombre: m.nombre, yo: m.yo,
+        tracks: (m.gusto?.t || []).map(getTrack).filter((t) => t && !t.atk && !isDisliked(t.id)),
+        artistas: new Set(m.gusto?.a || [])
+      }));
+      const veces = new Map();
+      pools.forEach((p) => p.tracks.forEach((t) => veces.set(t.id, (veces.get(t.id) || 0) + 1)));
+      const artistasVeces = new Map();
+      pools.forEach((p) => p.artistas.forEach((a) => artistasVeces.set(a, (artistasVeces.get(a) || 0) + 1)));
+      // Lo que os gusta a la vez (la misma canción o un artista de otra persona) va antes
+      const peso = (t, propio) => 1 + ((veces.get(t.id) || 0) > 1 ? 4 : 0)
+        + (artistKeysOf(t).some((k) => pools.some((q) => q !== propio && q.artistas.has(k))) ? 2 : 0);
+      const listas = pools.map((p, i) => seededShuffle(p.tracks, `${semilla}:${i}`)
+        .map((t, j) => ({ t, w: peso(t, p) - j * 0.001 })).sort((a, b) => b.w - a.w).map((x) => x.t));
+      const puente = seededShuffle([...artistasVeces].filter(([, n]) => n > 1)
+        .flatMap(([k]) => (getArtist(k)?.tracks || []).slice(0, 20)), `${semilla}:puente`);
+      const salida = [];
+      const usadas = new Set();
+      const tomar = (t) => {
+        if (!t) return false;
+        const clave = t.songKey || t.id;
+        if (usadas.has(clave)) return false;
+        usadas.add(clave);
+        salida.push(t.id);
+        return true;
+      };
+      const cursores = listas.map(() => 0);
+      let vuelta = 0;
+      while (salida.length < 50 && (cursores.some((c, i) => c < listas[i].length) || puente.length)) {
+        listas.forEach((lista, i) => {
+          while (cursores[i] < lista.length && !tomar(lista[cursores[i]++])) { /* salta repetidas */ }
+        });
+        if (++vuelta % 2 === 0) while (puente.length && !tomar(puente.shift())) { /* idem */ }
+        if (vuelta > 400) break;
+      }
+      return salida.slice(0, 50);
+    }
+
+    function aplicarBlend(p, b) {
+      const otros = b.miembros.filter((m) => !m.yo).map((m) => m.nombre);
+      p.name = otros.length ? `Blend · Tú + ${otros.length > 2 ? `${otros.slice(0, 2).join(' + ')} y ${otros.length - 2} más` : otros.join(' + ')}` : 'Blend · esperando a alguien';
+      p.trackIds = otros.length ? mezclar(b.miembros, `${b.id}:${new Date().toISOString().slice(0, 10)}`) : [];
+      p.blend = { id: b.id, miembros: b.miembros.length, dia: new Date().toISOString().slice(0, 10), gustoDia: p.blend?.gustoDia || '' };
+    }
+
+    async function refrescarBlends() {
+      if (!signedIn()) return false;
+      const { blends = [] } = await llamar('/blends', { metodo: 'GET' });
+      const hoy = new Date().toISOString().slice(0, 10);
+      const enServidor = new Set(blends.map((b) => b.id));
+      let cambio = false;
+      for (const { id } of blends) {
+        let p = library.local.find((x) => x.blend?.id === id);
+        if (p && p.blend.dia === hoy && p.blend.miembros > 1) continue;
+        // Una vez al día se sube tu gusto de hoy y se rehace la mezcla
+        const r = p?.blend?.gustoDia !== hoy
+          ? await llamar(`/blends/${id}/gusto`, { metodo: 'PUT', cuerpo: { gusto: miGusto() } }).catch(() => llamar(`/blends/${id}`, { metodo: 'GET' }))
+          : await llamar(`/blends/${id}`, { metodo: 'GET' });
+        if (!p) {
+          p = { id: newId(), name: 'Blend', emoji: 'ic:spark', color: PLAYLIST_COLORS[Math.floor(Math.random() * PLAYLIST_COLORS.length)], trackIds: [], createdAt: Date.now() };
+          library.local.push(p);
+        }
+        aplicarBlend(p, r.blend);
+        p.blend.gustoDia = hoy;
+        cambio = true;
+      }
+      blendsLocales().forEach((p) => { if (!enServidor.has(p.blend.id)) { delete p.blend; cambio = true; } });
+      return cambio;
+    }
+
+    async function crearBlend() {
+      if (!signedIn()) { pedirSesion('Para crear un Blend, inicia sesión: así se puede mezclar tu gusto con el de otra persona.'); return; }
+      const gusto = miGusto();
+      if (gusto.t.length < 5 && gusto.a.length < 2) { showToast('Escucha unas cuantas canciones más para que el Blend sepa qué te gusta.'); return; }
+      try {
+        const r = await llamar('/blends', { cuerpo: { gusto } });
+        const p = { id: newId(), name: 'Blend', emoji: 'ic:spark', color: PLAYLIST_COLORS[Math.floor(Math.random() * PLAYLIST_COLORS.length)], trackIds: [], createdAt: Date.now() };
+        aplicarBlend(p, r.blend);
+        p.blend.gustoDia = p.blend.dia;
+        library.local.push(p);
+        guardarYRepintar();
+        openPlaylist(`local:${p.id}`);
+        await compartirEnlace('Blend en Liquid Bullet', 'Hagamos un Blend: una playlist con lo que nos gusta a los dos', enlace('blend', r.blend.id));
+      } catch (error) { showToast(errorTexto(error)); }
+    }
+
+    async function invitarBlend(localId) {
+      const p = findLocal(localId);
+      if (p?.blend) await compartirEnlace('Blend en Liquid Bullet', 'Únete a mi Blend en Liquid Bullet', enlace('blend', p.blend.id));
+    }
+
+    async function unirseBlend(id) {
+      if (!signedIn()) { pedirSesion('Te invitaron a un Blend: inicia sesión para mezclar vuestros gustos.', { tipo: 'blend', id }); return; }
+      try {
+        const r = await llamar(`/blends/${encodeURIComponent(id)}/unirse`, { cuerpo: { gusto: miGusto() } });
+        let p = library.local.find((x) => x.blend?.id === r.blend.id);
+        if (!p) {
+          p = { id: newId(), name: 'Blend', emoji: 'ic:spark', color: PLAYLIST_COLORS[Math.floor(Math.random() * PLAYLIST_COLORS.length)], trackIds: [], createdAt: Date.now() };
+          library.local.push(p);
+        }
+        aplicarBlend(p, r.blend);
+        p.blend.gustoDia = p.blend.dia;
+        guardarYRepintar();
+        openPlaylist(`local:${p.id}`);
+        showToast(`Blend listo: ${songsLabel(p.trackIds.length)} con lo que os gusta. Cambia cada día.`);
+      } catch (error) {
+        showToast(error?.codigo === 'no_encontrado' ? 'Ese Blend ya no existe.' : error?.codigo === 'blend_lleno' ? 'Ese Blend ya tiene 10 personas.' : error?.codigo === 'sin_gusto' ? 'Escucha unas cuantas canciones antes de unirte a un Blend.' : errorTexto(error));
+      }
+    }
+
+    // Al borrar la playlist: la dueña borra la colaborativa para todos; los demás salen (y del Blend, siempre se sale)
+    function salir(p) {
+      if (!signedIn()) return;
+      const ruta = p.colab ? `/compartidas/${p.colab.id}` : `/blends/${p.blend.id}`;
+      llamar(ruta, { metodo: 'DELETE' }).catch(() => {});
+    }
+
+    function atenderInvitacion() {
+      const params = new URLSearchParams(location.search);
+      let pendiente = null;
+      if (params.get('unirse')) pendiente = { tipo: 'unirse', id: params.get('unirse') };
+      else if (params.get('blend')) pendiente = { tipo: 'blend', id: params.get('blend') };
+      if (pendiente) {
+        params.delete('unirse');
+        params.delete('blend');
+        const resto = params.toString();
+        try { history.replaceState(history.state, '', `${location.pathname}${resto ? `?${resto}` : ''}${location.hash}`); } catch { /* sin historial */ }
+      } else {
+        pendiente = storage.get(PENDIENTE, null);
+        if (!pendiente || !signedIn()) return;
+      }
+      if (!/^[\w-]{16}$/.test(String(pendiente.id || ''))) return;
+      if (signedIn()) storage.set(PENDIENTE, null);
+      if (pendiente.tipo === 'blend') unirseBlend(pendiente.id);
+      else unirse(pendiente.id);
+    }
+
+    function init() {
+      if (LAB_MODE) return;
+      onLocalPlaylistsChange = () => {
+        if (!colabs().length) return;
+        clearTimeout(pushTimer);
+        pushTimer = setTimeout(() => subir(), 900);
+      };
+      window.addEventListener('liquid:cuenta', () => { if (signedIn()) { atenderInvitacion(); bajar({ forzar: true }); } });
+      window.addEventListener('online', () => bajar({ forzar: true }));
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) bajar(); });
+      // Con una colaborativa abierta, lo que añaden los demás llega solo (cada 45 s)
+      setInterval(() => {
+        if (document.hidden || state.view !== 'playlist') return;
+        const p = getPlaylist(state.openPlaylist);
+        if (p?.colab) { ultimaBajada = 0; bajar(); }
+      }, 45000);
+      setTimeout(() => { atenderInvitacion(); bajar({ forzar: true }); }, 2500);
+    }
+
+    // Quién añadió cada canción de una colaborativa (para el menú de la canción)
+    const quienAnadio = (p, trackId) => p?.colab?.por?.[trackId] || '';
+
+    // Los botones solo salen si el servidor de cuentas ya sabe de colaborativas y Blends (versión 1.2.0 o más).
+    // Se pregunta una vez al día (GET / no necesita sesión); mientras tanto vale lo último que se supo.
+    const VERSION_KEY = 'liquidbrush:cuentas-version';
+    const versionOk = (v) => { const [a = 0, b = 0] = String(v || '').split('.').map(Number); return a > 1 || (a === 1 && b >= 2); };
+    let disponibleYa = versionOk(storage.get(VERSION_KEY, null)?.v);
+    async function comprobarServidor() {
+      const guardada = storage.get(VERSION_KEY, null);
+      // Una vez al día; cada hora mientras el servidor sea anterior a 1.3.0 (Connect y Jam llegan sin esperar)
+      const [ma = 0, mi = 0] = String(guardada?.v || '').split('.').map(Number);
+      const espera = ma > 1 || (ma === 1 && mi >= 3) ? 86400000 : 3600000;
+      if (guardada && Date.now() - (guardada.t || 0) < espera) return;
+      try {
+        const r = await fetch(`${CUENTA_API}/`, { cache: 'no-store' });
+        const d = await r.json();
+        storage.set(VERSION_KEY, { v: d.version || '', t: Date.now() });
+        const antes = disponibleYa;
+        disponibleYa = versionOk(d.version);
+        if (antes !== disponibleYa && (state.view === 'playlists' || state.view === 'playlist')) renderList();
+      } catch { /* sin conexión: se pregunta otro día */ }
+    }
+    const disponible = () => disponibleYa || library.local.some((p) => p.colab || p.blend);
+    setTimeout(comprobarServidor, 3000);
+
+    return { init, invitar, unirse, crearBlend, invitarBlend, unirseBlend, salir, bajar, quienAnadio, disponible };
+  })();
+
+  /* =========================================================
+     v98: Liquid Connect y Jam (como Spotify Connect y Jam), con el Worker de cuentas (salas en tiempo real)
+     - Connect: con sesión, cada dispositivo abierto entra en la sala de tu cuenta. En «Dispositivos y Jam»
+       ves los demás y lo que suena en cada uno; puedes pausar, saltar, «Escuchar aquí» (traer la canción a
+       este, en el mismo segundo) o «Pasar allí» (mandarla al otro y parar aquí).
+     - Jam: «Empezar un Jam» da un código y un enlace (?jam=CÓDIGO). Quien entra (con su cuenta) escucha en su
+       propio teléfono lo mismo que tú y en el mismo segundo; lo que pone a la cola te llega a tu cola.
+     Solo se habla con el servidor mientras la app está a la vista; las salas no guardan nada de nadie salvo
+     lo último que sonó. Necesita el Worker 1.3.0 o más (antes, el botón no sale).
+     ========================================================= */
+  const conexion = (() => {
+    // Pruebas en local (solo en 127.0.0.1/localhost): las salas pueden apuntar al Worker de wrangler dev
+    const wsLocal = /^(127\.0\.0\.1|localhost)$/.test(location.hostname) ? storage.get('liquidbrush:prueba-salas', null) : null;
+    const WS_BASE = typeof wsLocal === 'string' && /^ws:\/\/(127\.0\.0\.1|localhost):\d+$/.test(wsLocal) ? wsLocal : CUENTA_API.replace(/^http/, 'ws');
+    const JAM_KEY = 'liquidbrush:jam';
+    const salas = { cuenta: null, jam: null };
+    const estado = { yo: { cuenta: null, jam: null }, miembros: { cuenta: [], jam: [] }, remoto: { cuenta: null, jam: null }, anfitrion: false, codigo: '' };
+    const reintentos = { cuenta: 0, jam: 0 };
+    let ultimoEnvio = '';
+    const ui = { btn: null, badge: null, dialog: null, list: null, jam: null, status: null };
+    const versionOk = () => { const v = storage.get('liquidbrush:cuentas-version', null)?.v || ''; const [a = 0, b = 0] = v.split('.').map(Number); return a > 1 || (a === 1 && b >= 3); };
+    const disponible = () => signedIn() && versionOk() && typeof WebSocket !== 'undefined' && !LAB_MODE;
+    const enJam = () => Boolean(salas.jam && estado.codigo);
+    const invitado = () => enJam() && !estado.anfitrion;
+
+    async function abrir(tipo, codigo = '') {
+      if (!disponible() || salas[tipo]) return;
+      const pase = await cuenta.pase().catch(() => null);
+      if (!pase) return;
+      const ruta = tipo === 'cuenta' ? '/salas/cuenta' : `/salas/jam/${encodeURIComponent(codigo)}`;
+      let ws;
+      try { ws = new WebSocket(`${WS_BASE}${ruta}`, ['liquid', pase]); } catch { return; }
+      salas[tipo] = ws;
+      ws.onopen = () => { reintentos[tipo] = 0; };
+      ws.onmessage = (e) => { try { recibir(tipo, JSON.parse(e.data)); } catch { /* mensaje raro */ } };
+      ws.onclose = (e) => {
+        if (salas[tipo] !== ws) return;
+        salas[tipo] = null;
+        estado.miembros[tipo] = [];
+        if (tipo === 'jam' && (e.code === 1006 && !reintentos.jam && !estado.yo.jam)) {
+          // No llegó a entrar: el Jam ya no existe o está lleno
+          salirJam(true);
+          showToast('Ese Jam ya terminó o no existe.');
+          return;
+        }
+        pintar();
+        // Se vuelve a intentar con espera creciente mientras la app esté a la vista
+        if (!document.hidden && disponible() && (tipo === 'cuenta' || enJam())) {
+          reintentos[tipo] = Math.min(reintentos[tipo] + 1, 6);
+          setTimeout(() => abrir(tipo, estado.codigo), 1000 * 2 ** reintentos[tipo]);
+        }
+      };
+    }
+
+    function cerrar(tipo) {
+      const ws = salas[tipo];
+      salas[tipo] = null;
+      try { ws?.close(1000, 'adiós'); } catch { /* ya cerrado */ }
+    }
+
+    function mandar(tipo, mensaje) {
+      const ws = salas[tipo];
+      if (ws?.readyState === 1) ws.send(JSON.stringify(mensaje));
+    }
+
+    function miEstado() {
+      const t = state.currentTrack;
+      return {
+        t: 'estado', track: t && !t.radio && !t.atk ? t.id : null, pos: Math.round((els.audio.currentTime || 0) * 10) / 10,
+        sonando: Boolean(t && !els.audio.paused), cola: state.queue.slice(state.queueIndex + 1, state.queueIndex + 11)
+      };
+    }
+
+    // Se cuenta lo que suena: al cambiar algo y, mientras suena, cada 20 s (solo si hay alguien escuchando)
+    function publicar(forzar = false) {
+      const m = miEstado();
+      const firma = `${m.track}|${m.sonando}|${Math.round(m.pos / 20)}`;
+      if (!forzar && firma === ultimoEnvio) return;
+      ultimoEnvio = firma;
+      if (estado.miembros.cuenta.length > 1) mandar('cuenta', m);
+      if (enJam() && estado.anfitrion) mandar('jam', m);
+    }
+
+    function recibir(tipo, m) {
+      if (m.t === 'bienvenida') {
+        estado.yo[tipo] = m.yo;
+        estado.miembros[tipo] = m.miembros || [];
+        if (tipo === 'jam') {
+          estado.anfitrion = Boolean(m.anfitrion);
+          if (!estado.anfitrion && m.estado) seguir(m.estado);
+          if (estado.anfitrion) publicar(true);
+        } else estado.remoto.cuenta = m.estado;
+        pintar();
+        return;
+      }
+      if (m.t === 'miembros') {
+        const antes = estado.miembros[tipo].length;
+        estado.miembros[tipo] = m.miembros || [];
+        if (tipo === 'jam' && estado.anfitrion && estado.miembros.jam.length > antes) {
+          const nuevo = estado.miembros.jam.at(-1);
+          if (nuevo && !nuevo.anfitrion) showToast(`${nuevo.nombre} se unió a tu Jam.`, null, { background: true });
+          publicar(true);
+        }
+        if (tipo === 'cuenta' && estado.miembros.cuenta.length > antes) publicar(true);
+        pintar();
+        return;
+      }
+      if (m.t === 'estado') {
+        estado.remoto[tipo] = m;
+        if (tipo === 'jam' && invitado()) seguir(m);
+        pintar();
+        return;
+      }
+      if (m.t === 'orden' && tipo === 'cuenta') { obedecer(m); return; }
+      if (m.t === 'anadir' && tipo === 'jam' && estado.anfitrion) {
+        const track = getTrack(m.id);
+        if (!track) return;
+        queueTrack(m.id, !m.siguiente, true);
+        showToast(`${m.de} añadió «${track.title}» ${m.siguiente ? 'para que suene a continuación' : 'a la cola del Jam'}.`, null, { background: true });
+        publicar(true);
+      }
+    }
+
+    // Jam (invitado): misma canción y mismo segundo que el anfitrión (se corrige si hay más de 3 s de diferencia)
+    function seguir(e) {
+      if (!e?.track) return;
+      const track = getTrack(e.track);
+      if (!track) { showToast('El anfitrión pone una canción que no está en tu Liquid.', null, { background: true }); return; }
+      const destino = e.pos + (e.sonando ? (Date.now() - (e.at || Date.now())) / 1000 : 0);
+      if (state.currentTrack?.id !== track.id) {
+        playCollection([track, ...(e.cola || []).map(getTrack).filter(Boolean)], track.id, `Jam · ${estado.codigo}`, `jam:${estado.codigo}`);
+        state.pendingSeek = destino;
+      } else if (Math.abs((els.audio.currentTime || 0) - destino) > 3) seekTo(destino);
+      if (e.sonando && els.audio.paused) play().catch?.(() => {});
+      else if (!e.sonando && !els.audio.paused) pauseByUser();
+    }
+
+    // Connect: órdenes que llegan desde otro dispositivo tuyo
+    function obedecer(o) {
+      if (o.accion === 'play') play();
+      else if (o.accion === 'pause') pauseByUser();
+      else if (o.accion === 'next') next();
+      else if (o.accion === 'prev') prev();
+      else if (o.accion === 'seek') seekTo(o.pos);
+      else if (o.accion === 'poner' && getTrack(o.track)) {
+        const tracks = [getTrack(o.track), ...(o.cola || []).map(getTrack).filter(Boolean)];
+        playCollection(tracks, o.track, `Desde ${o.disp}`, `connect:${o.de}`);
+        state.pendingSeek = o.pos;
+        showToast(`Sigue aquí lo que sonaba en ${o.disp}.`);
+      }
+      publicar(true);
+    }
+
+    /* --- Lo que se ve --- */
+    function pintar() {
+      if (!ui.btn) return;
+      ui.btn.hidden = !disponible();
+      const otros = estado.miembros.cuenta.filter((d) => d.id !== estado.yo.cuenta);
+      const enJamN = enJam() ? estado.miembros.jam.length : 0;
+      ui.badge.hidden = !otros.length && !enJamN;
+      ui.badge.textContent = enJamN ? 'Jam' : String(otros.length + 1);
+      ui.btn.classList.toggle('is-active', Boolean(enJamN));
+      if (!ui.dialog?.open) return;
+      ui.status.textContent = !salas.cuenta ? 'Conectando con tus dispositivos…'
+        : otros.length ? `Liquid está abierto en ${otros.length + 1} dispositivos tuyos.` : 'Abre Liquid con tu cuenta en otro dispositivo (el ordenador, la tablet) y aparecerá aquí.';
+      const remoto = estado.remoto.cuenta;
+      ui.list.replaceChildren(...[{ id: estado.yo.cuenta, disp: 'Este dispositivo', yo: true }, ...otros].filter((d) => d.id).map((d) => {
+        const li = makeEl('li', `connect-item${d.yo ? ' is-me' : ''}`);
+        const suena = d.yo ? state.currentTrack : remoto?.de === d.id && remoto.track ? getTrack(remoto.track) : null;
+        const sonando = d.yo ? !els.audio.paused : remoto?.de === d.id && remoto.sonando;
+        const texto = makeEl('span', 'connect-text');
+        texto.append(makeEl('span', 'connect-name', d.disp), makeEl('span', 'connect-now', suena ? `${sonando ? '▶ ' : '❚❚ '}${suena.title} · ${suena.knownArtist || suena.artist}` : 'Sin nada sonando'));
+        li.append(svgIcon('devices', 'icon connect-icon'), texto);
+        if (!d.yo) {
+          const acciones = makeEl('span', 'connect-actions');
+          const boton = (accion, etiqueta, icono, texto) => {
+            const b = makeButton(texto ? 'btn btn-small' : 'icon-btn', 'connect-orden', etiqueta, icono, texto);
+            b.dataset.accion = accion;
+            b.dataset.a = d.id;
+            return b;
+          };
+          acciones.append(boton('prev', `Anterior en ${d.disp}`, 'prev'), boton(sonando ? 'pause' : 'play', `${sonando ? 'Pausar' : 'Reproducir'} en ${d.disp}`, sonando ? 'pause' : 'play'), boton('next', `Siguiente en ${d.disp}`, 'next'));
+          if (suena) acciones.append(boton('traer', `Escuchar aquí lo que suena en ${d.disp}`, '', 'Escuchar aquí'));
+          if (state.currentTrack && !state.currentTrack.radio) acciones.append(boton('pasar', `Pasar lo que suena aquí a ${d.disp}`, '', 'Pasar allí'));
+          li.append(acciones);
+        }
+        return li;
+      }));
+      // Jam
+      const caja = ui.jam;
+      if (!enJam()) {
+        caja.replaceChildren(makeEl('p', 'sheet-note', 'Escuchad lo mismo a la vez, cada uno en su teléfono, y añadid canciones a una cola común.'), makeButton('btn btn-primary', 'jam-crear', 'Empezar un Jam', 'spark', 'Empezar un Jam'));
+      } else {
+        const gente = estado.miembros.jam.map((p) => `${p.nombre}${p.anfitrion ? ' (anfitrión)' : ''}`).join(', ') || 'Conectando…';
+        const nodos = [makeEl('p', 'jam-code', `Código ${estado.codigo}`), makeEl('p', 'sheet-note', `En el Jam: ${gente}`)];
+        nodos.push(makeEl('p', 'sheet-note', estado.anfitrion
+          ? 'Lo que pongas suena en sus teléfonos; lo que añadan a la cola llega a la tuya.'
+          : 'Escuchas lo mismo que el anfitrión. «Reproducir a continuación» o «Al final de la cola» manda la canción a su cola.'));
+        const botones = makeEl('div', 'jam-actions');
+        if (estado.anfitrion) botones.append(makeButton('btn', 'jam-invitar', 'Invitar al Jam', 'share', 'Invitar'));
+        botones.append(makeButton('btn btn-ghost', 'jam-salir', estado.anfitrion ? 'Terminar el Jam' : 'Salir del Jam', 'close', estado.anfitrion ? 'Terminar' : 'Salir'));
+        nodos.push(botones);
+        caja.replaceChildren(...nodos);
+      }
+    }
+
+    async function crearJam() {
+      try {
+        const r = await cuenta.llamar('/jam', {});
+        estado.codigo = r.codigo;
+        storage.set(JAM_KEY, { codigo: r.codigo, t: Date.now() });
+        await abrir('jam', r.codigo);
+        pintar();
+        invitarJam();
+      } catch (error) { showToast(cuenta.mensajeError?.(error) || 'No se pudo crear el Jam ahora.'); }
+    }
+
+    function invitarJam() {
+      const url = `${appBase()}?jam=${estado.codigo}`;
+      const texto = `Únete a mi Jam en Liquid Bullet (código ${estado.codigo})`;
+      if (navigator.share) navigator.share({ title: 'Jam en Liquid Bullet', text: texto, url }).catch(() => {});
+      else copyText(url, 'Enlace del Jam copiado: mándaselo a quien quieras.');
+    }
+
+    function unirseJam(codigo) {
+      const c = String(codigo || '').toUpperCase();
+      if (!/^[A-Z2-9]{6}$/.test(c)) return;
+      if (!signedIn()) {
+        storage.set('liquidbrush:invitacion', { tipo: 'jam', id: c });
+        showToast('Te invitaron a un Jam: inicia sesión para unirte.', { label: 'Iniciar sesión', run: () => cuenta.abrir() });
+        return;
+      }
+      estado.codigo = c;
+      estado.yo.jam = null;
+      storage.set(JAM_KEY, { codigo: c, t: Date.now() });
+      abrir('jam', c);
+      showToast(`Entrando en el Jam ${c}… Si no suena solo, toca ▶.`);
+    }
+
+    function salirJam(silencio = false) {
+      cerrar('jam');
+      estado.codigo = '';
+      estado.anfitrion = false;
+      estado.miembros.jam = [];
+      estado.remoto.jam = null;
+      storage.set(JAM_KEY, null);
+      pintar();
+      if (!silencio) showToast('Saliste del Jam.');
+    }
+
+    function orden(accion, a) {
+      const remoto = estado.remoto.cuenta;
+      const destino = estado.miembros.cuenta.find((d) => d.id === a);
+      if (!destino) return;
+      if (accion === 'traer') {
+        if (remoto?.de !== a || !getTrack(remoto.track)) return;
+        mandar('cuenta', { t: 'orden', a, accion: 'pause' });
+        const tracks = [getTrack(remoto.track), ...(remoto.cola || []).map(getTrack).filter(Boolean)];
+        playCollection(tracks, remoto.track, `Desde ${destino.disp}`, `connect:${a}`);
+        state.pendingSeek = remoto.pos + (remoto.sonando ? (Date.now() - remoto.at) / 1000 : 0);
+        showToast(`Sigue aquí lo que sonaba en ${destino.disp}.`);
+        return;
+      }
+      if (accion === 'pasar') {
+        const m = miEstado();
+        if (!m.track) return;
+        mandar('cuenta', { t: 'orden', a, accion: 'poner', track: m.track, pos: m.pos, cola: state.queue.slice(state.queueIndex + 1, state.queueIndex + 100) });
+        pauseByUser();
+        showToast(`Ahora suena en ${destino.disp}.`);
+        return;
+      }
+      mandar('cuenta', { t: 'orden', a, accion });
+    }
+
+    function init() {
+      ui.btn = document.getElementById('connectBtn');
+      ui.badge = document.getElementById('connectBadge');
+      ui.dialog = document.getElementById('connectDialog');
+      ui.list = document.getElementById('connectList');
+      ui.jam = document.getElementById('jamBox');
+      ui.status = document.getElementById('connectStatus');
+      if (!ui.btn || !ui.dialog || LAB_MODE) return;
+      ui.btn.addEventListener('click', () => { pintar(); ui.dialog.showModal(); pintar(); });
+      ui.dialog.addEventListener('click', (event) => {
+        if (event.target === ui.dialog || event.target.closest('[data-close]')) { ui.dialog.close(); return; }
+        const b = event.target.closest('[data-action]');
+        if (!b) return;
+        if (b.dataset.action === 'connect-orden') orden(b.dataset.accion, b.dataset.a);
+        else if (b.dataset.action === 'jam-crear') crearJam();
+        else if (b.dataset.action === 'jam-invitar') invitarJam();
+        else if (b.dataset.action === 'jam-salir') salirJam();
+      });
+      // Lo que suena, a los demás: al cambiar y cada 20 s mientras suena
+      decks.forEach((deck) => ['playing', 'pause', 'seeked'].forEach((ev) => deck.addEventListener(ev, () => { if (deck === els.audio) publicar(true); })));
+      setInterval(() => { if (!document.hidden && !els.audio.paused) publicar(); if (ui.dialog.open) pintar(); }, 5000);
+      const arrancar = () => {
+        if (!disponible()) { pintar(); return; }
+        abrir('cuenta');
+        const jam = storage.get(JAM_KEY, null);
+        if (jam?.codigo && Date.now() - (jam.t || 0) < 12 * 3600000 && !salas.jam) { estado.codigo = jam.codigo; abrir('jam', jam.codigo); }
+        pintar();
+      };
+      // Con la app escondida mucho rato se cierra la sala de la cuenta (no gasta); al volver, se abre otra vez
+      let ocultaDesde = 0;
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) { ocultaDesde = Date.now(); setTimeout(() => { if (document.hidden && Date.now() - ocultaDesde >= 300000 && els.audio.paused) cerrar('cuenta'); }, 300000); }
+        else arrancar();
+      });
+      window.addEventListener('liquid:cuenta', () => { if (!signedIn()) { cerrar('cuenta'); salirJam(true); } else arrancar(); });
+      window.addEventListener('online', arrancar);
+      const params = new URLSearchParams(location.search);
+      const jamUrl = params.get('jam');
+      if (jamUrl) {
+        params.delete('jam');
+        const resto = params.toString();
+        try { history.replaceState(history.state, '', `${location.pathname}${resto ? `?${resto}` : ''}${location.hash}`); } catch { /* sin historial */ }
+      }
+      setTimeout(() => {
+        arrancar();
+        const pendiente = storage.get('liquidbrush:invitacion', null);
+        if (jamUrl) unirseJam(jamUrl);
+        else if (pendiente?.tipo === 'jam' && signedIn()) { storage.set('liquidbrush:invitacion', null); unirseJam(pendiente.id); }
+      }, 3500);
+    }
+
+    // Jam (invitado): «Reproducir a continuación» / «Al final de la cola» mandan la canción al anfitrión
+    function anadirAJam(id, siguiente = false) {
+      if (!invitado()) return false;
+      mandar('jam', { t: 'anadir', id, siguiente });
+      const track = getTrack(id);
+      showToast(`«${track?.title || 'La canción'}» va a la cola del Jam.`);
+      return true;
+    }
+
+    return { init, anadirAJam, invitado, pintar };
   })();
 
   /* =========================================================
@@ -13156,7 +13904,7 @@
           : 'Toca el corazón para guardar una canción en Favoritas. En Stats ves tus minutos, horas, estilos y artistas del mes.'),
         target: () => (isPhone() ? '.player-track' : '.tab[data-view="favorites"]') },
       { icon: 'settings', title: 'Hazla tuya',
-        text: () => 'En Ajustes eliges tema, letra, fondo de pantalla y ecualizador, y puedes volver a ver este tutorial. ¿Ideas o algún error? Escribe a officiallukamon@gmail.com (está abajo, en el panel Sonando).',
+        text: () => 'En Ajustes eliges tema, letra, sonido y ecualizador, y puedes volver a ver este tutorial. ¿Ideas o algún error? Escribe a officiallukamon@gmail.com (está abajo, en el panel Sonando).',
         target: () => '#settingsBtn' }
     ];
     let step = 0;
@@ -13321,7 +14069,7 @@
       const list = this.list();
       const text = String(message || 'Error').slice(0, 500);
       if (list[0]?.m === text) return;
-      list.unshift({ t: new Date().toISOString(), m: text, s: String(source).slice(0, 160), v: document.querySelector('script[src^="app.js"]')?.getAttribute('src') || '' });
+      list.unshift({ t: new Date().toISOString(), m: text, s: String(source).slice(0, 160), v: document.querySelector('script[src^="app."]')?.getAttribute('src') || '' });
       storage.set(KEYS.errors, list.slice(0, 15));
     },
     init() {
@@ -13419,13 +14167,6 @@
     els.hapticsHint.textContent = canVibrate
       ? 'Al dar «Me gusta», reproducir, fijar o mover la barra.'
       : 'Este dispositivo no deja vibrar desde la web (iPhone/iPad, ordenador).';
-    els.wallMode.value = settings.wall.mode;
-    els.wallAlive.checked = settings.wall.alive;
-    if (document.documentElement.classList.contains('lite')) {
-      els.wallAlive.closest('.setting').querySelector('.setting-hint').textContent =
-        'Este dispositivo usa el modo ligero (ahorro de batería y datos): el fondo se queda quieto.';
-    }
-    wall.renderGrid();
     renderEqBands();
     updateEqNote();
     els.settingsDialog.showModal();
@@ -13437,6 +14178,7 @@
     const savedFavorites = storage.get(KEYS.favorites, []);
     state.favorites = new Set(Array.isArray(savedFavorites) ? savedFavorites.map(String) : []);
     state.shuffle = storage.get(KEYS.shuffle, false) === true;
+    state.surprise = state.shuffle && storage.get('liquidbrush:shuffle-surprise', false) === true;
     const savedRepeat = storage.get(KEYS.repeat, 'off');
     state.repeat = REPEAT_MODES.includes(savedRepeat) ? savedRepeat : 'off';
 
@@ -14042,6 +14784,7 @@
     els.lyricsPanel.addEventListener('click', (event) => {
       const size = event.target.closest('[data-action="lyrics-size"]');
       if (size) { stepLyricsSize(Number(size.dataset.delta)); return; }
+      if (event.target.closest('[data-action="lyrics-share"]') && state.lyrics) { shareVerse(); return; }
       if (event.target.closest('[data-action="lyrics-copy"]') && state.lyrics) {
         const text = state.lyrics.synced ? state.lyrics.lines.map((l) => l.text).join('\n') : state.lyrics.text;
         const track = state.currentTrack;
@@ -16281,7 +17024,7 @@
       const tracks = (list.length ? list : [st]).map((s) => this.track(s));
       const t = this.track(st);
       if (state.currentTrack?.id === t.id) { togglePlay(); return; }
-      if (state.shuffle) toggleShuffle();
+      if (state.shuffle) setShuffle('off');
       playCollection(tracks, t.id, `Radio · ${title}`, `radio:${title}`);
     },
     // Al sonar una emisora: a «Escuchadas hace poco» y un clic para Radio Browser (así ordena sus emisoras)
@@ -17296,8 +18039,10 @@
 
     restorePreferences();
     atk.init();
+    djVoz.init();
     // v97: SKd ya no existe; fuera la dirección, la clave y los pedidos que guardaba en este navegador
-    try { ['liquidbrush:skd', 'liquidbrush:skd-pedidos'].forEach((k) => localStorage.removeItem(k)); } catch { /* sin acceso */ }
+    // v97: tampoco hay fondo de pantalla: fuera el último fondo recordado
+    try { ['liquidbrush:skd', 'liquidbrush:skd-pedidos', 'liquidbrush:wall-last'].forEach((k) => localStorage.removeItem(k)); } catch { /* sin acceso */ }
     updateModeButtons();
     updateVolumeUI();
     updateProgressUI(0, 0);
@@ -17326,8 +18071,9 @@
     setupAudioSession();
     stallGuard.start();
     setupSurrealEyes();
-    wall.init();
     cuenta.init();
+    social.init();
+    conexion.init();
     pedir.init();
     tour.init();
     install.init();
