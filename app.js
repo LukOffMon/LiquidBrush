@@ -5026,6 +5026,30 @@
     });
   }
 
+  // v97: el verso que suena (y el siguiente si es corto), como tarjeta para Historias o Estados
+  function shareVerse() {
+    const track = state.currentTrack;
+    if (!track || track.radio || !state.lyrics) return;
+    if (track.atk) { showToast('Las canciones de Liquid ATK no tienen enlace para compartir.'); return; }
+    const lines =(state.lyrics.synced ? state.lyrics.lines.map((l) => l.text) : state.lyrics.text.split('\n'))
+      .map((text) => String(text || '').trim());
+    let i = state.lyrics.synced ? state.activeLyric : -1;
+    if (i < 0 || !lines[i]) i = lines.findIndex(Boolean);
+    if (i < 0) { showToast('Esta canción no tiene letra para compartir.'); return; }
+    let quote = lines[i];
+    if (quote.length < 40 && lines[i + 1]) quote = `${quote} / ${lines[i + 1]}`;
+    openShareSheet({
+      kind: 'Verso',
+      quote,
+      title: splitTitle(track.title).main,
+      subtitle: track.knownArtist || track.artist || 'Liquid Bullet',
+      image: track.cover,
+      linkTitle: `${track.title}${track.knownArtist ? ` · ${track.knownArtist}` : ''}`,
+      text: `«${quote}» — ${splitTitle(track.title).main}${track.knownArtist ? `, de ${track.knownArtist}` : ''}. Escúchala en Liquid Bullet`,
+      url: `${appBase()}s/t-${shareSlug(track.id)}.html`
+    });
+  }
+
   function sharePlaylist(pl) {
     if (!pl) return;
     if (pl.kind === 'system' && pl.id) {
@@ -5306,7 +5330,7 @@
       showToast(navigator.onLine ? 'No hay canciones para esta radio.' : 'Sin conexión: descarga canciones para escuchar la radio.');
       return;
     }
-    if (state.shuffle) toggleShuffle();
+    if (state.shuffle) setShuffle('off');
     playCollection(tracks, tracks[0].id, `Radio · ${entry.name}`, `radio:${seedKey}`);
     taste.rememberContext({ key: `radio:${seedKey}`, kind: 'radio', value: seedKey, title: `Radio de ${entry.name}`, image: entry.tracks[0]?.thumb || '' });
     state.radio = { seed: seedKey };
@@ -6275,8 +6299,44 @@
     window.scrollTo({ top: 0 });
   }
 
+  /* v97: buscar con la voz (como Spotify en el móvil). Solo donde el navegador reconoce la voz
+     (Chrome, Edge, Samsung Internet, Safari); en los demás el micrófono no aparece. */
+  function setupVoiceSearch() {
+    const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const button = document.getElementById('voiceSearch');
+    if (!Recognition || !button || LAB_MODE) return;
+    button.hidden = false;
+    button.closest('.search')?.classList.add('has-voice');
+    let rec = null;
+    const stop = () => { rec?.abort(); rec = null; button.classList.remove('is-listening'); button.setAttribute('aria-label', 'Buscar con la voz'); };
+    button.addEventListener('click', () => {
+      if (rec) { stop(); return; }
+      rec = new Recognition();
+      rec.lang = 'es-ES';
+      rec.interimResults = true;
+      rec.maxAlternatives = 1;
+      button.classList.add('is-listening');
+      button.setAttribute('aria-label', 'Dejar de escuchar');
+      enterSearch();
+      rec.onresult = (event) => {
+        const text = [...event.results].map((r) => r[0].transcript).join(' ').replace(/\.$/, '').trim();
+        els.searchInput.value = text;
+        els.searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+        if (event.results[event.results.length - 1].isFinal) rememberSearch(text);
+      };
+      rec.onerror = (event) => {
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') showToast('Liquid no tiene permiso para usar el micrófono: actívalo en los permisos del sitio.');
+        else if (event.error === 'no-speech') showToast('No se oyó nada. Toca el micrófono y di una canción o un artista.');
+        else if (event.error !== 'aborted') showToast('No se pudo usar la voz ahora. Prueba a escribir.');
+      };
+      rec.onend = () => { rec = null; button.classList.remove('is-listening'); button.setAttribute('aria-label', 'Buscar con la voz'); };
+      try { rec.start(); } catch { stop(); }
+    });
+  }
+
   function setupSearch() {
     if (LAB_MODE) return;
+    setupVoiceSearch();
     els.searchCancel.addEventListener('click', cancelSearch);
     // En el teléfono, tocar el buscador es entrar en Buscar (busca en todo, no dentro de la vista)
     els.searchInput.addEventListener('focus', () => {
@@ -6374,6 +6434,48 @@
     ctx.fillStyle = glow;
     ctx.fillRect(0, 0, w, h);
 
+    // v97: un verso de la letra: portada pequeña arriba, el verso grande y la canción debajo
+    if (shareCard.data.quote) {
+      const data = shareCard.data;
+      const small = 168;
+      const sx = 72;
+      const sy = 150;
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(sx, sy, small, small, 22);
+      ctx.clip();
+      if (shareCard.image) ctx.drawImage(shareCard.image, sx, sy, small, small);
+      ctx.restore();
+      ctx.textAlign = 'left';
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      ctx.font = '700 24px Inter, system-ui, sans-serif';
+      ctx.fillText('VERSO', sx + small + 28, sy + 52);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '800 36px Syne, Inter, system-ui, sans-serif';
+      ctx.fillText(wrapLines(ctx, data.title, w - sx - small - 100, 1)[0] || '', sx + small + 28, sy + 104);
+      ctx.fillStyle = 'rgba(255,255,255,0.78)';
+      ctx.font = '600 28px Inter, system-ui, sans-serif';
+      ctx.fillText(wrapLines(ctx, data.subtitle, w - sx - small - 100, 1)[0] || '', sx + small + 28, sy + small - 6);
+      // El verso: cuanto más corto, más grande
+      const quote = `«${data.quote}»`;
+      let fontSize = 76;
+      let lines = [];
+      for (; fontSize >= 40; fontSize -= 6) {
+        ctx.font = `800 ${fontSize}px Syne, Inter, system-ui, sans-serif`;
+        lines = wrapLines(ctx, quote, w - 144, 7);
+        if (lines.length <= 6) break;
+      }
+      const lineHeight = fontSize * 1.18;
+      const top = (h - lines.length * lineHeight) / 2 + fontSize * 0.6;
+      ctx.fillStyle = '#ffffff';
+      lines.forEach((line, i) => ctx.fillText(line, 72, top + i * lineHeight));
+      ctx.textAlign = 'center';
+      ctx.font = '800 34px Syne, Inter, system-ui, sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,0.92)';
+      ctx.fillText('Liquid Bullet', w / 2, h - 90);
+      return;
+    }
+
     const size = 500;
     const x = (w - size) / 2;
     const y = 250;
@@ -6429,7 +6531,7 @@
     const fileShare = Boolean(navigator.canShare && navigator.canShare({ files: [new File(['x'], 'x.png', { type: 'image/png' })] }));
     els.shareImage.textContent = fileShare ? 'Compartir imagen' : 'Guardar imagen';
     els.shareLinkBtn.hidden = !navigator.share;
-    els.shareTitleText.textContent = data.kind === 'Playlist' ? 'Compartir playlist' : 'Compartir canción';
+    els.shareTitleText.textContent = data.quote ? 'Compartir verso' : data.kind === 'Playlist' ? 'Compartir playlist' : 'Compartir canción';
     if (!els.shareDialog.open) els.shareDialog.showModal();
   }
 
@@ -7223,7 +7325,7 @@
       showToast(navigator.onLine ? 'No hay canciones para reproducir.' : 'Sin conexión: descarga la playlist para escucharla offline.');
       return;
     }
-    if (shuffle && !state.shuffle) toggleShuffle();
+    if (shuffle && !state.shuffle) setShuffle('on');
     const start = shuffle ? playable[Math.floor(Math.random() * playable.length)] : playable[0];
     buildQueue(start.id);
     loadTrack(getTrack(state.queue[state.queueIndex]), true, dj.enabled ? 1.5 : 0);
@@ -7446,8 +7548,49 @@
   function applyShuffle() {
     const current = state.queue[state.queueIndex];
     const rest = state.baseQueue.filter((id) => id !== current);
-    state.queue = current ? [current, ...smartShuffle(rest)] : smartShuffle(state.baseQueue);
+    const shuffled = current ? [current, ...smartShuffle(rest)] : smartShuffle(state.baseQueue);
+    state.queue = withSurprises(shuffled);
     state.queueIndex = 0;
+  }
+
+  /* v97: «Aleatorio con sorpresas» (como el Smart Shuffle de Spotify). Tras cada 3 canciones de la lista
+     entra una que no está en ella, de los artistas parecidos a los que más salen en la lista (los mismos
+     parecidos que usa Lab). Las sorpresas no tocan la lista: al quitar el aleatorio desaparecen solas. */
+  state.surpriseIds = new Set();
+  function surprisePicks(baseIds, count) {
+    if (count <= 0) return [];
+    const inList = new Set(baseIds);
+    const songs = new Set(baseIds.map((id) => getTrack(id)?.songKey).filter(Boolean));
+    const counts = new Map();
+    baseIds.forEach((id) => artistKeysOf(getTrack(id)).forEach((key) => counts.set(key, (counts.get(key) || 0) + 1)));
+    const top = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6).map(([key]) => key);
+    const weights = new Map();
+    top.forEach((key, i) => similarArtists(key, 6).forEach((artist, j) => artist.tracks.forEach((t) => {
+      if (inList.has(t.id) || (t.songKey && songs.has(t.songKey)) || t.atk || !isPlayable(t) || isDisliked(t.id)) return;
+      weights.set(t.id, Math.max(weights.get(t.id) || 0, (6 - i) * (6 - j)));
+    })));
+    const picks = [];
+    const used = new Set();
+    for (const t of weightedOrder([...weights.keys()].map(getTrack), (t) => weights.get(t.id) * recencyFactor(t.id))) {
+      if (t.songKey && used.has(t.songKey)) continue;
+      if (t.songKey) used.add(t.songKey);
+      picks.push(t.id);
+      if (picks.length >= count) break;
+    }
+    return picks;
+  }
+  function withSurprises(ids) {
+    state.surpriseIds = new Set();
+    if (!state.surprise || state.radio || ids.length < 4) return ids;
+    const picks = surprisePicks(state.baseQueue, Math.min(40, Math.floor(ids.length / 3)));
+    const out = [];
+    let p = 0;
+    ids.forEach((id, i) => {
+      out.push(id);
+      if ((i + 1) % 3 === 0 && p < picks.length) out.push(picks[p++]);
+    });
+    state.surpriseIds = new Set(picks.slice(0, p));
+    return out;
   }
 
   // Aleatorio de verdad variado (no un barajado plano):
@@ -7476,7 +7619,10 @@
   function unshuffle() {
     const current = state.queue[state.queueIndex];
     state.queue = state.baseQueue.slice();
+    // Sonando una sorpresa (no está en la lista): sigue sonando y después va la lista en orden
+    if (current && !state.queue.includes(current)) state.queue.unshift(current);
     state.queueIndex = Math.max(0, state.queue.indexOf(current));
+    state.surpriseIds = new Set();
   }
 
   function playFromList(id) {
@@ -7543,6 +7689,7 @@
     const meta = document.createElement('span');
     meta.className = 'queue-meta';
     meta.textContent = label || [track.knownArtist || track.artist, track.duration].filter(Boolean).join(' · ');
+    if (!label && state.surpriseIds?.has(track.id)) meta.prepend(makeEl('span', 'queue-surprise', 'Sorpresa'), ' ');
     text.append(title, meta);
     button.append(img, text);
     li.append(button);
@@ -8264,13 +8411,26 @@
   }
 
   /* ---------- Modos: aleatorio y bucle ---------- */
-  function toggleShuffle() {
-    state.shuffle = !state.shuffle;
+  // v97: tres estados, como en Spotify: apagado → aleatorio → aleatorio con sorpresas → apagado
+  const SHUFFLE_SURPRISE_KEY = 'liquidbrush:shuffle-surprise';
+  function setShuffle(mode, { quiet = false } = {}) {
+    const was = state.shuffle ? (state.surprise ? 'surprise' : 'on') : 'off';
+    state.shuffle = mode !== 'off';
+    state.surprise = mode === 'surprise';
     if (state.shuffle) applyShuffle();
-    else unshuffle();
+    else if (was !== 'off') unshuffle();
     storage.set(KEYS.shuffle, state.shuffle);
+    storage.set(SHUFFLE_SURPRISE_KEY, state.surprise);
     updateModeButtons();
-    showToast(state.shuffle ? 'Aleatorio activado' : 'Aleatorio desactivado');
+    if (quiet) return;
+    if (mode === 'surprise') {
+      showToast(state.surpriseIds.size
+        ? `Aleatorio con sorpresas: ${songsLabel(state.surpriseIds.size)} que no están en la lista, de artistas parecidos.`
+        : 'Aleatorio con sorpresas: aquí no hay parecidos que sumar todavía.');
+    } else showToast(mode === 'on' ? 'Aleatorio activado' : 'Aleatorio desactivado');
+  }
+  function toggleShuffle() {
+    setShuffle(!state.shuffle ? 'on' : state.surprise ? 'off' : 'surprise');
   }
 
   function cycleRepeat() {
@@ -8283,8 +8443,11 @@
 
   function updateModeButtons() {
     els.shuffleBtn.classList.toggle('is-active', state.shuffle);
+    els.shuffleBtn.classList.toggle('is-surprise', Boolean(state.shuffle && state.surprise));
     els.shuffleBtn.setAttribute('aria-pressed', String(state.shuffle));
-    els.shuffleBtn.setAttribute('aria-label', state.shuffle ? 'Desactivar aleatorio' : 'Activar aleatorio');
+    els.shuffleBtn.setAttribute('aria-label', !state.shuffle ? 'Activar aleatorio'
+      : state.surprise ? 'Desactivar aleatorio (ahora con sorpresas)' : 'Aleatorio con sorpresas');
+    els.shuffleBtn.title = !state.shuffle ? 'Aleatorio (S)' : state.surprise ? 'Aleatorio con sorpresas (S)' : 'Aleatorio activado · otra vez: con sorpresas (S)';
 
     els.repeatBtn.classList.toggle('is-active', state.repeat !== 'off');
     setIcon(els.repeatBtn, state.repeat === 'one' ? 'repeat-one' : 'repeat');
@@ -8427,6 +8590,8 @@
       bigger.dataset.delta = '1';
       bigger.disabled = settings.lyricsSize >= LYRICS_SIZES[LYRICS_SIZES.length - 1];
       parts.push(smaller, bigger, makeButton('btn btn-ghost', 'lyrics-copy', 'Copiar la letra', '', 'Copiar'));
+      // v97: compartir el verso que suena como tarjeta (como Spotify); sin sincronizar, la primera línea
+      if (!track.radio && !/Instrumental/.test(lyricText)) parts.push(makeButton('btn btn-ghost', 'lyrics-share', 'Compartir el verso que suena como imagen', '', 'Compartir verso'));
     }
     // Antes solo salía con la letra sin sincronizar (la sincronizada no tiene .text)
     if (lyricText && !/Instrumental/.test(lyricText)) {
@@ -10285,7 +10450,7 @@
           const collection = home.collections.get(target.dataset.value);
           const start = collection?.tracks.find(isPlayable);
           if (start) {
-            if (state.shuffle) toggleShuffle();
+            if (state.shuffle) setShuffle('off');
             playCollection(collection.tracks, start.id, collection.title, `home:${target.dataset.value}`);
           } else showToast('Sin conexión: descarga canciones para escuchar este mix.');
           break;
@@ -13440,6 +13605,7 @@
     const savedFavorites = storage.get(KEYS.favorites, []);
     state.favorites = new Set(Array.isArray(savedFavorites) ? savedFavorites.map(String) : []);
     state.shuffle = storage.get(KEYS.shuffle, false) === true;
+    state.surprise = state.shuffle && storage.get('liquidbrush:shuffle-surprise', false) === true;
     const savedRepeat = storage.get(KEYS.repeat, 'off');
     state.repeat = REPEAT_MODES.includes(savedRepeat) ? savedRepeat : 'off';
 
@@ -14045,6 +14211,7 @@
     els.lyricsPanel.addEventListener('click', (event) => {
       const size = event.target.closest('[data-action="lyrics-size"]');
       if (size) { stepLyricsSize(Number(size.dataset.delta)); return; }
+      if (event.target.closest('[data-action="lyrics-share"]') && state.lyrics) { shareVerse(); return; }
       if (event.target.closest('[data-action="lyrics-copy"]') && state.lyrics) {
         const text = state.lyrics.synced ? state.lyrics.lines.map((l) => l.text).join('\n') : state.lyrics.text;
         const track = state.currentTrack;
@@ -16284,7 +16451,7 @@
       const tracks = (list.length ? list : [st]).map((s) => this.track(s));
       const t = this.track(st);
       if (state.currentTrack?.id === t.id) { togglePlay(); return; }
-      if (state.shuffle) toggleShuffle();
+      if (state.shuffle) setShuffle('off');
       playCollection(tracks, t.id, `Radio · ${title}`, `radio:${title}`);
     },
     // Al sonar una emisora: a «Escuchadas hace poco» y un clic para Radio Browser (así ordena sus emisoras)

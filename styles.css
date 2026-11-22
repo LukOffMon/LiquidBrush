@@ -11224,3 +11224,62 @@ body.is-radio #lyricsBtn {
     border-radius: 0;
   }
 }
+
+/* v97: buscar con la voz */
+.voice-search {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.voice-search .icon {
+  position: static;
+  transform: none;
+  width: 20px;
+  height: 20px;
+  color: inherit;
+}
+.voice-search:hover,
+.voice-search:focus-visible { color: var(--text); }
+.voice-search.is-listening {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+:root:not(.no-motion) .voice-search.is-listening { animation: voice-pulse 1.2s ease-in-out infinite; }
+@keyframes voice-pulse {
+  50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 22%, transparent); }
+}
+.search.has-voice input { padding-right: 48px; }
+
+/* v97: aleatorio con sorpresas: un destello sobre el botón y la marca «Sorpresa» en la cola */
+.icon-btn.is-surprise { position: relative; }
+.icon-btn.is-surprise::after {
+  content: "";
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--surface, #111), 0 0 8px var(--accent);
+}
+.queue-surprise {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  vertical-align: 1px;
+}

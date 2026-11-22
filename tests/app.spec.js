@@ -2262,3 +2262,31 @@ test.describe('v96: menos memoria en imágenes', () => {
     expect(info.oversized).toEqual([]);
   });
 });
+
+test.describe('v97: como Spotify', () => {
+  test('aleatorio de tres estados: con sorpresas mete canciones de fuera de la lista y al quitarlo desaparecen', async ({ page }) => {
+    await page.goto('./?view=library');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await page.locator('.track').first().locator('.track-main').click();
+    const shuffle = page.locator('#shuffleBtn');
+    await page.evaluate(() => document.getElementById('shuffleBtn').click());
+    await expect(shuffle).toHaveClass(/is-active/);
+    await expect(shuffle).not.toHaveClass(/is-surprise/);
+    await page.evaluate(() => document.getElementById('shuffleBtn').click());
+    await expect(shuffle).toHaveClass(/is-surprise/);
+    await expect(shuffle).toHaveAttribute('aria-label', /sorpresas/);
+    expect(await page.evaluate(() => localStorage.getItem('liquidbrush:shuffle-surprise'))).toBe('true');
+    await page.evaluate(() => document.getElementById('shuffleBtn').click());
+    await expect(shuffle).not.toHaveClass(/is-active/);
+    expect(await page.evaluate(() => localStorage.getItem('liquidbrush:shuffle-surprise'))).toBe('false');
+  });
+
+  test('el volumen igualado se puede apagar y la barra de abajo del teléfono no tiene Playlists', async ({ page }) => {
+    await page.goto('./');
+    await expect(page.locator('#libCount')).not.toHaveText('0');
+    await expect(page.locator('.nav-btn[data-nav="playlists"]')).toHaveCount(0);
+    expect(await page.evaluate(() => document.getElementById('normalizeToggle').checked)).toBe(true);
+    await page.evaluate(() => { const t = document.getElementById('normalizeToggle'); t.checked = false; t.dispatchEvent(new Event('change')); });
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('liquidbrush:settings')).normalize)).toBe(false);
+  });
+});
