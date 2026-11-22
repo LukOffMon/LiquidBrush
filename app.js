@@ -2719,6 +2719,8 @@
     deckLevel: new Map(),
     can(track) {
       if (!settings.normalize || IS_IOS || !track || track.atk || track.radio || !AudioContextClass) return false;
+      // Una descargada no pide nada a la red (v90): se queda sin medir hasta que suene una copia en línea
+      if (isDownloaded(track)) return false;
       if (/^(data|blob):/i.test(track.src)) return false;
       const origin = originOf(track.src);
       return origin === location.origin || eq.cors.get(origin) === true;
@@ -7897,7 +7899,8 @@
     applyVolume(els.audio);
     // v97: se mide la sonoridad de esta y de la siguiente (una vez por canción; luego se recuerda)
     loud.measure(track);
-    loud.measure(getTrack(state.queue[state.queueIndex + 1]));
+    // La siguiente, solo si ya se está escuchando por internet: con música descargada no se gastan datos
+    if (!isDownloaded(track)) loud.measure(getTrack(state.queue[state.queueIndex + 1]));
     setTimeout(warmLocalAudio, 0);
 
     if (settings.motion && els.cover.src !== track.cover) {
