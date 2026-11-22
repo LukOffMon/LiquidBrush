@@ -1,6 +1,16 @@
 {
   "releases": [
     {
+      "version": "v97",
+      "date": "noviembre 2026",
+      "title": "Adiós a SKd",
+      "items": [
+        "SKd (Soulseek) ya no forma parte de Liquid: desaparecen el filtro «SKd» de la Biblioteca, sus resultados en el buscador de ATK y su apartado en Ajustes.",
+        "Liquid borra de tu navegador la dirección, la clave y los pedidos de SKd que hubiera guardados.",
+        "Liquid ATK sigue igual: Audius, Internet Archive, Jamendo, Hearthis.at y Openverse."
+      ]
+    },
+    {
       "version": "v96",
       "date": "noviembre 2026",
       "title": "Liquid gasta hasta un 65 % menos de memoria en imágenes",
