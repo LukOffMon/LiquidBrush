@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "version": "v97",
+      "date": "noviembre 2026",
+      "title": "Todas las canciones al mismo volumen, letra más legible y adiós a SKd",
+      "items": [
+        "Nuevo: volumen igualado. Liquid mide lo fuerte que suena cada canción (una vez, y la recuerda) y la ajusta para que todas suenen parecido, como Spotify. Se apaga en Ajustes → Sonido. No funciona en iPhone, porque ahí la web no puede cambiar el volumen.",
+        "Pestañas, píldoras, botones y la barra de abajo usan ahora una letra más fácil de leer; la letra callejera queda para el logo y los títulos.",
+        "En el celular, la Biblioteca y el Inicio ocupan todo el ancho de la pantalla, sin marco alrededor.",
+        "La barra de abajo pasa a 5 botones: Playlists está dentro de Biblioteca, como en Spotify.",
+        "SKd (Soulseek) ya no forma parte de Liquid: desaparecen el filtro «SKd» de la Biblioteca, sus resultados en el buscador de ATK y su apartado en Ajustes.",
+        "Liquid borra de tu navegador la dirección, la clave y los pedidos de SKd que hubiera guardados.",
+        "Liquid ATK sigue igual: Audius, Internet Archive, Jamendo, Hearthis.at y Openverse."
+      ]
+    },
+    {
       "version": "v96",
       "date": "noviembre 2026",
       "title": "Liquid gasta hasta un 65 % menos de memoria en imágenes",
