@@ -15,6 +15,8 @@ test.beforeEach(async ({ page }) => {
   });
   // Sin red hacia los buckets ni LRCLIB: el audio no es parte de estas pruebas
   await page.route(/r2\.dev|lrclib\.net/, (route) => route.abort());
+  // v97: la app pregunta la versión del servidor de cuentas (GET /): sin red hacia producción
+  await page.route('https://liquid-cuentas.liquidbulletofficial.workers.dev/', (route) => route.fulfill({ json: { ok: true, servicio: 'liquid-cuentas', version: '1.1.0' } }));
   // Liquid ATK viene encendido (v76): sin red hacia sus fuentes salvo en los tests que las simulan
   await page.route(/api\.audius\.co|archive\.org|api\.jamendo\.com|hearthis\.at|api\.openverse\.org/, (route) => route.abort());
 });
@@ -2302,4 +2304,23 @@ test('v97: sin servidor de cuentas al día (antes de 1.2.0), no salen «Colabora
   await page.locator('.pl-card', { hasText: 'Mía' }).click();
   await expect(page.locator('.pl-hero-name')).toHaveText('Mía');
   await expect(page.locator('[data-action="colab-invite"]')).toHaveCount(0);
+});
+
+test('v97: el DJ con voz presenta la primera canción y baja la música mientras habla', async ({ page }) => {
+  await page.route(/r2.dev/, (route) => route.fulfill({ status: 200, contentType: 'audio/wav', body: silentWav(60) }));
+  await page.addInitScript(() => {
+    window.__dichas = [];
+    if (!window.speechSynthesis) return;
+    speechSynthesis.speak = (u) => { window.__dichas.push(u.text); u.onstart?.(); setTimeout(() => u.onend?.(), 1500); };
+  });
+  await page.goto('./?view=library');
+  await expect(page.locator('#libCount')).not.toHaveText('0');
+  const puede = await page.evaluate(() => Boolean(window.speechSynthesis && window.SpeechSynthesisUtterance));
+  test.skip(!puede, 'Este navegador no tiene voz');
+  await page.evaluate(() => { const t = document.getElementById('djVozToggle'); t.checked = true; t.dispatchEvent(new Event('change')); });
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('liquidbrush:settings')).djVoz)).toBe(true);
+  await page.locator('.track').first().locator('.track-main').click();
+  await expect(page.locator('body')).toHaveClass(/is-playing/);
+  await expect.poll(() => page.evaluate(() => window.__dichas.length), { timeout: 5000 }).toBeGreaterThan(1);
+  expect(await page.evaluate(() => window.__dichas[1])).toMatch(/^(Buenos días|Buenas tardes|Buenas noches).*Esto es Liquid\. Empezamos con «/);
 });

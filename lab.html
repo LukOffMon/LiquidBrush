@@ -50,7 +50,7 @@
   <link rel="dns-prefetch" href="https://pub-864cd199a5e04cb0b5faf77320b1e47b.r2.dev">
   <link rel="dns-prefetch" href="https://pub-5650a817f3404929a60bc899b7a1afe4.r2.dev">
   <link rel="dns-prefetch" href="https://lrclib.net">
-  <link rel="stylesheet" href="styles.css?v=88">
+  <link rel="stylesheet" href="styles.css?v=90">
   <script>
     /* Aplica el tema, la fuente y el tamaño de letra guardados antes de pintar (sin parpadeos) */
     (function () {
@@ -1019,6 +1019,14 @@
           <input id="normalizeToggle" type="checkbox" role="switch">
           <span class="switch-track" aria-hidden="true"></span>
         </label>
+        <label id="djVozRow" class="setting switch" hidden>
+          <span class="setting-text">
+            <span class="setting-name">DJ con voz</span>
+            <span class="setting-hint">Cada pocas canciones, una voz presenta la que empieza (tus favoritas, lo nuevo, las sorpresas) y baja la música mientras habla.</span>
+          </span>
+          <input id="djVozToggle" type="checkbox" role="switch">
+          <span class="switch-track" aria-hidden="true"></span>
+        </label>
         <label class="setting">
           <span class="setting-text"><span class="setting-name">Perfil</span></span>
           <select id="eqPreset" class="setting-select"></select>
@@ -1074,6 +1082,6 @@
   <!-- Reproductores para el ecualizador (necesitan CORS en el servidor del audio) -->
   <audio id="audio3" preload="metadata" crossorigin="anonymous"></audio>
   <audio id="audio4" preload="auto" crossorigin="anonymous"></audio>
-  <script src="app.js?v=91" defer></script>
+  <script src="app.js?v=93" defer></script>
 </body>
 </html>

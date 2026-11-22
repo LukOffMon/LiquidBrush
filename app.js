@@ -647,6 +647,8 @@
       softPause: saved.softPause !== false,
       // v97: volumen igualado entre canciones, encendido de serie
       normalize: saved.normalize !== false,
+      // v97: DJ con voz (apagado de serie: hablarle a alguien sin pedirlo sorprende)
+      djVoz: saved.djVoz === true,
       // El tiempo total del reproductor muestra lo que queda («−1:12»): se cambia tocándolo
       remaining: saved.remaining === true,
       // Tamaño de las letras de las canciones (A− / A+ debajo de la letra)
@@ -2803,8 +2805,98 @@
     // sleep.gain baja el volumen en el fundido final del temporizador
     // v97: × el volumen igualado de la canción de ese reproductor
     const level = deck === els.audio ? loud.gain(state.currentTrack) : (loud.deckLevel.get(deck) ?? 1);
-    deck.volume = clamp(state.volume * (deckGain.get(deck) ?? 1) * level * sleep.gain, 0, 1);
+    // v97: mientras habla el DJ, la música baja (djVoz.duck)
+    deck.volume = clamp(state.volume * (deckGain.get(deck) ?? 1) * level * sleep.gain * djVoz.duck, 0, 1);
   }
+
+  /* ---------- v97: DJ con voz (como el DJ de Spotify, sin servidor) ----------
+     Cada 4 canciones que empiezan solas o con un toque, la voz del navegador (speechSynthesis, en español)
+     presenta la que suena según por qué está ahí: favorita, nunca escuchada, sorpresa del aleatorio, la
+     primera de la sesión… Mientras habla, la música baja a un 30 % y vuelve después. */
+  const djVoz = {
+    duck: 1,
+    cuenta: 0,
+    saludo: false,
+    voz: null,
+    puede: () => typeof window.speechSynthesis !== 'undefined' && typeof window.SpeechSynthesisUtterance !== 'undefined',
+    elegirVoz() {
+      if (!this.puede()) return null;
+      const voces = speechSynthesis.getVoices();
+      this.voz = voces.find((v) => /^es[-_]ES/i.test(v.lang) && /natural|neural|google|mónica|monica|jorge|lucia|lucía/i.test(v.name))
+        || voces.find((v) => /^es[-_]/i.test(v.lang)) || null;
+      return this.voz;
+    },
+    frase(track) {
+      const titulo = splitTitle(track.title).main;
+      const quien = track.knownArtist || track.artist || '';
+      const de = quien ? `, de ${quien}` : '';
+      const h = new Date().getHours();
+      if (!this.saludo) {
+        this.saludo = true;
+        const hola = h < 6 ? 'Buenas noches, o buenas madrugadas' : h < 13 ? 'Buenos días' : h < 20 ? 'Buenas tardes' : 'Buenas noches';
+        return `${hola}. Esto es Liquid. Empezamos con «${titulo}»${de}.`;
+      }
+      if (state.surpriseIds?.has(track.id)) return `Una sorpresa: «${titulo}»${de}. Si te gusta, guárdala.`;
+      if (state.favorites.has(track.id)) return `Una de tus favoritas: «${titulo}»${de}.`;
+      if (!library.plays[track.id]) return `Algo nuevo para ti: «${titulo}»${de}.`;
+      const veces = library.plays[track.id] || 0;
+      if (veces >= 10) return `Esta ya la has puesto ${veces} veces: «${titulo}»${de}.`;
+      return `Sigue sonando Liquid: «${titulo}»${de}.`;
+    },
+    alEmpezar(track, autoplay) {
+      if (!settings.djVoz || !autoplay || !track || track.radio || !this.puede() || document.hidden) return;
+      if (this.cuenta++ % 4 !== 0) return;
+      const texto = this.frase(track);
+      // Habla cuando la canción ya suena (con poca cobertura tarda en arrancar); si no arranca en 8 s, nada
+      setTimeout(() => {
+        if (state.currentTrack !== track) return;
+        if (!els.audio.paused) { this.decir(texto); return; }
+        const audio = els.audio;
+        const alSonar = () => { if (state.currentTrack === track) setTimeout(() => this.decir(texto), 500); };
+        audio.addEventListener('playing', alSonar, { once: true });
+        setTimeout(() => audio.removeEventListener('playing', alSonar), 8000);
+      }, 900);
+    },
+    decir(texto) {
+      try {
+        speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(texto);
+        u.lang = 'es-ES';
+        if (this.voz || this.elegirVoz()) u.voice = this.voz;
+        u.rate = 1.02;
+        const volver = () => { this.duck = 1; decks.forEach(applyVolume); };
+        u.onstart = () => { this.duck = 0.3; decks.forEach(applyVolume); };
+        u.onend = volver;
+        u.onerror = volver;
+        speechSynthesis.speak(u);
+        // Por si el navegador no avisa del final
+        setTimeout(volver, 12000);
+      } catch { this.duck = 1; }
+    },
+    init() {
+      const fila = document.getElementById('djVozRow');
+      const toggle = document.getElementById('djVozToggle');
+      if (!this.puede() || !fila || !toggle) return;
+      fila.hidden = false;
+      toggle.checked = settings.djVoz;
+      speechSynthesis.addEventListener?.('voiceschanged', () => this.elegirVoz());
+      // Reanudar «Continúa donde lo dejaste» no pasa por loadTrack: el saludo va con lo primero que suene
+      document.addEventListener('playing', (event) => {
+        if (!this.saludo && settings.djVoz && decks.includes(event.target) && event.target === els.audio) {
+          this.cuenta = 0;
+          this.alEmpezar(state.currentTrack, true);
+        }
+      }, true);
+      toggle.addEventListener('change', () => {
+        settings.djVoz = toggle.checked;
+        saveSettings();
+        this.cuenta = 0;
+        this.saludo = false;
+        if (settings.djVoz) this.decir('Hola. Soy el DJ de Liquid: te iré contando qué suena.');
+        else speechSynthesis.cancel();
+      });
+    }
+  };
 
   // En iOS el volumen no se puede cambiar desde la web: en vez de mezcla larga, un empalme corto
   const smartFade = (duration) => (IS_IOS ? 1 : Math.max(1.5, Math.min(dj.fade, duration * 0.1)));
@@ -8050,6 +8142,7 @@
     else els.audio.src = audioSrc(track);
     applySpeed();
     applyVolume(els.audio);
+    djVoz.alEmpezar(track, autoplay);
     // v97: se mide la sonoridad de esta y de la siguiente (una vez por canción; luego se recuerda)
     loud.measure(track);
     // La siguiente, solo si ya se está escuchando por internet: con música descargada no se gastan datos
@@ -17494,6 +17587,7 @@
 
     restorePreferences();
     atk.init();
+    djVoz.init();
     // v97: SKd ya no existe; fuera la dirección, la clave y los pedidos que guardaba en este navegador
     // v97: tampoco hay fondo de pantalla: fuera el último fondo recordado
     try { ['liquidbrush:skd', 'liquidbrush:skd-pedidos', 'liquidbrush:wall-last'].forEach((k) => localStorage.removeItem(k)); } catch { /* sin acceso */ }
