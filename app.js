@@ -83,7 +83,6 @@
     listen: 'liquidbrush:listen',
     libraryCache: 'liquidbrush:library-cache',
     settings: 'liquidbrush:settings',
-    wallLast: 'liquidbrush:wall-last',
     pins: 'liquidbrush:pins',
     lab: 'liquidbrush:lab',
     tour: 'liquidbrush:tour',
@@ -269,14 +268,6 @@
     searchPlaylists: $('searchPlaylists'),
     bottomNav: $('bottomNav'),
     nowPlaying: document.querySelector('.now-playing'),
-    wallpaper: $('wallpaper'),
-    wallStage: $('wallStage'),
-    wallLife: $('wallLife'),
-    wallBtn: $('wallBtn'),
-    wallBtnImg: $('wallBtnImg'),
-    wallMode: $('wallMode'),
-    wallGrid: $('wallGrid'),
-    wallAlive: $('wallAlive'),
     djToggle: $('djToggle'),
     djFade: $('djFade'),
     djBtn: $('djBtn'),
@@ -565,30 +556,28 @@
     }
   }
 
-  /* ---------- Fondos de pantalla (carpeta wallpapers/) ---------- */
-  // pos: zona que se mantiene a la vista cuando la imagen se recorta (pantallas anchas)
+  /* ---------- Mini iconos (carpeta wallpapers/icons/) ----------
+     v97: el fondo de pantalla de la app se quitó (pesaba y daba fallos). Quedan sus recortes pequeños:
+     pegatinas de los títulos, iconos de playlist («art:07», ya guardados por la gente) y el collage de la cuenta. */
   const WALLPAPERS = [
-    { id: '01', name: 'Girasoles que miran', pos: '50% 30%' },
-    { id: '02', name: 'El reloj que sueña', pos: '50% 35%' },
-    { id: '03', name: 'Atrapamoscas', pos: '60% 30%' },
-    { id: '04', name: 'Sol de un ojo', pos: '55% 45%' },
-    { id: '05', name: 'Rostro derretido', pos: '50% 60%' },
-    { id: '06', name: 'Lluvia de ojos', pos: '50% 40%' },
-    { id: '07', name: 'La corte lunar', pos: '50% 35%' },
-    { id: '08', name: 'El caballero azul', pos: '50% 35%' },
-    { id: '09', name: 'Desierto de manos', pos: '50% 60%' },
-    { id: '10', name: 'Cuerpo rojo', pos: '50% 30%' },
-    { id: '11', name: 'Sala de cirugía', pos: '45% 40%' },
-    { id: '12', name: 'Hombre luna', pos: '50% 35%' },
-    { id: '13', name: 'Cubos que observan', pos: '55% 35%' },
-    { id: '14', name: 'Lluvia de señores', pos: '50% 40%' },
-    { id: '15', name: 'El ojo entre manos', pos: '50% 50%' },
-    { id: '16', name: 'Ajedrez de gotas', pos: '50% 60%' }
+    { id: '01', name: 'Girasoles que miran' },
+    { id: '02', name: 'El reloj que sueña' },
+    { id: '03', name: 'Atrapamoscas' },
+    { id: '04', name: 'Sol de un ojo' },
+    { id: '05', name: 'Rostro derretido' },
+    { id: '06', name: 'Lluvia de ojos' },
+    { id: '07', name: 'La corte lunar' },
+    { id: '08', name: 'El caballero azul' },
+    { id: '09', name: 'Desierto de manos' },
+    { id: '10', name: 'Cuerpo rojo' },
+    { id: '11', name: 'Sala de cirugía' },
+    { id: '12', name: 'Hombre luna' },
+    { id: '13', name: 'Cubos que observan' },
+    { id: '14', name: 'Lluvia de señores' },
+    { id: '15', name: 'El ojo entre manos' },
+    { id: '16', name: 'Ajedrez de gotas' }
   ];
-  const WALL_MODES = ['song', 'open', 'fixed', 'off'];
-  const wallSrc = (id) => `wallpapers/${id}.jpg`;
   const wallIcon = (id) => `wallpapers/icons/${id}.jpg`;
-  const wallThumb = (id) => `wallpapers/icons/${id}-thumb.jpg`;
   const isWallId = (id) => WALLPAPERS.some((w) => w.id === id);
 
   // Mini icono (recorte de un fondo) para títulos y adornos; el mismo texto da siempre el mismo
@@ -652,11 +641,6 @@
       plView: saved.plView === 'list' ? 'list' : 'grid',
       motion: saved.motion !== false,
       haptics: saved.haptics !== false,
-      wall: {
-        mode: WALL_MODES.includes(saved.wall?.mode) ? saved.wall.mode : 'song',
-        fixed: isWallId(saved.wall?.fixed) ? saved.wall.fixed : WALLPAPERS[0].id,
-        alive: saved.wall?.alive !== false
-      },
       eq: { preset: typeof saved.eq?.preset === 'string' ? saved.eq.preset : 'flat', gains },
       // Velocidad de reproducción (0.75×–1.5×) y fundido corto al pausar/reanudar
       speed: [0.75, 1, 1.1, 1.25, 1.5].includes(saved.speed) ? saved.speed : 1,
@@ -8126,7 +8110,6 @@
     highlightCurrent();
     syncPlayButtons();
     updateDynamicColor(track);
-    if (autoplay) wall.onTrack();
     updateMediaSession(track);
     stallGuard.reset();
     updatePositionStateNow();
@@ -10934,7 +10917,6 @@
       settings.ultra = els.ultraToggle.checked;
       saveSettings();
       applyLook();
-      wall.applyMode();
       visualizer.start();
       if (state.currentTrack) {
         updateDynamicColor(state.currentTrack);
@@ -10942,7 +10924,7 @@
       }
       renderList();
       showToast(settings.ultra
-        ? 'Modo ultraligero activado: sin efectos, fondo, animaciones ni miniaturas en las listas.'
+        ? 'Modo ultraligero activado: sin efectos, animaciones ni miniaturas en las listas.'
         : 'Modo ultraligero desactivado: vuelven los efectos.');
     });
     els.hiddenList.addEventListener('click', (event) => {
@@ -10962,17 +10944,6 @@
       settings.motion = els.motionToggle.checked;
       saveSettings();
       applyLook();
-      wall.updateLoop();
-    });
-    els.wallMode.addEventListener('change', () => {
-      settings.wall.mode = els.wallMode.value;
-      saveSettings();
-      wall.applyMode();
-    });
-    els.wallAlive.addEventListener('change', () => {
-      settings.wall.alive = els.wallAlive.checked;
-      saveSettings();
-      wall.updateLoop();
     });
     els.hapticsToggle.addEventListener('change', () => {
       settings.haptics = els.hapticsToggle.checked;
@@ -11326,321 +11297,6 @@
     });
   }
 
-  /* ---------- Fondo de pantalla con vida ---------- */
-  // Dos capas que se funden al cambiar; encima, motas de luz y mini iconos que flotan y laten
-  // con la música. La animación se detiene con la app oculta o sin animaciones.
-  const wall = (() => {
-    const layers = [...els.wallStage.querySelectorAll('.wall-layer')];
-    const canvas = els.wallLife;
-    const ctx = canvas.getContext('2d');
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const FRAME_MS = 1000 / 30;
-    let current = null;
-    let front = 0;
-    let lastChange = 0;
-    let rafId = null;
-    let lastFrame = 0;
-    let width = 0;
-    let height = 0;
-    let motes = [];
-    let floaters = [];
-    let tilt = { x: 0, y: 0 };
-    let pulse = 0;
-    let dyn = '#ffffff';
-    let dynFrames = 0;
-    let stageVars = '';
-    // Mientras se desplaza una lista el fondo se queda quieto: redibujarlo bajo los paneles de cristal
-    // (backdrop-filter) obliga a repintarlos en cada fotograma y el scroll iba a tirones
-    let scrollingUntil = 0;
-    const icons = new Map();
-
-    const enabled = () => settings.wall.mode !== 'off' && !settings.ultra;
-    const alive = () => enabled() && settings.wall.alive && settings.motion && !reduced.matches
-      && !document.documentElement.classList.contains('lite');
-
-    function iconImage(id) {
-      if (!icons.has(id)) {
-        const img = new Image();
-        img.src = wallIcon(id);
-        icons.set(id, img);
-      }
-      return icons.get(id);
-    }
-
-    function randomId(except) {
-      const pool = WALLPAPERS.filter((w) => w.id !== except);
-      return pool[Math.floor(Math.random() * pool.length)].id;
-    }
-
-    function show(id, instant = false) {
-      if (!isWallId(id)) return;
-      current = id;
-      lastChange = Date.now();
-      storage.set(KEYS.wallLast, id);
-      els.wallBtnImg.src = wallIcon(id);
-      const info = WALLPAPERS.find((w) => w.id === id);
-      els.wallBtn.title = `Fondo: ${info.name} (toca para otro)`;
-      const img = new Image();
-      img.decoding = 'async';
-      img.onload = () => {
-        if (current !== id) return;
-        const next = layers[instant ? front : 1 - front];
-        next.style.backgroundImage = `url("${wallSrc(id)}")`;
-        next.style.setProperty('--pos', info.pos);
-        if (!instant) {
-          layers[front].classList.remove('is-on');
-          front = 1 - front;
-        }
-        next.classList.add('is-on');
-        // Los mini iconos que flotan pasan a ser del fondo nuevo (y algunos al azar)
-        floaters.forEach((f, i) => { if (i % 2 === 0) f.id = id; });
-        syncGrid();
-      };
-      img.src = wallSrc(id);
-    }
-
-    function applyMode() {
-      const on = enabled();
-      document.documentElement.classList.toggle('has-wall', on);
-      els.wallBtn.hidden = !on;
-      if (on) {
-        if (settings.wall.mode === 'fixed') show(settings.wall.fixed, !current);
-        else if (!current) show(randomId(storage.get(KEYS.wallLast, null)), true);
-      }
-      updateLoop();
-    }
-
-    // Al cambiar de canción (como mucho cada 20 s, para no parpadear al saltar rápido)
-    function onTrack() {
-      if (settings.wall.mode !== 'song' || Date.now() - lastChange < 20000) return;
-      show(randomId(current));
-    }
-
-    function shuffle() {
-      const id = randomId(current);
-      if (settings.wall.mode === 'fixed') {
-        settings.wall.fixed = id;
-        saveSettings();
-      }
-      show(id);
-      haptic(10);
-    }
-
-    function pick(id) {
-      settings.wall.mode = 'fixed';
-      settings.wall.fixed = id;
-      saveSettings();
-      els.wallMode.value = 'fixed';
-      applyMode();
-      show(id);
-    }
-
-    function syncGrid() {
-      els.wallGrid.querySelectorAll('.wall-option').forEach((button) => {
-        const on = button.dataset.id === current;
-        button.classList.toggle('is-active', on);
-        button.setAttribute('aria-checked', String(on));
-      });
-    }
-
-    function renderGrid() {
-      els.wallGrid.replaceChildren(...WALLPAPERS.map((w) => {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'wall-option';
-        button.dataset.id = w.id;
-        button.setAttribute('role', 'radio');
-        button.setAttribute('aria-label', w.name);
-        button.title = w.name;
-        const img = document.createElement('img');
-        img.src = wallThumb(w.id);
-        img.alt = '';
-        img.width = 90;
-        img.height = 120;
-        img.loading = 'lazy';
-        img.decoding = 'async';
-        button.append(img);
-        return button;
-      }));
-      syncGrid();
-    }
-
-    /* ---- Vida: motas, mini iconos y latido ---- */
-    function resize() {
-      width = window.innerWidth;
-      height = window.innerHeight;
-      canvas.width = width;
-      canvas.height = height;
-      const count = Math.round(clamp((width * height) / 26000, 14, 40));
-      motes = Array.from({ length: count }, () => newMote(true));
-      const stickers = width < 640 ? 4 : 7;
-      floaters = Array.from({ length: stickers }, (_, i) => newFloater(true, i));
-    }
-
-    function newMote(anywhere) {
-      return {
-        x: Math.random() * width,
-        y: anywhere ? Math.random() * height : height + 10,
-        r: 0.8 + Math.random() * 2.2,
-        speed: 6 + Math.random() * 16,
-        sway: Math.random() * Math.PI * 2,
-        twinkle: Math.random() * Math.PI * 2
-      };
-    }
-
-    function newFloater(anywhere, i = 0) {
-      return {
-        id: i % 2 === 0 && current ? current : WALLPAPERS[Math.floor(Math.random() * WALLPAPERS.length)].id,
-        x: 20 + Math.random() * (width - 40),
-        y: anywhere ? Math.random() * height : height + 40,
-        size: 18 + Math.random() * 18,
-        speed: 5 + Math.random() * 9,
-        sway: Math.random() * Math.PI * 2,
-        spin: (Math.random() - 0.5) * 0.4,
-        angle: (Math.random() - 0.5) * 0.6
-      };
-    }
-
-    // Nivel de la música: real con el ecualizador; si no, un latido a ~112 bpm mientras suena
-    function musicLevel(time) {
-      if (!document.body.classList.contains('is-playing')) return 0;
-      if (eq.analyser && eqDecks.includes(els.audio)) {
-        eq.analyser.getByteFrequencyData(eq.freqData);
-        let sum = 0;
-        for (let i = 0; i < 6; i++) sum += eq.freqData[i];
-        return clamp(sum / (6 * 255), 0, 1);
-      }
-      const beat = (time / (60000 / 112)) % 1;
-      return 0.25 + 0.6 * (1 - beat) ** 3;
-    }
-
-    function frame(time) {
-      rafId = requestAnimationFrame(frame);
-      if (time - lastFrame < FRAME_MS) return;
-      if (performance.now() < scrollingUntil) {
-        lastFrame = time;
-        return;
-      }
-      const dt = Math.min(0.1, (time - (lastFrame || time)) / 1000);
-      lastFrame = time;
-      const level = musicLevel(time);
-      pulse += (level - pulse) * 0.25;
-      if (pulse < 0.002) pulse = 0;
-      // Solo se tocan las variables CSS si cambian (cada cambio recalcula estilos)
-      const beat = pulse.toFixed(2);
-      const px = (tilt.x * 14).toFixed(0);
-      const py = (tilt.y * 14).toFixed(0);
-      const vars = `${beat}|${px}|${py}`;
-      if (vars !== stageVars) {
-        stageVars = vars;
-        els.wallStage.style.setProperty('--beat', beat);
-        els.wallStage.style.setProperty('--px', `${px}px`);
-        els.wallStage.style.setProperty('--py', `${py}px`);
-      }
-
-      ctx.clearRect(0, 0, width, height);
-      // El color de la carátula se lee de vez en cuando (leerlo en cada fotograma cuesta)
-      if (!dynFrames--) {
-        dyn = getComputedStyle(document.body).getPropertyValue('--dyn').trim() || '#ffffff';
-        dynFrames = 30;
-      }
-      const playing = level > 0;
-      ctx.fillStyle = dyn;
-      motes.forEach((m, i) => {
-        m.y -= m.speed * dt * (playing ? 1.6 : 1);
-        m.sway += dt * 0.8;
-        m.twinkle += dt * 2.4;
-        if (m.y < -10) motes[i] = newMote(false);
-        const alpha = clamp(0.18 + 0.32 * Math.sin(m.twinkle) ** 2 + pulse * 0.35, 0, 0.9);
-        ctx.globalAlpha = alpha;
-        ctx.beginPath();
-        ctx.arc(m.x + Math.sin(m.sway) * 12, m.y, m.r * (1 + pulse * 0.6), 0, Math.PI * 2);
-        ctx.fill();
-      });
-      floaters.forEach((f, i) => {
-        f.y -= f.speed * dt * (playing ? 1.4 : 1);
-        f.sway += dt * 0.6;
-        f.angle += f.spin * dt;
-        if (f.y < -60) floaters[i] = newFloater(false, i);
-        const img = iconImage(f.id);
-        if (!img.complete || !img.naturalWidth) return;
-        const size = f.size * (1 + pulse * 0.12);
-        const x = f.x + Math.sin(f.sway) * 18;
-        ctx.save();
-        ctx.globalAlpha = 0.72;
-        ctx.translate(x, f.y);
-        ctx.rotate(f.angle);
-        ctx.beginPath();
-        ctx.arc(0, 0, size / 2, 0, Math.PI * 2);
-        ctx.clip();
-        ctx.drawImage(img, -size / 2, -size / 2, size, size);
-        ctx.restore();
-        ctx.globalAlpha = 0.55;
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.arc(x, f.y, size / 2, 0, Math.PI * 2);
-        ctx.stroke();
-      });
-      ctx.globalAlpha = 1;
-    }
-
-    function updateLoop() {
-      const run = alive() && !document.hidden;
-      if (run && !rafId) {
-        if (!width) resize();
-        lastFrame = 0;
-        rafId = requestAnimationFrame(frame);
-      } else if (!run && rafId) {
-        cancelAnimationFrame(rafId);
-        rafId = null;
-        ctx.clearRect(0, 0, width, height);
-        els.wallStage.style.setProperty('--beat', '0');
-        stageVars = '';
-      }
-      els.wallpaper.classList.toggle('is-alive', alive());
-    }
-
-    function init() {
-      els.wallBtn.addEventListener('click', shuffle);
-      els.wallGrid.addEventListener('click', (event) => {
-        const option = event.target.closest('.wall-option');
-        if (option) pick(option.dataset.id);
-      });
-      let resizeTimer = null;
-      window.addEventListener('resize', () => {
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(() => { if (rafId) resize(); }, 200);
-      });
-      document.addEventListener('visibilitychange', updateLoop);
-      reduced.addEventListener?.('change', updateLoop);
-      // capture: también el scroll de listas y paneles internos (no burbujea)
-      let scrollTimer = null;
-      document.addEventListener('scroll', () => {
-        scrollingUntil = performance.now() + 300;
-        if (!scrollTimer) els.wallpaper.classList.add('is-scrolling');
-        clearTimeout(scrollTimer);
-        scrollTimer = setTimeout(() => {
-          scrollTimer = null;
-          els.wallpaper.classList.remove('is-scrolling');
-        }, 300);
-      }, { capture: true, passive: true });
-      // Paralaje: el cursor en el ordenador, la inclinación del móvil en Android
-      window.addEventListener('pointermove', (event) => {
-        if (event.pointerType !== 'mouse') return;
-        tilt = { x: event.clientX / window.innerWidth - 0.5, y: event.clientY / window.innerHeight - 0.5 };
-      }, { passive: true });
-      if ('DeviceOrientationEvent' in window && typeof DeviceOrientationEvent.requestPermission !== 'function') {
-        window.addEventListener('deviceorientation', (event) => {
-          if (event.gamma === null) return;
-          tilt = { x: clamp(event.gamma / 45, -1, 1) * 0.5, y: clamp((event.beta - 45) / 45, -1, 1) * 0.5 };
-        }, { passive: true });
-      }
-      applyMode();
-    }
-
-    return { init, applyMode, onTrack, renderGrid, updateLoop };
-  })();
 
   /* ---------- Instalar la app (PWA) ---------- */
   // Android/escritorio (Chrome, Edge, Samsung Internet): el navegador ofrece instalarla con su propio
@@ -13683,7 +13339,7 @@
           : 'Toca el corazón para guardar una canción en Favoritas. En Stats ves tus minutos, horas, estilos y artistas del mes.'),
         target: () => (isPhone() ? '.player-track' : '.tab[data-view="favorites"]') },
       { icon: 'settings', title: 'Hazla tuya',
-        text: () => 'En Ajustes eliges tema, letra, fondo de pantalla y ecualizador, y puedes volver a ver este tutorial. ¿Ideas o algún error? Escribe a officiallukamon@gmail.com (está abajo, en el panel Sonando).',
+        text: () => 'En Ajustes eliges tema, letra, sonido y ecualizador, y puedes volver a ver este tutorial. ¿Ideas o algún error? Escribe a officiallukamon@gmail.com (está abajo, en el panel Sonando).',
         target: () => '#settingsBtn' }
     ];
     let step = 0;
@@ -13946,13 +13602,6 @@
     els.hapticsHint.textContent = canVibrate
       ? 'Al dar «Me gusta», reproducir, fijar o mover la barra.'
       : 'Este dispositivo no deja vibrar desde la web (iPhone/iPad, ordenador).';
-    els.wallMode.value = settings.wall.mode;
-    els.wallAlive.checked = settings.wall.alive;
-    if (document.documentElement.classList.contains('lite')) {
-      els.wallAlive.closest('.setting').querySelector('.setting-hint').textContent =
-        'Este dispositivo usa el modo ligero (ahorro de batería y datos): el fondo se queda quieto.';
-    }
-    wall.renderGrid();
     renderEqBands();
     updateEqNote();
     els.settingsDialog.showModal();
@@ -17826,7 +17475,8 @@
     restorePreferences();
     atk.init();
     // v97: SKd ya no existe; fuera la dirección, la clave y los pedidos que guardaba en este navegador
-    try { ['liquidbrush:skd', 'liquidbrush:skd-pedidos'].forEach((k) => localStorage.removeItem(k)); } catch { /* sin acceso */ }
+    // v97: tampoco hay fondo de pantalla: fuera el último fondo recordado
+    try { ['liquidbrush:skd', 'liquidbrush:skd-pedidos', 'liquidbrush:wall-last'].forEach((k) => localStorage.removeItem(k)); } catch { /* sin acceso */ }
     updateModeButtons();
     updateVolumeUI();
     updateProgressUI(0, 0);
@@ -17855,7 +17505,6 @@
     setupAudioSession();
     stallGuard.start();
     setupSurrealEyes();
-    wall.init();
     cuenta.init();
     social.init();
     pedir.init();

@@ -6,8 +6,7 @@ Cada imagen del proyecto tiene un TIPO, que dice para qué (y solo para qué) se
   portada-playlist  covers/cover-NN.jpg (+ -sm.jpg)          portada de una playlist de Liquid Bullet
   portada-propia    covers/propias/propia-NN.jpg (+ -sm.jpg)  portada que la persona elige para SUS playlists
   icono-cancion     covers/songs/song-NN.jpg (+ -sm.jpg)      icono que llevan las canciones
-  fondo             wallpapers/NN.jpg                         fondo de pantalla de la app
-  icono-fondo       wallpapers/icons/NN.jpg (+ -thumb.jpg)    botón para elegir el fondo
+  mini-icono        wallpapers/icons/NN.jpg                   pegatinas de títulos, iconos de playlist, collage
   avatar            avatars/avatar-NN.jpg (+ -sm.jpg)         foto de perfil de la cuenta
   icono-app         icon-*.png, apple-touch-icon.png, favicon.png, logo.svg
   compartir         og-image.jpg                              miniatura de los enlaces
@@ -35,10 +34,9 @@ TYPES = {
                        'use': 'Solo para las playlists que crea cada persona: se eligen en Nueva playlist / Editar playlist → Portada. Nunca se asignan a las playlists de base (catalog.json) ni a las automáticas, ni se usan para otra cosa.'},
     'icono-cancion': {'name': 'Iconos de canción', 'folder': 'covers/songs/', 'size': '600 × 600 px + versión -sm de 320 px',
                       'use': 'Solo como icono de su canción: cada canción usa el suyo y se reparten por igual entre todas las canciones. Nunca para otra cosa.'},
-    'fondo': {'name': 'Fondos de pantalla', 'folder': 'wallpapers/', 'size': 'vertical, ~1600 px de alto',
-              'use': 'Fondo de la app (Ajustes → Fondo). Se puede reutilizar: collage de bienvenida de la cuenta, decoración.'},
-    'icono-fondo': {'name': 'Iconos de fondo', 'folder': 'wallpapers/icons/', 'size': 'cuadrado + -thumb',
-                    'use': 'Botón para cambiar de fondo y selector. Se puede reutilizar: icono de playlists propias, collage de bienvenida. No como avatar: eso es solo de las fotos de perfil.'},
+    # v97: el fondo de pantalla de la app se quitó; quedan sus recortes pequeños
+    'mini-icono': {'name': 'Mini iconos', 'folder': 'wallpapers/icons/', 'size': 'cuadrado',
+                   'use': 'Pegatinas junto a los títulos, iconos de playlists propias («art:NN») y collage de bienvenida de la cuenta. No como avatar: eso es solo de las fotos de perfil.'},
     'avatar': {'name': 'Fotos de perfil', 'folder': 'avatars/', 'size': '512 × 512 px + versión -sm de 160 px',
                'use': 'Solo como foto de perfil de la cuenta, y solo existen en el selector de avatar (crear cuenta y Tu cuenta). Nunca para otra cosa: ni fondos, ni portadas, ni iconos, ni collages.'},
     'icono-app': {'name': 'Iconos de la app', 'folder': '/', 'size': '192, 512 y 180 px',
@@ -113,12 +111,9 @@ def main():
         sm = f'covers/songs/{path.stem}-sm.jpg'
         add('icono-cancion', rel, sm if (ROOT / sm).exists() else None,
             f'{song_count.get(rel, 0)} canciones', f'Icono {path.stem[-2:]}')
-    for path in sorted((ROOT / 'wallpapers').glob('[0-9][0-9].jpg')):
-        add('fondo', f'wallpapers/{path.name}', None, 'Fondo de pantalla', walls.get(path.stem, f'Fondo {path.stem}'))
     for path in sorted((ROOT / 'wallpapers' / 'icons').glob('[0-9][0-9].jpg')):
-        thumb = f'wallpapers/icons/{path.stem}-thumb.jpg'
-        add('icono-fondo', f'wallpapers/icons/{path.name}', thumb if (ROOT / thumb).exists() else None,
-            f'Botón del fondo {path.stem}', walls.get(path.stem, f'Icono {path.stem}'))
+        add('mini-icono', f'wallpapers/icons/{path.name}', None,
+            'Pegatinas, iconos de playlist y collage de la cuenta', walls.get(path.stem, f'Icono {path.stem}'))
     nombres_avatar = ['Sol', 'Rostros', 'Querubín', 'Alien', 'Muñeca', 'Caballero', 'Máscara', 'Hechicera']
     for i, path in enumerate(sorted((ROOT / 'avatars').glob('avatar-[0-9][0-9].jpg'))):
         sm = f'avatars/{path.stem}-sm.jpg'
