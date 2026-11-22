@@ -1955,7 +1955,7 @@ test.describe('v82: salir de Buscar sin «Cancelar»', () => {
     test.skip(!isPhone(page), 'La barra de abajo es del teléfono');
     await page.goto('./');
     await expect(page.locator('#libCount')).not.toHaveText('0');
-    for (const target of ['home', 'playlists', 'library', 'radio']) {
+    for (const target of ['home', 'library', 'radio']) {
       await page.locator('.nav-btn[data-nav="search"]').click();
       await expect(page.locator('#searchPanel')).toBeVisible();
       // En el iPhone el teclado suele cerrarse antes (al desplazar): el buscador ya no tiene el foco

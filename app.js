@@ -369,6 +369,7 @@
     clearDownloads: $('clearDownloads'),
     autoFavToggle: $('autoFavToggle'),
     softPauseToggle: $('softPauseToggle'),
+    normalizeToggle: $('normalizeToggle'),
     addArtist: $('addArtist'),
     addRadio: $('addRadio'),
     shareDialog: $('shareDialog'),
@@ -660,6 +661,8 @@
       // Velocidad de reproducción (0.75×–1.5×) y fundido corto al pausar/reanudar
       speed: [0.75, 1, 1.1, 1.25, 1.5].includes(saved.speed) ? saved.speed : 1,
       softPause: saved.softPause !== false,
+      // v97: volumen igualado entre canciones, encendido de serie
+      normalize: saved.normalize !== false,
       // El tiempo total del reproductor muestra lo que queda («−1:12»): se cambia tocándolo
       remaining: saved.remaining === true,
       // Tamaño de las letras de las canciones (A− / A+ debajo de la letra)
@@ -2696,9 +2699,108 @@
     preloader.audio.load();
   }
 
+  /* ---------- v97: volumen igualado entre canciones (como la normalización de Spotify) ----------
+     Las canciones vienen de 6 buckets y de épocas distintas: unas suenan mucho más fuerte que otras.
+     Se mide la sonoridad de cada una en el navegador, una sola vez: se pide un trozo del medio del MP3
+     (~800 KB, el servidor ya permite CORS), se decodifica y se pondera como LUFS (filtro K de la norma
+     BS.1770 + bloques de 400 ms con umbral). Con eso se ajusta su volumen para que todas queden cerca
+     de −14 LUFS, el mismo objetivo de Spotify. Se recuerda por canción (liquidbrush:sonoridad) y la
+     siguiente de la cola se mide por adelantado. En iPhone la web no puede cambiar el volumen: ahí no hace nada. */
+  const LOUD_KEY = 'liquidbrush:sonoridad';
+  const LOUD_TARGET = -14;
+  const loud = {
+    db: storage.get(LOUD_KEY, {}) || {},
+    pending: new Map(),
+    // Las que no se pudieron medir (archivo corto, decodificador que no acepta medio MP3): no se reintentan en la sesión
+    failed: new Set(),
+    queue: Promise.resolve(),
+    saveTimer: 0,
+    // Volumen de la canción que sonaba en cada reproductor (para la mezcla DJ, que suena con dos a la vez)
+    deckLevel: new Map(),
+    can(track) {
+      if (!settings.normalize || IS_IOS || !track || track.atk || track.radio || !AudioContextClass) return false;
+      if (/^(data|blob):/i.test(track.src)) return false;
+      const origin = originOf(track.src);
+      return origin === location.origin || eq.cors.get(origin) === true;
+    },
+    // Ganancia lineal de la canción: hasta −12 dB si suena fuerte, hasta +4 dB si suena flojo
+    // (subir solo se nota cuando el volumen no está al máximo: el navegador no pasa de 1)
+    gain(track) {
+      if (!settings.normalize || IS_IOS || !track) return 1;
+      const lufs = this.db[track.id];
+      if (typeof lufs !== 'number') return 1;
+      return 10 ** (clamp(LOUD_TARGET - lufs, -12, 4) / 20);
+    },
+    measure(track) {
+      if (!this.can(track) || typeof this.db[track.id] === 'number' || this.pending.has(track.id) || this.failed.has(track.id)) return;
+      if (!navigator.onLine || navigator.connection?.saveData || DEVICE.saveData) return;
+      // De una en una y sin prisa: no compite con la canción que empieza a sonar
+      const job = this.queue.then(() => new Promise((done) => setTimeout(done, 800))).then(() => this.analyse(track)).catch(() => null);
+      this.pending.set(track.id, job);
+      this.queue = job;
+      job.then((lufs) => {
+        this.pending.delete(track.id);
+        if (typeof lufs !== 'number' || !Number.isFinite(lufs)) { this.failed.add(track.id); return; }
+        this.db[track.id] = Math.round(lufs * 10) / 10;
+        clearTimeout(this.saveTimer);
+        this.saveTimer = setTimeout(() => this.save(), 2000);
+        if (state.currentTrack?.id === track.id) applyVolume(els.audio);
+      });
+    },
+    async analyse(track) {
+      const res = await fetch(track.src, { headers: { Range: 'bytes=500000-1300000' }, mode: 'cors', cache: 'no-store' });
+      if (!res.ok) return null;
+      const bytes = await res.arrayBuffer();
+      if (bytes.byteLength < 64000) return null;
+      const rate = 22050;
+      const decoder = new OfflineAudioContext(1, 1, rate);
+      const decoded = await decoder.decodeAudioData(bytes);
+      if (decoded.duration < 5) return null;
+      // Filtro K (BS.1770): realce de agudos + corte de graves, como oye el oído
+      const ctx = new OfflineAudioContext(1, decoded.length, decoded.sampleRate);
+      const src = ctx.createBufferSource();
+      src.buffer = decoded;
+      const shelf = ctx.createBiquadFilter();
+      shelf.type = 'highshelf'; shelf.frequency.value = 1500; shelf.gain.value = 4;
+      const hp = ctx.createBiquadFilter();
+      hp.type = 'highpass'; hp.frequency.value = 38; hp.Q.value = 0.5;
+      src.connect(shelf).connect(hp).connect(ctx.destination);
+      src.start();
+      const out = (await ctx.startRendering()).getChannelData(0);
+      return this.lufs(out, decoded.sampleRate, decoded.numberOfChannels);
+    },
+    // Sonoridad integrada: bloques de 400 ms con 75 % de solape, umbral absoluto (−70) y relativo (−10)
+    lufs(data, sampleRate, channels) {
+      const block = Math.round(sampleRate * 0.4);
+      const step = Math.round(block / 4);
+      const powers = [];
+      for (let start = 0; start + block <= data.length; start += step) {
+        let sum = 0;
+        for (let i = start; i < start + block; i++) sum += data[i] * data[i];
+        powers.push(sum / block);
+      }
+      // Mezcla a mono: el estéreo suma la energía de los dos canales (+3 dB) en la norma
+      const toLufs = (p) => -0.691 + 10 * Math.log10(p) + (channels > 1 ? 3.01 : 0);
+      const loudEnough = powers.filter((p) => p > 0 && toLufs(p) > -70);
+      if (!loudEnough.length) return null;
+      const mean = (list) => list.reduce((a, b) => a + b, 0) / list.length;
+      const gate = toLufs(mean(loudEnough)) - 10;
+      const gated = loudEnough.filter((p) => toLufs(p) > gate);
+      return toLufs(mean(gated.length ? gated : loudEnough));
+    },
+    save() {
+      const ids = Object.keys(this.db);
+      // Tope de 8000 canciones (~160 KB): fuera las más antiguas
+      if (ids.length > 8000) ids.slice(0, ids.length - 8000).forEach((id) => delete this.db[id]);
+      storage.set(LOUD_KEY, this.db);
+    }
+  };
+
   function applyVolume(deck) {
     // sleep.gain baja el volumen en el fundido final del temporizador
-    deck.volume = clamp(state.volume * (deckGain.get(deck) ?? 1) * sleep.gain, 0, 1);
+    // v97: × el volumen igualado de la canción de ese reproductor
+    const level = deck === els.audio ? loud.gain(state.currentTrack) : (loud.deckLevel.get(deck) ?? 1);
+    deck.volume = clamp(state.volume * (deckGain.get(deck) ?? 1) * level * sleep.gain, 0, 1);
   }
 
   // En iOS el volumen no se puede cambiar desde la web: en vez de mezcla larga, un empalme corto
@@ -7774,6 +7876,8 @@
     if (!track) return;
     errorLog.step('carga');
     warmConnection(track);
+    // La que sale conserva su volumen igualado mientras se mezcla con la nueva
+    if (state.currentTrack) loud.deckLevel.set(els.audio, loud.gain(state.currentTrack));
     state.currentTrack = track;
     state.pendingSeek = null;
     state.countedId = null;
@@ -7790,6 +7894,10 @@
     if (offline.supported && isDownloaded(track) && !offline.urls.has(cacheKey(track.src))) loadLocalFirst(track);
     else els.audio.src = audioSrc(track);
     applySpeed();
+    applyVolume(els.audio);
+    // v97: se mide la sonoridad de esta y de la siguiente (una vez por canción; luego se recuerda)
+    loud.measure(track);
+    loud.measure(getTrack(state.queue[state.queueIndex + 1]));
     setTimeout(warmLocalAudio, 0);
 
     if (settings.motion && els.cover.src !== track.cover) {
@@ -10823,6 +10931,12 @@
       settings.softPause = els.softPauseToggle.checked;
       saveSettings();
     });
+    els.normalizeToggle?.addEventListener('change', () => {
+      settings.normalize = els.normalizeToggle.checked;
+      saveSettings();
+      decks.forEach(applyVolume);
+      if (settings.normalize) loud.measure(state.currentTrack);
+    });
 
     // Índice A–Z: tocar o arrastrar el dedo por las letras
     const railPick = (event) => {
@@ -13029,7 +13143,7 @@
         target: () => (isPhone() ? '.nav-btn[data-nav="search"]' : '.search') },
       { icon: 'grid', title: 'Playlists',
         text: () => 'Playlists por estilo hechas con toda la biblioteca, las tuyas (botón ＋ de cada canción) y las automáticas: «Escuchadas hace poco» y «Tus más escuchadas». Mantén pulsada una para fijarla arriba.',
-        target: () => (isPhone() ? '.nav-btn[data-nav="playlists"]' : '.tab[data-view="playlists"]') },
+        target: () => '.tab[data-view="playlists"]' },
       { icon: 'flask', title: 'Lab',
         text: () => 'Lab es el laboratorio de mezclas y tiene su propio sitio: combina estilos y artistas y te arma una mezcla a medida. Lo que guardes ahí vuelve a Liquid como una playlist más.',
         target: () => (isPhone() ? '.nav-btn[data-nav="lab"]' : '.tab[data-view="lab"]') },
@@ -13121,9 +13235,9 @@
 
   function updateNav() {
     const searching = document.activeElement === els.searchInput || state.searchOpen;
+    // v97: Playlists vive dentro de Biblioteca (como «Tu biblioteca»): la barra de abajo marca Biblioteca
     const active = searching ? 'search'
       : state.view === 'home' ? 'home'
-      : state.view === 'playlists' || state.view === 'playlist' ? 'playlists'
       : state.view === 'lab' ? 'lab'
       : state.view === 'radio' ? 'radio' : 'library';
     els.bottomNav.querySelectorAll('.nav-btn').forEach((button) => {
@@ -17206,6 +17320,7 @@
     applySpeed();
     els.speedSelect.value = String(settings.speed);
     els.softPauseToggle.checked = settings.softPause;
+    if (els.normalizeToggle) els.normalizeToggle.checked = settings.normalize;
     els.autoFavToggle.checked = settings.autoFav;
     setupMediaSessionHandlers();
     setupAudioSession();

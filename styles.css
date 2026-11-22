@@ -11197,3 +11197,30 @@ body.is-radio #lyricsBtn {
   max-width: 64%;
 }
 
+
+/* =========================================================
+   v97: legible como Spotify, sin perder la personalidad
+   - La letra callejera queda para el logo y los titulares; los controles pequeños (pestañas, píldoras,
+     botones, barra de abajo, campos y ayudas) pasan a Inter, que se lee bien a 11–14 px.
+   - En el teléfono, el panel principal va de borde a borde: sin marco dentro del marco (+20 px útiles).
+   ========================================================= */
+:root[data-font="street"] :is(.tab, .chip, .btn, .nav-btn, .count, .setting-hint, .field-label, input, select, textarea, .toast),
+:root[data-font="graffiti"] :is(.tab, .chip, .btn, .nav-btn, .count, .setting-hint, .field-label, input, select, textarea, .toast) {
+  font-family: var(--song-font);
+  font-synthesis: weight;
+  letter-spacing: 0;
+}
+
+.bottom-nav .nav-btn span {
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+@media (max-width: 600px) {
+  .layout > .library {
+    margin-inline: -16px;
+    padding-inline: 16px;
+    border-inline: 0;
+    border-radius: 0;
+  }
+}
