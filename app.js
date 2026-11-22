@@ -2093,10 +2093,13 @@
   const songsLabel = (n) => `${n} canci${n === 1 ? 'ón' : 'ones'}`;
   const collator = new Intl.Collator('es', { sensitivity: 'base', numeric: true });
 
+  // v97: el módulo social (colaborativas) se entera de cada cambio para subirlo
+  let onLocalPlaylistsChange = null;
   function saveLocalPlaylists() {
     if (!storage.set(KEYS.playlists, library.local)) {
       showToast('No se pudo guardar en este navegador (¿modo privado o sin espacio?).');
     }
+    onLocalPlaylistsChange?.();
     // v94: Sonando dice en qué playlists está la canción: al añadirla o quitarla se ve al momento
     if (state.currentTrack) renderPlaylistsWith(els.npIn, state.currentTrack);
   }
@@ -2122,6 +2125,11 @@
     return library.local.map((p) => ({
       key: `local:${p.id}`, kind: 'local', id: p.id, name: p.name,
       emoji: p.emoji, color: p.color, trackIds: p.trackIds,
+      // v97: colaborativa (quién está) o Blend (se renueva cada día)
+      colab: p.colab || null, blend: p.blend || null,
+      ...(p.colab?.miembros?.length > 1 ? { description: `Colaborativa con ${p.colab.miembros.filter((n) => n !== p.colab.yo).join(', ')}` }
+        : p.colab ? { description: 'Colaborativa: invita a alguien con el enlace' }
+          : p.blend ? { description: p.blend.miembros > 1 ? 'Blend: vuestras canciones, renovado cada día' : 'Blend: esperando a que alguien se una con tu enlace' } : {}),
       portada: portadaValida(p.portada),
       ...(portadaValida(p.portada) ? { cover: { type: 'image', src: portadaSrc(p.portada) } } : {})
     }));
@@ -2355,10 +2363,19 @@
 
   function deleteLocalPlaylist(id) {
     const playlist = findLocal(id);
-    if (!playlist || !confirm(`¿Eliminar «${playlist.name}»? Podrás recuperarla durante ${TRASH_DAYS} días desde la Papelera.`)) return;
+    // v97: una colaborativa o un Blend también se deja en el servidor (la copia de la Papelera queda como propia)
+    const pregunta = playlist?.colab?.owner ? `¿Eliminar «${playlist.name}»? Es colaborativa: se borrará también para las personas con las que la compartes. Te quedará una copia en la Papelera ${TRASH_DAYS} días.`
+      : playlist?.colab ? `¿Salir de «${playlist.name}»? Dejarás de verla y de poder añadir canciones. Te quedará una copia en la Papelera ${TRASH_DAYS} días.`
+        : playlist?.blend ? `¿Salir del Blend «${playlist.name}»?`
+          : `¿Eliminar «${playlist?.name}»? Podrás recuperarla durante ${TRASH_DAYS} días desde la Papelera.`;
+    if (!playlist || !confirm(pregunta)) return;
     library.local = library.local.filter((p) => p.id !== id);
     saveLocalPlaylists();
-    storage.set(KEYS.trash, [{ ...playlist, deletedAt: Date.now() }, ...trashList()].slice(0, 30));
+    if (playlist.colab || playlist.blend) social.salir(playlist);
+    const copia = { ...playlist, deletedAt: Date.now() };
+    delete copia.colab;
+    delete copia.blend;
+    storage.set(KEYS.trash, [copia, ...trashList()].slice(0, 30));
     setView('playlists');
     showToast(`«${playlist.name}» eliminada.`, { label: 'Deshacer', run: () => restoreFromTrash(playlist.id) });
   }
@@ -4660,6 +4677,7 @@
       const asList = settings.plView === 'list';
       actions.append(
         makeButton('btn btn-primary', 'new-playlist', 'Crear una playlist nueva', 'playlist-add', 'Nueva'),
+        makeButton('btn btn-small', 'blend-new', 'Crear un Blend: una playlist con tus gustos y los de otra persona', 'spark', 'Blend'),
         makeButton('icon-btn', 'toggle-plview', asList ? 'Ver en cuadrícula' : 'Ver en lista', asList ? 'grid' : 'list'),
         makeButton('icon-btn', 'import', 'Importar una copia de seguridad', 'upload'),
         makeButton('icon-btn', 'export', 'Descargar una copia de seguridad de tus playlists', 'download')
@@ -4705,7 +4723,8 @@
     const meta = makeEl('span', 'playlist-meta');
     meta.dataset.base = `${songsLabel(tracks.length)} · ${formatTotal(total)}`;
     meta.textContent = meta.dataset.base;
-    text.append(makeEl('span', `pl-kind pl-kind-${pl.kind}`, pl.kind === 'local' && signedIn() ? 'Guardada en tu cuenta' : KIND_LABELS[pl.kind]), makeEl('h2', 'pl-hero-name', pl.name));
+    const kindLabel = pl.colab ? 'Colaborativa' : pl.blend ? 'Blend' : pl.kind === 'local' && signedIn() ? 'Guardada en tu cuenta' : KIND_LABELS[pl.kind];
+    text.append(makeEl('span', `pl-kind pl-kind-${pl.kind}${pl.colab ? ' pl-kind-colab' : pl.blend ? ' pl-kind-blend' : ''}`, kindLabel), makeEl('h2', 'pl-hero-name', pl.name));
     if (pl.description) text.append(makeEl('p', 'pl-hero-desc', pl.description));
     text.append(meta);
     const progress = plus.playlistProgress(pl, tracks);
@@ -4732,6 +4751,9 @@
     if (tracks.length) actions.append(makeButton('icon-btn', 'share-playlist', 'Compartir playlist', 'share'));
     if (tracks.length) actions.append(makeButton('btn btn-ghost btn-small', 'export-m3u', 'Descargar como .m3u (VLC y otros reproductores)', '', '.m3u'));
     if (pl.kind === 'local') {
+      // v97: invitar a otras personas a añadir canciones (o a un Blend)
+      if (pl.blend) actions.append(makeButton('btn btn-small pl-invite', 'blend-invite', 'Invitar a alguien a este Blend', 'share', 'Invitar'));
+      else actions.append(makeButton('btn btn-small pl-invite', 'colab-invite', pl.colab ? 'Invitar a más personas a esta playlist' : 'Hacerla colaborativa: invita a alguien a añadir canciones', 'share', pl.colab ? 'Invitar' : 'Colaborar'));
       actions.append(
         makeButton('icon-btn', 'edit-playlist', 'Cambiar nombre, icono o color', 'edit'),
         makeButton('icon-btn', 'copy-playlist', 'Duplicar esta playlist', 'playlist-add'),
@@ -10543,6 +10565,9 @@
         case 'import': els.importInput.click(); break;
         case 'edit-playlist': if (pl) editLocalPlaylist(pl.id); break;
         case 'delete-playlist': if (pl) deleteLocalPlaylist(pl.id); break;
+        case 'colab-invite': if (pl) social.invitar(pl.id); break;
+        case 'blend-invite': if (pl) social.invitarBlend(pl.id); break;
+        case 'blend-new': social.crearBlend(); break;
         case 'copy-playlist': if (pl) copyToLocal(pl); break;
         case 'clear-recent':
           if (confirm('¿Borrar el historial de canciones escuchadas en este dispositivo?')) {
@@ -11767,6 +11792,8 @@
       if (sesion) storage.set(K.sesion, sesion);
       else { try { localStorage.removeItem(K.sesion); } catch { /* sin acceso */ } }
       actualizarBotones();
+      // v97: las invitaciones que llegaron sin sesión (colaborativas, Blends) se atienden al entrar
+      try { window.dispatchEvent(new Event('liquid:cuenta')); } catch { /* sin eventos */ }
     }
 
     let renovando = null;
@@ -12734,7 +12761,9 @@
     }
 
     function plACompacta(p, meta) {
-      return { i: p.id, n: p.name, e: p.emoji || '', c: p.color || '', f: portadaValida(p.portada), k: p.trackIds.map(aCorto), t: meta[p.id]?.t || 0, cr: p.createdAt || 0 };
+      return { i: p.id, n: p.name, e: p.emoji || '', c: p.color || '', f: portadaValida(p.portada), k: p.trackIds.map(aCorto), t: meta[p.id]?.t || 0, cr: p.createdAt || 0,
+        // v97: colaborativa (co) o Blend (bl): el id de la invitación viaja a tus otros dispositivos
+        ...(p.colab?.id ? { co: p.colab.id } : {}), ...(p.blend?.id ? { bl: p.blend.id } : {}) };
     }
 
     function mezclarPlaylists(metaPl, remotas) {
@@ -12753,14 +12782,23 @@
 
     function aplicarPlaylists(lista, metaPl) {
       const locales = new Map(library.local.map((p) => [p.id, p]));
+      // v97: las playlists creadas mientras se sincronizaba (no estaban al empezar) no se pierden
+      const enLista = new Set(lista.map((p) => p.i));
+      const nuevas = library.local.filter((p) => !enLista.has(p.id));
       library.local = lista.filter((p) => !p.x).map((p) => {
         const previa = locales.get(p.i) || {};
         const pl = { ...previa, id: p.i, name: p.n, emoji: iconoGuardable(p.e || previa.emoji), color: p.c || previa.color || '#8a93a6',
           portada: typeof p.f === 'string' ? portadaValida(p.f) : portadaValida(previa.portada),
-          trackIds: [...new Set((p.k || []).map(aLargo).filter(Boolean))], createdAt: p.cr || previa.createdAt || Date.now() };
+          trackIds: [...new Set((p.k || []).map(aLargo).filter(Boolean))], createdAt: p.cr || previa.createdAt || Date.now(),
+          ...(p.co ? { colab: previa.colab?.id === p.co ? previa.colab : { id: p.co } } : {}),
+          ...(p.bl ? { blend: previa.blend?.id === p.bl ? previa.blend : { id: p.bl } } : {}) };
+        // En una colaborativa o un Blend manda el servidor de Liquid, no la copia de la cuenta (que puede ser más
+        // vieja): si no, lo que añadieron otras personas parecería «quitado» y se borraría para todos
+        if ((pl.colab?.base || pl.blend) && Array.isArray(previa.trackIds)) pl.trackIds = previa.trackIds;
         metaPl[p.i] = { h: String(hashString(huellaPl(pl))), t: p.t || 0 };
         return pl;
       });
+      library.local.push(...nuevas);
       lista.filter((p) => p.x).forEach((p) => { metaPl[p.i] = { x: p.x }; });
       saveLocalPlaylists();
     }
@@ -13116,8 +13154,329 @@
       correo: () => sesion?.perfil?.correo || storage.get(K.ultimoCorreo, '') || '',
       prepararRobot: (caja) => (sesion ? Promise.resolve() : montarRobot(caja)),
       pedirCancion,
-      mensajeError: mensaje
+      mensajeError: mensaje,
+      // v97: llamadas con sesión para las playlists colaborativas y los Blends
+      llamar: (ruta, opciones = {}) => api(ruta, { ...opciones, auth: true })
     };
+  })();
+
+  /* =========================================================
+     v97: playlists colaborativas y Blends (como Spotify)
+     - Colaborativa: una playlist propia que se comparte con un enlace (?unirse=<id>). Cada miembro la ve en
+       «Mis playlists» y añade o quita canciones como en cualquier otra; Liquid sube solo la diferencia
+       (anadir / quitar) y el servidor la junta con lo que hicieron los demás a la vez.
+     - Blend: cada persona sube un resumen de su gusto (sus canciones y artistas más escuchados); Liquid mezcla
+       los de todos en el navegador: lo que os gusta a la vez primero, luego por turnos, y canciones puente de
+       los artistas que compartís. Cambia cada día. Enlace: ?blend=<id>.
+     Las dos viven en library.local con una marca (colab / blend): descargas, fijadas, sincronización y el
+     diálogo de añadir funcionan como siempre. Hace falta sesión: el servidor es el Worker de cuentas.
+     ========================================================= */
+  const social = (() => {
+    const PENDIENTE = 'liquidbrush:invitacion';
+    let subiendo = null;
+    let pushTimer = 0;
+    let ultimaBajada = 0;
+    const llamar = (ruta, opciones) => cuenta.llamar(ruta, opciones);
+    const colabs = () => library.local.filter((p) => p.colab?.id);
+    const blendsLocales = () => library.local.filter((p) => p.blend?.id);
+    const enlace = (tipo, id) => `${appBase()}?${tipo}=${encodeURIComponent(id)}`;
+    const errorTexto = (error) => (error?.codigo === 'sin_conexion' ? 'Sin conexión: inténtalo cuando vuelva.' : cuenta.mensajeError?.(error) || 'No se pudo ahora. Inténtalo de nuevo.');
+
+    function pedirSesion(texto, pendiente) {
+      if (pendiente) storage.set(PENDIENTE, pendiente);
+      showToast(texto, { label: 'Iniciar sesión', run: () => cuenta.abrir() });
+    }
+
+    async function compartirEnlace(titulo, texto, url) {
+      if (navigator.share) {
+        try { await navigator.share({ title: titulo, text: texto, url }); return; } catch (error) { if (error?.name === 'AbortError') return; }
+      }
+      copyText(url, 'Enlace copiado: mándaselo a quien quieras.');
+    }
+
+    /* --- Colaborativas --- */
+    function aplicarLista(p, l) {
+      p.trackIds = l.canciones.map((c) => c.i);
+      p.name = l.nombre;
+      p.colab = {
+        id: l.id, owner: Boolean(l.soyDueno), rev: l.rev, base: p.trackIds.slice(), nombre: l.nombre,
+        miembros: l.miembros, yo: cuenta.nombre() || '',
+        por: Object.fromEntries(l.canciones.map((c) => [c.i, c.p]))
+      };
+    }
+
+    const diferencia = (p) => {
+      const base = new Set(p.colab.base || []);
+      const ahora = new Set(p.trackIds);
+      return {
+        anadir: p.trackIds.filter((id) => !base.has(id)),
+        quitar: [...base].filter((id) => !ahora.has(id)),
+        nombre: p.colab.owner && p.colab.nombre && p.name !== p.colab.nombre ? p.name : null
+      };
+    };
+
+    // La lista ya no existe (la dueña la borró) o te sacaron: se queda como playlist propia
+    function soltar(p, motivo) {
+      delete p.colab;
+      showToast(`«${p.name}» ya no es colaborativa${motivo ? ` (${motivo})` : ''}: te queda como playlist tuya.`, null, { background: true });
+    }
+
+    async function subir() {
+      if (subiendo || !signedIn()) return subiendo;
+      subiendo = (async () => {
+        let cambio = false;
+        for (const p of colabs()) {
+          const d = diferencia(p);
+          if (!d.anadir.length && !d.quitar.length && !d.nombre) continue;
+          try {
+            const r = await llamar(`/compartidas/${p.colab.id}/canciones`, { cuerpo: { anadir: d.anadir, quitar: d.quitar, ...(d.nombre ? { nombre: d.nombre } : {}) } });
+            aplicarLista(p, r.lista);
+            cambio = true;
+          } catch (error) {
+            if (error?.codigo === 'no_encontrado') { soltar(p, 'la borraron'); cambio = true; }
+            // Sin conexión: se reintenta al volver (la diferencia sigue ahí)
+          }
+        }
+        if (cambio) guardarYRepintar();
+      })().finally(() => { subiendo = null; });
+      return subiendo;
+    }
+
+    function guardarYRepintar() {
+      const antes = onLocalPlaylistsChange;
+      onLocalPlaylistsChange = null;
+      saveLocalPlaylists();
+      onLocalPlaylistsChange = antes;
+      if (state.view === 'playlists' || state.view === 'playlist') renderList();
+    }
+
+    async function bajar({ forzar = false } = {}) {
+      if (!signedIn() || !navigator.onLine) return;
+      if (!forzar && Date.now() - ultimaBajada < 60000) return;
+      ultimaBajada = Date.now();
+      await subir();
+      let cambio = false;
+      try {
+        const { listas = [] } = await llamar('/compartidas', { metodo: 'GET' });
+        const enServidor = new Set(listas.map((l) => l.id));
+        for (const l of listas) {
+          let p = library.local.find((x) => x.colab?.id === l.id);
+          if (p && p.colab.rev === l.rev) continue;
+          const { lista } = await llamar(`/compartidas/${l.id}`, { metodo: 'GET' });
+          if (!p) {
+            p = { id: newId(), name: lista.nombre, emoji: 'ic:headphones', color: PLAYLIST_COLORS[Math.floor(Math.random() * PLAYLIST_COLORS.length)], trackIds: [], createdAt: Date.now() };
+            library.local.push(p);
+          }
+          aplicarLista(p, lista);
+          cambio = true;
+        }
+        colabs().forEach((p) => { if (!enServidor.has(p.colab.id)) { soltar(p, 'la borraron o saliste'); cambio = true; } });
+      } catch { /* sin conexión o sesión caducada: la próxima vez */ }
+      try { cambio = (await refrescarBlends()) || cambio; } catch { /* idem */ }
+      if (cambio) guardarYRepintar();
+    }
+
+    async function invitar(localId) {
+      const p = findLocal(localId);
+      if (!p) return;
+      if (!signedIn()) { pedirSesion('Para hacer colaborativa una playlist, inicia sesión (así sabemos quién añade cada canción).'); return; }
+      if (!p.colab) {
+        try {
+          const r = await llamar('/compartidas', { cuerpo: { nombre: p.name, canciones: p.trackIds } });
+          aplicarLista(p, r.lista);
+          guardarYRepintar();
+        } catch (error) { showToast(errorTexto(error)); return; }
+      }
+      await compartirEnlace(p.name, `Añade canciones a «${p.name}» conmigo en Liquid Bullet`, enlace('unirse', p.colab.id));
+    }
+
+    async function unirse(id) {
+      if (!signedIn()) { pedirSesion('Te invitaron a una playlist colaborativa: inicia sesión para unirte.', { tipo: 'unirse', id }); return; }
+      try {
+        const r = await llamar(`/compartidas/${encodeURIComponent(id)}/unirse`, {});
+        let p = library.local.find((x) => x.colab?.id === r.lista.id);
+        if (!p) {
+          p = { id: newId(), name: r.lista.nombre, emoji: 'ic:headphones', color: PLAYLIST_COLORS[Math.floor(Math.random() * PLAYLIST_COLORS.length)], trackIds: [], createdAt: Date.now() };
+          library.local.push(p);
+        }
+        aplicarLista(p, r.lista);
+        guardarYRepintar();
+        openPlaylist(`local:${p.id}`);
+        showToast(`Ya estás en «${p.name}»: lo que añadas lo verán ${r.lista.miembros.length > 2 ? 'los demás' : r.lista.miembros[0] || 'los demás'}.`);
+      } catch (error) {
+        showToast(error?.codigo === 'no_encontrado' ? 'Esa invitación ya no existe: la playlist se borró.' : error?.codigo === 'lista_llena' ? 'Esa playlist ya tiene el máximo de personas (50).' : errorTexto(error));
+      }
+    }
+
+    /* --- Blends --- */
+    // Tu gusto, en corto: tus más escuchadas, tus favoritas y tus artistas
+    function miGusto() {
+      const top = Object.entries(library.plays).filter(([id]) => state.trackMap.has(id)).sort((a, b) => b[1] - a[1]).slice(0, 150).map(([id]) => id);
+      const favs = [...state.favorites].filter((id) => state.trackMap.has(id)).slice(-100);
+      return { t: [...new Set([...top, ...favs])].slice(0, 200), a: (tasteProfile().topArtists || []).slice(0, 40) };
+    }
+
+    function mezclar(miembros, semilla) {
+      const pools = miembros.map((m) => ({
+        nombre: m.nombre, yo: m.yo,
+        tracks: (m.gusto?.t || []).map(getTrack).filter((t) => t && !t.atk && !isDisliked(t.id)),
+        artistas: new Set(m.gusto?.a || [])
+      }));
+      const veces = new Map();
+      pools.forEach((p) => p.tracks.forEach((t) => veces.set(t.id, (veces.get(t.id) || 0) + 1)));
+      const artistasVeces = new Map();
+      pools.forEach((p) => p.artistas.forEach((a) => artistasVeces.set(a, (artistasVeces.get(a) || 0) + 1)));
+      // Lo que os gusta a la vez (la misma canción o un artista de otra persona) va antes
+      const peso = (t, propio) => 1 + ((veces.get(t.id) || 0) > 1 ? 4 : 0)
+        + (artistKeysOf(t).some((k) => pools.some((q) => q !== propio && q.artistas.has(k))) ? 2 : 0);
+      const listas = pools.map((p, i) => seededShuffle(p.tracks, `${semilla}:${i}`)
+        .map((t, j) => ({ t, w: peso(t, p) - j * 0.001 })).sort((a, b) => b.w - a.w).map((x) => x.t));
+      const puente = seededShuffle([...artistasVeces].filter(([, n]) => n > 1)
+        .flatMap(([k]) => (getArtist(k)?.tracks || []).slice(0, 20)), `${semilla}:puente`);
+      const salida = [];
+      const usadas = new Set();
+      const tomar = (t) => {
+        if (!t) return false;
+        const clave = t.songKey || t.id;
+        if (usadas.has(clave)) return false;
+        usadas.add(clave);
+        salida.push(t.id);
+        return true;
+      };
+      const cursores = listas.map(() => 0);
+      let vuelta = 0;
+      while (salida.length < 50 && (cursores.some((c, i) => c < listas[i].length) || puente.length)) {
+        listas.forEach((lista, i) => {
+          while (cursores[i] < lista.length && !tomar(lista[cursores[i]++])) { /* salta repetidas */ }
+        });
+        if (++vuelta % 2 === 0) while (puente.length && !tomar(puente.shift())) { /* idem */ }
+        if (vuelta > 400) break;
+      }
+      return salida.slice(0, 50);
+    }
+
+    function aplicarBlend(p, b) {
+      const otros = b.miembros.filter((m) => !m.yo).map((m) => m.nombre);
+      p.name = otros.length ? `Blend · Tú + ${otros.length > 2 ? `${otros.slice(0, 2).join(' + ')} y ${otros.length - 2} más` : otros.join(' + ')}` : 'Blend · esperando a alguien';
+      p.trackIds = otros.length ? mezclar(b.miembros, `${b.id}:${new Date().toISOString().slice(0, 10)}`) : [];
+      p.blend = { id: b.id, miembros: b.miembros.length, dia: new Date().toISOString().slice(0, 10), gustoDia: p.blend?.gustoDia || '' };
+    }
+
+    async function refrescarBlends() {
+      if (!signedIn()) return false;
+      const { blends = [] } = await llamar('/blends', { metodo: 'GET' });
+      const hoy = new Date().toISOString().slice(0, 10);
+      const enServidor = new Set(blends.map((b) => b.id));
+      let cambio = false;
+      for (const { id } of blends) {
+        let p = library.local.find((x) => x.blend?.id === id);
+        if (p && p.blend.dia === hoy && p.blend.miembros > 1) continue;
+        // Una vez al día se sube tu gusto de hoy y se rehace la mezcla
+        const r = p?.blend?.gustoDia !== hoy
+          ? await llamar(`/blends/${id}/gusto`, { metodo: 'PUT', cuerpo: { gusto: miGusto() } }).catch(() => llamar(`/blends/${id}`, { metodo: 'GET' }))
+          : await llamar(`/blends/${id}`, { metodo: 'GET' });
+        if (!p) {
+          p = { id: newId(), name: 'Blend', emoji: 'ic:spark', color: PLAYLIST_COLORS[Math.floor(Math.random() * PLAYLIST_COLORS.length)], trackIds: [], createdAt: Date.now() };
+          library.local.push(p);
+        }
+        aplicarBlend(p, r.blend);
+        p.blend.gustoDia = hoy;
+        cambio = true;
+      }
+      blendsLocales().forEach((p) => { if (!enServidor.has(p.blend.id)) { delete p.blend; cambio = true; } });
+      return cambio;
+    }
+
+    async function crearBlend() {
+      if (!signedIn()) { pedirSesion('Para crear un Blend, inicia sesión: así se puede mezclar tu gusto con el de otra persona.'); return; }
+      const gusto = miGusto();
+      if (gusto.t.length < 5 && gusto.a.length < 2) { showToast('Escucha unas cuantas canciones más para que el Blend sepa qué te gusta.'); return; }
+      try {
+        const r = await llamar('/blends', { cuerpo: { gusto } });
+        const p = { id: newId(), name: 'Blend', emoji: 'ic:spark', color: PLAYLIST_COLORS[Math.floor(Math.random() * PLAYLIST_COLORS.length)], trackIds: [], createdAt: Date.now() };
+        aplicarBlend(p, r.blend);
+        p.blend.gustoDia = p.blend.dia;
+        library.local.push(p);
+        guardarYRepintar();
+        openPlaylist(`local:${p.id}`);
+        await compartirEnlace('Blend en Liquid Bullet', 'Hagamos un Blend: una playlist con lo que nos gusta a los dos', enlace('blend', r.blend.id));
+      } catch (error) { showToast(errorTexto(error)); }
+    }
+
+    async function invitarBlend(localId) {
+      const p = findLocal(localId);
+      if (p?.blend) await compartirEnlace('Blend en Liquid Bullet', 'Únete a mi Blend en Liquid Bullet', enlace('blend', p.blend.id));
+    }
+
+    async function unirseBlend(id) {
+      if (!signedIn()) { pedirSesion('Te invitaron a un Blend: inicia sesión para mezclar vuestros gustos.', { tipo: 'blend', id }); return; }
+      try {
+        const r = await llamar(`/blends/${encodeURIComponent(id)}/unirse`, { cuerpo: { gusto: miGusto() } });
+        let p = library.local.find((x) => x.blend?.id === r.blend.id);
+        if (!p) {
+          p = { id: newId(), name: 'Blend', emoji: 'ic:spark', color: PLAYLIST_COLORS[Math.floor(Math.random() * PLAYLIST_COLORS.length)], trackIds: [], createdAt: Date.now() };
+          library.local.push(p);
+        }
+        aplicarBlend(p, r.blend);
+        p.blend.gustoDia = p.blend.dia;
+        guardarYRepintar();
+        openPlaylist(`local:${p.id}`);
+        showToast(`Blend listo: ${songsLabel(p.trackIds.length)} con lo que os gusta. Cambia cada día.`);
+      } catch (error) {
+        showToast(error?.codigo === 'no_encontrado' ? 'Ese Blend ya no existe.' : error?.codigo === 'blend_lleno' ? 'Ese Blend ya tiene 10 personas.' : error?.codigo === 'sin_gusto' ? 'Escucha unas cuantas canciones antes de unirte a un Blend.' : errorTexto(error));
+      }
+    }
+
+    // Al borrar la playlist: la dueña borra la colaborativa para todos; los demás salen (y del Blend, siempre se sale)
+    function salir(p) {
+      if (!signedIn()) return;
+      const ruta = p.colab ? `/compartidas/${p.colab.id}` : `/blends/${p.blend.id}`;
+      llamar(ruta, { metodo: 'DELETE' }).catch(() => {});
+    }
+
+    function atenderInvitacion() {
+      const params = new URLSearchParams(location.search);
+      let pendiente = null;
+      if (params.get('unirse')) pendiente = { tipo: 'unirse', id: params.get('unirse') };
+      else if (params.get('blend')) pendiente = { tipo: 'blend', id: params.get('blend') };
+      if (pendiente) {
+        params.delete('unirse');
+        params.delete('blend');
+        const resto = params.toString();
+        try { history.replaceState(history.state, '', `${location.pathname}${resto ? `?${resto}` : ''}${location.hash}`); } catch { /* sin historial */ }
+      } else {
+        pendiente = storage.get(PENDIENTE, null);
+        if (!pendiente || !signedIn()) return;
+      }
+      if (!/^[\w-]{16}$/.test(String(pendiente.id || ''))) return;
+      if (signedIn()) storage.set(PENDIENTE, null);
+      if (pendiente.tipo === 'blend') unirseBlend(pendiente.id);
+      else unirse(pendiente.id);
+    }
+
+    function init() {
+      if (LAB_MODE) return;
+      onLocalPlaylistsChange = () => {
+        if (!colabs().length) return;
+        clearTimeout(pushTimer);
+        pushTimer = setTimeout(() => subir(), 900);
+      };
+      window.addEventListener('liquid:cuenta', () => { if (signedIn()) { atenderInvitacion(); bajar({ forzar: true }); } });
+      window.addEventListener('online', () => bajar({ forzar: true }));
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) bajar(); });
+      // Con una colaborativa abierta, lo que añaden los demás llega solo (cada 45 s)
+      setInterval(() => {
+        if (document.hidden || state.view !== 'playlist') return;
+        const p = getPlaylist(state.openPlaylist);
+        if (p?.colab) { ultimaBajada = 0; bajar(); }
+      }, 45000);
+      setTimeout(() => { atenderInvitacion(); bajar({ forzar: true }); }, 2500);
+    }
+
+    // Quién añadió cada canción de una colaborativa (para el menú de la canción)
+    const quienAnadio = (p, trackId) => p?.colab?.por?.[trackId] || '';
+
+    return { init, invitar, unirse, crearBlend, invitarBlend, unirseBlend, salir, bajar, quienAnadio };
   })();
 
   /* =========================================================
@@ -17498,6 +17857,7 @@
     setupSurrealEyes();
     wall.init();
     cuenta.init();
+    social.init();
     pedir.init();
     tour.init();
     install.init();
