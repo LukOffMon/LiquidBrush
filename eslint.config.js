@@ -3,8 +3,13 @@ import js from '@eslint/js';
 import globals from 'globals';
 
 export default [
-  // Lo que genera wrangler dev en local no es código del proyecto
-  { ignores: ['cuentas/.wrangler/**', 'cuentas/node_modules/**'] },
+  // Lo que genera wrangler dev en local y los .min (tools/minify.mjs) no son código que se edite
+  { ignores: ['cuentas/.wrangler/**', 'cuentas/node_modules/**', '*.min.js'] },
+  {
+    // Herramientas en Node (tools/*.mjs)
+    files: ['tools/**/*.mjs'],
+    languageOptions: { ecmaVersion: 2023, sourceType: 'module', globals: { ...globals.node } }
+  },
   js.configs.recommended,
   {
     files: ['app.js'],

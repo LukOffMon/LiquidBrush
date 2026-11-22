@@ -13617,7 +13617,7 @@
       const list = this.list();
       const text = String(message || 'Error').slice(0, 500);
       if (list[0]?.m === text) return;
-      list.unshift({ t: new Date().toISOString(), m: text, s: String(source).slice(0, 160), v: document.querySelector('script[src^="app.js"]')?.getAttribute('src') || '' });
+      list.unshift({ t: new Date().toISOString(), m: text, s: String(source).slice(0, 160), v: document.querySelector('script[src^="app."]')?.getAttribute('src') || '' });
       storage.set(KEYS.errors, list.slice(0, 15));
     },
     init() {

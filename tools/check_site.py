@@ -9,12 +9,15 @@
   (si editas ese script, corre: python3 tools/bump_version.py --csp).
 - Las versiones ?v= de index.html coinciden con las de sw.js.
 - Existen los archivos que guarda el service worker y los iconos del manifest.
+- app.min.js y styles.min.css corresponden a app.js y styles.css (node tools/minify.mjs --check).
 Sale con código 1 si algo falla.
 """
 import base64
 import hashlib
 import json
 import re
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -85,7 +88,7 @@ def check_csp():
 def check_versions():
     html = (ROOT / 'index.html').read_text(encoding='utf-8')
     sw = (ROOT / 'sw.js').read_text(encoding='utf-8')
-    for name in ('styles.css', 'app.js'):
+    for name in ('styles.min.css', 'app.min.js'):
         page = re.search(rf'{re.escape(name)}\?v=(\d+)', html)
         worker = re.search(rf'{re.escape(name)}\?v=(\d+)', sw)
         if not page or not worker or page.group(1) != worker.group(1):
@@ -118,7 +121,18 @@ def check_lab():
         errors.append('lab.html no está al día con index.html: ejecuta python3 tools/build_lab.py')
 
 
+def check_minified():
+    # v98: la página carga los .min: si alguien cambia app.js o styles.css sin regenerarlos, se publicaría lo viejo
+    if not shutil.which('node'):
+        warnings.append('sin Node: no se comprobó que app.min.js y styles.min.css estén al día')
+        return
+    r = subprocess.run(['node', str(ROOT / 'tools' / 'minify.mjs'), '--check'], capture_output=True, text=True)
+    if r.returncode != 0:
+        errors.extend(line for line in r.stderr.strip().splitlines() if line.strip())
+
+
 def main():
+    check_minified()
     check_lists()
     check_lab()
     check_catalog()

@@ -456,13 +456,14 @@ Viene encendido desde v76; se apaga en **Ajustes → Liquid ATK** y se recuerda,
 Sin compilar nada: el sitio se publica tal cual. Hay herramientas para no romperlo:
 
 ```bash
-python3 tools/bump_version.py   # sube ?v= de app.js/styles.css, VERSION de sw.js y el hash de la CSP
-python3 tools/check_site.py     # listas, catálogo, CSP, versiones y archivos del service worker
+python3 tools/bump_version.py   # regenera app.min.js/styles.min.css, sube sus ?v=, VERSION de sw.js y el hash de la CSP
+python3 tools/check_site.py     # listas, catálogo, CSP, versiones, .min al día y archivos del service worker
 python3 tools/find_duplicates.py  # canciones repetidas y artistas escritos de varias formas
 ```
 
 - `index.html` lleva una **Content-Security-Policy** con el hash del script en línea. Si lo editas, corre `python3 tools/bump_version.py --csp` o el navegador lo bloqueará.
-- Los scripts de `tools/` solo usan Python 3 estándar (no hay que instalar nada).
+- **Versiones minificadas (v98):** la página carga `app.min.js` y `styles.min.css` (unos 445 KB y 181 KB en vez de 839 y 256). Se editan `app.js` y `styles.css` como siempre; `bump_version.py` regenera los `.min` con esbuild (`npm run minify`) y `check_site.py` falla si no están al día. Para probar en local tras un cambio: `npm run minify`.
+- Los scripts de `tools/` usan Python 3 estándar; `minify.mjs` necesita Node (`npm install` una vez).
 
 Con Node instalado (`npm install` una vez):
 
