@@ -7744,6 +7744,8 @@
   function queueTrack(id, atEnd = false, quiet = false) {
     const track = getTrack(id);
     if (!track) return;
+    // v98: en un Jam como invitado, la canción va a la cola del anfitrión
+    if (conexion.invitado() && conexion.anadirAJam(id, !atEnd)) return;
     if (!state.currentTrack) {
       buildQueue(id);
       loadTrack(track, true);
@@ -12905,7 +12907,13 @@
       pedirCancion,
       mensajeError: mensaje,
       // v97: llamadas con sesión para las playlists colaborativas y los Blends
-      llamar: (ruta, opciones = {}) => api(ruta, { ...opciones, auth: true })
+      llamar: (ruta, opciones = {}) => api(ruta, { ...opciones, auth: true }),
+      // v98: el pase vigente (15 min) para entrar en las salas de Connect y Jam, sin dar la contraseña
+      async pase() {
+        if (!sesion) return null;
+        if ((sesion.caducaPase || 0) - 60 < Date.now() / 1000) await renovar();
+        return sesion?.pase || null;
+      }
     };
   })();
 
@@ -13232,7 +13240,10 @@
     let disponibleYa = versionOk(storage.get(VERSION_KEY, null)?.v);
     async function comprobarServidor() {
       const guardada = storage.get(VERSION_KEY, null);
-      if (guardada && Date.now() - (guardada.t || 0) < 86400000) return;
+      // Una vez al día; cada hora mientras el servidor sea anterior a 1.3.0 (Connect y Jam llegan sin esperar)
+      const [ma = 0, mi = 0] = String(guardada?.v || '').split('.').map(Number);
+      const espera = ma > 1 || (ma === 1 && mi >= 3) ? 86400000 : 3600000;
+      if (guardada && Date.now() - (guardada.t || 0) < espera) return;
       try {
         const r = await fetch(`${CUENTA_API}/`, { cache: 'no-store' });
         const d = await r.json();
@@ -13246,6 +13257,343 @@
     setTimeout(comprobarServidor, 3000);
 
     return { init, invitar, unirse, crearBlend, invitarBlend, unirseBlend, salir, bajar, quienAnadio, disponible };
+  })();
+
+  /* =========================================================
+     v98: Liquid Connect y Jam (como Spotify Connect y Jam), con el Worker de cuentas (salas en tiempo real)
+     - Connect: con sesión, cada dispositivo abierto entra en la sala de tu cuenta. En «Dispositivos y Jam»
+       ves los demás y lo que suena en cada uno; puedes pausar, saltar, «Escuchar aquí» (traer la canción a
+       este, en el mismo segundo) o «Pasar allí» (mandarla al otro y parar aquí).
+     - Jam: «Empezar un Jam» da un código y un enlace (?jam=CÓDIGO). Quien entra (con su cuenta) escucha en su
+       propio teléfono lo mismo que tú y en el mismo segundo; lo que pone a la cola te llega a tu cola.
+     Solo se habla con el servidor mientras la app está a la vista; las salas no guardan nada de nadie salvo
+     lo último que sonó. Necesita el Worker 1.3.0 o más (antes, el botón no sale).
+     ========================================================= */
+  const conexion = (() => {
+    // Pruebas en local (solo en 127.0.0.1/localhost): las salas pueden apuntar al Worker de wrangler dev
+    const wsLocal = /^(127\.0\.0\.1|localhost)$/.test(location.hostname) ? storage.get('liquidbrush:prueba-salas', null) : null;
+    const WS_BASE = typeof wsLocal === 'string' && /^ws:\/\/(127\.0\.0\.1|localhost):\d+$/.test(wsLocal) ? wsLocal : CUENTA_API.replace(/^http/, 'ws');
+    const JAM_KEY = 'liquidbrush:jam';
+    const salas = { cuenta: null, jam: null };
+    const estado = { yo: { cuenta: null, jam: null }, miembros: { cuenta: [], jam: [] }, remoto: { cuenta: null, jam: null }, anfitrion: false, codigo: '' };
+    const reintentos = { cuenta: 0, jam: 0 };
+    let ultimoEnvio = '';
+    const ui = { btn: null, badge: null, dialog: null, list: null, jam: null, status: null };
+    const versionOk = () => { const v = storage.get('liquidbrush:cuentas-version', null)?.v || ''; const [a = 0, b = 0] = v.split('.').map(Number); return a > 1 || (a === 1 && b >= 3); };
+    const disponible = () => signedIn() && versionOk() && typeof WebSocket !== 'undefined' && !LAB_MODE;
+    const enJam = () => Boolean(salas.jam && estado.codigo);
+    const invitado = () => enJam() && !estado.anfitrion;
+
+    async function abrir(tipo, codigo = '') {
+      if (!disponible() || salas[tipo]) return;
+      const pase = await cuenta.pase().catch(() => null);
+      if (!pase) return;
+      const ruta = tipo === 'cuenta' ? '/salas/cuenta' : `/salas/jam/${encodeURIComponent(codigo)}`;
+      let ws;
+      try { ws = new WebSocket(`${WS_BASE}${ruta}`, ['liquid', pase]); } catch { return; }
+      salas[tipo] = ws;
+      ws.onopen = () => { reintentos[tipo] = 0; };
+      ws.onmessage = (e) => { try { recibir(tipo, JSON.parse(e.data)); } catch { /* mensaje raro */ } };
+      ws.onclose = (e) => {
+        if (salas[tipo] !== ws) return;
+        salas[tipo] = null;
+        estado.miembros[tipo] = [];
+        if (tipo === 'jam' && (e.code === 1006 && !reintentos.jam && !estado.yo.jam)) {
+          // No llegó a entrar: el Jam ya no existe o está lleno
+          salirJam(true);
+          showToast('Ese Jam ya terminó o no existe.');
+          return;
+        }
+        pintar();
+        // Se vuelve a intentar con espera creciente mientras la app esté a la vista
+        if (!document.hidden && disponible() && (tipo === 'cuenta' || enJam())) {
+          reintentos[tipo] = Math.min(reintentos[tipo] + 1, 6);
+          setTimeout(() => abrir(tipo, estado.codigo), 1000 * 2 ** reintentos[tipo]);
+        }
+      };
+    }
+
+    function cerrar(tipo) {
+      const ws = salas[tipo];
+      salas[tipo] = null;
+      try { ws?.close(1000, 'adiós'); } catch { /* ya cerrado */ }
+    }
+
+    function mandar(tipo, mensaje) {
+      const ws = salas[tipo];
+      if (ws?.readyState === 1) ws.send(JSON.stringify(mensaje));
+    }
+
+    function miEstado() {
+      const t = state.currentTrack;
+      return {
+        t: 'estado', track: t && !t.radio && !t.atk ? t.id : null, pos: Math.round((els.audio.currentTime || 0) * 10) / 10,
+        sonando: Boolean(t && !els.audio.paused), cola: state.queue.slice(state.queueIndex + 1, state.queueIndex + 11)
+      };
+    }
+
+    // Se cuenta lo que suena: al cambiar algo y, mientras suena, cada 20 s (solo si hay alguien escuchando)
+    function publicar(forzar = false) {
+      const m = miEstado();
+      const firma = `${m.track}|${m.sonando}|${Math.round(m.pos / 20)}`;
+      if (!forzar && firma === ultimoEnvio) return;
+      ultimoEnvio = firma;
+      if (estado.miembros.cuenta.length > 1) mandar('cuenta', m);
+      if (enJam() && estado.anfitrion) mandar('jam', m);
+    }
+
+    function recibir(tipo, m) {
+      if (m.t === 'bienvenida') {
+        estado.yo[tipo] = m.yo;
+        estado.miembros[tipo] = m.miembros || [];
+        if (tipo === 'jam') {
+          estado.anfitrion = Boolean(m.anfitrion);
+          if (!estado.anfitrion && m.estado) seguir(m.estado);
+          if (estado.anfitrion) publicar(true);
+        } else estado.remoto.cuenta = m.estado;
+        pintar();
+        return;
+      }
+      if (m.t === 'miembros') {
+        const antes = estado.miembros[tipo].length;
+        estado.miembros[tipo] = m.miembros || [];
+        if (tipo === 'jam' && estado.anfitrion && estado.miembros.jam.length > antes) {
+          const nuevo = estado.miembros.jam.at(-1);
+          if (nuevo && !nuevo.anfitrion) showToast(`${nuevo.nombre} se unió a tu Jam.`, null, { background: true });
+          publicar(true);
+        }
+        if (tipo === 'cuenta' && estado.miembros.cuenta.length > antes) publicar(true);
+        pintar();
+        return;
+      }
+      if (m.t === 'estado') {
+        estado.remoto[tipo] = m;
+        if (tipo === 'jam' && invitado()) seguir(m);
+        pintar();
+        return;
+      }
+      if (m.t === 'orden' && tipo === 'cuenta') { obedecer(m); return; }
+      if (m.t === 'anadir' && tipo === 'jam' && estado.anfitrion) {
+        const track = getTrack(m.id);
+        if (!track) return;
+        queueTrack(m.id, !m.siguiente, true);
+        showToast(`${m.de} añadió «${track.title}» ${m.siguiente ? 'para que suene a continuación' : 'a la cola del Jam'}.`, null, { background: true });
+        publicar(true);
+      }
+    }
+
+    // Jam (invitado): misma canción y mismo segundo que el anfitrión (se corrige si hay más de 3 s de diferencia)
+    function seguir(e) {
+      if (!e?.track) return;
+      const track = getTrack(e.track);
+      if (!track) { showToast('El anfitrión pone una canción que no está en tu Liquid.', null, { background: true }); return; }
+      const destino = e.pos + (e.sonando ? (Date.now() - (e.at || Date.now())) / 1000 : 0);
+      if (state.currentTrack?.id !== track.id) {
+        playCollection([track, ...(e.cola || []).map(getTrack).filter(Boolean)], track.id, `Jam · ${estado.codigo}`, `jam:${estado.codigo}`);
+        state.pendingSeek = destino;
+      } else if (Math.abs((els.audio.currentTime || 0) - destino) > 3) seekTo(destino);
+      if (e.sonando && els.audio.paused) play().catch?.(() => {});
+      else if (!e.sonando && !els.audio.paused) pauseByUser();
+    }
+
+    // Connect: órdenes que llegan desde otro dispositivo tuyo
+    function obedecer(o) {
+      if (o.accion === 'play') play();
+      else if (o.accion === 'pause') pauseByUser();
+      else if (o.accion === 'next') next();
+      else if (o.accion === 'prev') prev();
+      else if (o.accion === 'seek') seekTo(o.pos);
+      else if (o.accion === 'poner' && getTrack(o.track)) {
+        const tracks = [getTrack(o.track), ...(o.cola || []).map(getTrack).filter(Boolean)];
+        playCollection(tracks, o.track, `Desde ${o.disp}`, `connect:${o.de}`);
+        state.pendingSeek = o.pos;
+        showToast(`Sigue aquí lo que sonaba en ${o.disp}.`);
+      }
+      publicar(true);
+    }
+
+    /* --- Lo que se ve --- */
+    function pintar() {
+      if (!ui.btn) return;
+      ui.btn.hidden = !disponible();
+      const otros = estado.miembros.cuenta.filter((d) => d.id !== estado.yo.cuenta);
+      const enJamN = enJam() ? estado.miembros.jam.length : 0;
+      ui.badge.hidden = !otros.length && !enJamN;
+      ui.badge.textContent = enJamN ? 'Jam' : String(otros.length + 1);
+      ui.btn.classList.toggle('is-active', Boolean(enJamN));
+      if (!ui.dialog?.open) return;
+      ui.status.textContent = !salas.cuenta ? 'Conectando con tus dispositivos…'
+        : otros.length ? `Liquid está abierto en ${otros.length + 1} dispositivos tuyos.` : 'Abre Liquid con tu cuenta en otro dispositivo (el ordenador, la tablet) y aparecerá aquí.';
+      const remoto = estado.remoto.cuenta;
+      ui.list.replaceChildren(...[{ id: estado.yo.cuenta, disp: 'Este dispositivo', yo: true }, ...otros].filter((d) => d.id).map((d) => {
+        const li = makeEl('li', `connect-item${d.yo ? ' is-me' : ''}`);
+        const suena = d.yo ? state.currentTrack : remoto?.de === d.id && remoto.track ? getTrack(remoto.track) : null;
+        const sonando = d.yo ? !els.audio.paused : remoto?.de === d.id && remoto.sonando;
+        const texto = makeEl('span', 'connect-text');
+        texto.append(makeEl('span', 'connect-name', d.disp), makeEl('span', 'connect-now', suena ? `${sonando ? '▶ ' : '❚❚ '}${suena.title} · ${suena.knownArtist || suena.artist}` : 'Sin nada sonando'));
+        li.append(svgIcon('devices', 'icon connect-icon'), texto);
+        if (!d.yo) {
+          const acciones = makeEl('span', 'connect-actions');
+          const boton = (accion, etiqueta, icono, texto) => {
+            const b = makeButton(texto ? 'btn btn-small' : 'icon-btn', 'connect-orden', etiqueta, icono, texto);
+            b.dataset.accion = accion;
+            b.dataset.a = d.id;
+            return b;
+          };
+          acciones.append(boton('prev', `Anterior en ${d.disp}`, 'prev'), boton(sonando ? 'pause' : 'play', `${sonando ? 'Pausar' : 'Reproducir'} en ${d.disp}`, sonando ? 'pause' : 'play'), boton('next', `Siguiente en ${d.disp}`, 'next'));
+          if (suena) acciones.append(boton('traer', `Escuchar aquí lo que suena en ${d.disp}`, '', 'Escuchar aquí'));
+          if (state.currentTrack && !state.currentTrack.radio) acciones.append(boton('pasar', `Pasar lo que suena aquí a ${d.disp}`, '', 'Pasar allí'));
+          li.append(acciones);
+        }
+        return li;
+      }));
+      // Jam
+      const caja = ui.jam;
+      if (!enJam()) {
+        caja.replaceChildren(makeEl('p', 'sheet-note', 'Escuchad lo mismo a la vez, cada uno en su teléfono, y añadid canciones a una cola común.'), makeButton('btn btn-primary', 'jam-crear', 'Empezar un Jam', 'spark', 'Empezar un Jam'));
+      } else {
+        const gente = estado.miembros.jam.map((p) => `${p.nombre}${p.anfitrion ? ' (anfitrión)' : ''}`).join(', ') || 'Conectando…';
+        const nodos = [makeEl('p', 'jam-code', `Código ${estado.codigo}`), makeEl('p', 'sheet-note', `En el Jam: ${gente}`)];
+        nodos.push(makeEl('p', 'sheet-note', estado.anfitrion
+          ? 'Lo que pongas suena en sus teléfonos; lo que añadan a la cola llega a la tuya.'
+          : 'Escuchas lo mismo que el anfitrión. «Reproducir a continuación» o «Al final de la cola» manda la canción a su cola.'));
+        const botones = makeEl('div', 'jam-actions');
+        if (estado.anfitrion) botones.append(makeButton('btn', 'jam-invitar', 'Invitar al Jam', 'share', 'Invitar'));
+        botones.append(makeButton('btn btn-ghost', 'jam-salir', estado.anfitrion ? 'Terminar el Jam' : 'Salir del Jam', 'close', estado.anfitrion ? 'Terminar' : 'Salir'));
+        nodos.push(botones);
+        caja.replaceChildren(...nodos);
+      }
+    }
+
+    async function crearJam() {
+      try {
+        const r = await cuenta.llamar('/jam', {});
+        estado.codigo = r.codigo;
+        storage.set(JAM_KEY, { codigo: r.codigo, t: Date.now() });
+        await abrir('jam', r.codigo);
+        pintar();
+        invitarJam();
+      } catch (error) { showToast(cuenta.mensajeError?.(error) || 'No se pudo crear el Jam ahora.'); }
+    }
+
+    function invitarJam() {
+      const url = `${appBase()}?jam=${estado.codigo}`;
+      const texto = `Únete a mi Jam en Liquid Bullet (código ${estado.codigo})`;
+      if (navigator.share) navigator.share({ title: 'Jam en Liquid Bullet', text: texto, url }).catch(() => {});
+      else copyText(url, 'Enlace del Jam copiado: mándaselo a quien quieras.');
+    }
+
+    function unirseJam(codigo) {
+      const c = String(codigo || '').toUpperCase();
+      if (!/^[A-Z2-9]{6}$/.test(c)) return;
+      if (!signedIn()) {
+        storage.set('liquidbrush:invitacion', { tipo: 'jam', id: c });
+        showToast('Te invitaron a un Jam: inicia sesión para unirte.', { label: 'Iniciar sesión', run: () => cuenta.abrir() });
+        return;
+      }
+      estado.codigo = c;
+      estado.yo.jam = null;
+      storage.set(JAM_KEY, { codigo: c, t: Date.now() });
+      abrir('jam', c);
+      showToast(`Entrando en el Jam ${c}… Si no suena solo, toca ▶.`);
+    }
+
+    function salirJam(silencio = false) {
+      cerrar('jam');
+      estado.codigo = '';
+      estado.anfitrion = false;
+      estado.miembros.jam = [];
+      estado.remoto.jam = null;
+      storage.set(JAM_KEY, null);
+      pintar();
+      if (!silencio) showToast('Saliste del Jam.');
+    }
+
+    function orden(accion, a) {
+      const remoto = estado.remoto.cuenta;
+      const destino = estado.miembros.cuenta.find((d) => d.id === a);
+      if (!destino) return;
+      if (accion === 'traer') {
+        if (remoto?.de !== a || !getTrack(remoto.track)) return;
+        mandar('cuenta', { t: 'orden', a, accion: 'pause' });
+        const tracks = [getTrack(remoto.track), ...(remoto.cola || []).map(getTrack).filter(Boolean)];
+        playCollection(tracks, remoto.track, `Desde ${destino.disp}`, `connect:${a}`);
+        state.pendingSeek = remoto.pos + (remoto.sonando ? (Date.now() - remoto.at) / 1000 : 0);
+        showToast(`Sigue aquí lo que sonaba en ${destino.disp}.`);
+        return;
+      }
+      if (accion === 'pasar') {
+        const m = miEstado();
+        if (!m.track) return;
+        mandar('cuenta', { t: 'orden', a, accion: 'poner', track: m.track, pos: m.pos, cola: state.queue.slice(state.queueIndex + 1, state.queueIndex + 100) });
+        pauseByUser();
+        showToast(`Ahora suena en ${destino.disp}.`);
+        return;
+      }
+      mandar('cuenta', { t: 'orden', a, accion });
+    }
+
+    function init() {
+      ui.btn = document.getElementById('connectBtn');
+      ui.badge = document.getElementById('connectBadge');
+      ui.dialog = document.getElementById('connectDialog');
+      ui.list = document.getElementById('connectList');
+      ui.jam = document.getElementById('jamBox');
+      ui.status = document.getElementById('connectStatus');
+      if (!ui.btn || !ui.dialog || LAB_MODE) return;
+      ui.btn.addEventListener('click', () => { pintar(); ui.dialog.showModal(); pintar(); });
+      ui.dialog.addEventListener('click', (event) => {
+        if (event.target === ui.dialog || event.target.closest('[data-close]')) { ui.dialog.close(); return; }
+        const b = event.target.closest('[data-action]');
+        if (!b) return;
+        if (b.dataset.action === 'connect-orden') orden(b.dataset.accion, b.dataset.a);
+        else if (b.dataset.action === 'jam-crear') crearJam();
+        else if (b.dataset.action === 'jam-invitar') invitarJam();
+        else if (b.dataset.action === 'jam-salir') salirJam();
+      });
+      // Lo que suena, a los demás: al cambiar y cada 20 s mientras suena
+      decks.forEach((deck) => ['playing', 'pause', 'seeked'].forEach((ev) => deck.addEventListener(ev, () => { if (deck === els.audio) publicar(true); })));
+      setInterval(() => { if (!document.hidden && !els.audio.paused) publicar(); if (ui.dialog.open) pintar(); }, 5000);
+      const arrancar = () => {
+        if (!disponible()) { pintar(); return; }
+        abrir('cuenta');
+        const jam = storage.get(JAM_KEY, null);
+        if (jam?.codigo && Date.now() - (jam.t || 0) < 12 * 3600000 && !salas.jam) { estado.codigo = jam.codigo; abrir('jam', jam.codigo); }
+        pintar();
+      };
+      // Con la app escondida mucho rato se cierra la sala de la cuenta (no gasta); al volver, se abre otra vez
+      let ocultaDesde = 0;
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) { ocultaDesde = Date.now(); setTimeout(() => { if (document.hidden && Date.now() - ocultaDesde >= 300000 && els.audio.paused) cerrar('cuenta'); }, 300000); }
+        else arrancar();
+      });
+      window.addEventListener('liquid:cuenta', () => { if (!signedIn()) { cerrar('cuenta'); salirJam(true); } else arrancar(); });
+      window.addEventListener('online', arrancar);
+      const params = new URLSearchParams(location.search);
+      const jamUrl = params.get('jam');
+      if (jamUrl) {
+        params.delete('jam');
+        const resto = params.toString();
+        try { history.replaceState(history.state, '', `${location.pathname}${resto ? `?${resto}` : ''}${location.hash}`); } catch { /* sin historial */ }
+      }
+      setTimeout(() => {
+        arrancar();
+        const pendiente = storage.get('liquidbrush:invitacion', null);
+        if (jamUrl) unirseJam(jamUrl);
+        else if (pendiente?.tipo === 'jam' && signedIn()) { storage.set('liquidbrush:invitacion', null); unirseJam(pendiente.id); }
+      }, 3500);
+    }
+
+    // Jam (invitado): «Reproducir a continuación» / «Al final de la cola» mandan la canción al anfitrión
+    function anadirAJam(id, siguiente = false) {
+      if (!invitado()) return false;
+      mandar('jam', { t: 'anadir', id, siguiente });
+      const track = getTrack(id);
+      showToast(`«${track?.title || 'La canción'}» va a la cola del Jam.`);
+      return true;
+    }
+
+    return { init, anadirAJam, invitado, pintar };
   })();
 
   /* =========================================================
@@ -17621,6 +17969,7 @@
     setupSurrealEyes();
     cuenta.init();
     social.init();
+    conexion.init();
     pedir.init();
     tour.init();
     install.init();

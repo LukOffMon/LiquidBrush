@@ -11095,3 +11095,49 @@ body.is-radio #lyricsBtn {
   background: color-mix(in srgb, var(--accent) 16%, transparent);
   vertical-align: 1px;
 }
+
+/* =========================================================
+   v98: Liquid Connect (tus dispositivos) y Jam
+   ========================================================= */
+.connect-btn { position: relative; }
+.connect-badge {
+  position: absolute;
+  top: 2px;
+  right: 0;
+  min-width: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--bg);
+  font: 700 0.6rem/16px var(--song-font);
+  text-align: center;
+}
+.connect-btn.is-active { color: var(--accent); }
+.connect-subtitle {
+  margin: 18px 0 8px;
+  font: 700 0.78rem/1.2 var(--song-font);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.connect-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.connect-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 4px 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-2);
+}
+.connect-item.is-me { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+.connect-icon { width: 22px; height: 22px; color: var(--text-muted); }
+.connect-item.is-me .connect-icon { color: var(--accent); }
+.connect-text { display: grid; min-width: 0; }
+.connect-name { font: 600 0.92rem/1.3 var(--song-font); }
+.connect-now { font: 400 0.8rem/1.3 var(--song-font); color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.connect-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.jam-box { display: grid; gap: 10px; }
+.jam-code { margin: 0; font: 800 1.4rem/1 var(--song-font); letter-spacing: 0.12em; color: var(--accent); font-variant-numeric: tabular-nums; }
+.jam-actions { display: flex; flex-wrap: wrap; gap: 8px; }

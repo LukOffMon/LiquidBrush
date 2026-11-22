@@ -8,8 +8,10 @@ import {
 import {
   enviarCorreo, correoCodigo, correoYaRegistrado, correoBienvenida, correoClaveCambiada, correoPeticionAdmin, correoPeticionRecibida
 } from './correo.js';
+// v98: Liquid Connect y Jam
+export { Sala } from './sala.js';
 
-const VERSION = '1.2.0';
+const VERSION = '1.3.0';
 const MIN = 60;
 const HORA = 3600;
 const DIA = 86400;
@@ -758,6 +760,44 @@ async function blend(env, request, id, accion) {
   throw new ErrorApi('metodo', 405);
 }
 
+/* ---------- v98: Liquid Connect y Jam (salas en tiempo real, src/sala.js) ----------
+   El navegador no deja poner Authorization en un WebSocket: el pase viaja como subprotocolo
+   («liquid, <pase>»). Dura 15 minutos y nunca va en la URL (no queda en ningún registro). */
+const ALFABETO_JAM = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const codigoJam = () => [...bytesAleatorios(6)].map((b) => ALFABETO_JAM[b % ALFABETO_JAM.length]).join('');
+
+async function crearJam(env, request) {
+  const { usuario } = await autenticar(env, request);
+  await frenoIp(env, request, 'jam');
+  const codigo = codigoJam();
+  const stub = env.SALAS.get(env.SALAS.idFromName(`jam:${codigo}`));
+  await stub.fetch('https://sala/crear', { method: 'POST', headers: { 'X-Usuario': aB64url(usuario) } });
+  return json(env, request, { ok: true, codigo }, 201);
+}
+
+async function entrarSala(env, request, tipo, codigo, url) {
+  if (request.headers.get('Upgrade') !== 'websocket') throw new ErrorApi('websocket', 426);
+  const protocolos = (request.headers.get('Sec-WebSocket-Protocol') || '').split(',').map((p) => p.trim());
+  if (protocolos[0] !== 'liquid' || !protocolos[1]) throw new ErrorApi('sesion_caducada', 401);
+  const conPase = new Request(request.url, { headers: { Authorization: `Bearer ${protocolos[1]}` } });
+  const { usuario } = await autenticar(env, conPase);
+  const u = await env.DB.prepare('SELECT nombre FROM usuarios WHERE id = ?1').bind(usuario).first();
+  let nombreSala;
+  if (tipo === 'cuenta') nombreSala = `cuenta:${aB64url(usuario)}`;
+  else {
+    const c = String(codigo || '').toUpperCase();
+    if (!/^[A-Z2-9]{6}$/.test(c)) throw new ErrorApi('no_encontrado', 404);
+    nombreSala = `jam:${c}`;
+  }
+  const stub = env.SALAS.get(env.SALAS.idFromName(nombreSala));
+  const cabeceras = new Headers(request.headers);
+  cabeceras.set('X-Sala-Tipo', tipo);
+  cabeceras.set('X-Usuario', aB64url(usuario));
+  cabeceras.set('X-Nombre', u?.nombre || 'Alguien');
+  cabeceras.set('X-Dispositivo', nombreDispositivo(request, url.searchParams.get('disp')));
+  return stub.fetch(new Request('https://sala/entrar', { headers: cabeceras }));
+}
+
 /* ---------- Limpieza diaria (Cron) ---------- */
 async function borrarArchivos(env, id) {
   const prefijo = `cuentas/${aB64url(new Uint8Array(id))}/`;
@@ -836,6 +876,10 @@ export default {
       if (ruta === '/blends' && (m === 'GET' || m === 'POST')) return await blends(env, request);
       const bl = ruta.match(/^\/blends\/([\w-]+)(?:\/(unirse|gusto))?$/);
       if (bl) return await blend(env, request, bl[1], bl[2] || '');
+      // v98: Liquid Connect y Jam
+      if (ruta === '/jam' && m === 'POST') return await crearJam(env, request);
+      const sala = ruta.match(/^\/salas\/(cuenta|jam)(?:\/(\w+))?$/);
+      if (sala && m === 'GET') return await entrarSala(env, request, sala[1], sala[2], url);
       if (ruta === '/admin/prueba-correo' && m === 'POST') return await pruebaCorreo(env, request);
       return fallo(env, request, 'no_encontrado', 404);
     } catch (error) {
