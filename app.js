@@ -4661,7 +4661,7 @@
       const asList = settings.plView === 'list';
       actions.append(
         makeButton('btn btn-primary', 'new-playlist', 'Crear una playlist nueva', 'playlist-add', 'Nueva'),
-        makeButton('btn btn-small', 'blend-new', 'Crear un Blend: una playlist con tus gustos y los de otra persona', 'spark', 'Blend'),
+        ...(social.disponible() ? [makeButton('btn btn-small', 'blend-new', 'Crear un Blend: una playlist con tus gustos y los de otra persona', 'spark', 'Blend')] : []),
         makeButton('icon-btn', 'toggle-plview', asList ? 'Ver en cuadrícula' : 'Ver en lista', asList ? 'grid' : 'list'),
         makeButton('icon-btn', 'import', 'Importar una copia de seguridad', 'upload'),
         makeButton('icon-btn', 'export', 'Descargar una copia de seguridad de tus playlists', 'download')
@@ -4737,7 +4737,7 @@
     if (pl.kind === 'local') {
       // v97: invitar a otras personas a añadir canciones (o a un Blend)
       if (pl.blend) actions.append(makeButton('btn btn-small pl-invite', 'blend-invite', 'Invitar a alguien a este Blend', 'share', 'Invitar'));
-      else actions.append(makeButton('btn btn-small pl-invite', 'colab-invite', pl.colab ? 'Invitar a más personas a esta playlist' : 'Hacerla colaborativa: invita a alguien a añadir canciones', 'share', pl.colab ? 'Invitar' : 'Colaborar'));
+      else if (social.disponible()) actions.append(makeButton('btn btn-small pl-invite', 'colab-invite', pl.colab ? 'Invitar a más personas a esta playlist' : 'Hacerla colaborativa: invita a alguien a añadir canciones', 'share', pl.colab ? 'Invitar' : 'Colaborar'));
       actions.append(
         makeButton('icon-btn', 'edit-playlist', 'Cambiar nombre, icono o color', 'edit'),
         makeButton('icon-btn', 'copy-playlist', 'Duplicar esta playlist', 'playlist-add'),
@@ -13132,7 +13132,27 @@
     // Quién añadió cada canción de una colaborativa (para el menú de la canción)
     const quienAnadio = (p, trackId) => p?.colab?.por?.[trackId] || '';
 
-    return { init, invitar, unirse, crearBlend, invitarBlend, unirseBlend, salir, bajar, quienAnadio };
+    // Los botones solo salen si el servidor de cuentas ya sabe de colaborativas y Blends (versión 1.2.0 o más).
+    // Se pregunta una vez al día (GET / no necesita sesión); mientras tanto vale lo último que se supo.
+    const VERSION_KEY = 'liquidbrush:cuentas-version';
+    const versionOk = (v) => { const [a = 0, b = 0] = String(v || '').split('.').map(Number); return a > 1 || (a === 1 && b >= 2); };
+    let disponibleYa = versionOk(storage.get(VERSION_KEY, null)?.v);
+    async function comprobarServidor() {
+      const guardada = storage.get(VERSION_KEY, null);
+      if (guardada && Date.now() - (guardada.t || 0) < 86400000) return;
+      try {
+        const r = await fetch(`${CUENTA_API}/`, { cache: 'no-store' });
+        const d = await r.json();
+        storage.set(VERSION_KEY, { v: d.version || '', t: Date.now() });
+        const antes = disponibleYa;
+        disponibleYa = versionOk(d.version);
+        if (antes !== disponibleYa && (state.view === 'playlists' || state.view === 'playlist')) renderList();
+      } catch { /* sin conexión: se pregunta otro día */ }
+    }
+    const disponible = () => disponibleYa || library.local.some((p) => p.colab || p.blend);
+    setTimeout(comprobarServidor, 3000);
+
+    return { init, invitar, unirse, crearBlend, invitarBlend, unirseBlend, salir, bajar, quienAnadio, disponible };
   })();
 
   /* =========================================================

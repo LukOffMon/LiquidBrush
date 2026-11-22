@@ -2290,3 +2290,16 @@ test.describe('v97: como Spotify', () => {
     expect(await page.evaluate(() => JSON.parse(localStorage.getItem('liquidbrush:settings')).normalize)).toBe(false);
   });
 });
+
+test('v97: sin servidor de cuentas al día (antes de 1.2.0), no salen «Colaborar» ni «Blend»', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('liquidbrush:cuentas-version', JSON.stringify({ v: '1.1.0', t: Date.now() }));
+    localStorage.setItem('liquidbrush:playlists', JSON.stringify([{ id: 'p1', name: 'Mía', emoji: 'ic:disc', color: '#ff7ad9', trackIds: [], createdAt: 1 }]));
+  });
+  await page.goto('./?view=playlists');
+  await expect(page.locator('#libCount')).not.toHaveText('0');
+  await expect(page.locator('[data-action="blend-new"]')).toHaveCount(0);
+  await page.locator('.pl-card', { hasText: 'Mía' }).click();
+  await expect(page.locator('.pl-hero-name')).toHaveText('Mía');
+  await expect(page.locator('[data-action="colab-invite"]')).toHaveCount(0);
+});

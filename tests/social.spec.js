@@ -33,6 +33,8 @@ async function persona(browser, sesion, extra = {}) {
     localStorage.setItem('liquidbrush:tour', 'true');
     localStorage.setItem('liquidbrush:cuenta-ofrecida', 'true');
     localStorage.setItem('liquidbrush:cuenta', JSON.stringify(sesion));
+    // El Worker local ya es 1.2.0: los botones de colaborar y Blend salen desde el principio
+    localStorage.setItem('liquidbrush:cuentas-version', JSON.stringify({ v: '1.2.0', t: Date.now() }));
     Object.entries(extra).forEach(([k, v]) => localStorage.setItem(k, JSON.stringify(v)));
   }, { sesion, extra });
   await context.route(/r2\.dev|lrclib\.net|api\.audius\.co|archive\.org|api\.jamendo\.com|hearthis\.at|api\.openverse\.org/, (route) => route.abort());
