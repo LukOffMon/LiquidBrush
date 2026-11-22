@@ -3,3 +3,6 @@ node_modules/
 test-results/
 playwright-report/
 .wrangler/
+
+# Secretos de prueba del Worker de cuentas (wrangler dev)
+.dev.vars

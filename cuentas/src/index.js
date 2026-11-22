@@ -9,7 +9,7 @@ import {
   enviarCorreo, correoCodigo, correoYaRegistrado, correoBienvenida, correoClaveCambiada, correoPeticionAdmin, correoPeticionRecibida
 } from './correo.js';
 
-const VERSION = '1.1.0';
+const VERSION = '1.2.0';
 const MIN = 60;
 const HORA = 3600;
 const DIA = 86400;
@@ -554,6 +554,210 @@ async function pruebaCorreo(env, request) {
   }
 }
 
+/* ---------- v97: playlists colaborativas y Blends ----------
+   Se entra con el enlace de invitación (el id). Solo los miembros leen o cambian una lista o un Blend.
+   Las canciones se guardan por su id de Liquid; quien las añadió, por su nombre visible (nunca el correo). */
+const COMPARTIDA_MAX_CANCIONES = 1000;
+const COMPARTIDA_MAX_MIEMBROS = 50;
+const COMPARTIDAS_POR_PERSONA = 100;
+const BLEND_MAX_MIEMBROS = 10;
+const BLENDS_POR_PERSONA = 20;
+const GUSTO_MAX = 32 * 1024;
+
+const idCancionValido = (id) => typeof id === 'string' && /^[\w:./~%-]{1,200}$/.test(id);
+const idInvitacion = (texto) => {
+  const id = String(texto || '');
+  if (!/^[\w-]{16}$/.test(id)) throw new ErrorApi('no_encontrado', 404);
+  return id;
+};
+const nuevoIdInvitacion = () => aB64url(bytesAleatorios(12));
+const listaIds = (valor, max) => (Array.isArray(valor) ? [...new Set(valor.filter(idCancionValido))].slice(0, max) : []);
+
+async function nombreVisible(env, usuario) {
+  const u = await env.DB.prepare('SELECT nombre FROM usuarios WHERE id = ?1').bind(usuario).first();
+  return u?.nombre || 'Alguien';
+}
+
+async function leerCompartida(env, id, usuario) {
+  const lista = await env.DB.prepare('SELECT id, dueno, nombre, canciones, rev, actualizada FROM compartidas WHERE id = ?1').bind(id).first();
+  if (!lista) throw new ErrorApi('no_encontrado', 404);
+  const miembro = await env.DB.prepare('SELECT 1 FROM compartidas_miembros WHERE lista = ?1 AND usuario = ?2').bind(id, usuario).first();
+  return { lista, miembro: Boolean(miembro) };
+}
+
+async function vistaCompartida(env, lista, usuario) {
+  const { results } = await env.DB.prepare(
+    // La dueña primero; luego por orden de llegada
+    'SELECT u.nombre, m.usuario FROM compartidas_miembros m JOIN usuarios u ON u.id = m.usuario WHERE m.lista = ?1 ORDER BY m.usuario = ?2 DESC, m.unido'
+  ).bind(lista.id, lista.dueno).all();
+  return {
+    id: lista.id,
+    nombre: lista.nombre,
+    rev: lista.rev,
+    actualizada: lista.actualizada,
+    soyDueno: iguales(new Uint8Array(lista.dueno), usuario),
+    miembros: results.map((m) => m.nombre || 'Alguien'),
+    canciones: JSON.parse(lista.canciones)
+  };
+}
+
+async function compartidas(env, request) {
+  const { usuario } = await autenticar(env, request);
+  if (request.method === 'GET') {
+    // Solo id, nombre y rev: la app pide el detalle de las que cambiaron
+    const { results } = await env.DB.prepare(
+      'SELECT c.id, c.nombre, c.rev FROM compartidas c JOIN compartidas_miembros m ON m.lista = c.id WHERE m.usuario = ?1 ORDER BY c.actualizada DESC LIMIT ?2'
+    ).bind(usuario, COMPARTIDAS_POR_PERSONA).all();
+    return json(env, request, { ok: true, listas: results });
+  }
+  // POST: convertir una playlist propia en colaborativa
+  await frenoIp(env, request, 'compartidas');
+  const b = await cuerpo(request);
+  const nombre = nombreLimpio(b.nombre);
+  if (!nombre) throw new ErrorApi('nombre_invalido');
+  const cuantas = await env.DB.prepare('SELECT COUNT(*) AS n FROM compartidas_miembros WHERE usuario = ?1').bind(usuario).first();
+  if ((cuantas?.n || 0) >= COMPARTIDAS_POR_PERSONA) throw new ErrorApi('demasiadas', 429);
+  const t = ahora();
+  const quien = await nombreVisible(env, usuario);
+  const canciones = listaIds(b.canciones, COMPARTIDA_MAX_CANCIONES).map((i) => ({ i, p: quien, t }));
+  const id = nuevoIdInvitacion();
+  await env.DB.batch([
+    env.DB.prepare('INSERT INTO compartidas (id, dueno, nombre, canciones, rev, creada, actualizada) VALUES (?1, ?2, ?3, ?4, 1, ?5, ?5)')
+      .bind(id, usuario, nombre, JSON.stringify(canciones), t),
+    env.DB.prepare('INSERT INTO compartidas_miembros (lista, usuario, unido) VALUES (?1, ?2, ?3)').bind(id, usuario, t)
+  ]);
+  const { lista } = await leerCompartida(env, id, usuario);
+  return json(env, request, { ok: true, lista: await vistaCompartida(env, lista, usuario) }, 201);
+}
+
+async function compartida(env, request, id, accion) {
+  const { usuario } = await autenticar(env, request);
+  id = idInvitacion(id);
+  const m = request.method;
+  if (accion === 'unirse' && m === 'POST') {
+    await frenoIp(env, request, 'unirse');
+    const { lista, miembro } = await leerCompartida(env, id, usuario);
+    if (!miembro) {
+      const n = await env.DB.prepare('SELECT COUNT(*) AS n FROM compartidas_miembros WHERE lista = ?1').bind(id).first();
+      if ((n?.n || 0) >= COMPARTIDA_MAX_MIEMBROS) throw new ErrorApi('lista_llena', 409);
+      await env.DB.prepare('INSERT OR IGNORE INTO compartidas_miembros (lista, usuario, unido) VALUES (?1, ?2, ?3)').bind(id, usuario, ahora()).run();
+    }
+    return json(env, request, { ok: true, lista: await vistaCompartida(env, lista, usuario) });
+  }
+  const { lista, miembro } = await leerCompartida(env, id, usuario);
+  if (!miembro) throw new ErrorApi('no_encontrado', 404);
+  const dueno = iguales(new Uint8Array(lista.dueno), usuario);
+  if (!accion && m === 'GET') return json(env, request, { ok: true, lista: await vistaCompartida(env, lista, usuario) });
+  if (!accion && m === 'DELETE') {
+    // La dueña la borra para todos; cualquier otra persona sale de ella
+    if (dueno) await env.DB.prepare('DELETE FROM compartidas WHERE id = ?1').bind(id).run();
+    else await env.DB.prepare('DELETE FROM compartidas_miembros WHERE lista = ?1 AND usuario = ?2').bind(id, usuario).run();
+    return json(env, request, { ok: true, borrada: dueno });
+  }
+  if (accion === 'canciones' && m === 'POST') {
+    const b = await cuerpo(request);
+    const anadir = listaIds(b.anadir, COMPARTIDA_MAX_CANCIONES);
+    const quitar = new Set(listaIds(b.quitar, COMPARTIDA_MAX_CANCIONES));
+    const nombre = 'nombre' in b && dueno ? nombreLimpio(b.nombre) : null;
+    const quien = await nombreVisible(env, usuario);
+    // Dos personas pueden cambiarla a la vez: se reintenta sobre la versión nueva (rev)
+    for (let intento = 0; intento < 4; intento++) {
+      const actual = intento ? (await leerCompartida(env, id, usuario)).lista : lista;
+      const t = ahora();
+      const canciones = JSON.parse(actual.canciones).filter((c) => !quitar.has(c.i));
+      const ya = new Set(canciones.map((c) => c.i));
+      anadir.forEach((i) => { if (!ya.has(i) && canciones.length < COMPARTIDA_MAX_CANCIONES) { canciones.push({ i, p: quien, t }); ya.add(i); } });
+      const r = await env.DB.prepare(
+        'UPDATE compartidas SET canciones = ?1, nombre = COALESCE(?2, nombre), rev = rev + 1, actualizada = ?3 WHERE id = ?4 AND rev = ?5'
+      ).bind(JSON.stringify(canciones), nombre, t, id, actual.rev).run();
+      if (r.meta?.changes) {
+        const { lista: nueva } = await leerCompartida(env, id, usuario);
+        return json(env, request, { ok: true, lista: await vistaCompartida(env, nueva, usuario) });
+      }
+    }
+    throw new ErrorApi('ocupada', 409);
+  }
+  throw new ErrorApi('metodo', 405);
+}
+
+function gustoValido(valor) {
+  const g = valor && typeof valor === 'object' ? valor : {};
+  const gusto = {
+    t: listaIds(g.t, 200),
+    a: Array.isArray(g.a) ? [...new Set(g.a.filter((a) => typeof a === 'string' && a.length <= 80).map((a) => a.trim()).filter(Boolean))].slice(0, 50) : []
+  };
+  const texto = JSON.stringify(gusto);
+  if (texto.length > GUSTO_MAX) throw new ErrorApi('demasiado_grande', 413);
+  if (!gusto.t.length && !gusto.a.length) throw new ErrorApi('sin_gusto');
+  return texto;
+}
+
+async function vistaBlend(env, id, usuario) {
+  const { results } = await env.DB.prepare(
+    'SELECT u.nombre, m.usuario, m.gusto, m.actualizado FROM blends_miembros m JOIN usuarios u ON u.id = m.usuario WHERE m.blend = ?1 ORDER BY m.unido'
+  ).bind(id).all();
+  if (!results.some((m) => iguales(new Uint8Array(m.usuario), usuario))) throw new ErrorApi('no_encontrado', 404);
+  return {
+    id,
+    miembros: results.map((m) => ({ nombre: m.nombre || 'Alguien', yo: iguales(new Uint8Array(m.usuario), usuario), gusto: JSON.parse(m.gusto), actualizado: m.actualizado }))
+  };
+}
+
+async function blends(env, request) {
+  const { usuario } = await autenticar(env, request);
+  if (request.method === 'GET') {
+    const { results } = await env.DB.prepare(
+      'SELECT b.id, b.actualizado FROM blends b JOIN blends_miembros m ON m.blend = b.id WHERE m.usuario = ?1 ORDER BY b.actualizado DESC LIMIT ?2'
+    ).bind(usuario, BLENDS_POR_PERSONA).all();
+    return json(env, request, { ok: true, blends: results });
+  }
+  await frenoIp(env, request, 'blends');
+  const b = await cuerpo(request);
+  const gusto = gustoValido(b.gusto);
+  const cuantos = await env.DB.prepare('SELECT COUNT(*) AS n FROM blends_miembros WHERE usuario = ?1').bind(usuario).first();
+  if ((cuantos?.n || 0) >= BLENDS_POR_PERSONA) throw new ErrorApi('demasiados', 429);
+  const id = nuevoIdInvitacion();
+  const t = ahora();
+  await env.DB.batch([
+    env.DB.prepare('INSERT INTO blends (id, creada, actualizado) VALUES (?1, ?2, ?2)').bind(id, t),
+    env.DB.prepare('INSERT INTO blends_miembros (blend, usuario, gusto, unido, actualizado) VALUES (?1, ?2, ?3, ?4, ?4)').bind(id, usuario, gusto, t)
+  ]);
+  return json(env, request, { ok: true, blend: await vistaBlend(env, id, usuario) }, 201);
+}
+
+async function blend(env, request, id, accion) {
+  const { usuario } = await autenticar(env, request);
+  id = idInvitacion(id);
+  const m = request.method;
+  const existe = await env.DB.prepare('SELECT 1 FROM blends WHERE id = ?1').bind(id).first();
+  if (!existe) throw new ErrorApi('no_encontrado', 404);
+  const t = ahora();
+  if ((accion === 'unirse' && m === 'POST') || (accion === 'gusto' && m === 'PUT')) {
+    if (accion === 'unirse') await frenoIp(env, request, 'unirse');
+    const gusto = gustoValido((await cuerpo(request)).gusto);
+    const ya = await env.DB.prepare('SELECT 1 FROM blends_miembros WHERE blend = ?1 AND usuario = ?2').bind(id, usuario).first();
+    if (!ya) {
+      if (accion === 'gusto') throw new ErrorApi('no_encontrado', 404);
+      const n = await env.DB.prepare('SELECT COUNT(*) AS n FROM blends_miembros WHERE blend = ?1').bind(id).first();
+      if ((n?.n || 0) >= BLEND_MAX_MIEMBROS) throw new ErrorApi('blend_lleno', 409);
+    }
+    await env.DB.batch([
+      env.DB.prepare(
+        'INSERT INTO blends_miembros (blend, usuario, gusto, unido, actualizado) VALUES (?1, ?2, ?3, ?4, ?4) ON CONFLICT (blend, usuario) DO UPDATE SET gusto = excluded.gusto, actualizado = excluded.actualizado'
+      ).bind(id, usuario, gusto, t),
+      env.DB.prepare('UPDATE blends SET actualizado = ?1 WHERE id = ?2').bind(t, id)
+    ]);
+    return json(env, request, { ok: true, blend: await vistaBlend(env, id, usuario) });
+  }
+  if (!accion && m === 'GET') return json(env, request, { ok: true, blend: await vistaBlend(env, id, usuario) });
+  if (!accion && m === 'DELETE') {
+    await env.DB.prepare('DELETE FROM blends_miembros WHERE blend = ?1 AND usuario = ?2').bind(id, usuario).run();
+    await env.DB.prepare('DELETE FROM blends WHERE id = ?1 AND NOT EXISTS (SELECT 1 FROM blends_miembros WHERE blend = ?1)').bind(id).run();
+    return json(env, request, { ok: true });
+  }
+  throw new ErrorApi('metodo', 405);
+}
+
 /* ---------- Limpieza diaria (Cron) ---------- */
 async function borrarArchivos(env, id) {
   const prefijo = `cuentas/${aB64url(new Uint8Array(id))}/`;
@@ -585,6 +789,8 @@ async function limpieza(env) {
     env.DB.prepare('DELETE FROM sesiones WHERE caduca < ?1 OR revocada < ?2').bind(t, t - 30 * DIA),
     env.DB.prepare('DELETE FROM actividad WHERE fecha < ?1').bind(t - 90 * DIA),
     env.DB.prepare('DELETE FROM contadores WHERE caduca < ?1').bind(t),
+    // Blends que se quedaron sin nadie
+    env.DB.prepare('DELETE FROM blends WHERE NOT EXISTS (SELECT 1 FROM blends_miembros m WHERE m.blend = blends.id)'),
     env.DB.prepare('PRAGMA optimize')
   ]);
 }
@@ -623,6 +829,13 @@ export default {
       const arch = ruta.match(/^\/datos(?:\/escucha\/(\d{4}))?$/);
       if (arch) return await datos(env, request, arch[1] ? `escucha-${arch[1]}` : 'datos');
       if (ruta === '/peticion' && m === 'POST') return await peticion(env, request, ctx);
+      // v97: playlists colaborativas y Blends
+      if (ruta === '/compartidas' && (m === 'GET' || m === 'POST')) return await compartidas(env, request);
+      const comp = ruta.match(/^\/compartidas\/([\w-]+)(?:\/(unirse|canciones))?$/);
+      if (comp) return await compartida(env, request, comp[1], comp[2] || '');
+      if (ruta === '/blends' && (m === 'GET' || m === 'POST')) return await blends(env, request);
+      const bl = ruta.match(/^\/blends\/([\w-]+)(?:\/(unirse|gusto))?$/);
+      if (bl) return await blend(env, request, bl[1], bl[2] || '');
       if (ruta === '/admin/prueba-correo' && m === 'POST') return await pruebaCorreo(env, request);
       return fallo(env, request, 'no_encontrado', 404);
     } catch (error) {
